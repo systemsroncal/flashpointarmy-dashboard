@@ -1,0 +1,12 @@
+Why you see no tables in Supabase
+---------------------------------
+The app does not create tables by itself. You must run the migration once.
+
+Steps:
+1. Open Supabase Dashboard → your project.
+2. Go to SQL → New query.
+3. Paste the full contents of: migrations/001_flashpoint_rbac.sql
+4. Click Run. Fix any error (e.g. duplicate policy) by adjusting only that line.
+5. Open Database → Tables. You should see: profiles, modules, roles, role_permissions, user_roles, locations, audit_logs, notifications.
+
+If tables still do not appear, confirm you ran the script on the same project as NEXT_PUBLIC_SUPABASE_URL in .env.local.

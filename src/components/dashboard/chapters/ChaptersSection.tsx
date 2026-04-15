@@ -1,0 +1,639 @@
+"use client";
+
+import { createClient } from "@/utils/supabase/client";
+import {
+  DeleteOutline,
+  Edit,
+  Visibility,
+} from "@mui/icons-material";
+import {
+  US_STATES,
+  filterUsStatesByQuery,
+  usStateByCode,
+  usStateById,
+  type USStateOption,
+} from "@/data/usStates";
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useSyncedState } from "@/hooks/useSyncedState";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+
+export type ChapterRow = {
+  id: string;
+  name: string;
+  address_line: string | null;
+  city: string | null;
+  state: string;
+  zip_code: string | null;
+  status: string;
+  created_at: string;
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  approved: "Approved",
+  pending_approval: "Pending Approval",
+  created: "Created",
+};
+
+function statusColor(status: string) {
+  if (status === "approved") return "success";
+  if (status === "pending_approval") return "info";
+  return "warning";
+}
+
+function StateSearchAutocomplete({
+  value,
+  onChange,
+  required,
+  label = "State",
+}: {
+  value: USStateOption | null;
+  onChange: (next: USStateOption | null) => void;
+  required?: boolean;
+  label?: string;
+}) {
+  return (
+    <Autocomplete
+      options={US_STATES}
+      value={value}
+      onChange={(_, v) => onChange(v)}
+      getOptionLabel={(o) => `${o.name} (${o.code})`}
+      isOptionEqualToValue={(a, b) => a.id === b.id}
+      filterOptions={(opts, state) => filterUsStatesByQuery(opts, state.inputValue)}
+      renderOption={(props, option) => {
+        const { key, ...optionProps } = props;
+        return (
+          <li key={key} {...optionProps}>
+            <Box>
+              <Typography variant="body2">{option.name}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Code {option.code} · State ID {option.id}
+              </Typography>
+            </Box>
+          </li>
+        );
+      }}
+      renderInput={(params) => (
+        <TextField {...params} label={label} required={required} placeholder="Search name or code…" />
+      )}
+    />
+  );
+}
+
+export function ChaptersSection({
+  initialRows,
+  leaderOptions,
+  canRead,
+  canCreate,
+  canUpdate,
+  canDelete,
+}: {
+  initialRows: ChapterRow[];
+  leaderOptions: { id: string; label: string }[];
+  canRead: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}) {
+  const router = useRouter();
+  const [rows, setRows] = useSyncedState(initialRows);
+  const [filter, setFilter] = useState<string>("all");
+  const [viewRow, setViewRow] = useState<ChapterRow | null>(null);
+  const [editRow, setEditRow] = useState<ChapterRow | null>(null);
+  const [editLeaders, setEditLeaders] = useState<string[]>([]);
+  /** Leader IDs when the edit dialog was opened — used to diff adds/removes and avoid re-triggering DB inserts. */
+  const [editLeadersBaseline, setEditLeadersBaseline] = useState<string[]>([]);
+  const [deleteRow, setDeleteRow] = useState<ChapterRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deps, setDeps] = useState<Record<string, number> | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createLeaders, setCreateLeaders] = useState<string[]>([]);
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    address_line: "",
+    city: "",
+    /** FIPS state id (value of the state select). */
+    stateId: "",
+    zip_code: "",
+    status: "created" as ChapterRow["status"],
+  });
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return rows;
+    return rows.filter((r) => r.status === filter);
+  }, [rows, filter]);
+
+  async function loadLeadersForChapter(chapterId: string) {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("chapter_leaders")
+      .select("user_id")
+      .eq("chapter_id", chapterId);
+    const ids = (data ?? []).map((r: { user_id: string }) => r.user_id);
+    setEditLeaders(ids);
+    setEditLeadersBaseline([...ids]);
+  }
+
+  async function openEdit(row: ChapterRow) {
+    setEditRow(row);
+    await loadLeadersForChapter(row.id);
+  }
+
+  async function openDelete(row: ChapterRow) {
+    setDeleteRow(row);
+    setDeleteConfirm("");
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("chapter_dependency_counts", {
+      p_chapter_id: row.id,
+    });
+    if (!error && data && typeof data === "object") {
+      setDeps(data as Record<string, number>);
+    } else {
+      setDeps(null);
+    }
+  }
+
+  async function saveEdit() {
+    if (!editRow) return;
+    const st = editRow.state.trim().toUpperCase().slice(0, 2);
+    if (!st || !usStateByCode(st)) return;
+    const supabase = createClient();
+    const { data: updated, error: upErr } = await supabase
+      .from("chapters")
+      .update({
+        name: editRow.name,
+        address_line: editRow.address_line,
+        city: editRow.city,
+        state: st,
+        zip_code: editRow.zip_code,
+        status: editRow.status,
+      })
+      .eq("id", editRow.id)
+      .select("id,name,address_line,city,state,zip_code,status,created_at")
+      .single();
+
+    if (upErr || !updated) return;
+
+    const baseline = editLeadersBaseline;
+    const current = editLeaders;
+    const toRemove = baseline.filter((id) => !current.includes(id));
+    const toAdd = current.filter((id) => !baseline.includes(id));
+
+    for (const uid of toRemove) {
+      await supabase
+        .from("chapter_leaders")
+        .delete()
+        .eq("chapter_id", editRow.id)
+        .eq("user_id", uid);
+    }
+    if (toAdd.length > 0) {
+      await supabase.from("chapter_leaders").insert(
+        toAdd.map((uid) => ({ chapter_id: editRow.id, user_id: uid }))
+      );
+    }
+
+    for (const uid of toAdd) {
+      void fetch("/api/email/local-leader-assigned", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: uid, chapterId: editRow.id }),
+      });
+    }
+
+    setRows((prev) =>
+      prev.map((r) => (r.id === updated.id ? (updated as ChapterRow) : r))
+    );
+    setEditRow(null);
+    router.refresh();
+  }
+
+  async function confirmDelete() {
+    if (!deleteRow || deleteConfirm !== "DELETE") return;
+    const supabase = createClient();
+    await supabase.from("chapters").delete().eq("id", deleteRow.id);
+    setDeleteRow(null);
+    setRows((r) => r.filter((x) => x.id !== deleteRow.id));
+    router.refresh();
+  }
+
+  function resetCreateForm() {
+    setCreateForm({
+      name: "",
+      address_line: "",
+      city: "",
+      stateId: "",
+      zip_code: "",
+      status: "created",
+    });
+    setCreateLeaders([]);
+  }
+
+  async function saveCreate() {
+    const name = createForm.name.trim();
+    const st = usStateById(createForm.stateId);
+    const state = st?.code ?? "";
+    if (!name || !state) return;
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const { data: inserted, error } = await supabase
+      .from("chapters")
+      .insert({
+        name,
+        address_line: createForm.address_line.trim() || null,
+        city: createForm.city.trim() || null,
+        state,
+        zip_code: createForm.zip_code.trim() || null,
+        status: createForm.status,
+        created_by: user?.id ?? null,
+      })
+      .select("id,name,address_line,city,state,zip_code,status,created_at")
+      .single();
+    if (error || !inserted) return;
+    if (createLeaders.length > 0) {
+      await supabase.from("chapter_leaders").insert(
+        createLeaders.map((uid) => ({ chapter_id: inserted.id, user_id: uid }))
+      );
+      for (const uid of createLeaders) {
+        void fetch("/api/email/local-leader-assigned", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetUserId: uid, chapterId: inserted.id }),
+        });
+      }
+    }
+    setRows((r) => [...r, inserted as ChapterRow]);
+    setCreateOpen(false);
+    resetCreateForm();
+    router.refresh();
+  }
+
+  if (!canRead) {
+    return (
+      <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
+        <Typography color="error">You do not have access to Chapters.</Typography>
+      </Paper>
+    );
+  }
+
+  return (
+    <Box>
+      <Typography variant="h5" sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}>
+        Chapters
+      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 1,
+          mb: 2,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {canCreate ? (
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => {
+                resetCreateForm();
+                setCreateOpen(true);
+              }}
+            >
+              Add new
+            </Button>
+          ) : null}
+        </Box>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel id="ch-filter">Status</InputLabel>
+          <Select
+            labelId="ch-filter"
+            label="Status"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <MenuItem value="all">All statuses</MenuItem>
+            <MenuItem value="approved">Approved</MenuItem>
+            <MenuItem value="pending_approval">Pending Approval</MenuItem>
+            <MenuItem value="created">Created</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+
+      <Paper sx={{ bgcolor: "rgba(0,0,0,0.45)", overflow: "auto" }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Chapter location</TableCell>
+              <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>State</TableCell>
+              <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Status</TableCell>
+              <TableCell sx={{ color: "primary.main", fontWeight: 700 }} align="right">
+                Actions
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filtered.map((row) => {
+              const stOpt = usStateByCode(row.state);
+              return (
+              <TableRow key={row.id}>
+                <TableCell>{row.name}</TableCell>
+                <TableCell>
+                  {stOpt ? `${stOpt.name} (${row.state})` : row.state}
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    size="small"
+                    label={STATUS_LABEL[row.status] ?? row.status}
+                    color={statusColor(row.status) as "success" | "info" | "warning"}
+                  />
+                </TableCell>
+                <TableCell align="right">
+                  <IconButton size="small" color="inherit" onClick={() => setViewRow(row)} aria-label="View">
+                    <Visibility fontSize="small" />
+                  </IconButton>
+                  {canUpdate ? (
+                    <IconButton size="small" color="primary" onClick={() => void openEdit(row)} aria-label="Edit">
+                      <Edit fontSize="small" />
+                    </IconButton>
+                  ) : null}
+                  {canDelete ? (
+                    <IconButton size="small" color="error" onClick={() => void openDelete(row)} aria-label="Delete">
+                      <DeleteOutline fontSize="small" />
+                    </IconButton>
+                  ) : null}
+                </TableCell>
+              </TableRow>
+            );
+            })}
+          </TableBody>
+        </Table>
+      </Paper>
+
+      <Dialog open={!!viewRow} onClose={() => setViewRow(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Chapter details</DialogTitle>
+        <DialogContent>
+          {viewRow ? (
+            <Box sx={{ display: "grid", gap: 1, pt: 1 }}>
+              <Typography><strong>Name:</strong> {viewRow.name}</Typography>
+              <Typography><strong>Address:</strong> {viewRow.address_line ?? "—"}</Typography>
+              <Typography><strong>City:</strong> {viewRow.city ?? "—"}</Typography>
+              <Typography>
+                <strong>State:</strong>{" "}
+                {(() => {
+                  const v = usStateByCode(viewRow.state);
+                  return v ? `${v.name} (${v.code}, state ID ${v.id})` : viewRow.state;
+                })()}
+              </Typography>
+              <Typography><strong>ZIP:</strong> {viewRow.zip_code ?? "—"}</Typography>
+              <Typography><strong>Status:</strong> {STATUS_LABEL[viewRow.status] ?? viewRow.status}</Typography>
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewRow(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!editRow} onClose={() => setEditRow(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit chapter</DialogTitle>
+        <DialogContent>
+          {editRow ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+              <TextField
+                label="Chapter name"
+                fullWidth
+                value={editRow.name}
+                onChange={(e) => setEditRow({ ...editRow, name: e.target.value })}
+              />
+              <TextField
+                label="Address"
+                fullWidth
+                value={editRow.address_line ?? ""}
+                onChange={(e) => setEditRow({ ...editRow, address_line: e.target.value })}
+              />
+              <TextField
+                label="City"
+                fullWidth
+                value={editRow.city ?? ""}
+                onChange={(e) => setEditRow({ ...editRow, city: e.target.value })}
+              />
+              <StateSearchAutocomplete
+                label="State"
+                required
+                value={usStateByCode(editRow.state)}
+                onChange={(opt) =>
+                  setEditRow({ ...editRow, state: opt?.code ?? "" })
+                }
+              />
+              <TextField
+                label="ZIP code"
+                value={editRow.zip_code ?? ""}
+                onChange={(e) => setEditRow({ ...editRow, zip_code: e.target.value })}
+              />
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  label="Status"
+                  value={editRow.status}
+                  onChange={(e) =>
+                    setEditRow({ ...editRow, status: e.target.value })
+                  }
+                >
+                  <MenuItem value="created">Created</MenuItem>
+                  <MenuItem value="pending_approval">Pending Approval</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth>
+                <InputLabel>Leaders</InputLabel>
+                <Select
+                  multiple
+                  label="Leaders"
+                  value={editLeaders}
+                  onChange={(e) =>
+                    setEditLeaders(typeof e.target.value === "string" ? [] : e.target.value as string[])
+                  }
+                  renderValue={(selected) =>
+                    (selected as string[])
+                      .map((id) => leaderOptions.find((o) => o.id === id)?.label ?? id)
+                      .join(", ")
+                  }
+                >
+                  {leaderOptions.map((o) => (
+                    <MenuItem key={o.id} value={o.id}>
+                      {o.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditRow(null)}>Cancel</Button>
+          {canUpdate ? (
+            <Button
+              variant="contained"
+              onClick={() => void saveEdit()}
+              disabled={!editRow || !usStateByCode(editRow.state)}
+            >
+              Save
+            </Button>
+          ) : null}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add chapter</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+            <TextField
+              label="Chapter name"
+              fullWidth
+              required
+              value={createForm.name}
+              onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+            />
+            <TextField
+              label="Address"
+              fullWidth
+              value={createForm.address_line}
+              onChange={(e) => setCreateForm((f) => ({ ...f, address_line: e.target.value }))}
+            />
+            <TextField
+              label="City"
+              fullWidth
+              value={createForm.city}
+              onChange={(e) => setCreateForm((f) => ({ ...f, city: e.target.value }))}
+            />
+            <StateSearchAutocomplete
+              label="State"
+              required
+              value={usStateById(createForm.stateId)}
+              onChange={(opt) =>
+                setCreateForm((f) => ({ ...f, stateId: opt?.id ?? "" }))
+              }
+            />
+            <TextField
+              label="ZIP code"
+              value={createForm.zip_code}
+              onChange={(e) => setCreateForm((f) => ({ ...f, zip_code: e.target.value }))}
+            />
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                label="Status"
+                value={createForm.status}
+                onChange={(e) =>
+                  setCreateForm((f) => ({ ...f, status: e.target.value as ChapterRow["status"] }))
+                }
+              >
+                <MenuItem value="created">Created</MenuItem>
+                <MenuItem value="pending_approval">Pending Approval</MenuItem>
+                <MenuItem value="approved">Approved</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Leaders (optional)</InputLabel>
+              <Select
+                multiple
+                label="Leaders (optional)"
+                value={createLeaders}
+                onChange={(e) =>
+                  setCreateLeaders(
+                    typeof e.target.value === "string" ? [] : (e.target.value as string[])
+                  )
+                }
+                renderValue={(selected) =>
+                  (selected as string[])
+                    .map((id) => leaderOptions.find((o) => o.id === id)?.label ?? id)
+                    .join(", ")
+                }
+              >
+                {leaderOptions.map((o) => (
+                  <MenuItem key={o.id} value={o.id}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
+          {canCreate ? (
+            <Button
+              variant="contained"
+              onClick={() => void saveCreate()}
+              disabled={!createForm.name.trim() || !createForm.stateId}
+            >
+              Create
+            </Button>
+          ) : null}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!deleteRow} onClose={() => setDeleteRow(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Delete chapter</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" paragraph>
+            This action cannot be undone. If this chapter is linked to other records, you must resolve those links first or accept cascading impact.
+          </Typography>
+          {deps ? (
+            <Box sx={{ mb: 2, p: 1, bgcolor: "rgba(255,200,0,0.08)", borderRadius: 1 }}>
+              <Typography variant="caption" display="block">
+                Linked records: gatherings {deps.gatherings ?? 0}, chapter leaders {deps.chapter_leaders ?? 0},
+                profiles (primary chapter) {deps.profiles_primary_chapter ?? 0}
+              </Typography>
+            </Box>
+          ) : null}
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Type <strong>DELETE</strong> to confirm.
+          </Typography>
+          <TextField
+            fullWidth
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            placeholder="DELETE"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteRow(null)}>Cancel</Button>
+          <Button
+            color="error"
+            disabled={deleteConfirm !== "DELETE"}
+            onClick={() => void confirmDelete()}
+          >
+            Delete permanently
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+    </Box>
+  );
+}
