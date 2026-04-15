@@ -2,37 +2,20 @@ import { MODULE_SLUGS } from "@/config/modules";
 import {
   cleanPhone,
   containsTestText,
-  parseZipFromAddress,
   PHONE_EXCEL_KEYS,
   pickField,
   splitName,
   type FlatRow,
   type ImportResultItem,
 } from "@/lib/import/bulk-import";
+import { resolveChapterForMemberImport, type ChapterRow } from "@/lib/import/chapter-import";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
-import { resolveChapterUsState } from "@/lib/import/us-state";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
 type Body = { rows?: FlatRow[] };
-type Chapter = { id: string; name: string; city: string | null; state: string; zip_code: string | null };
-
-function chooseChapter(chapters: Chapter[], zip: string, city: string, state: string) {
-  if (chapters.length === 0) return null;
-  const z = zip.slice(0, 5);
-  const byZip = z ? chapters.find((c) => (c.zip_code || "").startsWith(z)) : null;
-  if (byZip) return byZip;
-  const cityLower = city.toLowerCase();
-  const stateUpper = state.toUpperCase();
-  const byCity = chapters.find(
-    (c) => (c.city || "").toLowerCase() === cityLower && c.state.toUpperCase() === stateUpper
-  );
-  if (byCity) return byCity;
-  const byState = stateUpper ? chapters.find((c) => c.state.toUpperCase() === stateUpper) : null;
-  return byState ?? chapters[0];
-}
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -66,7 +49,7 @@ export async function POST(req: Request) {
     .from("chapters")
     .select("id,name,city,state,zip_code")
     .order("name");
-  const chapters = (chaptersData ?? []) as Chapter[];
+  let chapters = (chaptersData ?? []) as ChapterRow[];
 
   const results: ImportResultItem[] = [];
   const existingEmails = new Set<string>();
@@ -90,13 +73,6 @@ export async function POST(req: Request) {
     const { firstName, lastName } = splitName(fullName);
     const email = pickField(row, ["Email", "email"]).toLowerCase();
     const phone = cleanPhone(pickField(row, PHONE_EXCEL_KEYS));
-    const address = pickField(row, ["Address", "address"]);
-    const zip = parseZipFromAddress(address) || pickField(row, ["ZIP code", "Zip", "zip"]);
-    const city = pickField(row, ["City", "city"]) || "";
-    const churchStateRaw = pickField(row, ["Church State", "State", "state", "Church state"]);
-    const stateResolved = resolveChapterUsState({ churchStateRaw, address });
-    const state = "error" in stateResolved ? "" : stateResolved.code;
-
     if (containsTestText(row)) {
       results.push({ status: "omitted", email, phone, reason: "Contains test text." });
       continue;
@@ -114,11 +90,13 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const chapter = chooseChapter(chapters, zip, city, state);
-    if (!chapter) {
-      results.push({ status: "omitted", email, phone, reason: "No chapter available." });
+    const chapterPick = await resolveChapterForMemberImport(admin, row, chapters, user.id);
+    if ("error" in chapterPick) {
+      results.push({ status: "omitted", email, phone, reason: chapterPick.error });
       continue;
     }
+    chapters = chapterPick.chapters;
+    const chapter = chapterPick.chapter;
 
     const password = phone || "Welcome123!";
     const { data: created, error: createErr } = await admin.auth.admin.createUser({

@@ -5,9 +5,17 @@ import {
   parseZipFromAddress,
   pickChapterName,
   pickField,
+  pickLeaderEmail,
+  pickLeaderFullName,
+  pickLeaderPhone,
+  splitName,
   type FlatRow,
   type ImportResultItem,
 } from "@/lib/import/bulk-import";
+import {
+  createLocalLeaderUserForChapter,
+  linkExistingUserAsLocalLeader,
+} from "@/lib/import/create-local-leader-user";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { resolveChapterUsState } from "@/lib/import/us-state";
@@ -41,6 +49,13 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
+  const { data: leaderRoleRow } = await admin
+    .from("roles")
+    .select("id")
+    .eq("name", "local_leader")
+    .maybeSingle();
+  const leaderRoleId = leaderRoleRow?.id as string | undefined;
+
   const chapterNames = rows.map((r) => pickChapterName(r)).map((n) => n.trim()).filter(Boolean);
   const { data: existingRows } = await admin.from("chapters").select("name").in("name", chapterNames);
   const existing = new Set((existingRows ?? []).map((r) => r.name.trim().toLowerCase()));
@@ -83,21 +98,75 @@ export async function POST(req: Request) {
     }
     const state = stateResolved.code;
 
-    const { error } = await admin.from("chapters").insert({
-      name: chapterName,
-      address_line: address || null,
-      city: city || null,
-      state,
-      zip_code: zip || null,
-      status: "approved",
-      created_by: user.id,
-    });
-    if (error) {
-      results.push({ status: "omitted", chapter: chapterName, reason: error.message || "Insert failed." });
+    const { data: insertedChapter, error } = await admin
+      .from("chapters")
+      .insert({
+        name: chapterName,
+        address_line: address || null,
+        city: city || null,
+        state,
+        zip_code: zip || null,
+        status: "approved",
+        created_by: user.id,
+      })
+      .select("id")
+      .single();
+    if (error || !insertedChapter?.id) {
+      results.push({
+        status: "omitted",
+        chapter: chapterName,
+        reason: error?.message || "Insert failed.",
+      });
       continue;
     }
+    const chapterId = insertedChapter.id as string;
     batch.add(key);
-    results.push({ status: "imported", chapter: chapterName });
+
+    let leaderNote = "";
+    const lem = pickLeaderEmail(row).trim();
+    const lname = pickLeaderFullName(row).trim();
+    const lphone = pickLeaderPhone(row);
+    if (lem && lname && leaderRoleId) {
+      const { firstName, lastName } = splitName(lname);
+      if (firstName && lastName) {
+        const { data: existingDu } = await admin
+          .from("dashboard_users")
+          .select("id")
+          .ilike("email", lem)
+          .maybeSingle();
+        if (existingDu?.id) {
+          const linked = await linkExistingUserAsLocalLeader(admin, {
+            userId: existingDu.id,
+            chapterId,
+            leaderRoleId,
+          });
+          leaderNote =
+            "error" in linked
+              ? ` (leader skipped: ${linked.error})`
+              : " (local leader linked to existing user)";
+        } else {
+          const created = await createLocalLeaderUserForChapter(admin, {
+            email: lem,
+            firstName,
+            lastName,
+            phone: lphone,
+            chapterId,
+            leaderRoleId,
+          });
+          leaderNote =
+            "error" in created ? ` (leader skipped: ${created.error})` : " + local leader created";
+        }
+      } else {
+        leaderNote = " (leader name needs first and last name)";
+      }
+    } else if ((lem || lname || lphone) && !leaderRoleId) {
+      leaderNote = " (local_leader role missing in DB)";
+    }
+
+    results.push({
+      status: "imported",
+      chapter: chapterName + leaderNote,
+    });
   }
 
   const created = results.filter((r) => r.status === "imported").length;

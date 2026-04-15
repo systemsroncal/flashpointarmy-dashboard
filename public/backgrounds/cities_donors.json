@@ -1,0 +1,7524 @@
+{
+"Cities":[
+ {
+  "City": "Anchorage",
+  "State": "AK",
+  "Donors": 5
+ },
+ {
+  "City": "Eagle River",
+  "State": "AK",
+  "Donors": 2
+ },
+ {
+  "City": "North Pole",
+  "State": "AK",
+  "Donors": 2
+ },
+ {
+  "City": "Wasilla",
+  "State": "AK",
+  "Donors": 2
+ },
+ {
+  "City": "Alabaster",
+  "State": "AL",
+  "Donors": 4
+ },
+ {
+  "City": "Athens",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Atmore",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Bay Minette",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Birmingham",
+  "State": "AL",
+  "Donors": 4
+ },
+ {
+  "City": "Brewton",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Chunchula",
+  "State": "AL",
+  "Donors": 4
+ },
+ {
+  "City": "Cullman",
+  "State": "AL",
+  "Donors": 4
+ },
+ {
+  "City": "Daphne",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Decatur",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Dothan",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Eight Mile",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Enterprise",
+  "State": "AL",
+  "Donors": 5
+ },
+ {
+  "City": "Fairhope",
+  "State": "AL",
+  "Donors": 6
+ },
+ {
+  "City": "Florence",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Foley",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Fort Payne",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Grand Bay",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Hanceville",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Headland",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Hope Hull",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Huntsville",
+  "State": "AL",
+  "Donors": 7
+ },
+ {
+  "City": "Jasper",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Jemison",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Kinston",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Lowndesboro",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Loxley",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Madison",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Mobile",
+  "State": "AL",
+  "Donors": 33
+ },
+ {
+  "City": "Montgomery",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Nanafalia",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Oneonta",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Pell City",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Robertsdale",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Saraland",
+  "State": "AL",
+  "Donors": 3
+ },
+ {
+  "City": "Semmes",
+  "State": "AL",
+  "Donors": 8
+ },
+ {
+  "City": "Southside",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Stapleton",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Theodore",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Valley Grande",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Wilsonville",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Woodland",
+  "State": "AL",
+  "Donors": 2
+ },
+ {
+  "City": "Benton",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Bentonville",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Camden",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Conway",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Eureka Springs",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Fayetteville",
+  "State": "AR",
+  "Donors": 4
+ },
+ {
+  "City": "Fort Smith",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Gassville",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Hardy",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Harrison",
+  "State": "AR",
+  "Donors": 3
+ },
+ {
+  "City": "Holiday Island",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Hot Springs",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Hot Springs National Park",
+  "State": "AR",
+  "Donors": 3
+ },
+ {
+  "City": "Jonesboro",
+  "State": "AR",
+  "Donors": 3
+ },
+ {
+  "City": "Little Rock",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Malvern",
+  "State": "AR",
+  "Donors": 3
+ },
+ {
+  "City": "Marble Falls",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Mena",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Mountain Home",
+  "State": "AR",
+  "Donors": 5
+ },
+ {
+  "City": "Mountain View",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Omaha",
+  "State": "AR",
+  "Donors": 3
+ },
+ {
+  "City": "Prairie Grove",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Rogers",
+  "State": "AR",
+  "Donors": 6
+ },
+ {
+  "City": "Russellville",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Siloam Springs",
+  "State": "AR",
+  "Donors": 3
+ },
+ {
+  "City": "Texarkana",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "White Hall",
+  "State": "AR",
+  "Donors": 2
+ },
+ {
+  "City": "Casa Grande",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Chandler",
+  "State": "AZ",
+  "Donors": 3
+ },
+ {
+  "City": "Congress",
+  "State": "AZ",
+  "Donors": 4
+ },
+ {
+  "City": "Cottonwood",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Dewey",
+  "State": "AZ",
+  "Donors": 4
+ },
+ {
+  "City": "Flagstaff",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Florence",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Fountain Hills",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Gilbert",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Glendale",
+  "State": "AZ",
+  "Donors": 6
+ },
+ {
+  "City": "Gold Canyon",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Goodyear",
+  "State": "AZ",
+  "Donors": 3
+ },
+ {
+  "City": "Green Valley",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Kingman",
+  "State": "AZ",
+  "Donors": 5
+ },
+ {
+  "City": "Maricopa",
+  "State": "AZ",
+  "Donors": 4
+ },
+ {
+  "City": "Mesa",
+  "State": "AZ",
+  "Donors": 18
+ },
+ {
+  "City": "Payson",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Peoria",
+  "State": "AZ",
+  "Donors": 4
+ },
+ {
+  "City": "Phoenix",
+  "State": "AZ",
+  "Donors": 12
+ },
+ {
+  "City": "Prescott Valley",
+  "State": "AZ",
+  "Donors": 5
+ },
+ {
+  "City": "San Tan Valley",
+  "State": "AZ",
+  "Donors": 4
+ },
+ {
+  "City": "Scottsdale",
+  "State": "AZ",
+  "Donors": 6
+ },
+ {
+  "City": "Sierra Vista",
+  "State": "AZ",
+  "Donors": 3
+ },
+ {
+  "City": "Snowflake",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Sun City",
+  "State": "AZ",
+  "Donors": 8
+ },
+ {
+  "City": "Sun City West",
+  "State": "AZ",
+  "Donors": 5
+ },
+ {
+  "City": "Surprise",
+  "State": "AZ",
+  "Donors": 6
+ },
+ {
+  "City": "Tucson",
+  "State": "AZ",
+  "Donors": 26
+ },
+ {
+  "City": "Vail",
+  "State": "AZ",
+  "Donors": 2
+ },
+ {
+  "City": "Yuma",
+  "State": "AZ",
+  "Donors": 3
+ },
+ {
+  "City": "Ahwahnee",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Apple Valley",
+  "State": "CA",
+  "Donors": 4
+ },
+ {
+  "City": "Aptos",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Arroyo Grande",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Bakersfield",
+  "State": "CA",
+  "Donors": 10
+ },
+ {
+  "City": "Big Bear City",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Camarillo",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Carson",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Chico",
+  "State": "CA",
+  "Donors": 4
+ },
+ {
+  "City": "Chula Vista",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Citrus Heights",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Clovis",
+  "State": "CA",
+  "Donors": 11
+ },
+ {
+  "City": "Coarsegold",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Compton",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Concord",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Corona",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Costa Mesa",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Escondido",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Fair Oaks",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Fallbrook",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Fontana",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Fremont",
+  "State": "CA",
+  "Donors": 4
+ },
+ {
+  "City": "Fresno",
+  "State": "CA",
+  "Donors": 11
+ },
+ {
+  "City": "Glendale",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Hemet",
+  "State": "CA",
+  "Donors": 4
+ },
+ {
+  "City": "Highland",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Hollister",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Huntington Beach",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Inglewood",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "La Puente",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "La Quinta",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Laguna Woods",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Lancaster",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Lemon Grove",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Lincoln",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Lodi",
+  "State": "CA",
+  "Donors": 7
+ },
+ {
+  "City": "Long Beach",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Los Angeles",
+  "State": "CA",
+  "Donors": 4
+ },
+ {
+  "City": "Madera",
+  "State": "CA",
+  "Donors": 4
+ },
+ {
+  "City": "Menifee",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Merced",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Meridian",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Mission Viejo",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Modesto",
+  "State": "CA",
+  "Donors": 6
+ },
+ {
+  "City": "Moreno Valley",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Morgan Hill",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Murrieta",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Napa",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Nipomo",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "North Highlands",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Norwalk",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Oakland",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Oceanside",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Ontario",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Orange",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Palmdale",
+  "State": "CA",
+  "Donors": 6
+ },
+ {
+  "City": "Pasadena",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Paso Robles",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Petaluma",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Placentia",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Porterville",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Poway",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Ramona",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Rancho Cordova",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Rancho Cucamonga",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Redding",
+  "State": "CA",
+  "Donors": 6
+ },
+ {
+  "City": "Redlands",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Ridgecrest",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Rio Vista",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Riverside",
+  "State": "CA",
+  "Donors": 7
+ },
+ {
+  "City": "Rolling Hills Estates",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Roseville",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Sacramento",
+  "State": "CA",
+  "Donors": 4
+ },
+ {
+  "City": "Salinas",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "San Diego",
+  "State": "CA",
+  "Donors": 6
+ },
+ {
+  "City": "San Francisco",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "San Jose",
+  "State": "CA",
+  "Donors": 4
+ },
+ {
+  "City": "San Juan Capistrano",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "San Luis Obispo",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Santa Ana",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Santa Maria",
+  "State": "CA",
+  "Donors": 5
+ },
+ {
+  "City": "Santa Rosa",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Simi Valley",
+  "State": "CA",
+  "Donors": 4
+ },
+ {
+  "City": "Springville",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Stockton",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Sunnyvale",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Susanville",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Sylmar",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Thousand Oaks",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Torrance",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Tulare",
+  "State": "CA",
+  "Donors": 5
+ },
+ {
+  "City": "Turlock",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Tustin",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Vacaville",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Ventura",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Visalia",
+  "State": "CA",
+  "Donors": 3
+ },
+ {
+  "City": "Waterford",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "West Covina",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Whittier",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Yucca Valley",
+  "State": "CA",
+  "Donors": 2
+ },
+ {
+  "City": "Arvada",
+  "State": "CO",
+  "Donors": 5
+ },
+ {
+  "City": "Aurora",
+  "State": "CO",
+  "Donors": 7
+ },
+ {
+  "City": "Bayfield",
+  "State": "CO",
+  "Donors": 4
+ },
+ {
+  "City": "Brighton",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Canon City",
+  "State": "CO",
+  "Donors": 5
+ },
+ {
+  "City": "Castle Rock",
+  "State": "CO",
+  "Donors": 8
+ },
+ {
+  "City": "Clifton",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Colorado Springs",
+  "State": "CO",
+  "Donors": 67
+ },
+ {
+  "City": "Cortez",
+  "State": "CO",
+  "Donors": 3
+ },
+ {
+  "City": "Delta",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Denver",
+  "State": "CO",
+  "Donors": 11
+ },
+ {
+  "City": "Divide",
+  "State": "CO",
+  "Donors": 4
+ },
+ {
+  "City": "Drake",
+  "State": "CO",
+  "Donors": 1
+ },
+ {
+  "City": "Durango",
+  "State": "CO",
+  "Donors": 4
+ },
+ {
+  "City": "Elbert",
+  "State": "CO",
+  "Donors": 3
+ },
+ {
+  "City": "Estes Park",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Florissant",
+  "State": "CO",
+  "Donors": 5
+ },
+ {
+  "City": "Fort Collins",
+  "State": "CO",
+  "Donors": 7
+ },
+ {
+  "City": "Golden",
+  "State": "CO",
+  "Donors": 5
+ },
+ {
+  "City": "Grand Junction",
+  "State": "CO",
+  "Donors": 14
+ },
+ {
+  "City": "Greeley",
+  "State": "CO",
+  "Donors": 5
+ },
+ {
+  "City": "Green Mountain Falls",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Gypsom",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Highlands Ranch",
+  "State": "CO",
+  "Donors": 3
+ },
+ {
+  "City": "Lafayette",
+  "State": "CO",
+  "Donors": 3
+ },
+ {
+  "City": "Lakewood",
+  "State": "CO",
+  "Donors": 4
+ },
+ {
+  "City": "Littleton",
+  "State": "CO",
+  "Donors": 13
+ },
+ {
+  "City": "Longmont",
+  "State": "CO",
+  "Donors": 5
+ },
+ {
+  "City": "Loveland",
+  "State": "CO",
+  "Donors": 5
+ },
+ {
+  "City": "Montrose",
+  "State": "CO",
+  "Donors": 4
+ },
+ {
+  "City": "Monument",
+  "State": "CO",
+  "Donors": 5
+ },
+ {
+  "City": "Parker",
+  "State": "CO",
+  "Donors": 3
+ },
+ {
+  "City": "Peyton",
+  "State": "CO",
+  "Donors": 3
+ },
+ {
+  "City": "Pueblo",
+  "State": "CO",
+  "Donors": 11
+ },
+ {
+  "City": "Salida",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Sterling",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Thornton",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Walsenburg",
+  "State": "CO",
+  "Donors": 2
+ },
+ {
+  "City": "Wellington",
+  "State": "CO",
+  "Donors": 3
+ },
+ {
+  "City": "Wheat Ridge",
+  "State": "CO",
+  "Donors": 3
+ },
+ {
+  "City": "Windsor",
+  "State": "CO",
+  "Donors": 4
+ },
+ {
+  "City": "Woodland Park",
+  "State": "CO",
+  "Donors": 30
+ },
+ {
+  "City": "Yuma",
+  "State": "CO",
+  "Donors": 4
+ },
+ {
+  "City": "Sharon",
+  "State": "CT",
+  "Donors": 2
+ },
+ {
+  "City": "Delmar",
+  "State": "DE",
+  "Donors": 2
+ },
+ {
+  "City": "Harbeson",
+  "State": "DE",
+  "Donors": 2
+ },
+ {
+  "City": "Newark",
+  "State": "DE",
+  "Donors": 2
+ },
+ {
+  "City": "Altamonte Springs",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Apollo Beach",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Apopka",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Arcadia",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Bonita Springs",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Bradenton",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Brooksville",
+  "State": "FL",
+  "Donors": 5
+ },
+ {
+  "City": "Cape Coral",
+  "State": "FL",
+  "Donors": 6
+ },
+ {
+  "City": "Chipley",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Clearwater",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Clermont",
+  "State": "FL",
+  "Donors": 5
+ },
+ {
+  "City": "Cocoa",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Coral Springs",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Crestview",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Cross City",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Davie",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Deland",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Deltona",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Dunnellon",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Englewood",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Fort Myers",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Fort Pierce",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Fruitland Park",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Gainesville",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Gulf Breeze",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Hastings",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Holiday",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Homosassa",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Hudson",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Jacksonville",
+  "State": "FL",
+  "Donors": 17
+ },
+ {
+  "City": "Jasper",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Jupiter",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Keystone Heights",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Lake Mary",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Lake Wales",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Lakeland",
+  "State": "FL",
+  "Donors": 9
+ },
+ {
+  "City": "Lakewood Ranch",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Largo",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Leesburg",
+  "State": "FL",
+  "Donors": 5
+ },
+ {
+  "City": "Longwood",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Loxahatchee",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Marianna",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Melbourne",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Melrose",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Merritt Island",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Milton",
+  "State": "FL",
+  "Donors": 5
+ },
+ {
+  "City": "Monticello",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Naples",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "New Port Richey",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Ocala",
+  "State": "FL",
+  "Donors": 10
+ },
+ {
+  "City": "Orlando",
+  "State": "FL",
+  "Donors": 8
+ },
+ {
+  "City": "Pace",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Palm Beach Gardens",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Palm Coast",
+  "State": "FL",
+  "Donors": 7
+ },
+ {
+  "City": "Palm Harbor",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Pembroke Pines",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Pensacola",
+  "State": "FL",
+  "Donors": 9
+ },
+ {
+  "City": "Pierson",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Plant City",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Plantation",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Pompano Beach",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Port Charlotte",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Port Orange",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Port Saint Lucie",
+  "State": "FL",
+  "Donors": 6
+ },
+ {
+  "City": "Saint Cloud",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Saint Petersburg",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Sarasota",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Sebastian",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Sebring",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Seminole",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Spring Hill",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "St Petersburg",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Tallahassee",
+  "State": "FL",
+  "Donors": 8
+ },
+ {
+  "City": "Tamarac",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Tampa",
+  "State": "FL",
+  "Donors": 5
+ },
+ {
+  "City": "Tarpon Springs",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Tavares",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "The Villages",
+  "State": "FL",
+  "Donors": 8
+ },
+ {
+  "City": "Titusville",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Valrico",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Venice",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Vero Beach",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Wauchula",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "West Palm Beach",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Williston",
+  "State": "FL",
+  "Donors": 4
+ },
+ {
+  "City": "Winter Haven",
+  "State": "FL",
+  "Donors": 5
+ },
+ {
+  "City": "Winter Park",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Winter Springs",
+  "State": "FL",
+  "Donors": 2
+ },
+ {
+  "City": "Zephyrhills",
+  "State": "FL",
+  "Donors": 3
+ },
+ {
+  "City": "Oviedo",
+  "State": "Fl",
+  "Donors": 3
+ },
+ {
+  "City": "Albany",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Alpharetta",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Atlanta",
+  "State": "GA",
+  "Donors": 3
+ },
+ {
+  "City": "Augusta",
+  "State": "GA",
+  "Donors": 6
+ },
+ {
+  "City": "Canton",
+  "State": "GA",
+  "Donors": 5
+ },
+ {
+  "City": "Chickamauga",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Claxton",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Cleveland",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Conyers",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Dallas",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Douglasville",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Fayetteville",
+  "State": "GA",
+  "Donors": 3
+ },
+ {
+  "City": "Hinesville",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Hoschton",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Kathleen",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Lawrenceville",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Lincolnton",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Macon",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Marietta",
+  "State": "GA",
+  "Donors": 4
+ },
+ {
+  "City": "Monroe",
+  "State": "GA",
+  "Donors": 5
+ },
+ {
+  "City": "Nashville",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Newnan",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Quitman",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Rome",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Royston",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Sandersville",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Savannah",
+  "State": "GA",
+  "Donors": 3
+ },
+ {
+  "City": "Stone Mountain",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Sylvester",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Toccoa",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Valdosta",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Winder",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Woodstock",
+  "State": "GA",
+  "Donors": 2
+ },
+ {
+  "City": "Honolulu",
+  "State": "HI",
+  "Donors": 2
+ },
+ {
+  "City": "Kaneohe",
+  "State": "HI",
+  "Donors": 3
+ },
+ {
+  "City": "Kaneohe",
+  "State": "HI",
+  "Donors": 2
+ },
+ {
+  "City": "Pearl City",
+  "State": "HI",
+  "Donors": 4
+ },
+ {
+  "City": "Ankeny",
+  "State": "IA",
+  "Donors": 5
+ },
+ {
+  "City": "Avoca",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Cedar Rapids",
+  "State": "IA",
+  "Donors": 4
+ },
+ {
+  "City": "Clarinda",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Clinton",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Correctionville",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Council Bluffe",
+  "State": "IA",
+  "Donors": 11
+ },
+ {
+  "City": "Des Moines",
+  "State": "IA",
+  "Donors": 8
+ },
+ {
+  "City": "Dubuque",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Fort Dodge",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Fort Madison",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Glenwood",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Hedrick",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Ida Grove",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Independence",
+  "State": "IA",
+  "Donors": 3
+ },
+ {
+  "City": "Indianola",
+  "State": "IA",
+  "Donors": 3
+ },
+ {
+  "City": "Mason City",
+  "State": "IA",
+  "Donors": 3
+ },
+ {
+  "City": "Mount Pleasant",
+  "State": "IA",
+  "Donors": 3
+ },
+ {
+  "City": "Oskaloosa",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Spencer",
+  "State": "IA",
+  "Donors": 3
+ },
+ {
+  "City": "Storm Lake",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Washington",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Waterloo",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "West Des Moines",
+  "State": "IA",
+  "Donors": 2
+ },
+ {
+  "City": "Boise",
+  "State": "ID",
+  "Donors": 12
+ },
+ {
+  "City": "Bonners Ferry",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Caldwell",
+  "State": "ID",
+  "Donors": 7
+ },
+ {
+  "City": "Coeur D Alene",
+  "State": "ID",
+  "Donors": 7
+ },
+ {
+  "City": "Eagle",
+  "State": "ID",
+  "Donors": 5
+ },
+ {
+  "City": "Fruitland",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Genesee",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Gooding",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Greenleaf",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Harrison",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Huston",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Jerome",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Kamiah",
+  "State": "ID",
+  "Donors": 5
+ },
+ {
+  "City": "Kooskia",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Kuna",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Lewiston",
+  "State": "ID",
+  "Donors": 4
+ },
+ {
+  "City": "Meridian",
+  "State": "ID",
+  "Donors": 14
+ },
+ {
+  "City": "Middleton",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Nampa",
+  "State": "ID",
+  "Donors": 17
+ },
+ {
+  "City": "Payette",
+  "State": "ID",
+  "Donors": 2
+ },
+ {
+  "City": "Post Falls",
+  "State": "ID",
+  "Donors": 8
+ },
+ {
+  "City": "Sandpoint",
+  "State": "ID",
+  "Donors": 4
+ },
+ {
+  "City": "Star",
+  "State": "ID",
+  "Donors": 5
+ },
+ {
+  "City": "Twin Falls",
+  "State": "ID",
+  "Donors": 3
+ },
+ {
+  "City": "Aurora",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Belleville",
+  "State": "IL",
+  "Donors": 3
+ },
+ {
+  "City": "Bloomington",
+  "State": "IL",
+  "Donors": 7
+ },
+ {
+  "City": "Champaign",
+  "State": "IL",
+  "Donors": 4
+ },
+ {
+  "City": "Chatham",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Chicago",
+  "State": "IL",
+  "Donors": 13
+ },
+ {
+  "City": "Collinsville",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Danville",
+  "State": "IL",
+  "Donors": 3
+ },
+ {
+  "City": "Decatur",
+  "State": "IL",
+  "Donors": 5
+ },
+ {
+  "City": "Dixon",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "East Peoria",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Effingham",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Elgin",
+  "State": "IL",
+  "Donors": 4
+ },
+ {
+  "City": "Geneva",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Hazel Crest",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Kankakee",
+  "State": "IL",
+  "Donors": 3
+ },
+ {
+  "City": "Lockport",
+  "State": "IL",
+  "Donors": 3
+ },
+ {
+  "City": "Loves Park",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Manteno",
+  "State": "IL",
+  "Donors": 3
+ },
+ {
+  "City": "Metamora",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Montgomery",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Morton",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Mt Zion",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Murphysboro",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "New Lenox",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Normal",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "O Fallon",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Oak Lawn",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Ottawa",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Palatine",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Paxton",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Peoria",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Polo",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Quincy",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Rockford",
+  "State": "IL",
+  "Donors": 4
+ },
+ {
+  "City": "Roodhouse",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Roselle",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "South Beloit",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Springfield",
+  "State": "IL",
+  "Donors": 3
+ },
+ {
+  "City": "Walnut",
+  "State": "IL",
+  "Donors": 2
+ },
+ {
+  "City": "Anderson",
+  "State": "IN",
+  "Donors": 5
+ },
+ {
+  "City": "Angola",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Battle Ground",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Bloomington",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Chesterton",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Clarksville",
+  "State": "IN",
+  "Donors": 4
+ },
+ {
+  "City": "Columbia City",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Columbus",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Crown Point",
+  "State": "IN",
+  "Donors": 14
+ },
+ {
+  "City": "Elizabeth",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "Elkhart",
+  "State": "IN",
+  "Donors": 7
+ },
+ {
+  "City": "Evansville",
+  "State": "IN",
+  "Donors": 4
+ },
+ {
+  "City": "Floyds Knobs",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Fort Wayne",
+  "State": "IN",
+  "Donors": 7
+ },
+ {
+  "City": "Gary",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Goshen",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Granger",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Greens Fork",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Greensburg",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Greenwood",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Hartford City",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Huntington",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "Indianapolis",
+  "State": "IN",
+  "Donors": 10
+ },
+ {
+  "City": "Jeffersonville",
+  "State": "IN",
+  "Donors": 7
+ },
+ {
+  "City": "Kokomo",
+  "State": "IN",
+  "Donors": 5
+ },
+ {
+  "City": "La Porte",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Lagrange",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Ligonier",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Logansport",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Marion",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "Martinsville",
+  "State": "IN",
+  "Donors": 4
+ },
+ {
+  "City": "Michigan City",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Mishawaka",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Muncie",
+  "State": "IN",
+  "Donors": 5
+ },
+ {
+  "City": "Nappanee",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "New Albany",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "New Haven",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "Noblesville",
+  "State": "IN",
+  "Donors": 6
+ },
+ {
+  "City": "North Manchester",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "Plymouth",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Portage",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "Rockville",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Russiaville",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Schererville",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "Sellersburg",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "South Bend",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Terre Haute",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "Valparaiso",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Vincennes",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Wabash",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Warsaw",
+  "State": "IN",
+  "Donors": 3
+ },
+ {
+  "City": "West Lafayette",
+  "State": "IN",
+  "Donors": 2
+ },
+ {
+  "City": "Dodge City",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Goodland",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Great Bend",
+  "State": "KS",
+  "Donors": 3
+ },
+ {
+  "City": "Hays",
+  "State": "KS",
+  "Donors": 3
+ },
+ {
+  "City": "Haysville",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Hill City",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Hutchinson",
+  "State": "KS",
+  "Donors": 4
+ },
+ {
+  "City": "Larned",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Lenexa",
+  "State": "KS",
+  "Donors": 3
+ },
+ {
+  "City": "Manhattan",
+  "State": "KS",
+  "Donors": 3
+ },
+ {
+  "City": "Mankato",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Marion",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Mulvane",
+  "State": "KS",
+  "Donors": 3
+ },
+ {
+  "City": "Neodesha",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Olathe",
+  "State": "KS",
+  "Donors": 3
+ },
+ {
+  "City": "Overland Park",
+  "State": "KS",
+  "Donors": 4
+ },
+ {
+  "City": "Sharon Springs",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Spring Hill",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Sublette",
+  "State": "KS",
+  "Donors": 2
+ },
+ {
+  "City": "Topeka",
+  "State": "KS",
+  "Donors": 8
+ },
+ {
+  "City": "Wichita",
+  "State": "KS",
+  "Donors": 10
+ },
+ {
+  "City": "Bowling Green",
+  "State": "KY",
+  "Donors": 5
+ },
+ {
+  "City": "Danville",
+  "State": "KY",
+  "Donors": 4
+ },
+ {
+  "City": "Dixon",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Ekron",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Flemingsburg",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Florence",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Frankfort",
+  "State": "KY",
+  "Donors": 3
+ },
+ {
+  "City": "Georgetown",
+  "State": "KY",
+  "Donors": 4
+ },
+ {
+  "City": "Grayson",
+  "State": "KY",
+  "Donors": 3
+ },
+ {
+  "City": "Henderson",
+  "State": "KY",
+  "Donors": 3
+ },
+ {
+  "City": "Hopkinsville",
+  "State": "KY",
+  "Donors": 3
+ },
+ {
+  "City": "Irvine",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Irvington",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Lexington",
+  "State": "KY",
+  "Donors": 10
+ },
+ {
+  "City": "London",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Louisville",
+  "State": "KY",
+  "Donors": 43
+ },
+ {
+  "City": "Mayfield",
+  "State": "KY",
+  "Donors": 3
+ },
+ {
+  "City": "Morganfield",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Murray",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Nicholasville",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Owensboro",
+  "State": "KY",
+  "Donors": 4
+ },
+ {
+  "City": "Paducah",
+  "State": "KY",
+  "Donors": 5
+ },
+ {
+  "City": "Prestonsburg",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Richmond",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Russellville",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Shepherdsville",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Somerset",
+  "State": "KY",
+  "Donors": 2
+ },
+ {
+  "City": "Winchester",
+  "State": "KY",
+  "Donors": 3
+ },
+ {
+  "City": "Abbeville",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "Baton Rouge",
+  "State": "LA",
+  "Donors": 6
+ },
+ {
+  "City": "Bossier City",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "Covington",
+  "State": "LA",
+  "Donors": 3
+ },
+ {
+  "City": "Folsom",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "Holden",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "Houma",
+  "State": "LA",
+  "Donors": 3
+ },
+ {
+  "City": "Lafayette",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "Lake Charles",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "Monroe",
+  "State": "LA",
+  "Donors": 4
+ },
+ {
+  "City": "Morgan City",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "New Orleans",
+  "State": "LA",
+  "Donors": 3
+ },
+ {
+  "City": "Pearl River",
+  "State": "LA",
+  "Donors": 3
+ },
+ {
+  "City": "Ponchatoula",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "Shreveport",
+  "State": "LA",
+  "Donors": 10
+ },
+ {
+  "City": "Slidell",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "Walker",
+  "State": "LA",
+  "Donors": 4
+ },
+ {
+  "City": "West Monroe",
+  "State": "LA",
+  "Donors": 2
+ },
+ {
+  "City": "Shirley",
+  "State": "MA",
+  "Donors": 2
+ },
+ {
+  "City": "Somerset",
+  "State": "MA",
+  "Donors": 2
+ },
+ {
+  "City": "Baltimore",
+  "State": "MD",
+  "Donors": 2
+ },
+ {
+  "City": "Frederick",
+  "State": "MD",
+  "Donors": 2
+ },
+ {
+  "City": "Gaithersburg",
+  "State": "MD",
+  "Donors": 2
+ },
+ {
+  "City": "Joppa",
+  "State": "MD",
+  "Donors": 2
+ },
+ {
+  "City": "Lavale",
+  "State": "MD",
+  "Donors": 2
+ },
+ {
+  "City": "North Beach",
+  "State": "MD",
+  "Donors": 2
+ },
+ {
+  "City": "Pocomoke City",
+  "State": "MD",
+  "Donors": 2
+ },
+ {
+  "City": "Randallstown",
+  "State": "MD",
+  "Donors": 2
+ },
+ {
+  "City": "Westminster",
+  "State": "MD",
+  "Donors": 2
+ },
+ {
+  "City": "Arundel",
+  "State": "ME",
+  "Donors": 2
+ },
+ {
+  "City": "Millinocket",
+  "State": "ME",
+  "Donors": 2
+ },
+ {
+  "City": "Ada",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Adrian",
+  "State": "MI",
+  "Donors": 4
+ },
+ {
+  "City": "Allegan",
+  "State": "MI",
+  "Donors": 6
+ },
+ {
+  "City": "Alma",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Ann Arbor",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Battle Creek",
+  "State": "MI",
+  "Donors": 3
+ },
+ {
+  "City": "Brighton",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Byron Center",
+  "State": "MI",
+  "Donors": 4
+ },
+ {
+  "City": "Chelsea",
+  "State": "MI",
+  "Donors": 3
+ },
+ {
+  "City": "Clinton Township",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Flint",
+  "State": "MI",
+  "Donors": 3
+ },
+ {
+  "City": "Grand Ledge",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Greenville",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Hillman",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Holland",
+  "State": "MI",
+  "Donors": 5
+ },
+ {
+  "City": "Holly",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Kalamazoo",
+  "State": "MI",
+  "Donors": 6
+ },
+ {
+  "City": "Lansing",
+  "State": "MI",
+  "Donors": 5
+ },
+ {
+  "City": "Livonia",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Ludington",
+  "State": "MI",
+  "Donors": 3
+ },
+ {
+  "City": "Macomb",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Mason",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Midland",
+  "State": "MI",
+  "Donors": 5
+ },
+ {
+  "City": "Mount Pleasant",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Muskegon",
+  "State": "MI",
+  "Donors": 3
+ },
+ {
+  "City": "Niles",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Owosso",
+  "State": "MI",
+  "Donors": 4
+ },
+ {
+  "City": "Pinckney",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Plymouth",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Portage",
+  "State": "MI",
+  "Donors": 4
+ },
+ {
+  "City": "Reed City",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Rochester Hills",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Rockford",
+  "State": "MI",
+  "Donors": 3
+ },
+ {
+  "City": "Roscommon",
+  "State": "MI",
+  "Donors": 3
+ },
+ {
+  "City": "Royal Oak",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Saginaw",
+  "State": "MI",
+  "Donors": 4
+ },
+ {
+  "City": "Saint Clair",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Saint Clair Shores",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Saint Johns",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Sault Ste Marie",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Waterford",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Zeeland",
+  "State": "MI",
+  "Donors": 2
+ },
+ {
+  "City": "Alexandria",
+  "State": "MN",
+  "Donors": 4
+ },
+ {
+  "City": "Anoka",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Apple Valley",
+  "State": "MN",
+  "Donors": 3
+ },
+ {
+  "City": "Bemidji",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Big Lake",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Brainerd",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Champlin",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Chanhassen",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Chisago City",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Circle Pines",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Coon Rapids",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Detroit Lakes",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Eagan",
+  "State": "MN",
+  "Donors": 4
+ },
+ {
+  "City": "Elk River",
+  "State": "MN",
+  "Donors": 6
+ },
+ {
+  "City": "Ely",
+  "State": "MN",
+  "Donors": 4
+ },
+ {
+  "City": "Faribault",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Fergus Falla",
+  "State": "MN",
+  "Donors": 7
+ },
+ {
+  "City": "Frazee",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Gibbon",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Ham Lake",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Hastings",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Keewatin",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Lakeville",
+  "State": "MN",
+  "Donors": 3
+ },
+ {
+  "City": "Little Falls",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Maple Grove",
+  "State": "MN",
+  "Donors": 3
+ },
+ {
+  "City": "Minneapolis",
+  "State": "MN",
+  "Donors": 6
+ },
+ {
+  "City": "Northfield",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Pine City",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Plymouth",
+  "State": "MN",
+  "Donors": 5
+ },
+ {
+  "City": "Prior Lake",
+  "State": "MN",
+  "Donors": 3
+ },
+ {
+  "City": "Rochester",
+  "State": "MN",
+  "Donors": 4
+ },
+ {
+  "City": "Roseau",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Rosemount",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Saint Cloud",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Saint Paul",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Sauk Rapids",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Savage",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "St Cloud",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Welch",
+  "State": "MN",
+  "Donors": 2
+ },
+ {
+  "City": "Willmar",
+  "State": "MN",
+  "Donors": 3
+ },
+ {
+  "City": "Battlefield",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Blue Eye",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Bolivar",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Bourbon",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Branson",
+  "State": "MO",
+  "Donors": 10
+ },
+ {
+  "City": "Branson West",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Cape Girardeau",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Carl Junction",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Carthage",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Chesterfield",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Columbia",
+  "State": "MO",
+  "Donors": 7
+ },
+ {
+  "City": "Drexel",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Fenton",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Florissant",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Forsyth",
+  "State": "MO",
+  "Donors": 4
+ },
+ {
+  "City": "Fulton",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Gerald",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Hannibal",
+  "State": "MO",
+  "Donors": 4
+ },
+ {
+  "City": "Hillsboro",
+  "State": "MO",
+  "Donors": 4
+ },
+ {
+  "City": "Hollister",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Independence",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Jefferson City",
+  "State": "MO",
+  "Donors": 4
+ },
+ {
+  "City": "Joplin",
+  "State": "MO",
+  "Donors": 6
+ },
+ {
+  "City": "Kansas City",
+  "State": "MO",
+  "Donors": 10
+ },
+ {
+  "City": "Linn",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Marshfield",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Maryland Heights",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Nevada",
+  "State": "MO",
+  "Donors": 4
+ },
+ {
+  "City": "Nixa",
+  "State": "MO",
+  "Donors": 5
+ },
+ {
+  "City": "O Fallon",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Ozark",
+  "State": "MO",
+  "Donors": 6
+ },
+ {
+  "City": "Philadelphia",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Poplar Bluff",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Republic",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Richmond",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Rogersville",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Rolla",
+  "State": "MO",
+  "Donors": 4
+ },
+ {
+  "City": "Saint Charles",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Saint Joseph",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Saint Louis",
+  "State": "MO",
+  "Donors": 13
+ },
+ {
+  "City": "Saint Peters",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Sedalia",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Sikeston",
+  "State": "MO",
+  "Donors": 3
+ },
+ {
+  "City": "Sparta",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Springfield",
+  "State": "MO",
+  "Donors": 10
+ },
+ {
+  "City": "Stockton",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Sunrise Beach",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "West Plains",
+  "State": "MO",
+  "Donors": 4
+ },
+ {
+  "City": "Willow Springs",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Winona",
+  "State": "MO",
+  "Donors": 2
+ },
+ {
+  "City": "Brookhaven",
+  "State": "MS",
+  "Donors": 3
+ },
+ {
+  "City": "Columbus",
+  "State": "MS",
+  "Donors": 2
+ },
+ {
+  "City": "Diamondhead",
+  "State": "MS",
+  "Donors": 2
+ },
+ {
+  "City": "Hattiesburg",
+  "State": "MS",
+  "Donors": 4
+ },
+ {
+  "City": "Hernando",
+  "State": "MS",
+  "Donors": 4
+ },
+ {
+  "City": "Hollandale",
+  "State": "MS",
+  "Donors": 3
+ },
+ {
+  "City": "Jackson",
+  "State": "MS",
+  "Donors": 3
+ },
+ {
+  "City": "Louisville",
+  "State": "MS",
+  "Donors": 2
+ },
+ {
+  "City": "Lucedale",
+  "State": "MS",
+  "Donors": 6
+ },
+ {
+  "City": "Madison",
+  "State": "MS",
+  "Donors": 4
+ },
+ {
+  "City": "Meridian",
+  "State": "MS",
+  "Donors": 4
+ },
+ {
+  "City": "Ocean Springs",
+  "State": "MS",
+  "Donors": 2
+ },
+ {
+  "City": "Pachuta",
+  "State": "MS",
+  "Donors": 2
+ },
+ {
+  "City": "Purvis",
+  "State": "MS",
+  "Donors": 2
+ },
+ {
+  "City": "Saucier",
+  "State": "MS",
+  "Donors": 3
+ },
+ {
+  "City": "Starkville",
+  "State": "MS",
+  "Donors": 3
+ },
+ {
+  "City": "Vancleave",
+  "State": "MS",
+  "Donors": 3
+ },
+ {
+  "City": "Waynesboro",
+  "State": "MS",
+  "Donors": 2
+ },
+ {
+  "City": "Belgrade",
+  "State": "MT",
+  "Donors": 4
+ },
+ {
+  "City": "Bigfork",
+  "State": "MT",
+  "Donors": 2
+ },
+ {
+  "City": "Billings",
+  "State": "MT",
+  "Donors": 16
+ },
+ {
+  "City": "Bozeman",
+  "State": "MT",
+  "Donors": 5
+ },
+ {
+  "City": "Butte",
+  "State": "MT",
+  "Donors": 3
+ },
+ {
+  "City": "Chinook",
+  "State": "MT",
+  "Donors": 2
+ },
+ {
+  "City": "Columbia Falls",
+  "State": "MT",
+  "Donors": 3
+ },
+ {
+  "City": "Great Falls",
+  "State": "MT",
+  "Donors": 4
+ },
+ {
+  "City": "Helena",
+  "State": "MT",
+  "Donors": 4
+ },
+ {
+  "City": "Kalispell",
+  "State": "MT",
+  "Donors": 6
+ },
+ {
+  "City": "Laurel",
+  "State": "MT",
+  "Donors": 2
+ },
+ {
+  "City": "Libby",
+  "State": "MT",
+  "Donors": 3
+ },
+ {
+  "City": "Malta",
+  "State": "MT",
+  "Donors": 3
+ },
+ {
+  "City": "Manhattan",
+  "State": "MT",
+  "Donors": 3
+ },
+ {
+  "City": "Miles City",
+  "State": "MT",
+  "Donors": 4
+ },
+ {
+  "City": "Roundup",
+  "State": "MT",
+  "Donors": 2
+ },
+ {
+  "City": "Sidney",
+  "State": "MT",
+  "Donors": 2
+ },
+ {
+  "City": "Stevensville",
+  "State": "MT",
+  "Donors": 2
+ },
+ {
+  "City": "Stockett",
+  "State": "MT",
+  "Donors": 2
+ },
+ {
+  "City": "Thompson Falls",
+  "State": "MT",
+  "Donors": 2
+ },
+ {
+  "City": "Liberal",
+  "State": "Mo",
+  "Donors": 2
+ },
+ {
+  "City": "Advance",
+  "State": "NC",
+  "Donors": 4
+ },
+ {
+  "City": "Asheboro",
+  "State": "NC",
+  "Donors": 7
+ },
+ {
+  "City": "Asheville",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Candler",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Cary",
+  "State": "NC",
+  "Donors": 9
+ },
+ {
+  "City": "Cedar Grove",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Charlotte",
+  "State": "NC",
+  "Donors": 8
+ },
+ {
+  "City": "Dunn",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Durham",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Elizabeth City",
+  "State": "NC",
+  "Donors": 4
+ },
+ {
+  "City": "Fairmont",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Fayetteville",
+  "State": "NC",
+  "Donors": 4
+ },
+ {
+  "City": "Franklin",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Garner",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Gastonia",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Goldsboro",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Graham",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Greensboro",
+  "State": "NC",
+  "Donors": 12
+ },
+ {
+  "City": "Hendersonville",
+  "State": "NC",
+  "Donors": 4
+ },
+ {
+  "City": "Hickory",
+  "State": "NC",
+  "Donors": 5
+ },
+ {
+  "City": "High Point",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Hope Mills",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Jacksonville",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Kenansville",
+  "State": "NC",
+  "Donors": 6
+ },
+ {
+  "City": "Lake Lure",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Lenoir",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Lexington",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Maiden",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Matthews",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Mocksville",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Monroe",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Mooresville",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Moravian Falls",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Morehead City",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Morganton",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Mount Gilead",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Mount Holly",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Nashville",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Oakboro",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Pineville",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Raleigh",
+  "State": "NC",
+  "Donors": 6
+ },
+ {
+  "City": "Reidsville",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Rockwell",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Rutherfordton",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Salisbury",
+  "State": "NC",
+  "Donors": 4
+ },
+ {
+  "City": "Shelby",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Stanley",
+  "State": "NC",
+  "Donors": 3
+ },
+ {
+  "City": "Trinity",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Warsaw",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Waxhaw",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Waynesville",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Wilmington",
+  "State": "NC",
+  "Donors": 6
+ },
+ {
+  "City": "Winston Salem",
+  "State": "NC",
+  "Donors": 2
+ },
+ {
+  "City": "Bismarck",
+  "State": "ND",
+  "Donors": 10
+ },
+ {
+  "City": "Devils Lake",
+  "State": "ND",
+  "Donors": 2
+ },
+ {
+  "City": "Dickinson",
+  "State": "ND",
+  "Donors": 2
+ },
+ {
+  "City": "Drayton",
+  "State": "ND",
+  "Donors": 2
+ },
+ {
+  "City": "Fargo",
+  "State": "ND",
+  "Donors": 3
+ },
+ {
+  "City": "Minot",
+  "State": "ND",
+  "Donors": 2
+ },
+ {
+  "City": "Beatrice",
+  "State": "NE",
+  "Donors": 11
+ },
+ {
+  "City": "Bennington",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Broken Bow",
+  "State": "NE",
+  "Donors": 3
+ },
+ {
+  "City": "Columbus",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Crete",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Elkhorn",
+  "State": "NE",
+  "Donors": 3
+ },
+ {
+  "City": "Fairbury",
+  "State": "NE",
+  "Donors": 3
+ },
+ {
+  "City": "Fremont",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Grand Island",
+  "State": "NE",
+  "Donors": 5
+ },
+ {
+  "City": "Gretna",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Kearney",
+  "State": "NE",
+  "Donors": 4
+ },
+ {
+  "City": "Lincoln",
+  "State": "NE",
+  "Donors": 6
+ },
+ {
+  "City": "Nebraska City",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Norfolk",
+  "State": "NE",
+  "Donors": 5
+ },
+ {
+  "City": "Ogallala",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Omaha",
+  "State": "NE",
+  "Donors": 36
+ },
+ {
+  "City": "Papillion",
+  "State": "NE",
+  "Donors": 4
+ },
+ {
+  "City": "Seward",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Sidney",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Superior",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Valentine",
+  "State": "NE",
+  "Donors": 3
+ },
+ {
+  "City": "Wood River",
+  "State": "NE",
+  "Donors": 2
+ },
+ {
+  "City": "Amherst",
+  "State": "NH",
+  "Donors": 2
+ },
+ {
+  "City": "Rochester",
+  "State": "NH",
+  "Donors": 2
+ },
+ {
+  "City": "North Arlington",
+  "State": "NJ",
+  "Donors": 2
+ },
+ {
+  "City": "Albuquerque",
+  "State": "NM",
+  "Donors": 29
+ },
+ {
+  "City": "Aztec",
+  "State": "NM",
+  "Donors": 3
+ },
+ {
+  "City": "Carlsbad",
+  "State": "NM",
+  "Donors": 2
+ },
+ {
+  "City": "Chama",
+  "State": "NM",
+  "Donors": 2
+ },
+ {
+  "City": "Farmington",
+  "State": "NM",
+  "Donors": 2
+ },
+ {
+  "City": "Hobbs",
+  "State": "NM",
+  "Donors": 6
+ },
+ {
+  "City": "Las Cruces",
+  "State": "NM",
+  "Donors": 5
+ },
+ {
+  "City": "Mountainair",
+  "State": "NM",
+  "Donors": 3
+ },
+ {
+  "City": "Ocate",
+  "State": "NM",
+  "Donors": 2
+ },
+ {
+  "City": "Rio Rancho",
+  "State": "NM",
+  "Donors": 4
+ },
+ {
+  "City": "Roswell",
+  "State": "NM",
+  "Donors": 7
+ },
+ {
+  "City": "Ruidoso",
+  "State": "NM",
+  "Donors": 3
+ },
+ {
+  "City": "Carson City",
+  "State": "NV",
+  "Donors": 2
+ },
+ {
+  "City": "Henderson",
+  "State": "NV",
+  "Donors": 3
+ },
+ {
+  "City": "Las Vegas",
+  "State": "NV",
+  "Donors": 9
+ },
+ {
+  "City": "North Las Vegas",
+  "State": "NV",
+  "Donors": 3
+ },
+ {
+  "City": "Reno",
+  "State": "NV",
+  "Donors": 5
+ },
+ {
+  "City": "Sparks",
+  "State": "NV",
+  "Donors": 5
+ },
+ {
+  "City": "Yerington",
+  "State": "NV",
+  "Donors": 2
+ },
+ {
+  "City": "Albany",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Batavia",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Bath",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Blossvale",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Bronx",
+  "State": "NY",
+  "Donors": 3
+ },
+ {
+  "City": "Brooklyn",
+  "State": "NY",
+  "Donors": 3
+ },
+ {
+  "City": "Buffalo",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Cortland",
+  "State": "NY",
+  "Donors": 3
+ },
+ {
+  "City": "Depew",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Fairport",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Fulton",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Indian Lake",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Jamestown",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Lancaster",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Liverpool",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "N Tonawanda",
+  "State": "NY",
+  "Donors": 3
+ },
+ {
+  "City": "New York",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Newburgh",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Niagara Falls",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Painted Post",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Penfield",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Phelps",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Ridgewood",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Rochester",
+  "State": "NY",
+  "Donors": 7
+ },
+ {
+  "City": "Schenectady",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Staten Island",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Stillwater",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Syracuse",
+  "State": "NY",
+  "Donors": 3
+ },
+ {
+  "City": "Tonawanda",
+  "State": "NY",
+  "Donors": 3
+ },
+ {
+  "City": "Troy",
+  "State": "NY",
+  "Donors": 3
+ },
+ {
+  "City": "Warsaw",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Watertown",
+  "State": "NY",
+  "Donors": 3
+ },
+ {
+  "City": "Webster",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "Wellsville",
+  "State": "NY",
+  "Donors": 2
+ },
+ {
+  "City": "West Seneca",
+  "State": "NY",
+  "Donors": 3
+ },
+ {
+  "City": "Akron",
+  "State": "OH",
+  "Donors": 5
+ },
+ {
+  "City": "Alliance",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Athens",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Beavercreek",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Bellevue",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Belpre",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Bolivar",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Bridgeport",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Brookville",
+  "State": "OH",
+  "Donors": 4
+ },
+ {
+  "City": "Cambridge",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Canfield",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Canton",
+  "State": "OH",
+  "Donors": 5
+ },
+ {
+  "City": "Chardon",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Chippewa Lake",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Cincinnati",
+  "State": "OH",
+  "Donors": 10
+ },
+ {
+  "City": "Columbus",
+  "State": "OH",
+  "Donors": 14
+ },
+ {
+  "City": "Columbus Grove",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Cortland",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Coshocton",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Dayton",
+  "State": "OH",
+  "Donors": 7
+ },
+ {
+  "City": "Delaware",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Dover",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Dublin",
+  "State": "OH",
+  "Donors": 4
+ },
+ {
+  "City": "East Canton",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Enon",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Fairborn",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Fairfield",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Findlay",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Franklin",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Fresno",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Galion",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Garrettsville",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Grove City",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Hamilton",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Harrison",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Hilliard",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Lima",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Mansfield",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Marion",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Marysville",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Mason",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Massillon",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Mayfield Village",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Mechanicsburg",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Mentor",
+  "State": "OH",
+  "Donors": 4
+ },
+ {
+  "City": "Miamisburg",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Middletown",
+  "State": "OH",
+  "Donors": 4
+ },
+ {
+  "City": "Milford",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Millersburg",
+  "State": "OH",
+  "Donors": 5
+ },
+ {
+  "City": "North Lima",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "North Olmsted",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "North Royalton",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Oberlin",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Olmsted Twp",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Painesville",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Plain City",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Proctorville",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Salem",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Sandusky",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Sugarcreek",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Toledo",
+  "State": "OH",
+  "Donors": 5
+ },
+ {
+  "City": "Upper Sandusky",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Warren",
+  "State": "OH",
+  "Donors": 4
+ },
+ {
+  "City": "West Chester",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Westerville",
+  "State": "OH",
+  "Donors": 5
+ },
+ {
+  "City": "Wilmington",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Wooster",
+  "State": "OH",
+  "Donors": 2
+ },
+ {
+  "City": "Youngstown",
+  "State": "OH",
+  "Donors": 3
+ },
+ {
+  "City": "Bartlesville",
+  "State": "OK",
+  "Donors": 4
+ },
+ {
+  "City": "Bethany",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Big Cabin",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Bixby",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Blanchard",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Broken Arrow",
+  "State": "OK",
+  "Donors": 25
+ },
+ {
+  "City": "Cartwright",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Checotah",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Claremore",
+  "State": "OK",
+  "Donors": 4
+ },
+ {
+  "City": "Cleveland",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Coweta",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Duncan",
+  "State": "OK",
+  "Donors": 6
+ },
+ {
+  "City": "Durant",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Edmond",
+  "State": "OK",
+  "Donors": 8
+ },
+ {
+  "City": "Elk City",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Enid",
+  "State": "OK",
+  "Donors": 4
+ },
+ {
+  "City": "Gage",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Grove",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Henryetta",
+  "State": "OK",
+  "Donors": 5
+ },
+ {
+  "City": "Inola",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Kenton",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Lawton",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Locust Grove",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Marlow",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "McAlester",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Miami",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Midwest City",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Mustang",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Norman",
+  "State": "OK",
+  "Donors": 4
+ },
+ {
+  "City": "Oklahoma City",
+  "State": "OK",
+  "Donors": 10
+ },
+ {
+  "City": "Pawhuska",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Sapulpa",
+  "State": "OK",
+  "Donors": 6
+ },
+ {
+  "City": "Seminole",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Shawnee",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Sperry",
+  "State": "OK",
+  "Donors": 3
+ },
+ {
+  "City": "Stillwater",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Stroud",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Sulphur",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Tishomingo",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Tulsa",
+  "State": "OK",
+  "Donors": 16
+ },
+ {
+  "City": "Warr Acres",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Woodward",
+  "State": "OK",
+  "Donors": 2
+ },
+ {
+  "City": "Yukon",
+  "State": "OK",
+  "Donors": 4
+ },
+ {
+  "City": "Sudbury",
+  "State": "ON",
+  "Donors": 2
+ },
+ {
+  "City": "Albany",
+  "State": "OR",
+  "Donors": 5
+ },
+ {
+  "City": "Aumsville",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Beaverton",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Bend",
+  "State": "OR",
+  "Donors": 5
+ },
+ {
+  "City": "Brookings",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Carlton",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Chiloquin",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Coquille",
+  "State": "OR",
+  "Donors": 4
+ },
+ {
+  "City": "Cottage Grove",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Creswell",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Dallas",
+  "State": "OR",
+  "Donors": 3
+ },
+ {
+  "City": "Enterprise",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Eugene",
+  "State": "OR",
+  "Donors": 6
+ },
+ {
+  "City": "Grants Pass",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Hillsboro",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Jacksonville",
+  "State": "OR",
+  "Donors": 3
+ },
+ {
+  "City": "Junction City",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Klamath Falls",
+  "State": "OR",
+  "Donors": 4
+ },
+ {
+  "City": "Lebanon",
+  "State": "OR",
+  "Donors": 4
+ },
+ {
+  "City": "Mcminnville",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Milwaukie",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Newport",
+  "State": "OR",
+  "Donors": 3
+ },
+ {
+  "City": "Ontario",
+  "State": "OR",
+  "Donors": 3
+ },
+ {
+  "City": "Oregon City",
+  "State": "OR",
+  "Donors": 7
+ },
+ {
+  "City": "Portland",
+  "State": "OR",
+  "Donors": 4
+ },
+ {
+  "City": "Prineville",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Salem",
+  "State": "OR",
+  "Donors": 10
+ },
+ {
+  "City": "Springfield",
+  "State": "OR",
+  "Donors": 7
+ },
+ {
+  "City": "Sweet Home",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "The Dalles",
+  "State": "OR",
+  "Donors": 3
+ },
+ {
+  "City": "Tualatin",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Turner",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Waldport",
+  "State": "OR",
+  "Donors": 2
+ },
+ {
+  "City": "Woodburn",
+  "State": "OR",
+  "Donors": 3
+ },
+ {
+  "City": "Altoona",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Beaver Falls",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Bellefonte",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Bellwood",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Bethel Park",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Bethlehem",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Blairsville",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Brockway",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Butler",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Carlisle",
+  "State": "PA",
+  "Donors": 4
+ },
+ {
+  "City": "Chambersburg",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Clarion",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Dallastown",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Danville",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Denver",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Dillsburg",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "East Earl",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Easton",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Eldred",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Elizabethtown",
+  "State": "PA",
+  "Donors": 5
+ },
+ {
+  "City": "Ephrata",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Erie",
+  "State": "PA",
+  "Donors": 4
+ },
+ {
+  "City": "Fairview",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Glenside",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Greensburg",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Greenville",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Hanover",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Harrisburg",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Hermitage",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Hershey",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Houston",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Huntingdon",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Irwin",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Johnstown",
+  "State": "PA",
+  "Donors": 5
+ },
+ {
+  "City": "Lancaster",
+  "State": "PA",
+  "Donors": 4
+ },
+ {
+  "City": "Lansdale",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Lebanon",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Leola",
+  "State": "PA",
+  "Donors": 4
+ },
+ {
+  "City": "Lititz",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Manchester",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Martinsburg",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Mechanicsburg",
+  "State": "PA",
+  "Donors": 6
+ },
+ {
+  "City": "Mifflinburg",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Millerstown",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Mount Joy",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Mountain Top",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Mountville",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Nazareth",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "New Bethlehem",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "New Castle",
+  "State": "PA",
+  "Donors": 5
+ },
+ {
+  "City": "New Holland",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Newville",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "North East",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Palmyra",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Parkesburg",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Pittsburgh",
+  "State": "PA",
+  "Donors": 5
+ },
+ {
+  "City": "Quakertown",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Shippensburg",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Stahlstown",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Stevens",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Ulysses",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Uniontown",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Washington",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Wellsboro",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Wernersville",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "West Chester",
+  "State": "PA",
+  "Donors": 3
+ },
+ {
+  "City": "Westfield",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "Windber",
+  "State": "PA",
+  "Donors": 2
+ },
+ {
+  "City": "York",
+  "State": "PA",
+  "Donors": 5
+ },
+ {
+  "City": "North Providence",
+  "State": "RI",
+  "Donors": 2
+ },
+ {
+  "City": "West Warwick",
+  "State": "RI",
+  "Donors": 2
+ },
+ {
+  "City": "Abbeville",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Aiken",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Anderson",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Blythewood",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Chapin",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Charleston",
+  "State": "SC",
+  "Donors": 4
+ },
+ {
+  "City": "Clover",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Columbia",
+  "State": "SC",
+  "Donors": 3
+ },
+ {
+  "City": "Florence",
+  "State": "SC",
+  "Donors": 4
+ },
+ {
+  "City": "Fort Mill",
+  "State": "SC",
+  "Donors": 7
+ },
+ {
+  "City": "Gaston",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Georgetown",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Graniteville",
+  "State": "SC",
+  "Donors": 4
+ },
+ {
+  "City": "Gray Court",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Greer",
+  "State": "SC",
+  "Donors": 5
+ },
+ {
+  "City": "Inman",
+  "State": "SC",
+  "Donors": 3
+ },
+ {
+  "City": "Iva",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Lexington",
+  "State": "SC",
+  "Donors": 5
+ },
+ {
+  "City": "Liberty",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Lugoff",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Murrells Inlet",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Myrtle Beach",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "North Augusta",
+  "State": "SC",
+  "Donors": 4
+ },
+ {
+  "City": "North Myrtle Beach",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Piedmont",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Rock Hill",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Saint Stephen",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Seneca",
+  "State": "SC",
+  "Donors": 5
+ },
+ {
+  "City": "Spartanburg",
+  "State": "SC",
+  "Donors": 3
+ },
+ {
+  "City": "Summerville",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "Travelers Rest",
+  "State": "SC",
+  "Donors": 2
+ },
+ {
+  "City": "West Columbia",
+  "State": "SC",
+  "Donors": 3
+ },
+ {
+  "City": "Belle Fourche",
+  "State": "SD",
+  "Donors": 2
+ },
+ {
+  "City": "Black Hawk",
+  "State": "SD",
+  "Donors": 2
+ },
+ {
+  "City": "Brookings",
+  "State": "SD",
+  "Donors": 2
+ },
+ {
+  "City": "Lead",
+  "State": "SD",
+  "Donors": 2
+ },
+ {
+  "City": "Rapid City",
+  "State": "SD",
+  "Donors": 2
+ },
+ {
+  "City": "Sioux Falls",
+  "State": "SD",
+  "Donors": 18
+ },
+ {
+  "City": "Spearfish",
+  "State": "SD",
+  "Donors": 2
+ },
+ {
+  "City": "Sturgis",
+  "State": "SD",
+  "Donors": 2
+ },
+ {
+  "City": "Allardt",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Antioch",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Athens",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Bartlett",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Big Sandy",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Brentwood",
+  "State": "TN",
+  "Donors": 3
+ },
+ {
+  "City": "Camden",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Chattanooga",
+  "State": "TN",
+  "Donors": 5
+ },
+ {
+  "City": "Clarksville",
+  "State": "TN",
+  "Donors": 5
+ },
+ {
+  "City": "Cleveland",
+  "State": "TN",
+  "Donors": 7
+ },
+ {
+  "City": "Clinton",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Cookeville",
+  "State": "TN",
+  "Donors": 4
+ },
+ {
+  "City": "Covington",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Crossville",
+  "State": "TN",
+  "Donors": 6
+ },
+ {
+  "City": "Dickson",
+  "State": "TN",
+  "Donors": 3
+ },
+ {
+  "City": "Elizabethton",
+  "State": "TN",
+  "Donors": 3
+ },
+ {
+  "City": "Franklin",
+  "State": "TN",
+  "Donors": 4
+ },
+ {
+  "City": "Gallatin",
+  "State": "TN",
+  "Donors": 3
+ },
+ {
+  "City": "Georgetown",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Hendersonville",
+  "State": "TN",
+  "Donors": 3
+ },
+ {
+  "City": "Hohenwald",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Jackson",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Jamestown",
+  "State": "TN",
+  "Donors": 3
+ },
+ {
+  "City": "Johnson City",
+  "State": "TN",
+  "Donors": 3
+ },
+ {
+  "City": "Knoxville",
+  "State": "TN",
+  "Donors": 11
+ },
+ {
+  "City": "Lebanon",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Lenoir City",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Lynnville",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Madisonville",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Maryville",
+  "State": "TN",
+  "Donors": 7
+ },
+ {
+  "City": "Memphis",
+  "State": "TN",
+  "Donors": 3
+ },
+ {
+  "City": "Murfreesboro",
+  "State": "TN",
+  "Donors": 8
+ },
+ {
+  "City": "Nashville",
+  "State": "TN",
+  "Donors": 5
+ },
+ {
+  "City": "New Tazewell",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Oak Ridge",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Oliver Springs",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Pulaski",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Sevierville",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Shelbyville",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Silver Point",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Sneedville",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Sweetwater",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Thompsons Station",
+  "State": "TN",
+  "Donors": 2
+ },
+ {
+  "City": "Abilene",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Alamo",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Aledo",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Alice",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Alpine",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Alvin",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Amarillo",
+  "State": "TX",
+  "Donors": 13
+ },
+ {
+  "City": "Arlington",
+  "State": "TX",
+  "Donors": 9
+ },
+ {
+  "City": "Aurora",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Austin",
+  "State": "TX",
+  "Donors": 9
+ },
+ {
+  "City": "Azle",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "Bay City",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Beaumont",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Bedford",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Belton",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "Benbrook",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Boerne",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Borger",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Boyd",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Brenham",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "Brookshire",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Bryson",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Burleson",
+  "State": "TX",
+  "Donors": 10
+ },
+ {
+  "City": "Caldwell",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Canton",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Carthage",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Cedar Creek",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Cedar Hill",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Cibolo",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Cleburne",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "College Station",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Comanche",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Conroe",
+  "State": "TX",
+  "Donors": 6
+ },
+ {
+  "City": "Coppell",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Corpus Christi",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Crowley",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "Cypress",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Dallas",
+  "State": "TX",
+  "Donors": 10
+ },
+ {
+  "City": "Dayton",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Decatur",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Denton",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Douglass",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Duncanville",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Eastland",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Edinburg",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "El Campo",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "El Paso",
+  "State": "TX",
+  "Donors": 6
+ },
+ {
+  "City": "Fairview",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Falfurrias",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Farmersville",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Flint",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Flower Mound",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "Fort Davis",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Fort Stockton",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Fort Worth",
+  "State": "TX",
+  "Donors": 40
+ },
+ {
+  "City": "Frankston",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Fredericksburg",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Friendswood",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Frisco",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Fritch",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Garland",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Geogetown",
+  "State": "TX",
+  "Donors": 6
+ },
+ {
+  "City": "Gladewater",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Graham",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Granbury",
+  "State": "TX",
+  "Donors": 9
+ },
+ {
+  "City": "Grand Prairie",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Grapeland",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Grapevine",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Greenville",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Groves",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Haltom City",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Harlingen",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Haslet",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Heath",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Helotes",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Highland Village",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Hockley",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Hondo",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Horseshoe Bay",
+  "State": "TX",
+  "Donors": 6
+ },
+ {
+  "City": "Houston",
+  "State": "TX",
+  "Donors": 41
+ },
+ {
+  "City": "Humble",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Hurst",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Industry",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Irving",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Jefferson",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Jonesboro",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Katy",
+  "State": "TX",
+  "Donors": 8
+ },
+ {
+  "City": "Keller",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Kerrville",
+  "State": "TX",
+  "Donors": 9
+ },
+ {
+  "City": "Killeen",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "Kress",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Kyle",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "La Porte",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Lago Vista",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Lakehills",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Lancaster",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Laredo",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Larue",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "League City",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Leander",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Levelland",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "Lewisville",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Lincoln",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Lindale",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Livingston",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Longview",
+  "State": "TX",
+  "Donors": 6
+ },
+ {
+  "City": "Lubbock",
+  "State": "TX",
+  "Donors": 10
+ },
+ {
+  "City": "Lumberton",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Magnolia",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Mansfield",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Marble Falls",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Marshall",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Mason",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Mcgregor",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Mckinney",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Mesquite",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Midland",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "Mineola",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Missouri City",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Montgomery",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Morton",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Nacogdoches",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Nederland",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "New Boston",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "New Braunfels",
+  "State": "TX",
+  "Donors": 7
+ },
+ {
+  "City": "Newark",
+  "State": "TX",
+  "Donors": 6
+ },
+ {
+  "City": "North Richland Hills",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Odessa",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Orange",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Panhandle",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Paris",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Pearland",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Plano",
+  "State": "TX",
+  "Donors": 6
+ },
+ {
+  "City": "Port Lavaca",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Port Neches",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Porter",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Pottsboro",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Quinlan",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Red Oak",
+  "State": "TX",
+  "Donors": 7
+ },
+ {
+  "City": "Rhome",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Richardson",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Richmond",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Roanoke",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Rowlett",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Saginaw",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "San Angelo",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "San Antonio",
+  "State": "TX",
+  "Donors": 21
+ },
+ {
+  "City": "San Marcos",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Sealy",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Sherman",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Spring",
+  "State": "TX",
+  "Donors": 12
+ },
+ {
+  "City": "Stephenville",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Sugar Land",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Sulphur Springs",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Sunset",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Temple",
+  "State": "TX",
+  "Donors": 9
+ },
+ {
+  "City": "Terrell",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Texarkana",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "The Colony",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Tomball",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Tyler",
+  "State": "TX",
+  "Donors": 4
+ },
+ {
+  "City": "Victoria",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Waco",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Watauga",
+  "State": "TX",
+  "Donors": 3
+ },
+ {
+  "City": "Weatherford",
+  "State": "TX",
+  "Donors": 5
+ },
+ {
+  "City": "Webster",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "West Columbia",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Wichita Falls",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Wimberley",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Wylie",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Yorktown",
+  "State": "TX",
+  "Donors": 2
+ },
+ {
+  "City": "Price",
+  "State": "UT",
+  "Donors": 2
+ },
+ {
+  "City": "Alexandria",
+  "State": "VA",
+  "Donors": 3
+ },
+ {
+  "City": "Bassett",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Bedford",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Bridgewater",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Bristol",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Broadway",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Chesapeake",
+  "State": "VA",
+  "Donors": 5
+ },
+ {
+  "City": "Chester",
+  "State": "VA",
+  "Donors": 3
+ },
+ {
+  "City": "Colonial Beach",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Covington",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Elkton",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Floyd",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Goode",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Harrisonburg",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Hillsville",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "King George",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Lynchburg",
+  "State": "VA",
+  "Donors": 3
+ },
+ {
+  "City": "Meadows Of Dan",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Mechanicsville",
+  "State": "VA",
+  "Donors": 3
+ },
+ {
+  "City": "Monroe",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Montpelier",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Newport News",
+  "State": "VA",
+  "Donors": 6
+ },
+ {
+  "City": "Rice",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Richmond",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Roanoke",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Salem",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Spotsylvania",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Stanley",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Suffolk",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Virginia Beach",
+  "State": "VA",
+  "Donors": 8
+ },
+ {
+  "City": "Wilsons",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Winchester",
+  "State": "VA",
+  "Donors": 3
+ },
+ {
+  "City": "Wytheville",
+  "State": "VA",
+  "Donors": 3
+ },
+ {
+  "City": "Yorktown",
+  "State": "VA",
+  "Donors": 2
+ },
+ {
+  "City": "Brattleboro",
+  "State": "VT",
+  "Donors": 2
+ },
+ {
+  "City": "Anacortes",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Arlington",
+  "State": "WA",
+  "Donors": 4
+ },
+ {
+  "City": "Auburn",
+  "State": "WA",
+  "Donors": 3
+ },
+ {
+  "City": "Bothell",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Burien",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Camano Island",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Centralia",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Chattaroy",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Cle Elum",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Colville",
+  "State": "WA",
+  "Donors": 4
+ },
+ {
+  "City": "Goldendale",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Kennewick",
+  "State": "WA",
+  "Donors": 4
+ },
+ {
+  "City": "Kent",
+  "State": "WA",
+  "Donors": 4
+ },
+ {
+  "City": "Kirkland",
+  "State": "WA",
+  "Donors": 3
+ },
+ {
+  "City": "Lake Stevens",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Longview",
+  "State": "WA",
+  "Donors": 3
+ },
+ {
+  "City": "Lynden",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Lynnwood",
+  "State": "WA",
+  "Donors": 3
+ },
+ {
+  "City": "Mount Vernon",
+  "State": "WA",
+  "Donors": 4
+ },
+ {
+  "City": "Nine Mile Falls",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Olympia",
+  "State": "WA",
+  "Donors": 4
+ },
+ {
+  "City": "Pasco",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Port Angeles",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Port Orchard",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Puyallup",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Richland",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Seattle",
+  "State": "WA",
+  "Donors": 8
+ },
+ {
+  "City": "Sequim",
+  "State": "WA",
+  "Donors": 3
+ },
+ {
+  "City": "Snohomish",
+  "State": "WA",
+  "Donors": 4
+ },
+ {
+  "City": "Spanaway",
+  "State": "WA",
+  "Donors": 3
+ },
+ {
+  "City": "Spokane",
+  "State": "WA",
+  "Donors": 9
+ },
+ {
+  "City": "Spokane Valley",
+  "State": "WA",
+  "Donors": 9
+ },
+ {
+  "City": "Stanwood",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Tacoma",
+  "State": "WA",
+  "Donors": 3
+ },
+ {
+  "City": "Vancouver",
+  "State": "WA",
+  "Donors": 3
+ },
+ {
+  "City": "Wenatchee",
+  "State": "WA",
+  "Donors": 2
+ },
+ {
+  "City": "Woodland",
+  "State": "WA",
+  "Donors": 3
+ },
+ {
+  "City": "Appleton",
+  "State": "WI",
+  "Donors": 3
+ },
+ {
+  "City": "Baldwin",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Beloit",
+  "State": "WI",
+  "Donors": 5
+ },
+ {
+  "City": "Chippewa Falls",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Eagle River",
+  "State": "WI",
+  "Donors": 5
+ },
+ {
+  "City": "Eau Claire",
+  "State": "WI",
+  "Donors": 4
+ },
+ {
+  "City": "Green Bay",
+  "State": "WI",
+  "Donors": 5
+ },
+ {
+  "City": "Hayward",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Hudson",
+  "State": "WI",
+  "Donors": 3
+ },
+ {
+  "City": "Kenosha",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Madison",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Marinette",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Menasha",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Menomonie",
+  "State": "WI",
+  "Donors": 4
+ },
+ {
+  "City": "Mount Pleasant",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "New Richmond",
+  "State": "WI",
+  "Donors": 3
+ },
+ {
+  "City": "Pittsville",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Racine",
+  "State": "WI",
+  "Donors": 5
+ },
+ {
+  "City": "Sauk City",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Sheboygan",
+  "State": "WI",
+  "Donors": 3
+ },
+ {
+  "City": "Shell Lake",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "West Bend",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Woodman",
+  "State": "WI",
+  "Donors": 2
+ },
+ {
+  "City": "Beckley",
+  "State": "WV",
+  "Donors": 3
+ },
+ {
+  "City": "Bluefield",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Bridgeport",
+  "State": "WV",
+  "Donors": 3
+ },
+ {
+  "City": "Charleston",
+  "State": "WV",
+  "Donors": 4
+ },
+ {
+  "City": "Clarksburg",
+  "State": "WV",
+  "Donors": 3
+ },
+ {
+  "City": "Elkins",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Grantsville",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Huntington",
+  "State": "WV",
+  "Donors": 3
+ },
+ {
+  "City": "Hurricane",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Martinsburg",
+  "State": "WV",
+  "Donors": 4
+ },
+ {
+  "City": "Moorefield",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Morgantown",
+  "State": "WV",
+  "Donors": 4
+ },
+ {
+  "City": "Parkersburg",
+  "State": "WV",
+  "Donors": 3
+ },
+ {
+  "City": "Parsons",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Petersburg",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Princeton",
+  "State": "WV",
+  "Donors": 3
+ },
+ {
+  "City": "Ranson",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Shinnston",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Webster Springs",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Weston",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Wheeling",
+  "State": "WV",
+  "Donors": 2
+ },
+ {
+  "City": "Casper",
+  "State": "WY",
+  "Donors": 5
+ },
+ {
+  "City": "Cheyenne",
+  "State": "WY",
+  "Donors": 7
+ },
+ {
+  "City": "Cody",
+  "State": "WY",
+  "Donors": 2
+ },
+ {
+  "City": "Gillette",
+  "State": "WY",
+  "Donors": 4
+ },
+ {
+  "City": "Lander",
+  "State": "WY",
+  "Donors": 3
+ },
+ {
+  "City": "Laramie",
+  "State": "WY",
+  "Donors": 4
+ },
+ {
+  "City": "Powell",
+  "State": "WY",
+  "Donors": 2
+ },
+ {
+  "City": "Sheridan",
+  "State": "WY",
+  "Donors": 5
+ },
+ {
+  "City": "Thayne",
+  "State": "WY",
+  "Donors": 2
+ },
+ {
+  "City": "Worland",
+  "State": "WY",
+  "Donors": 3
+ }
+]
+}

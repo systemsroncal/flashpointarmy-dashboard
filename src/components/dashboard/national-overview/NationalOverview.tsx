@@ -13,6 +13,10 @@ import type { SvgIconComponent } from "@mui/icons-material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
+import {
+  aggregateReferenceLeaderMemberByState,
+  type CitiesDonorsJson,
+} from "@/lib/donors/aggregate-donors-by-state";
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
 import { UsaChapterActivityMap } from "./UsaChapterActivityMap";
 
@@ -30,6 +34,10 @@ export function NationalOverview({
   const [stats, setStats] = useState(initialStats);
   const [feed, setFeed] = useState(initialFeed);
   const [chapterRows, setChapterRows] = useState(chapters);
+  /** Reference leaders/members by state (from city JSON); map fill only */
+  const [referenceSplitByState, setReferenceSplitByState] = useState<
+    Map<string, { leaders: number; members: number }>
+  >(() => new Map());
   /** null until client mount / first refresh — avoids SSR vs client clock hydration mismatch */
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
@@ -69,6 +77,24 @@ export function NationalOverview({
     }
     return m;
   }, [chapterRows]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/backgrounds/cities_donors.json", { cache: "force-cache" });
+        if (!res.ok) return;
+        const json = (await res.json()) as CitiesDonorsJson;
+        if (cancelled) return;
+        setReferenceSplitByState(aggregateReferenceLeaderMemberByState(json));
+      } catch {
+        /* ignore missing or invalid JSON */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const reloadOverviewData = useCallback(async () => {
     const supabase = createClient();
@@ -285,61 +311,101 @@ export function NationalOverview({
             </Typography>
             <UsaChapterActivityMap
               chapterCountByState={chapterCountByState}
+              referenceSplitByState={referenceSplitByState}
               selectedStateCode={popupState}
               popupOpen={popupOpen}
               popupAnchor={popupAnchor}
               onSelectState={(code, anchor) => void openStatePopup(code, anchor)}
               onClosePopup={closeStatePopup}
             >
-              {popupData ? (
-                <Box>
-                  {[
-                    ["Active Chapters", popupData.activeChapters, "#0ea5e9"],
-                    ["Registered Members", popupData.registeredMembers, "#15803d"],
-                    ["Upcoming Gatherings", popupData.upcomingGatherings, "#ca8a04"],
-                    ["Local Leaders", popupData.localLeaders, "#7c3aed"],
-                    ["Recent community events", popupData.recentCommunityEvents, "#b91c1c"],
-                  ].map(([label, val, col]) => (
-                    <Box key={String(label)} sx={{ display: "flex", justifyContent: "space-between", py: 0.75 }}>
-                      <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
-                        {label}
+              <Box>
+                {popupState && (() => {
+                  const ref = referenceSplitByState.get(popupState);
+                  if (!ref || (ref.leaders === 0 && ref.members === 0)) return null;
+                  return (
+                    <Box sx={{ mb: 1.25, pb: 1.25, borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+                        Reference (city file: per city 1 leader + remaining as members, summed by state)
                       </Typography>
-                      <Box
-                        component="span"
-                        sx={{
-                          bgcolor: col as string,
-                          color: "#fff",
-                          px: 1.25,
-                          py: 0.25,
-                          borderRadius: 10,
-                          fontSize: "0.8rem",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {val as number}
-                      </Box>
+                      {(
+                        [
+                          ["Leaders", ref.leaders, "#7c3aed"],
+                          ["Members", ref.members, "#15803d"],
+                        ] as const
+                      ).map(([label, val, col]) => (
+                        <Box key={label} sx={{ display: "flex", justifyContent: "space-between", py: 0.75 }}>
+                          <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
+                            {label}
+                          </Typography>
+                          <Box
+                            component="span"
+                            sx={{
+                              bgcolor: col,
+                              color: "#fff",
+                              px: 1.25,
+                              py: 0.25,
+                              borderRadius: 10,
+                              fontSize: "0.8rem",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {val}
+                          </Box>
+                        </Box>
+                      ))}
                     </Box>
-                  ))}
-                  <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-                    <Typography variant="caption" display="block">
-                      Newest chapter: {popupData.newestChapterName}
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                      City: {popupData.newestChapterCity}
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                      Last activity:{" "}
-                      {popupData.lastActivity
-                        ? new Date(popupData.lastActivity).toLocaleString()
-                        : "—"}
-                    </Typography>
-                  </Box>
-                </Box>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Loading…
-                </Typography>
-              )}
+                  );
+                })()}
+                {popupData ? (
+                  <>
+                    {[
+                      ["Active Chapters", popupData.activeChapters, "#0ea5e9"],
+                      ["Registered Members", popupData.registeredMembers, "#15803d"],
+                      ["Upcoming Gatherings", popupData.upcomingGatherings, "#ca8a04"],
+                      ["Local Leaders", popupData.localLeaders, "#7c3aed"],
+                      ["Recent community events", popupData.recentCommunityEvents, "#b91c1c"],
+                    ].map(([label, val, col]) => (
+                      <Box key={String(label)} sx={{ display: "flex", justifyContent: "space-between", py: 0.75 }}>
+                        <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
+                          {label}
+                        </Typography>
+                        <Box
+                          component="span"
+                          sx={{
+                            bgcolor: col as string,
+                            color: "#fff",
+                            px: 1.25,
+                            py: 0.25,
+                            borderRadius: 10,
+                            fontSize: "0.8rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {val as number}
+                        </Box>
+                      </Box>
+                    ))}
+                    <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+                      <Typography variant="caption" display="block">
+                        Newest chapter: {popupData.newestChapterName}
+                      </Typography>
+                      <Typography variant="caption" display="block">
+                        City: {popupData.newestChapterCity}
+                      </Typography>
+                      <Typography variant="caption" display="block">
+                        Last activity:{" "}
+                        {popupData.lastActivity
+                          ? new Date(popupData.lastActivity).toLocaleString()
+                          : "—"}
+                      </Typography>
+                    </Box>
+                  </>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Loading dashboard stats…
+                  </Typography>
+                )}
+              </Box>
             </UsaChapterActivityMap>
           </Paper>
         </Box>

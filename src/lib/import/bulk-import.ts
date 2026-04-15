@@ -85,3 +85,35 @@ export function parseCityFromAddress(address: string) {
   if (parts.length < 2) return "";
   return parts[1] || "";
 }
+
+/** Optional columns when importing chapters + local leader in one sheet */
+export function pickLeaderEmail(row: FlatRow) {
+  return pickField(row, [
+    "Leader email",
+    "Local leader email",
+    "Leader Email",
+    "leader email",
+    "Local Leader Email",
+  ]).toLowerCase();
+}
+
+export function pickLeaderFullName(row: FlatRow) {
+  return pickField(row, [
+    "Leader name",
+    "Local leader name",
+    "Leader Name",
+    "Leader full name",
+    "Local Leader Name",
+  ]);
+}
+
+export function pickLeaderPhone(row: FlatRow) {
+  return cleanPhone(
+    pickField(row, [
+      "Leader phone",
+      "Leader Phone",
+      "Leader Phone number",
+      "Local leader phone",
+    ])
+  );
+}

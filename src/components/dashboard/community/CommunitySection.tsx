@@ -72,6 +72,7 @@ export function CommunitySection({
   isLocalLeader,
   localChapterId,
   subtitle,
+  isSuperAdmin = false,
   variant = "community",
 }: {
   initialUsers: CommunityUserRow[];
@@ -84,10 +85,14 @@ export function CommunitySection({
   isLocalLeader: boolean;
   localChapterId: string | null;
   subtitle: string;
+  /** Super admin can promote members/local leaders to administrator. */
+  isSuperAdmin?: boolean;
   /** `leaders`: same table/actions as Community, add flow always creates Local leader. */
   variant?: "community" | "leaders";
 }) {
   const isLeaders = variant === "leaders";
+  /** Admin (not super) cannot remove other admins; no one removes super admin from the UI */
+  const restrictDeletesForPeerAdmin = elevated && !isSuperAdmin;
   const router = useRouter();
   const [users, setUsers] = useSyncedState(initialUsers);
   const [filterChapterId, setFilterChapterId] = useState<string>("all");
@@ -130,6 +135,50 @@ export function CommunitySection({
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const [promoteError, setPromoteError] = useState<string | null>(null);
+  const [promoteSubmitting, setPromoteSubmitting] = useState(false);
+
+  function rowCanBeDeleted(u: CommunityUserRow): boolean {
+    if (u.id === currentUserId) return false;
+    if (u.role_names?.includes("super_admin")) return false;
+    if (restrictDeletesForPeerAdmin && u.role_names?.includes("admin")) return false;
+    return true;
+  }
+
+  function eligibleForAdminPromotion(u: CommunityUserRow): boolean {
+    if (!isSuperAdmin) return false;
+    const names = u.role_names ?? [];
+    if (names.includes("admin") || names.includes("super_admin")) return false;
+    return names.some((n) => n === "member" || n === "local_leader");
+  }
+
+  async function runPromoteAdmin(u: CommunityUserRow) {
+    setPromoteSubmitting(true);
+    setPromoteError(null);
+    try {
+      const res = await fetch(`/api/community/members/${u.id}/promote-admin`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as { error?: string; role_names?: string[] };
+      if (!res.ok) {
+        setPromoteError(data.error || "Could not assign administrator role.");
+        return;
+      }
+      const nextRoles = data.role_names ?? ["admin"];
+      setUsers((prev) =>
+        prev.map((row) =>
+          row.id === u.id ? { ...row, role_names: nextRoles } : row
+        )
+      );
+      setInviteFlash("User promoted to administrator.");
+      window.setTimeout(() => setInviteFlash(null), 12000);
+      setViewUser(null);
+      router.refresh();
+    } finally {
+      setPromoteSubmitting(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     if (filterChapterId === "all") return users;
@@ -506,7 +555,7 @@ export function CommunitySection({
                     <Edit fontSize="small" />
                   </IconButton>
                 ) : null}
-                {canDelete && u.id !== currentUserId ? (
+                {canDelete && rowCanBeDeleted(u) ? (
                   <IconButton
                     size="small"
                     color="error"
@@ -685,6 +734,17 @@ export function CommunitySection({
               Excel: include a <strong>{PHONE_EXCEL_KEYS[0]}</strong> column for each user&apos;s phone (also used as
               temporary password when present).
             </Typography>
+            {!isLeaders ? (
+              <Typography variant="body2" color="text.secondary">
+                Import <strong>chapters first</strong> when possible. If members were imported without chapters, add a
+                chapter name column (e.g. Church affiliation / Chapter name) so each row can match or create a chapter
+                automatically.
+              </Typography>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Each row creates the chapter if missing, then creates the local leader and links them to that chapter.
+              </Typography>
+            )}
             <Button component="label" variant="outlined" disabled={importing}>
               Upload Excel, CSV, or JSON
               <input
@@ -722,7 +782,15 @@ export function CommunitySection({
         </DialogActions>
       </Dialog>
 
-      <Dialog open={!!viewUser} onClose={() => setViewUser(null)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={!!viewUser}
+        onClose={() => {
+          setPromoteError(null);
+          setViewUser(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>{isLeaders ? "Leader details" : "Member details"}</DialogTitle>
         <DialogContent>
           {viewUser ? (
@@ -781,10 +849,33 @@ export function CommunitySection({
                   ? new Date(viewUser.created_at).toLocaleString()
                   : "—"}
               </Typography>
+              {viewUser && eligibleForAdminPromotion(viewUser) ? (
+                <>
+                  {promoteError ? (
+                    <Alert severity="error" sx={{ mt: 2 }}>
+                      {promoteError}
+                    </Alert>
+                  ) : null}
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    Super admin: grant <strong>Administrator</strong> (replaces Member / Local leader roles for
+                    dashboard access).
+                  </Typography>
+                </>
+              ) : null}
             </Box>
           ) : null}
         </DialogContent>
         <DialogActions>
+          {viewUser && eligibleForAdminPromotion(viewUser) ? (
+            <Button
+              color="secondary"
+              variant="contained"
+              disabled={promoteSubmitting}
+              onClick={() => void runPromoteAdmin(viewUser)}
+            >
+              {promoteSubmitting ? "Saving…" : "Make administrator"}
+            </Button>
+          ) : null}
           <Button onClick={() => setViewUser(null)}>Close</Button>
         </DialogActions>
       </Dialog>

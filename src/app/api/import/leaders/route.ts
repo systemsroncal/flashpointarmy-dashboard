@@ -2,8 +2,6 @@ import { MODULE_SLUGS } from "@/config/modules";
 import {
   cleanPhone,
   containsTestText,
-  parseCityFromAddress,
-  parseZipFromAddress,
   PHONE_EXCEL_KEYS,
   pickChapterName,
   pickField,
@@ -11,10 +9,11 @@ import {
   type FlatRow,
   type ImportResultItem,
 } from "@/lib/import/bulk-import";
+import { createLocalLeaderUserForChapter } from "@/lib/import/create-local-leader-user";
+import { findOrCreateChapterByImportRow } from "@/lib/import/chapter-import";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
-import { resolveChapterUsState } from "@/lib/import/us-state";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
@@ -75,11 +74,6 @@ export async function POST(req: Request) {
     const email = pickField(row, ["Email", "email"]).toLowerCase();
     const phone = cleanPhone(pickField(row, PHONE_EXCEL_KEYS));
     const chapterName = pickChapterName(row);
-    const address = pickField(row, ["Address", "address"]);
-    const churchStateRaw = pickField(row, ["Church State", "State", "state", "Church state"]);
-    const city = parseCityFromAddress(address) || pickField(row, ["City", "city"]);
-    const zip = parseZipFromAddress(address) || pickField(row, ["ZIP code", "Zip", "zip"]);
-
     if (containsTestText(row)) {
       results.push({ status: "omitted", email, phone, reason: "Contains test text." });
       continue;
@@ -97,78 +91,30 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const stateResolved = resolveChapterUsState({ churchStateRaw, address });
-    if ("error" in stateResolved) {
+    const chapterRes = await findOrCreateChapterByImportRow(admin, row, user.id);
+    if ("error" in chapterRes) {
       results.push({
         status: "omitted",
         email,
         phone,
-        reason: `${stateResolved.error} (chapter: ${chapterName || "—"})`,
+        reason: `${chapterRes.error} (chapter: ${chapterName || "—"})`,
       });
       continue;
     }
-    const state = stateResolved.code;
+    const chapterId = chapterRes.chapter.id;
 
-    let chapterId: string | null = null;
-    const { data: chapterByName } = await admin
-      .from("chapters")
-      .select("id")
-      .ilike("name", chapterName)
-      .limit(1)
-      .maybeSingle();
-    chapterId = chapterByName?.id ?? null;
-    if (!chapterId) {
-      const { data: insertedChapter, error: chapterErr } = await admin
-        .from("chapters")
-        .insert({
-          name: chapterName,
-          address_line: address || null,
-          city: city || null,
-          state,
-          zip_code: zip || null,
-          status: "approved",
-          created_by: user.id,
-        })
-        .select("id")
-        .single();
-      if (chapterErr || !insertedChapter?.id) {
-        results.push({ status: "omitted", email, phone, reason: chapterErr?.message || "Could not create chapter." });
-        continue;
-      }
-      chapterId = insertedChapter.id;
-    }
-
-    const password = phone || "Welcome123!";
-    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    const createdLeader = await createLocalLeaderUserForChapter(admin, {
       email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        first_name: firstName,
-        last_name: lastName,
-        primary_chapter_id: chapterId,
-        phone: phone || null,
-      },
+      firstName,
+      lastName,
+      phone,
+      chapterId,
+      leaderRoleId,
     });
-    if (createErr || !created.user?.id) {
-      results.push({ status: "omitted", email, phone, reason: createErr?.message || "Could not create user." });
+    if ("error" in createdLeader) {
+      results.push({ status: "omitted", email, phone, reason: createdLeader.error });
       continue;
     }
-
-    const userId = created.user.id;
-    await admin.auth.admin.updateUserById(userId, { email_confirm: true });
-
-    await admin.from("user_roles").delete().eq("user_id", userId);
-    const { error: roleErr } = await admin
-      .from("user_roles")
-      .insert({ user_id: userId, role_id: leaderRoleId });
-    if (roleErr) {
-      await admin.auth.admin.deleteUser(userId);
-      results.push({ status: "omitted", email, phone, reason: roleErr.message || "Could not assign role." });
-      continue;
-    }
-
-    await admin.from("chapter_leaders").upsert({ chapter_id: chapterId, user_id: userId }, { onConflict: "chapter_id,user_id" });
     batchEmails.add(email);
     if (phone) batchPhones.add(phone);
     results.push({ status: "imported", email, phone, chapter: chapterName });

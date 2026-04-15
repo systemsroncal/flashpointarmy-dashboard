@@ -52,8 +52,13 @@ type RsmGeo = {
   svgPath?: string;
 };
 
+/** Visual-only thresholds: reference leaders+members (from city JSON) layer onto map fill. */
+const REFERENCE_TIER_MID = 15;
+const REFERENCE_TIER_HIGH = 150;
+
 export function UsaChapterActivityMap({
   chapterCountByState,
+  referenceSplitByState,
   selectedStateCode,
   popupOpen,
   popupAnchor,
@@ -62,6 +67,8 @@ export function UsaChapterActivityMap({
   children,
 }: {
   chapterCountByState: Map<string, number>;
+  /** Per state: leaders + members from city file (1 leader + rest members per city), map fill only. */
+  referenceSplitByState?: Map<string, { leaders: number; members: number }>;
   selectedStateCode: string | null;
   popupOpen: boolean;
   popupAnchor: { x: number; y: number } | null;
@@ -92,12 +99,17 @@ export function UsaChapterActivityMap({
   const fillForState = useCallback(
     (code: string | null) => {
       if (!code) return COLORS.noChapters;
-      const n = chapterCountByState.get(code) ?? 0;
-      if (n <= 0) return COLORS.noChapters;
-      if (n >= 5) return COLORS.hasChapters;
+      const chapters = chapterCountByState.get(code) ?? 0;
+      const ref = referenceSplitByState?.get(code);
+      const refLeaders = ref?.leaders ?? 0;
+      const refMembers = ref?.members ?? 0;
+      const refTotal = refLeaders + refMembers;
+      if (chapters <= 0 && refTotal <= 0) return COLORS.noChapters;
+      if (chapters >= 5 || refTotal >= REFERENCE_TIER_HIGH) return COLORS.hasChapters;
+      if (chapters >= 1 || refTotal >= REFERENCE_TIER_MID) return COLORS.hasChaptersMid;
       return COLORS.hasChaptersMid;
     },
-    [chapterCountByState]
+    [chapterCountByState, referenceSplitByState]
   );
 
   const onGeoClick = useCallback(
@@ -201,9 +213,9 @@ export function UsaChapterActivityMap({
           Legend
         </Typography>
         {[
-          { c: COLORS.noChapters, t: "No chapters" },
-          { c: COLORS.hasChaptersMid, t: "1–4 chapters" },
-          { c: COLORS.hasChapters, t: "5+ chapters" },
+          { c: COLORS.noChapters, t: "No activity" },
+          { c: COLORS.hasChaptersMid, t: "Moderate (chapters 1–4 or ref. leaders/members)" },
+          { c: COLORS.hasChapters, t: "High (5+ chapters or strong ref. reach)" },
         ].map((item) => (
           <Box key={item.t} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Box
@@ -220,6 +232,9 @@ export function UsaChapterActivityMap({
             </Typography>
           </Box>
         ))}
+        <Typography variant="caption" color="text.secondary" sx={{ width: "100%", opacity: 0.85 }}>
+          City file: each city counts 1 reference leader + remaining as members; summed by state for fill only.
+        </Typography>
       </Box>
 
       <ComposableMap

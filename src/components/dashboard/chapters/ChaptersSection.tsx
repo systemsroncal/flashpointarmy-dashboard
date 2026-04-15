@@ -698,6 +698,11 @@ export function ChaptersSection({
         <DialogContent>
           <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
             {importError ? <Typography color="error">{importError}</Typography> : null}
+            <Typography variant="body2" color="text.secondary">
+              Optional columns per row: <strong>Leader email</strong>, <strong>Leader name</strong>,{" "}
+              <strong>Leader phone</strong> — after each chapter is created, the app creates a local leader account or
+              links an existing user to that chapter.
+            </Typography>
             <Button component="label" variant="outlined" disabled={importing}>
               Upload Excel, CSV, or JSON
               <input

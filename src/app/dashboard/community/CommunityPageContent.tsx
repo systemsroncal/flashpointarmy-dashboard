@@ -29,6 +29,7 @@ export default async function CommunityPageContent() {
   const deletePerm = can(permissions, MODULE_SLUGS.community, "delete");
   const roles = await loadUserRoleNames(supabase, user.id);
   const elevated = isElevatedRole(roles);
+  const isSuperAdmin = roles.includes("super_admin");
   const isLocalLeader = roles.includes("local_leader");
 
   const { data: profile } = await supabase
@@ -146,6 +147,7 @@ export default async function CommunityPageContent() {
       isLocalLeader={isLocalLeader}
       localChapterId={localChapterId}
       subtitle={subtitle}
+      isSuperAdmin={isSuperAdmin}
     />
   );
 }

@@ -26,6 +26,7 @@ export default async function LeadersPageContent() {
 
   const roles = await loadUserRoleNames(supabase, user.id);
   const elevated = isElevatedRole(roles);
+  const isSuperAdmin = roles.includes("super_admin");
   const isLocalLeader = roles.includes("local_leader");
   const create =
     can(permissions, MODULE_SLUGS.leaders, "create") && elevated;
@@ -157,6 +158,7 @@ export default async function LeadersPageContent() {
       isLocalLeader={isLocalLeader}
       localChapterId={localChapterId}
       subtitle={subtitle}
+      isSuperAdmin={isSuperAdmin}
     />
   );
 }

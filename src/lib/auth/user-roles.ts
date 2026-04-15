@@ -23,6 +23,16 @@ export function isElevatedRole(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "super_admin" || n === "admin");
 }
 
+/** Platform owner */
+export function isSuperAdminUser(roleNames: string[]): boolean {
+  return roleNames.includes("super_admin");
+}
+
+/** Has `admin` but not `super_admin` — dashboard admin with peer restrictions */
+export function isAdminButNotSuper(roleNames: string[]): boolean {
+  return roleNames.includes("admin") && !roleNames.includes("super_admin");
+}
+
 export function isMemberOrLeader(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "member" || n === "local_leader");
 }

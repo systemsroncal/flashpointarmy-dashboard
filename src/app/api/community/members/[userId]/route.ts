@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import {
+  isAdminButNotSuper,
+  isSuperAdminUser,
+  loadUserRoleNames,
+} from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -183,6 +188,24 @@ export async function DELETE(
 
   try {
     const admin = createAdminClient();
+    const [callerRoles, targetRoles] = await Promise.all([
+      loadUserRoleNames(session.supabase, user.id),
+      loadUserRoleNames(admin, userId),
+    ]);
+
+    if (isSuperAdminUser(targetRoles)) {
+      return NextResponse.json(
+        { error: "Super admin accounts cannot be deleted from the dashboard." },
+        { status: 403 }
+      );
+    }
+    if (isAdminButNotSuper(callerRoles) && targetRoles.includes("admin")) {
+      return NextResponse.json(
+        { error: "Admins cannot delete other administrator accounts." },
+        { status: 403 }
+      );
+    }
+
     const { error } = await admin.auth.admin.deleteUser(userId);
     if (error) {
       return NextResponse.json(
