@@ -278,8 +278,8 @@ export function CommunitySection({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
-          password,
+        email: email.trim(),
+        password,
           firstName: fn,
           lastName: ln,
           phone: phone.trim() || null,
@@ -420,22 +420,22 @@ export function CommunitySection({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {canCreate ? (
             <>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => {
-                  setFirstName("");
-                  setLastName("");
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => {
+                setFirstName("");
+                setLastName("");
                   if (!isLeaders) setInviteRole("member");
-                  setEmail("");
-                  setPassword("");
+                setEmail("");
+                setPassword("");
                   setPhone("");
-                  setSubmitError(null);
-                  setAddOpen(true);
-                }}
-              >
-                Add new
-              </Button>
+                setSubmitError(null);
+                setAddOpen(true);
+              }}
+            >
+              Add new
+            </Button>
               <Button variant="outlined" size="small" onClick={() => setImportOpen(true)}>
                 {isLeaders ? "Import Local leaders" : "Import Members"}
               </Button>
@@ -566,9 +566,9 @@ export function CommunitySection({
                 </>
               ) : (
                 <>
-                  Creates a dashboard login. The new user may need to confirm their email depending on your
-                  Supabase Auth settings. If your session switches to the new user after sign-up, sign back in
-                  as an admin and assign the role again if needed.
+              Creates a dashboard login. The new user may need to confirm their email depending on your
+              Supabase Auth settings. If your session switches to the new user after sign-up, sign back in
+              as an admin and assign the role again if needed.
                 </>
               )}
             </Typography>
