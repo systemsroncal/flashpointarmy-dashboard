@@ -3,12 +3,14 @@ import {
   containsTestText,
   parseCityFromAddress,
   parseZipFromAddress,
+  pickChapterName,
   pickField,
   type FlatRow,
   type ImportResultItem,
 } from "@/lib/import/bulk-import";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
+import { resolveChapterUsState } from "@/lib/import/us-state";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
@@ -39,20 +41,21 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
-  const chapterNames = rows
-    .map((r) => pickField(r, ["Church Affiliation", "Chapter name", "chapter name"]))
-    .map((n) => n.trim())
-    .filter(Boolean);
+  const chapterNames = rows.map((r) => pickChapterName(r)).map((n) => n.trim()).filter(Boolean);
   const { data: existingRows } = await admin.from("chapters").select("name").in("name", chapterNames);
   const existing = new Set((existingRows ?? []).map((r) => r.name.trim().toLowerCase()));
   const batch = new Set<string>();
   const results: ImportResultItem[] = [];
 
   for (const row of rows) {
-    const chapterName = pickField(row, ["Church Affiliation", "Chapter name", "chapter name"]).trim();
+    const hasAny = Object.values(row).some((v) => String(v ?? "").trim() !== "");
+    if (!hasAny) {
+      continue;
+    }
+    const chapterName = pickChapterName(row).trim();
     const address = pickField(row, ["Address", "address"]);
     const city = parseCityFromAddress(address) || pickField(row, ["City", "city"]);
-    const state = pickField(row, ["Church State", "State", "state"]).toUpperCase().slice(0, 2);
+    const churchStateRaw = pickField(row, ["Church State", "State", "state", "Church state"]);
     const zip = parseZipFromAddress(address) || pickField(row, ["ZIP code", "Zip", "zip"]);
     const key = chapterName.toLowerCase();
 
@@ -69,11 +72,22 @@ export async function POST(req: Request) {
       continue;
     }
 
+    const stateResolved = resolveChapterUsState({ churchStateRaw, address });
+    if ("error" in stateResolved) {
+      results.push({
+        status: "omitted",
+        chapter: chapterName,
+        reason: stateResolved.error,
+      });
+      continue;
+    }
+    const state = stateResolved.code;
+
     const { error } = await admin.from("chapters").insert({
       name: chapterName,
       address_line: address || null,
       city: city || null,
-      state: state || "FL",
+      state,
       zip_code: zip || null,
       status: "approved",
       created_by: user.id,

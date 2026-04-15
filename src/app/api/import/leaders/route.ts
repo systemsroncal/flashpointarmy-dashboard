@@ -5,6 +5,7 @@ import {
   parseCityFromAddress,
   parseZipFromAddress,
   PHONE_EXCEL_KEYS,
+  pickChapterName,
   pickField,
   splitName,
   type FlatRow,
@@ -13,6 +14,7 @@ import {
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
+import { resolveChapterUsState } from "@/lib/import/us-state";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
@@ -72,9 +74,9 @@ export async function POST(req: Request) {
     const { firstName, lastName } = splitName(fullName);
     const email = pickField(row, ["Email", "email"]).toLowerCase();
     const phone = cleanPhone(pickField(row, PHONE_EXCEL_KEYS));
-    const chapterName = pickField(row, ["Church Affiliation", "church affiliation"]);
+    const chapterName = pickChapterName(row);
     const address = pickField(row, ["Address", "address"]);
-    const state = pickField(row, ["Church State", "State", "state"]).toUpperCase().slice(0, 2);
+    const churchStateRaw = pickField(row, ["Church State", "State", "state", "Church state"]);
     const city = parseCityFromAddress(address) || pickField(row, ["City", "city"]);
     const zip = parseZipFromAddress(address) || pickField(row, ["ZIP code", "Zip", "zip"]);
 
@@ -95,6 +97,18 @@ export async function POST(req: Request) {
       continue;
     }
 
+    const stateResolved = resolveChapterUsState({ churchStateRaw, address });
+    if ("error" in stateResolved) {
+      results.push({
+        status: "omitted",
+        email,
+        phone,
+        reason: `${stateResolved.error} (chapter: ${chapterName || "—"})`,
+      });
+      continue;
+    }
+    const state = stateResolved.code;
+
     let chapterId: string | null = null;
     const { data: chapterByName } = await admin
       .from("chapters")
@@ -110,7 +124,7 @@ export async function POST(req: Request) {
           name: chapterName,
           address_line: address || null,
           city: city || null,
-          state: state || "FL",
+          state,
           zip_code: zip || null,
           status: "approved",
           created_by: user.id,

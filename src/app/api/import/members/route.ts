@@ -11,6 +11,7 @@ import {
 } from "@/lib/import/bulk-import";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
+import { resolveChapterUsState } from "@/lib/import/us-state";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
@@ -92,7 +93,9 @@ export async function POST(req: Request) {
     const address = pickField(row, ["Address", "address"]);
     const zip = parseZipFromAddress(address) || pickField(row, ["ZIP code", "Zip", "zip"]);
     const city = pickField(row, ["City", "city"]) || "";
-    const state = pickField(row, ["State", "state"]).toUpperCase().slice(0, 2);
+    const churchStateRaw = pickField(row, ["Church State", "State", "state", "Church state"]);
+    const stateResolved = resolveChapterUsState({ churchStateRaw, address });
+    const state = "error" in stateResolved ? "" : stateResolved.code;
 
     if (containsTestText(row)) {
       results.push({ status: "omitted", email, phone, reason: "Contains test text." });
