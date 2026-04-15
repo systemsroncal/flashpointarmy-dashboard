@@ -10,23 +10,12 @@ import { NextResponse } from "next/server";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
-}
-
-function absoluteAuthLink(link: string) {
-  if (link.startsWith("http://") || link.startsWith("https://")) return link;
-  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
-  if (!base) return link;
-  const path = link.startsWith("/") ? link : `/${link}`;
-  return `${base}${path}`;
-}
-
 type InviteBody = {
   email?: string;
   password?: string;
   firstName?: string;
   lastName?: string;
+  phone?: string;
   primaryChapterId?: string;
   roleName?: string;
   context?: string;
@@ -53,6 +42,7 @@ export async function POST(req: Request) {
     const password = body.password || "";
     const fn = (body.firstName || "").trim();
     const ln = (body.lastName || "").trim();
+    const phone = (body.phone || "").trim();
     const chapterRaw = (body.primaryChapterId || "").trim();
     const context = body.context === "leaders" ? "leaders" : "community";
     const roleToAssign: "member" | "local_leader" =
@@ -122,34 +112,25 @@ export async function POST(req: Request) {
 
     const admin = createAdminClient();
 
-    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-      type: "signup",
+    const { data: createdData, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: {
-          first_name: fn,
-          last_name: ln,
-          primary_chapter_id: assignChapter,
-        },
-        redirectTo: `${siteUrl()}/login`,
+      email_confirm: true,
+      user_metadata: {
+        first_name: fn,
+        last_name: ln,
+        primary_chapter_id: assignChapter,
+        phone: phone || null,
       },
     });
 
-    if (linkErr || !linkData?.user?.id) {
-      const msg = linkErr?.message || "Could not create user.";
+    if (createErr || !createdData?.user?.id) {
+      const msg = createErr?.message || "Could not create user.";
       const status = /already|registered|exists|duplicate/i.test(msg) ? 409 : 400;
       return NextResponse.json({ error: msg }, { status });
     }
 
-    const newId = linkData.user.id;
-    const rawLink = linkData.properties?.action_link;
-    if (!rawLink) {
-      await admin.auth.admin.deleteUser(newId);
-      return NextResponse.json({ error: "Auth did not return a confirmation link." }, { status: 500 });
-    }
-
-    const actionLink = absoluteAuthLink(rawLink);
+    const newId = createdData.user.id;
 
     const { error: rpcError } = await supabase.rpc("assign_invited_user_primary_role", {
       p_user_id: newId,
@@ -165,29 +146,6 @@ export async function POST(req: Request) {
     }
 
     const displayName = `${fn} ${ln}`.trim();
-    let emailWarning: string | null = null;
-    try {
-      await sendTemplatedEmail(
-        "verify_email",
-        email,
-        {
-          user_fullname: displayName,
-          user_email: email,
-          validateemail_url: actionLink,
-          resetpassword_url: "",
-          gathering_title: "",
-          gathering_url: "",
-          app_name: "Flashpoint Dashboard",
-        },
-        { triggeredByUserId: caller.id }
-      );
-    } catch (e) {
-      emailWarning =
-        e instanceof Error
-          ? e.message
-          : "Confirmation email could not be sent; resend from Email settings or Supabase.";
-    }
-
     if (roleToAssign === "local_leader") {
       try {
         await sendTemplatedEmail(
@@ -215,13 +173,13 @@ export async function POST(req: Request) {
         id: newId,
         email,
         display_name: displayName,
-        created_at: linkData.user.created_at ?? new Date().toISOString(),
+        created_at: createdData.user.created_at ?? new Date().toISOString(),
         primary_chapter_id: assignChapter,
         first_name: fn,
         last_name: ln,
+        phone: phone || null,
         role_names: [roleToAssign],
       },
-      emailWarning,
     });
   } catch (e) {
     return NextResponse.json(

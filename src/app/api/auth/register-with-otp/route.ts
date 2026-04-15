@@ -7,6 +7,7 @@ type RegisterPayload = {
   password?: string;
   firstName?: string;
   lastName?: string;
+  phone?: string;
   primaryChapterId?: string;
   otp?: string;
 };
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
     const password = (body.password || "").trim();
     const firstName = (body.firstName || "").trim();
     const lastName = (body.lastName || "").trim();
+    const phone = (body.phone || "").trim() || null;
     const primaryChapterId = (body.primaryChapterId || "").trim();
     const otp = (body.otp || "").trim();
 
@@ -73,6 +75,7 @@ export async function POST(req: Request) {
         first_name: firstName,
         last_name: lastName,
         primary_chapter_id: primaryChapterId,
+        phone,
       },
     });
     if (createErr || !created.user) {

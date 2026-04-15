@@ -18,6 +18,7 @@ import {
   Box,
   Button,
   Chip,
+  LinearProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -32,11 +33,13 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
 } from "@mui/material";
 import { useSyncedState } from "@/hooks/useSyncedState";
+import { parseUploadFile } from "@/lib/import/parse-upload";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -129,6 +132,17 @@ export function ChaptersSection({
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deps, setDeps] = useState<Record<string, number> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importRows, setImportRows] = useState<Record<string, string>[]>([]);
+  const [importFileName, setImportFileName] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importResults, setImportResults] = useState<
+    { status: "imported" | "omitted"; chapter?: string; reason?: string }[]
+  >([]);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [createLeaders, setCreateLeaders] = useState<string[]>([]);
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -144,6 +158,10 @@ export function ChaptersSection({
     if (filter === "all") return rows;
     return rows.filter((r) => r.status === filter);
   }, [rows, filter]);
+  const paged = useMemo(() => {
+    if (rowsPerPage < 0) return filtered;
+    return filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [filtered, page, rowsPerPage]);
 
   async function loadLeadersForChapter(chapterId: string) {
     const supabase = createClient();
@@ -291,6 +309,58 @@ export function ChaptersSection({
     router.refresh();
   }
 
+  async function onPickImportFile(file: File) {
+    setImportError(null);
+    setImportResults([]);
+    const parsed = await parseUploadFile(file);
+    if (parsed.error) {
+      setImportError(parsed.error);
+      setImportRows([]);
+      setImportFileName("");
+      return;
+    }
+    setImportRows(parsed.rows);
+    setImportFileName(file.name);
+  }
+
+  async function runImport() {
+    if (importRows.length === 0) {
+      setImportError("Upload a file with records first.");
+      return;
+    }
+    setImporting(true);
+    setImportError(null);
+    setImportProgress(0);
+    const chunkSize = 100;
+    let processed = 0;
+    const allResults: { status: "imported" | "omitted"; chapter?: string; reason?: string }[] = [];
+    try {
+      for (let i = 0; i < importRows.length; i += chunkSize) {
+        const chunk = importRows.slice(i, i + chunkSize);
+        const res = await fetch("/api/import/chapters", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows: chunk }),
+        });
+        const payload = (await res.json()) as {
+          error?: string;
+          results?: { status: "imported" | "omitted"; chapter?: string; reason?: string }[];
+        };
+        if (!res.ok) {
+          setImportError(payload.error || "Import failed.");
+          break;
+        }
+        allResults.push(...(payload.results ?? []));
+        processed += chunk.length;
+        setImportProgress(Math.round((processed / importRows.length) * 100));
+      }
+      setImportResults(allResults);
+      router.refresh();
+    } finally {
+      setImporting(false);
+    }
+  }
+
   if (!canRead) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
@@ -316,16 +386,21 @@ export function ChaptersSection({
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {canCreate ? (
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => {
-                resetCreateForm();
-                setCreateOpen(true);
-              }}
-            >
-              Add new
-            </Button>
+            <>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => {
+                  resetCreateForm();
+                  setCreateOpen(true);
+                }}
+              >
+                Add new
+              </Button>
+              <Button variant="outlined" size="small" onClick={() => setImportOpen(true)}>
+                Import Chapters
+              </Button>
+            </>
           ) : null}
         </Box>
         <FormControl size="small" sx={{ minWidth: 200 }}>
@@ -357,7 +432,7 @@ export function ChaptersSection({
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.map((row) => {
+            {paged.map((row) => {
               const stOpt = usStateByCode(row.state);
               return (
               <TableRow key={row.id}>
@@ -392,6 +467,26 @@ export function ChaptersSection({
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          component="div"
+          count={filtered.length}
+          page={rowsPerPage < 0 ? 0 : page}
+          onPageChange={(_, nextPage) => setPage(nextPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            const v = Number(e.target.value);
+            setRowsPerPage(v);
+            setPage(0);
+          }}
+          rowsPerPageOptions={[
+            10,
+            20,
+            25,
+            50,
+            100,
+            { label: "All", value: -1 },
+          ]}
+        />
       </Paper>
 
       <Dialog open={!!viewRow} onClose={() => setViewRow(null)} maxWidth="sm" fullWidth>
@@ -595,6 +690,48 @@ export function ChaptersSection({
               Create
             </Button>
           ) : null}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={importOpen} onClose={() => !importing && setImportOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Import Chapters</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
+            {importError ? <Typography color="error">{importError}</Typography> : null}
+            <Button component="label" variant="outlined" disabled={importing}>
+              Upload Excel, CSV, or JSON
+              <input
+                hidden
+                type="file"
+                accept=".xlsx,.xls,.csv,.json"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void onPickImportFile(f);
+                }}
+              />
+            </Button>
+            <Typography variant="body2" color="text.secondary">
+              File: {importFileName || "—"} | Records detected: {importRows.length}
+            </Typography>
+            {importing ? <LinearProgress variant="determinate" value={importProgress} /> : null}
+            {importResults.length > 0 ? (
+              <Box sx={{ maxHeight: 260, overflow: "auto", border: "1px solid rgba(255,255,255,0.12)", p: 1 }}>
+                {importResults.map((r, idx) => (
+                  <Typography key={`${r.chapter || "row"}-${idx}`} variant="caption" display="block">
+                    [{r.status.toUpperCase()}] {r.chapter || "chapter"} {r.reason ? `- ${r.reason}` : ""}
+                  </Typography>
+                ))}
+              </Box>
+            ) : null}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImportOpen(false)} disabled={importing}>
+            Close
+          </Button>
+          <Button variant="contained" onClick={() => void runImport()} disabled={importing || importRows.length === 0}>
+            {importing ? "Importing..." : "Import data"}
+          </Button>
         </DialogActions>
       </Dialog>
 

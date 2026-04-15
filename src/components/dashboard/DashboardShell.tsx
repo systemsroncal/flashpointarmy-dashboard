@@ -99,7 +99,7 @@ const NAV: NavItem[] = [
     icon: <CampaignIcon />,
   },
   {
-    label: "Growth",
+    label: "Growth Track",
     href: "/dashboard/growth",
     module: MODULE_SLUGS.growth,
     icon: <TrendingUpIcon />,

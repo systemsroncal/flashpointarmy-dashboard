@@ -30,6 +30,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
   const [chapter, setChapter] = useState<ChapterOption | null>(null);
   const [chapters, setChapters] = useState<ChapterOption[]>([]);
   const [chaptersLoading, setChaptersLoading] = useState(true);
@@ -147,6 +148,7 @@ export default function RegisterPage() {
           password,
           firstName: fn,
           lastName: ln,
+          phone: phone.trim() || undefined,
           primaryChapterId: chapter.id,
           otp: otpCode.trim(),
         }),
@@ -198,6 +200,17 @@ export default function RegisterPage() {
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             autoComplete="family-name"
+            sx={authFloatingTextFieldSx}
+          />
+          <TextField
+            id="reg-phone"
+            name="phone"
+            label="Phone (optional)"
+            variant="outlined"
+            fullWidth
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            autoComplete="tel"
             sx={authFloatingTextFieldSx}
           />
           <Autocomplete

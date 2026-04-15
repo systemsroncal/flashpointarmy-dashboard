@@ -24,6 +24,7 @@ type ProfileRow = {
   last_name: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  phone: string | null;
 };
 
 export function UserProfileDrawer({
@@ -42,6 +43,7 @@ export function UserProfileDrawer({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export function UserProfileDrawer({
     const supabase = createClient();
     const { data, error: qErr } = await supabase
       .from("profiles")
-      .select("first_name, last_name, display_name, avatar_url")
+      .select("first_name, last_name, display_name, avatar_url, phone")
       .eq("id", du.id)
       .maybeSingle();
     setLoading(false);
@@ -66,6 +68,7 @@ export function UserProfileDrawer({
     setFirstName(row?.first_name ?? "");
     setLastName(row?.last_name ?? "");
     setDisplayName(row?.display_name ?? du.display_name ?? "");
+    setPhone(row?.phone?.trim() ?? du.phone?.trim() ?? "");
     setAvatarUrl(row?.avatar_url ?? "");
   }, [du.display_name, du.id]);
 
@@ -87,12 +90,14 @@ export function UserProfileDrawer({
       [fn, ln].filter(Boolean).join(" ").trim() ||
       du.email.split("@")[0];
 
+    const ph = phone.trim() || null;
     const { error: pErr } = await supabase
       .from("profiles")
       .update({
         first_name: fn || null,
         last_name: ln || null,
         display_name: disp,
+        phone: ph,
       })
       .eq("id", du.id);
 
@@ -108,11 +113,25 @@ export function UserProfileDrawer({
         first_name: fn || null,
         last_name: ln || null,
         display_name: disp,
+        phone: ph,
       })
       .eq("id", du.id);
 
     if (dErr) {
       setError(dErr.message);
+      setSaving(false);
+      return;
+    }
+
+    const { error: authUpdErr } = await supabase.auth.updateUser({
+      data: {
+        first_name: fn || null,
+        last_name: ln || null,
+        phone: ph,
+      },
+    });
+    if (authUpdErr) {
+      setError(authUpdErr.message);
       setSaving(false);
       return;
     }
@@ -219,6 +238,11 @@ export function UserProfileDrawer({
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                   {[profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "—"}
                 </Typography>
+                {profile?.phone?.trim() || du.phone?.trim() ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {profile?.phone?.trim() || du.phone?.trim()}
+                  </Typography>
+                ) : null}
                 <Button
                   startIcon={<EditOutlinedIcon />}
                   variant="outlined"
@@ -251,6 +275,14 @@ export function UserProfileDrawer({
                   size="small"
                   fullWidth
                   helperText="Shown in the sidebar and across the app"
+                />
+                <TextField
+                  label="Phone (optional)"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  size="small"
+                  fullWidth
+                  autoComplete="tel"
                 />
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>

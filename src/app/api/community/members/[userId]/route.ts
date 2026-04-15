@@ -11,6 +11,7 @@ const UUID_RE =
 type PatchBody = {
   firstName?: string;
   lastName?: string;
+  phone?: string | null;
   primaryChapterId?: string;
 };
 
@@ -55,6 +56,11 @@ export async function PATCH(
 
   const firstName = (body.firstName ?? "").trim();
   const lastName = (body.lastName ?? "").trim();
+  const phoneRaw = body.phone;
+  const phone =
+    phoneRaw === null || phoneRaw === undefined
+      ? undefined
+      : String(phoneRaw).trim() || null;
   const primaryChapterId = (body.primaryChapterId ?? "").trim();
 
   if (!firstName || !lastName) {
@@ -71,15 +77,15 @@ export async function PATCH(
     const admin = createAdminClient();
     const displayName = `${firstName} ${lastName}`.trim();
 
-    const { error: profileErr } = await admin
-      .from("profiles")
-      .update({
-        first_name: firstName,
-        last_name: lastName,
-        display_name: displayName,
-        primary_chapter_id: primaryChapterId,
-      })
-      .eq("id", userId);
+    const profileUpdate: Record<string, unknown> = {
+      first_name: firstName,
+      last_name: lastName,
+      display_name: displayName,
+      primary_chapter_id: primaryChapterId,
+    };
+    if (phone !== undefined) profileUpdate.phone = phone;
+
+    const { error: profileErr } = await admin.from("profiles").update(profileUpdate).eq("id", userId);
 
     if (profileErr) {
       return NextResponse.json(
@@ -88,12 +94,31 @@ export async function PATCH(
       );
     }
 
+    if (phone !== undefined) {
+      const { error: duErr } = await admin
+        .from("dashboard_users")
+        .update({ phone })
+        .eq("id", userId);
+      if (duErr) {
+        return NextResponse.json(
+          { error: duErr.message || "Could not update user directory." },
+          { status: 500 }
+        );
+      }
+    }
+
+    const { data: authUser } = await admin.auth.admin.getUserById(userId);
+    const existingMeta = (authUser.user?.user_metadata ?? {}) as Record<string, unknown>;
+    const meta: Record<string, unknown> = {
+      ...existingMeta,
+      first_name: firstName,
+      last_name: lastName,
+      primary_chapter_id: primaryChapterId,
+    };
+    if (phone !== undefined) meta.phone = phone;
+
     const { error: authErr } = await admin.auth.admin.updateUserById(userId, {
-      user_metadata: {
-        first_name: firstName,
-        last_name: lastName,
-        primary_chapter_id: primaryChapterId,
-      },
+      user_metadata: meta,
     });
 
     if (authErr) {
@@ -103,6 +128,12 @@ export async function PATCH(
       );
     }
 
+    const { data: duRow } = await admin
+      .from("dashboard_users")
+      .select("phone")
+      .eq("id", userId)
+      .maybeSingle();
+
     return NextResponse.json({
       ok: true,
       user: {
@@ -111,6 +142,7 @@ export async function PATCH(
         last_name: lastName,
         display_name: displayName,
         primary_chapter_id: primaryChapterId,
+        phone: (duRow as { phone?: string | null } | null)?.phone ?? phone ?? null,
       },
     });
   } catch (e) {

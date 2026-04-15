@@ -9,6 +9,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  LinearProgress,
   FormControl,
   IconButton,
   InputLabel,
@@ -19,10 +20,13 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
 } from "@mui/material";
+import { PHONE_EXCEL_KEYS } from "@/lib/import/bulk-import";
+import { parseUploadFile } from "@/lib/import/parse-upload";
 import { usStateByCode } from "@/data/usStates";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useRouter } from "next/navigation";
@@ -31,6 +35,7 @@ import { useMemo, useState } from "react";
 export type CommunityUserRow = {
   id: string;
   email: string;
+  phone: string | null;
   display_name: string | null;
   created_at: string;
   primary_chapter_id: string | null;
@@ -92,18 +97,32 @@ export function CommunitySection({
   const [lastName, setLastName] = useState("");
   const [inviteRole, setInviteRole] = useState<"member" | "local_leader">("member");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [chapterId, setChapterId] = useState<string>(
     localChapterId ?? chapterOptions[0]?.id ?? ""
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [inviteFlash, setInviteFlash] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [importRows, setImportRows] = useState<Record<string, string>[]>([]);
+  const [importFileName, setImportFileName] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importResults, setImportResults] = useState<
+    { status: "imported" | "omitted"; email?: string; phone?: string; reason?: string; chapter?: string }[]
+  >([]);
 
   const [viewUser, setViewUser] = useState<CommunityUserRow | null>(null);
   const [editUser, setEditUser] = useState<CommunityUserRow | null>(null);
   const [editFirstName, setEditFirstName] = useState("");
   const [editLastName, setEditLastName] = useState("");
   const [editChapterId, setEditChapterId] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -116,6 +135,10 @@ export function CommunitySection({
     if (filterChapterId === "all") return users;
     return users.filter((u) => u.primary_chapter_id === filterChapterId);
   }, [users, filterChapterId]);
+  const paged = useMemo(() => {
+    if (rowsPerPage < 0) return filtered;
+    return filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [filtered, page, rowsPerPage]);
 
   const showChapterFilter =
     chapterOptions.length > 0 && (elevated || (isLocalLeader && chapterOptions.length > 1));
@@ -134,6 +157,7 @@ export function CommunitySection({
     setEditUser(u);
     setEditFirstName(u.first_name ?? "");
     setEditLastName(u.last_name ?? "");
+    setEditPhone(u.phone?.trim() ?? "");
     setEditChapterId(u.primary_chapter_id ?? chapterOptions[0]?.id ?? "");
     setEditError(null);
   }
@@ -165,10 +189,11 @@ export function CommunitySection({
         body: JSON.stringify({
           firstName: fn,
           lastName: ln,
+          phone: editPhone.trim() || null,
           primaryChapterId: editChapterId,
         }),
       });
-      const data = (await res.json()) as { error?: string; user?: CommunityUserRow };
+      const data = (await res.json()) as { error?: string; user?: Partial<CommunityUserRow> };
       if (!res.ok) {
         setEditError(data.error || "Could not update member.");
         return;
@@ -184,6 +209,7 @@ export function CommunitySection({
                   last_name: row.last_name ?? ln,
                   display_name: row.display_name ?? `${fn} ${ln}`.trim(),
                   primary_chapter_id: row.primary_chapter_id ?? editChapterId,
+                  phone: row.phone !== undefined ? row.phone : editPhone.trim() || null,
                 }
               : x
           )
@@ -240,7 +266,6 @@ export function CommunitySection({
       return;
     }
 
-    const combined = `${fn} ${ln}`.trim();
     const roleToAssign: "member" | "local_leader" = isLeaders
       ? "local_leader"
       : elevated && inviteRole === "local_leader"
@@ -257,6 +282,7 @@ export function CommunitySection({
           password,
           firstName: fn,
           lastName: ln,
+          phone: phone.trim() || null,
           primaryChapterId: assignChapter,
           roleName: roleToAssign,
           context: isLeaders ? "leaders" : "community",
@@ -265,19 +291,23 @@ export function CommunitySection({
       const payload = (await res.json()) as {
         error?: string;
         user?: CommunityUserRow;
-        emailWarning?: string | null;
       };
       if (!res.ok) {
         setSubmitError(payload.error || "Could not invite user.");
         return;
       }
       if (payload.user) {
-        setUsers((prev) => [payload.user!, ...prev]);
+        const row = payload.user;
+        setUsers((prev) => [
+          {
+            ...row,
+            phone: row.phone ?? null,
+          } as CommunityUserRow,
+          ...prev,
+        ]);
       }
       setInviteFlash(
-        payload.emailWarning
-          ? `User created, but email: ${payload.emailWarning}`
-          : "Invitation sent. The user will receive your branded confirmation email (see Email send log)."
+        "User created successfully. Email is already verified automatically."
       );
       window.setTimeout(() => setInviteFlash(null), 14000);
       setAddOpen(false);
@@ -286,9 +316,76 @@ export function CommunitySection({
       setLastName("");
       if (!isLeaders) setInviteRole("member");
       setPassword("");
+      setPhone("");
       router.refresh();
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function onPickImportFile(file: File) {
+    setImportError(null);
+    setImportResults([]);
+    const parsed = await parseUploadFile(file);
+    if (parsed.error) {
+      setImportError(parsed.error);
+      setImportRows([]);
+      setImportFileName("");
+      return;
+    }
+    setImportRows(parsed.rows);
+    setImportFileName(file.name);
+  }
+
+  async function runImport() {
+    if (importRows.length === 0) {
+      setImportError("Upload a file with records first.");
+      return;
+    }
+    setImporting(true);
+    setImportError(null);
+    setImportProgress(0);
+    setImportResults([]);
+    const allResults: {
+      status: "imported" | "omitted";
+      email?: string;
+      phone?: string;
+      reason?: string;
+      chapter?: string;
+    }[] = [];
+    const endpoint = isLeaders ? "/api/import/leaders" : "/api/import/members";
+    const chunkSize = 100;
+    let processed = 0;
+    try {
+      for (let i = 0; i < importRows.length; i += chunkSize) {
+        const chunk = importRows.slice(i, i + chunkSize);
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows: chunk }),
+        });
+        const payload = (await res.json()) as {
+          error?: string;
+          results?: {
+            status: "imported" | "omitted";
+            email?: string;
+            phone?: string;
+            reason?: string;
+            chapter?: string;
+          }[];
+        };
+        if (!res.ok) {
+          setImportError(payload.error || "Import failed.");
+          break;
+        }
+        allResults.push(...(payload.results ?? []));
+        processed += chunk.length;
+        setImportProgress(Math.round((processed / importRows.length) * 100));
+      }
+      setImportResults(allResults);
+      router.refresh();
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -322,21 +419,27 @@ export function CommunitySection({
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {canCreate ? (
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => {
-                setFirstName("");
-                setLastName("");
-                if (!isLeaders) setInviteRole("member");
-                setEmail("");
-                setPassword("");
-                setSubmitError(null);
-                setAddOpen(true);
-              }}
-            >
-              Add new
-            </Button>
+            <>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => {
+                  setFirstName("");
+                  setLastName("");
+                  if (!isLeaders) setInviteRole("member");
+                  setEmail("");
+                  setPassword("");
+                  setPhone("");
+                  setSubmitError(null);
+                  setAddOpen(true);
+                }}
+              >
+                Add new
+              </Button>
+              <Button variant="outlined" size="small" onClick={() => setImportOpen(true)}>
+                {isLeaders ? "Import Local leaders" : "Import Members"}
+              </Button>
+            </>
           ) : null}
         </Box>
         {showChapterFilter ? (
@@ -363,6 +466,7 @@ export function CommunitySection({
         <TableHead>
           <TableRow>
             <TableCell sx={{ color: "primary.main" }}>Email</TableCell>
+            <TableCell sx={{ color: "primary.main" }}>Phone</TableCell>
             <TableCell sx={{ color: "primary.main" }}>First name</TableCell>
             <TableCell sx={{ color: "primary.main" }}>Last name</TableCell>
             <TableCell sx={{ color: "primary.main" }}>Display name</TableCell>
@@ -373,9 +477,10 @@ export function CommunitySection({
           </TableRow>
         </TableHead>
         <TableBody>
-          {filtered.map((u) => (
+          {paged.map((u) => (
             <TableRow key={u.id}>
               <TableCell>{u.email}</TableCell>
+              <TableCell>{u.phone?.trim() || "—"}</TableCell>
               <TableCell>{u.first_name ?? "—"}</TableCell>
               <TableCell>{u.last_name ?? "—"}</TableCell>
               <TableCell>{u.display_name ?? "—"}</TableCell>
@@ -416,6 +521,26 @@ export function CommunitySection({
           ))}
         </TableBody>
       </Table>
+      <TablePagination
+        component="div"
+        count={filtered.length}
+        page={rowsPerPage < 0 ? 0 : page}
+        onPageChange={(_, nextPage) => setPage(nextPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => {
+          const v = Number(e.target.value);
+          setRowsPerPage(v);
+          setPage(0);
+        }}
+        rowsPerPageOptions={[
+          10,
+          20,
+          25,
+          50,
+          100,
+          { label: "All", value: -1 },
+        ]}
+      />
       {filtered.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
           {isLeaders ? "No local leaders match this filter." : "No members match this filter."}
@@ -462,6 +587,13 @@ export function CommunitySection({
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               autoComplete="family-name"
+            />
+            <TextField
+              label="Phone (optional)"
+              fullWidth
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
             />
             <TextField
               label="Email"
@@ -544,6 +676,52 @@ export function CommunitySection({
         </DialogActions>
       </Dialog>
 
+      <Dialog open={importOpen} onClose={() => !importing && setImportOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>{isLeaders ? "Import Local leaders" : "Import Members"}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
+            {importError ? <Alert severity="error">{importError}</Alert> : null}
+            <Typography variant="body2" color="text.secondary">
+              Excel: include a <strong>{PHONE_EXCEL_KEYS[0]}</strong> column for each user&apos;s phone (also used as
+              temporary password when present).
+            </Typography>
+            <Button component="label" variant="outlined" disabled={importing}>
+              Upload Excel, CSV, or JSON
+              <input
+                hidden
+                type="file"
+                accept=".xlsx,.xls,.csv,.json"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void onPickImportFile(f);
+                }}
+              />
+            </Button>
+            <Typography variant="body2" color="text.secondary">
+              File: {importFileName || "—"} | Records detected: {importRows.length}
+            </Typography>
+            {importing ? <LinearProgress variant="determinate" value={importProgress} /> : null}
+            {importResults.length > 0 ? (
+              <Box sx={{ maxHeight: 260, overflow: "auto", border: "1px solid rgba(255,255,255,0.12)", p: 1 }}>
+                {importResults.map((r, idx) => (
+                  <Typography key={`${r.email || r.chapter || "row"}-${idx}`} variant="caption" display="block">
+                    [{r.status.toUpperCase()}] {r.email || r.chapter || "record"} {r.reason ? `- ${r.reason}` : ""}
+                  </Typography>
+                ))}
+              </Box>
+            ) : null}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImportOpen(false)} disabled={importing}>
+            Close
+          </Button>
+          <Button variant="contained" onClick={() => void runImport()} disabled={importing || importRows.length === 0}>
+            {importing ? "Importing..." : "Import data"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={!!viewUser} onClose={() => setViewUser(null)} maxWidth="sm" fullWidth>
         <DialogTitle>{isLeaders ? "Leader details" : "Member details"}</DialogTitle>
         <DialogContent>
@@ -551,6 +729,9 @@ export function CommunitySection({
             <Box sx={{ display: "grid", gap: 1, pt: 1 }}>
               <Typography>
                 <strong>Email:</strong> {viewUser.email}
+              </Typography>
+              <Typography>
+                <strong>Phone:</strong> {viewUser.phone?.trim() || "—"}
               </Typography>
               <Typography>
                 <strong>First name:</strong> {viewUser.first_name ?? "—"}
@@ -638,6 +819,13 @@ export function CommunitySection({
               value={editLastName}
               onChange={(e) => setEditLastName(e.target.value)}
               autoComplete="family-name"
+            />
+            <TextField
+              label="Phone (optional)"
+              fullWidth
+              value={editPhone}
+              onChange={(e) => setEditPhone(e.target.value)}
+              autoComplete="tel"
             />
             {chapterOptions.length > 0 ? (
               <FormControl fullWidth required>

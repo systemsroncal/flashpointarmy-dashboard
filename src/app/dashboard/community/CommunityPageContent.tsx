@@ -41,6 +41,7 @@ export default async function CommunityPageContent() {
   type UserRow = {
     id: string;
     email: string;
+    phone: string | null;
     display_name: string | null;
     created_at: string;
     first_name: string | null;
@@ -70,7 +71,7 @@ export default async function CommunityPageContent() {
       const { data } = await supabase
         .from("dashboard_users")
         .select(
-          "id, email, display_name, created_at, first_name, last_name, primary_chapter_id"
+          "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id"
         )
         .in("id", ids)
         .order("email");
@@ -80,7 +81,7 @@ export default async function CommunityPageContent() {
     const { data } = await supabase
       .from("dashboard_users")
       .select(
-        "id, email, display_name, created_at, first_name, last_name, primary_chapter_id"
+        "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id"
       )
       .order("email");
     merged = (data ?? []).map((u) => ({ ...(u as Omit<UserRow, "role_names">), role_names: [] }));
