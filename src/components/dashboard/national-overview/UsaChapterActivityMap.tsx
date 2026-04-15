@@ -232,9 +232,6 @@ export function UsaChapterActivityMap({
             </Typography>
           </Box>
         ))}
-        <Typography variant="caption" color="text.secondary" sx={{ width: "100%", opacity: 0.85 }}>
-          City file: each city counts 1 reference leader + remaining as members; summed by state for fill only.
-        </Typography>
       </Box>
 
       <ComposableMap

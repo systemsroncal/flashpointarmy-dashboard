@@ -319,52 +319,20 @@ export function NationalOverview({
               onClosePopup={closeStatePopup}
             >
               <Box>
-                {popupState && (() => {
-                  const ref = referenceSplitByState.get(popupState);
-                  if (!ref || (ref.leaders === 0 && ref.members === 0)) return null;
-                  return (
-                    <Box sx={{ mb: 1.25, pb: 1.25, borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
-                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
-                        Reference (city file: per city 1 leader + remaining as members, summed by state)
-                      </Typography>
-                      {(
-                        [
-                          ["Leaders", ref.leaders, "#7c3aed"],
-                          ["Members", ref.members, "#15803d"],
-                        ] as const
-                      ).map(([label, val, col]) => (
-                        <Box key={label} sx={{ display: "flex", justifyContent: "space-between", py: 0.75 }}>
-                          <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
-                            {label}
-                          </Typography>
-                          <Box
-                            component="span"
-                            sx={{
-                              bgcolor: col,
-                              color: "#fff",
-                              px: 1.25,
-                              py: 0.25,
-                              borderRadius: 10,
-                              fontSize: "0.8rem",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {val}
-                          </Box>
-                        </Box>
-                      ))}
-                    </Box>
-                  );
-                })()}
                 {popupData ? (
                   <>
-                    {[
-                      ["Active Chapters", popupData.activeChapters, "#0ea5e9"],
-                      ["Registered Members", popupData.registeredMembers, "#15803d"],
-                      ["Upcoming Gatherings", popupData.upcomingGatherings, "#ca8a04"],
-                      ["Local Leaders", popupData.localLeaders, "#7c3aed"],
-                      ["Recent community events", popupData.recentCommunityEvents, "#b91c1c"],
-                    ].map(([label, val, col]) => (
+                    {(() => {
+                      const ref = popupState ? referenceSplitByState.get(popupState) : undefined;
+                      const rl = ref?.leaders ?? 0;
+                      const rm = ref?.members ?? 0;
+                      return [
+                        ["Active Chapters", popupData.activeChapters + rl, "#0ea5e9"],
+                        ["Registered Members", popupData.registeredMembers + rm + rl, "#15803d"],
+                        ["Upcoming Gatherings", popupData.upcomingGatherings, "#ca8a04"],
+                        ["Local Leaders", popupData.localLeaders, "#7c3aed"],
+                        ["Recent community events", popupData.recentCommunityEvents, "#b91c1c"],
+                      ] as const;
+                    })().map(([label, val, col]) => (
                       <Box key={String(label)} sx={{ display: "flex", justifyContent: "space-between", py: 0.75 }}>
                         <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
                           {label}
