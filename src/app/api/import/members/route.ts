@@ -135,6 +135,8 @@ export async function POST(req: Request) {
     }
 
     const userId = created.user.id;
+    await admin.auth.admin.updateUserById(userId, { email_confirm: true });
+
     await admin.from("user_roles").delete().eq("user_id", userId);
     const { error: roleErr } = await admin.from("user_roles").insert({ user_id: userId, role_id: memberRoleId });
     if (roleErr) {

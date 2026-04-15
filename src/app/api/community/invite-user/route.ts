@@ -132,6 +132,8 @@ export async function POST(req: Request) {
 
     const newId = createdData.user.id;
 
+    await admin.auth.admin.updateUserById(newId, { email_confirm: true });
+
     const { error: rpcError } = await supabase.rpc("assign_invited_user_primary_role", {
       p_user_id: newId,
       p_role_name: roleToAssign,

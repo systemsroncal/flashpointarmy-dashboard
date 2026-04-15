@@ -3,6 +3,7 @@ import { MODULE_SLUGS } from "@/config/modules";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Paper, Typography } from "@mui/material";
 import { redirect } from "next/navigation";
@@ -59,16 +60,19 @@ export default async function CommunityPageContent() {
     zip_code: string | null;
   };
 
+  /** Service role: RLS on `dashboard_users` / `profiles` is self-only for JWT; listing all users must bypass RLS after permission checks above. */
+  const admin = createAdminClient();
+
   let merged: UserRow[] = [];
 
   if (!elevated && isLocalLeader && localChapterId) {
-    const { data: members } = await supabase
+    const { data: members } = await admin
       .from("profiles")
       .select("id")
       .eq("primary_chapter_id", localChapterId);
     const ids = (members ?? []).map((m: { id: string }) => m.id);
     if (ids.length > 0) {
-      const { data } = await supabase
+      const { data } = await admin
         .from("dashboard_users")
         .select(
           "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id"
@@ -78,7 +82,7 @@ export default async function CommunityPageContent() {
       merged = (data ?? []).map((u) => ({ ...(u as Omit<UserRow, "role_names">), role_names: [] }));
     }
   } else {
-    const { data } = await supabase
+    const { data } = await admin
       .from("dashboard_users")
       .select(
         "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id"

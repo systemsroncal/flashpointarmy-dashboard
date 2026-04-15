@@ -3,6 +3,7 @@ import { MODULE_SLUGS } from "@/config/modules";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Paper, Typography } from "@mui/material";
 import { redirect } from "next/navigation";
@@ -54,8 +55,10 @@ export default async function LeadersPageContent() {
     leaderUserIds = [...new Set((urRows ?? []).map((r: { user_id: string }) => r.user_id))];
   }
 
+  const admin = createAdminClient();
+
   if (!elevated && isLocalLeader && localChapterId && leaderUserIds.length > 0) {
-    const { data: inChapter } = await supabase
+    const { data: inChapter } = await admin
       .from("profiles")
       .select("id")
       .eq("primary_chapter_id", localChapterId)
@@ -88,7 +91,7 @@ export default async function LeadersPageContent() {
   let merged: UserRow[] = [];
 
   if (leaderUserIds.length > 0) {
-    const { data } = await supabase
+    const { data } = await admin
       .from("dashboard_users")
       .select(
         "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id"
