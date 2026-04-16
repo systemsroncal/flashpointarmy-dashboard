@@ -103,16 +103,57 @@ function StateSearchAutocomplete({
   );
 }
 
+type LeaderOption = { id: string; label: string };
+
+function LeadersMultiAutocomplete({
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  options: LeaderOption[];
+  value: string[];
+  onChange: (ids: string[]) => void;
+  label: string;
+}) {
+  const byId = useMemo(() => new Map(options.map((o) => [o.id, o] as const)), [options]);
+  const selected = useMemo(
+    () => value.map((id) => byId.get(id)).filter(Boolean) as LeaderOption[],
+    [value, byId]
+  );
+  return (
+    <Autocomplete
+      multiple
+      options={options}
+      value={selected}
+      onChange={(_, v) => onChange(v.map((o) => o.id))}
+      getOptionLabel={(o) => o.label}
+      isOptionEqualToValue={(a, b) => a.id === b.id}
+      filterOptions={(opts, state) => {
+        const q = state.inputValue.trim().toLowerCase();
+        if (!q) return opts;
+        return opts.filter((o) => o.label.toLowerCase().includes(q));
+      }}
+      renderInput={(params) => (
+        <TextField {...params} label={label} placeholder="Search name or email…" />
+      )}
+    />
+  );
+}
+
 export function ChaptersSection({
   initialRows,
   leaderOptions,
+  leadersByChapter: initialLeadersByChapter,
   canRead,
   canCreate,
   canUpdate,
   canDelete,
 }: {
   initialRows: ChapterRow[];
-  leaderOptions: { id: string; label: string }[];
+  leaderOptions: LeaderOption[];
+  /** chapter id → comma-separated leader labels */
+  leadersByChapter: Record<string, string>;
   canRead: boolean;
   canCreate: boolean;
   canUpdate: boolean;
@@ -120,6 +161,7 @@ export function ChaptersSection({
 }) {
   const router = useRouter();
   const [rows, setRows] = useSyncedState(initialRows);
+  const [leadersByChapter] = useSyncedState(initialLeadersByChapter);
   const [filter, setFilter] = useState<string>("all");
   const [viewRow, setViewRow] = useState<ChapterRow | null>(null);
   const [editRow, setEditRow] = useState<ChapterRow | null>(null);
@@ -422,6 +464,7 @@ export function ChaptersSection({
           <TableHead>
             <TableRow>
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Chapter location</TableCell>
+              <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Leaders</TableCell>
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>State</TableCell>
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Status</TableCell>
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }} align="right">
@@ -435,6 +478,11 @@ export function ChaptersSection({
               return (
               <TableRow key={row.id}>
                 <TableCell>{row.name}</TableCell>
+                <TableCell sx={{ maxWidth: 280 }}>
+                  <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+                    {leadersByChapter[row.id]?.trim() || "—"}
+                  </Typography>
+                </TableCell>
                 <TableCell>
                   {stOpt ? `${stOpt.name} (${row.state})` : row.state}
                 </TableCell>
@@ -504,6 +552,9 @@ export function ChaptersSection({
               </Typography>
               <Typography><strong>ZIP:</strong> {viewRow.zip_code ?? "—"}</Typography>
               <Typography><strong>Status:</strong> {STATUS_LABEL[viewRow.status] ?? viewRow.status}</Typography>
+              <Typography>
+                <strong>Leaders:</strong> {leadersByChapter[viewRow.id]?.trim() || "—"}
+              </Typography>
             </Box>
           ) : null}
         </DialogContent>
@@ -562,28 +613,12 @@ export function ChaptersSection({
                   <MenuItem value="approved">Approved</MenuItem>
                 </Select>
               </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Leaders</InputLabel>
-                <Select
-                  multiple
-                  label="Leaders"
-                  value={editLeaders}
-                  onChange={(e) =>
-                    setEditLeaders(typeof e.target.value === "string" ? [] : e.target.value as string[])
-                  }
-                  renderValue={(selected) =>
-                    (selected as string[])
-                      .map((id) => leaderOptions.find((o) => o.id === id)?.label ?? id)
-                      .join(", ")
-                  }
-                >
-                  {leaderOptions.map((o) => (
-                    <MenuItem key={o.id} value={o.id}>
-                      {o.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <LeadersMultiAutocomplete
+                label="Leaders"
+                options={leaderOptions}
+                value={editLeaders}
+                onChange={setEditLeaders}
+              />
             </Box>
           ) : null}
         </DialogContent>
@@ -651,30 +686,12 @@ export function ChaptersSection({
                 <MenuItem value="approved">Approved</MenuItem>
               </Select>
             </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Leaders (optional)</InputLabel>
-              <Select
-                multiple
-                label="Leaders (optional)"
-                value={createLeaders}
-                onChange={(e) =>
-                  setCreateLeaders(
-                    typeof e.target.value === "string" ? [] : (e.target.value as string[])
-                  )
-                }
-                renderValue={(selected) =>
-                  (selected as string[])
-                    .map((id) => leaderOptions.find((o) => o.id === id)?.label ?? id)
-                    .join(", ")
-                }
-              >
-                {leaderOptions.map((o) => (
-                  <MenuItem key={o.id} value={o.id}>
-                    {o.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <LeadersMultiAutocomplete
+              label="Leaders (optional)"
+              options={leaderOptions}
+              value={createLeaders}
+              onChange={setCreateLeaders}
+            />
           </Box>
         </DialogContent>
         <DialogActions>

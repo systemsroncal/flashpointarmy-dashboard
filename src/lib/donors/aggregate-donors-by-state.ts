@@ -38,3 +38,14 @@ export function aggregateReferenceLeaderMemberByState(
   }
   return m;
 }
+
+/** Sum all states (national totals from reference JSON). */
+export function sumReferenceTotals(map: Map<string, ReferenceStateSplit>): ReferenceStateSplit {
+  let leaders = 0;
+  let members = 0;
+  for (const v of map.values()) {
+    leaders += v.leaders;
+    members += v.members;
+  }
+  return { leaders, members };
+}

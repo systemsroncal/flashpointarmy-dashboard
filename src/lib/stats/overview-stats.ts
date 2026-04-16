@@ -45,11 +45,16 @@ async function countUpcomingGatherings(
   return count ?? 0;
 }
 
+/** Extra counts from reference data (e.g. cities_donors.json), not stored in DB. */
+export type ReferenceAddition = { leaders: number; members: number };
+
 export async function loadOverviewStats(
   supabase: SupabaseClient,
   opts: {
     scope: OverviewScope;
     stateCode: string | null;
+    /** Added to membersEngaged (members) and localLeaders (leaders) for national overview. */
+    referenceAddition?: ReferenceAddition | null;
   }
 ): Promise<OverviewStatBlock> {
   const st = opts.stateCode ? stateMatch(opts.stateCode) : null;
@@ -138,6 +143,13 @@ export async function loadOverviewStats(
     happeningQuery = happeningQuery.eq("state_code", stateFilter);
   }
   const { count: happeningNow } = await happeningQuery;
+
+  const ref = opts.referenceAddition;
+  if (ref && !stateFilter) {
+    activeChapters += ref.leaders;
+    membersEngaged += ref.members;
+    localLeaders += ref.leaders;
+  }
 
   return {
     activeChapters,

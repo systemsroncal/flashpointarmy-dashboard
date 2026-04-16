@@ -1,10 +1,17 @@
 import { AccessDenied } from "@/components/dashboard/AccessDenied";
 import { NationalOverview } from "@/components/dashboard/national-overview/NationalOverview";
 import { MODULE_SLUGS } from "@/config/modules";
+import type { CitiesDonorsJson } from "@/lib/donors/aggregate-donors-by-state";
+import {
+  aggregateReferenceLeaderMemberByState,
+  sumReferenceTotals,
+} from "@/lib/donors/aggregate-donors-by-state";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { loadOverviewStats } from "@/lib/stats/overview-stats";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
+import { readFile } from "fs/promises";
+import path from "path";
 import { redirect } from "next/navigation";
 
 export default async function DashboardHomeContent() {
@@ -25,11 +32,24 @@ export default async function DashboardHomeContent() {
     );
   }
 
+  let referenceAddition: { leaders: number; members: number } | undefined;
+  try {
+    const raw = await readFile(
+      path.join(process.cwd(), "public/backgrounds/cities_donors.json"),
+      "utf8"
+    );
+    const json = JSON.parse(raw) as CitiesDonorsJson;
+    referenceAddition = sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
+  } catch {
+    referenceAddition = undefined;
+  }
+
   let stats;
   try {
     stats = await loadOverviewStats(supabase, {
       scope: "national",
       stateCode: null,
+      referenceAddition,
     });
   } catch {
     stats = {

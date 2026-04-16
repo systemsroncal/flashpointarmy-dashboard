@@ -5,6 +5,7 @@ import Edit from "@mui/icons-material/Edit";
 import Visibility from "@mui/icons-material/Visibility";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Dialog,
@@ -123,6 +124,11 @@ export function CommunitySection({
   const [importResults, setImportResults] = useState<
     { status: "imported" | "omitted"; email?: string; phone?: string; reason?: string; chapter?: string }[]
   >([]);
+
+  const chapterSearchOptions = useMemo(
+    () => chapterOptions.map((c) => ({ id: c.id, label: c.name })),
+    [chapterOptions]
+  );
 
   const [viewUser, setViewUser] = useState<CommunityUserRow | null>(null);
   const [editUser, setEditUser] = useState<CommunityUserRow | null>(null);
@@ -692,20 +698,26 @@ export function CommunitySection({
               autoComplete="new-password"
             />
             {chapterOptions.length > 0 ? (
-              <FormControl fullWidth required disabled={Boolean(isLocalLeader && localChapterId)}>
-                <InputLabel>Primary chapter</InputLabel>
-                <Select
-                  label="Primary chapter"
-                  value={isLocalLeader && localChapterId ? localChapterId : chapterId}
-                  onChange={(e) => setChapterId(e.target.value)}
-                >
-                  {chapterOptions.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                options={chapterSearchOptions}
+                value={
+                  chapterSearchOptions.find(
+                    (o) => o.id === (isLocalLeader && localChapterId ? localChapterId : chapterId)
+                  ) ?? null
+                }
+                onChange={(_, v) => setChapterId(v?.id ?? "")}
+                getOptionLabel={(o) => o.label}
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                disabled={Boolean(isLocalLeader && localChapterId)}
+                filterOptions={(opts, state) => {
+                  const q = state.inputValue.trim().toLowerCase();
+                  if (!q) return opts;
+                  return opts.filter((o) => o.label.toLowerCase().includes(q));
+                }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Primary chapter" required placeholder="Search chapter…" />
+                )}
+              />
             ) : (
               <Typography variant="body2" color="warning.main">
                 No chapters available. Create a chapter first.
@@ -921,20 +933,21 @@ export function CommunitySection({
               autoComplete="tel"
             />
             {chapterOptions.length > 0 ? (
-              <FormControl fullWidth required>
-                <InputLabel>Primary chapter</InputLabel>
-                <Select
-                  label="Primary chapter"
-                  value={editChapterId}
-                  onChange={(e) => setEditChapterId(e.target.value)}
-                >
-                  {chapterOptions.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                options={chapterSearchOptions}
+                value={chapterSearchOptions.find((o) => o.id === editChapterId) ?? null}
+                onChange={(_, v) => setEditChapterId(v?.id ?? "")}
+                getOptionLabel={(o) => o.label}
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                filterOptions={(opts, state) => {
+                  const q = state.inputValue.trim().toLowerCase();
+                  if (!q) return opts;
+                  return opts.filter((o) => o.label.toLowerCase().includes(q));
+                }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Primary chapter" required placeholder="Search chapter…" />
+                )}
+              />
             ) : (
               <Typography variant="body2" color="warning.main">
                 No chapters available.

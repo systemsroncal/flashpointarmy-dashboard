@@ -15,6 +15,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import {
   aggregateReferenceLeaderMemberByState,
+  sumReferenceTotals,
   type CitiesDonorsJson,
 } from "@/lib/donors/aggregate-donors-by-state";
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
@@ -103,9 +104,20 @@ export function NationalOverview({
     setChapterRows(rows);
 
     const { loadOverviewStats } = await import("@/lib/stats/overview-stats");
+    let referenceAddition: { leaders: number; members: number } | undefined;
+    try {
+      const res = await fetch("/backgrounds/cities_donors.json", { cache: "force-cache" });
+      if (res.ok) {
+        const json = (await res.json()) as CitiesDonorsJson;
+        referenceAddition = sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
+      }
+    } catch {
+      referenceAddition = undefined;
+    }
     const next = await loadOverviewStats(supabase, {
       scope: "national",
       stateCode: null,
+      referenceAddition,
     });
     setStats(next);
 
@@ -329,7 +341,7 @@ export function NationalOverview({
                         ["Active Chapters", popupData.activeChapters + rl, "#0ea5e9"],
                         ["Registered Members", popupData.registeredMembers + rm + rl, "#15803d"],
                         ["Upcoming Gatherings", popupData.upcomingGatherings, "#ca8a04"],
-                        ["Local Leaders", popupData.localLeaders, "#7c3aed"],
+                        ["Local Leaders", popupData.localLeaders + rl, "#7c3aed"],
                         ["Recent community events", popupData.recentCommunityEvents, "#b91c1c"],
                       ] as const;
                     })().map(([label, val, col]) => (
