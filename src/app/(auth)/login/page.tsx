@@ -4,7 +4,7 @@ import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
 import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles";
 import { createClient } from "@/utils/supabase/client";
-import { ArrowForward } from "@mui/icons-material";
+import ArrowForward from "@mui/icons-material/ArrowForward";
 import { Box, Button, Link as MuiLink, TextField, Typography } from "@mui/material";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";

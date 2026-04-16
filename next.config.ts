@@ -14,11 +14,11 @@ const nextConfig: NextConfig = {
     "*.ngrok.io",
   ],
   /**
-   * Tree-shake MUI barrel imports so dev/prod compile far fewer modules per route.
-   * (Icons still import per-file where possible for best results.)
+   * Tree-shake MUI barrel imports. Do not include @mui/icons-material here: Next's
+   * optimizer breaks webpack resolution inside that package (Module not found Add.js / etc.).
    */
   experimental: {
-    optimizePackageImports: ["@mui/material", "@mui/icons-material"],
+    optimizePackageImports: ["@mui/material"],
   },
   /**
    * Do not disable webpack cache in dev: turning it off was forcing full rebuilds

@@ -2,7 +2,9 @@
 
 import { writeAuditLog } from "@/lib/audit";
 import { createClient } from "@/utils/supabase/client";
-import { Add, DeleteOutline, Edit } from "@mui/icons-material";
+import Add from "@mui/icons-material/Add";
+import DeleteOutline from "@mui/icons-material/DeleteOutline";
+import Edit from "@mui/icons-material/Edit";
 import {
   Box,
   Button,

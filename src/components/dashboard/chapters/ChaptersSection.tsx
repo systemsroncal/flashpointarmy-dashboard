@@ -1,11 +1,9 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import {
-  DeleteOutline,
-  Edit,
-  Visibility,
-} from "@mui/icons-material";
+import DeleteOutline from "@mui/icons-material/DeleteOutline";
+import Edit from "@mui/icons-material/Edit";
+import Visibility from "@mui/icons-material/Visibility";
 import {
   US_STATES,
   filterUsStatesByQuery,
