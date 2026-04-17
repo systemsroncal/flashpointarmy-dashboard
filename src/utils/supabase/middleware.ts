@@ -3,6 +3,7 @@ import {
   getPublicSupabaseAnonKey,
   getPublicSupabaseUrl,
 } from "@/utils/supabase/public-env";
+import { isStaleRefreshTokenError } from "@/utils/supabase/auth-errors";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function getSupabaseSession(request: NextRequest) {
@@ -37,9 +38,16 @@ export async function getSupabaseSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
 
-  return { supabase, user, supabaseResponse };
+  if (userError && isStaleRefreshTokenError(userError)) {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* ignore */
+    }
+    return { supabase, user: null, supabaseResponse };
+  }
+
+  return { supabase, user: userData.user ?? null, supabaseResponse };
 }

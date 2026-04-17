@@ -94,7 +94,7 @@ export default async function CommunityPageContent() {
 
   if (merged.length > 0) {
     const userIds = merged.map((u) => u.id);
-    const { data: roleRows } = await supabase
+    const { data: roleRows } = await admin
       .from("user_roles")
       .select("user_id, roles(name)")
       .in("user_id", userIds);

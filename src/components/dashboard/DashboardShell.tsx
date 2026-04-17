@@ -7,6 +7,7 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MenuIcon from "@mui/icons-material/Menu";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import PeopleIcon from "@mui/icons-material/People";
 import PublicIcon from "@mui/icons-material/Public";
@@ -85,6 +86,12 @@ const NAV: NavItem[] = [
     href: "/dashboard/leaders",
     module: MODULE_SLUGS.leaders,
     icon: <MilitaryTechIcon />,
+  },
+  {
+    label: "Administrators",
+    href: "/dashboard/admins",
+    module: MODULE_SLUGS.admins,
+    icon: <AdminPanelSettingsIcon />,
   },
   {
     label: "Training",

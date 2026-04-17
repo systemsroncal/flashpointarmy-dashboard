@@ -33,13 +33,14 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  TableSortLabel,
   TextField,
   Typography,
 } from "@mui/material";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { parseUploadFile } from "@/lib/import/parse-upload";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type ChapterRow = {
   id: string;
@@ -51,6 +52,8 @@ export type ChapterRow = {
   status: string;
   created_at: string;
 };
+
+type ChapterSortKey = "name" | "leaders" | "state" | "status";
 
 const STATUS_LABEL: Record<string, string> = {
   approved: "Approved",
@@ -183,6 +186,9 @@ export function ChaptersSection({
   >([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [tableSearch, setTableSearch] = useState("");
+  const [orderBy, setOrderBy] = useState<ChapterSortKey>("name");
+  const [order, setOrder] = useState<"asc" | "desc">("asc");
   const [createLeaders, setCreateLeaders] = useState<string[]>([]);
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -194,14 +200,64 @@ export function ChaptersSection({
     status: "created" as ChapterRow["status"],
   });
 
+  useEffect(() => {
+    setPage(0);
+  }, [tableSearch, orderBy, order, filter]);
+
+  function handleRequestSort(property: ChapterSortKey) {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  }
+
   const filtered = useMemo(() => {
-    if (filter === "all") return rows;
-    return rows.filter((r) => r.status === filter);
-  }, [rows, filter]);
+    const byStatus = filter === "all" ? rows : rows.filter((r) => r.status === filter);
+    const q = tableSearch.trim().toLowerCase();
+    if (!q) return byStatus;
+    return byStatus.filter((r) => {
+      const st = usStateByCode(r.state);
+      const stLabel = st ? `${st.name} ${r.state}`.toLowerCase() : r.state.toLowerCase();
+      const leaders = (leadersByChapter[r.id] ?? "").toLowerCase();
+      const blob = [
+        r.name,
+        r.city ?? "",
+        r.address_line ?? "",
+        leaders,
+        stLabel,
+        STATUS_LABEL[r.status] ?? r.status,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return blob.includes(q);
+    });
+  }, [rows, filter, tableSearch, leadersByChapter]);
+
+  const sorted = useMemo(() => {
+    const dir = order === "asc" ? 1 : -1;
+    const cmpStr = (a: string, b: string) => dir * a.localeCompare(b, undefined, { sensitivity: "base" });
+    return [...filtered].sort((a, b) => {
+      switch (orderBy) {
+        case "name":
+          return cmpStr(a.name, b.name);
+        case "leaders":
+          return cmpStr(leadersByChapter[a.id] ?? "", leadersByChapter[b.id] ?? "");
+        case "state": {
+          const sa = usStateByCode(a.state)?.name ?? a.state;
+          const sb = usStateByCode(b.state)?.name ?? b.state;
+          return cmpStr(sa, sb);
+        }
+        case "status":
+          return cmpStr(a.status, b.status);
+        default:
+          return 0;
+      }
+    });
+  }, [filtered, order, orderBy, leadersByChapter]);
+
   const paged = useMemo(() => {
-    if (rowsPerPage < 0) return filtered;
-    return filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [filtered, page, rowsPerPage]);
+    if (rowsPerPage < 0) return sorted;
+    return sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [sorted, page, rowsPerPage]);
 
   async function loadLeadersForChapter(chapterId: string) {
     const supabase = createClient();
@@ -443,20 +499,30 @@ export function ChaptersSection({
             </>
           ) : null}
         </Box>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel id="ch-filter">Status</InputLabel>
-          <Select
-            labelId="ch-filter"
-            label="Status"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <MenuItem value="all">All statuses</MenuItem>
-            <MenuItem value="approved">Approved</MenuItem>
-            <MenuItem value="pending_approval">Pending Approval</MenuItem>
-            <MenuItem value="created">Created</MenuItem>
-          </Select>
-        </FormControl>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
+          <TextField
+            size="small"
+            label="Search"
+            placeholder="Chapter, state, leaders…"
+            value={tableSearch}
+            onChange={(e) => setTableSearch(e.target.value)}
+            sx={{ minWidth: 220 }}
+          />
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel id="ch-filter">Status</InputLabel>
+            <Select
+              labelId="ch-filter"
+              label="Status"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <MenuItem value="all">All statuses</MenuItem>
+              <MenuItem value="approved">Approved</MenuItem>
+              <MenuItem value="pending_approval">Pending Approval</MenuItem>
+              <MenuItem value="created">Created</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
       </Box>
 
       <Paper sx={{ bgcolor: "rgba(0,0,0,0.45)", overflow: "auto" }}>
@@ -515,7 +581,7 @@ export function ChaptersSection({
         </Table>
         <TablePagination
           component="div"
-          count={filtered.length}
+          count={sorted.length}
           page={rowsPerPage < 0 ? 0 : page}
           onPageChange={(_, nextPage) => setPage(nextPage)}
           rowsPerPage={rowsPerPage}

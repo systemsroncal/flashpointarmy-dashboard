@@ -8,7 +8,7 @@ import { createClient } from "@/utils/supabase/server";
 import { Paper, Typography } from "@mui/material";
 import { redirect } from "next/navigation";
 
-export default async function LeadersPageContent() {
+export default async function AdminsPageContent() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -16,10 +16,10 @@ export default async function LeadersPageContent() {
   if (!user) redirect("/login");
 
   const permissions = await loadModulePermissions(supabase, user.id);
-  if (!can(permissions, MODULE_SLUGS.leaders, "read")) {
+  if (!can(permissions, MODULE_SLUGS.admins, "read")) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
-        <Typography color="error">You do not have access to Leaders.</Typography>
+        <Typography color="error">You do not have access to Administrators.</Typography>
       </Paper>
     );
   }
@@ -28,10 +28,11 @@ export default async function LeadersPageContent() {
   const elevated = isElevatedRole(roles);
   const isSuperAdmin = roles.includes("super_admin");
   const isLocalLeader = roles.includes("local_leader");
+
   const create =
-    can(permissions, MODULE_SLUGS.leaders, "create") && elevated;
-  const updatePerm = can(permissions, MODULE_SLUGS.leaders, "update");
-  const deletePerm = can(permissions, MODULE_SLUGS.leaders, "delete");
+    can(permissions, MODULE_SLUGS.admins, "create") && isSuperAdmin;
+  const updatePerm = can(permissions, MODULE_SLUGS.admins, "update");
+  const deletePerm = can(permissions, MODULE_SLUGS.admins, "delete");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -40,33 +41,6 @@ export default async function LeadersPageContent() {
     .maybeSingle();
 
   const localChapterId = profile?.primary_chapter_id ?? null;
-
-  const { data: leaderRole } = await supabase
-    .from("roles")
-    .select("id")
-    .eq("name", "local_leader")
-    .maybeSingle();
-
-  let leaderUserIds: string[] = [];
-  if (leaderRole?.id) {
-    const { data: urRows } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role_id", leaderRole.id as string);
-    leaderUserIds = [...new Set((urRows ?? []).map((r: { user_id: string }) => r.user_id))];
-  }
-
-  const admin = createAdminClient();
-
-  if (!elevated && isLocalLeader && localChapterId && leaderUserIds.length > 0) {
-    const { data: inChapter } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("primary_chapter_id", localChapterId)
-      .in("id", leaderUserIds);
-    const allowed = new Set((inChapter ?? []).map((p: { id: string }) => p.id));
-    leaderUserIds = leaderUserIds.filter((id) => allowed.has(id));
-  }
 
   type UserRow = {
     id: string;
@@ -89,28 +63,46 @@ export default async function LeadersPageContent() {
     zip_code: string | null;
   };
 
+  const admin = createAdminClient();
+
+  const { data: adminRoleRows } = await admin
+    .from("roles")
+    .select("id, name")
+    .in("name", ["admin", "super_admin"]);
+
+  const roleIds = (adminRoleRows ?? []).map((r: { id: string }) => r.id).filter(Boolean);
+
+  let adminUserIds: string[] = [];
+  if (roleIds.length > 0) {
+    const { data: urRows } = await admin
+      .from("user_roles")
+      .select("user_id")
+      .in("role_id", roleIds);
+    adminUserIds = [...new Set((urRows ?? []).map((r: { user_id: string }) => r.user_id))];
+  }
+
   let merged: UserRow[] = [];
 
-  if (leaderUserIds.length > 0) {
+  if (adminUserIds.length > 0) {
     const { data } = await admin
       .from("dashboard_users")
       .select(
         "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id"
       )
-      .in("id", leaderUserIds)
+      .in("id", adminUserIds)
       .order("email");
     merged = (data ?? []).map((u) => ({ ...(u as Omit<UserRow, "role_names">), role_names: [] }));
   }
 
   if (merged.length > 0) {
     const userIds = merged.map((u) => u.id);
-    const { data: roleRows } = await admin
+    const { data: roleJoinRows } = await admin
       .from("user_roles")
       .select("user_id, roles(name)")
       .in("user_id", userIds);
 
     const byUser = new Map<string, string[]>();
-    for (const row of roleRows ?? []) {
+    for (const row of roleJoinRows ?? []) {
       const uid = row.user_id as string;
       const rel = row.roles as { name: string } | { name: string }[] | null;
       const roleName = Array.isArray(rel) ? rel[0]?.name : rel?.name;
@@ -123,6 +115,9 @@ export default async function LeadersPageContent() {
       ...u,
       role_names: (byUser.get(u.id) ?? []).sort(),
     }));
+    if (!isSuperAdmin) {
+      merged = merged.filter((u) => !(u.role_names ?? []).includes("super_admin"));
+    }
   }
 
   let chapterOptions: ChapterRow[] = [];
@@ -141,13 +136,11 @@ export default async function LeadersPageContent() {
   }
 
   const subtitle =
-    elevated || !isLocalLeader
-      ? "Users with the Local leader role."
-      : "Local leaders assigned to your primary chapter.";
+    "Dashboard users with the Administrator or Super administrator role.";
 
   return (
     <CommunitySection
-      variant="leaders"
+      variant="admins"
       initialUsers={merged}
       chapterOptions={chapterOptions}
       canCreate={create}

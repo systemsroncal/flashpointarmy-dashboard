@@ -14,14 +14,17 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  TableSortLabel,
   TextField,
   Typography,
 } from "@mui/material";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type Cat = { id: string; name: string; slug: string; sort_order: number | null };
+
+type CatSortKey = "name" | "slug" | "sort_order";
 
 export function EventCategoriesClient({
   initial,
@@ -36,6 +39,36 @@ export function EventCategoriesClient({
   const [slug, setSlug] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Cat | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [tableSearch, setTableSearch] = useState("");
+  const [orderBy, setOrderBy] = useState<CatSortKey>("sort_order");
+  const [order, setOrder] = useState<"asc" | "desc">("asc");
+
+  function handleRequestSort(property: CatSortKey) {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  }
+
+  const displayed = useMemo(() => {
+    const q = tableSearch.trim().toLowerCase();
+    const base = !q ? rows : rows.filter((r) => `${r.name} ${r.slug}`.toLowerCase().includes(q));
+    const dir = order === "asc" ? 1 : -1;
+    return [...base].sort((a, b) => {
+      switch (orderBy) {
+        case "name":
+          return dir * a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        case "slug":
+          return dir * a.slug.localeCompare(b.slug, undefined, { sensitivity: "base" });
+        case "sort_order": {
+          const sa = a.sort_order ?? 0;
+          const sb = b.sort_order ?? 0;
+          return dir * (sa - sb);
+        }
+        default:
+          return 0;
+      }
+    });
+  }, [rows, tableSearch, order, orderBy]);
 
   async function add() {
     if (!canMutate || !name.trim()) return;
@@ -85,20 +118,58 @@ export function EventCategoriesClient({
           </Button>
         </Box>
       ) : null}
+      <Box sx={{ mb: 2, maxWidth: 420 }}>
+        <TextField
+          size="small"
+          fullWidth
+          label="Search"
+          placeholder="Name or slug…"
+          value={tableSearch}
+          onChange={(e) => setTableSearch(e.target.value)}
+        />
+      </Box>
       <Paper sx={{ bgcolor: "rgba(0,0,0,0.45)" }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ color: "primary.main" }}>Name</TableCell>
-              <TableCell sx={{ color: "primary.main" }}>Slug</TableCell>
+              <TableCell sx={{ color: "primary.main" }}>
+                <TableSortLabel
+                  active={orderBy === "name"}
+                  direction={orderBy === "name" ? order : "asc"}
+                  onClick={() => handleRequestSort("name")}
+                >
+                  Name
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={{ color: "primary.main" }}>
+                <TableSortLabel
+                  active={orderBy === "slug"}
+                  direction={orderBy === "slug" ? order : "asc"}
+                  onClick={() => handleRequestSort("slug")}
+                >
+                  Slug
+                </TableSortLabel>
+              </TableCell>
+              {canMutate ? (
+                <TableCell sx={{ color: "primary.main" }}>
+                  <TableSortLabel
+                    active={orderBy === "sort_order"}
+                    direction={orderBy === "sort_order" ? order : "asc"}
+                    onClick={() => handleRequestSort("sort_order")}
+                  >
+                    Order
+                  </TableSortLabel>
+                </TableCell>
+              ) : null}
               {canMutate ? <TableCell align="right" /> : null}
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((r) => (
+            {displayed.map((r) => (
               <TableRow key={r.id}>
                 <TableCell>{r.name}</TableCell>
                 <TableCell>{r.slug}</TableCell>
+                {canMutate ? <TableCell>{r.sort_order ?? "—"}</TableCell> : null}
                 {canMutate ? (
                   <TableCell align="right">
                     <Button

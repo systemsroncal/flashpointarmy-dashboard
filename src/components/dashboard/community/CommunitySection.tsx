@@ -19,12 +19,14 @@ import {
   MenuItem,
   Paper,
   Select,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TablePagination,
   TableRow,
+  TableSortLabel,
   TextField,
   Typography,
 } from "@mui/material";
@@ -33,7 +35,7 @@ import { parseUploadFile } from "@/lib/import/parse-upload";
 import { usStateByCode } from "@/data/usStates";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type CommunityUserRow = {
   id: string;
@@ -57,12 +59,44 @@ export type ChapterOption = {
   zip_code: string | null;
 };
 
+type EditableRole = "member" | "local_leader" | "admin";
+
 function formatRoleLabel(slug: string) {
   return slug
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 }
+
+function communityPrimaryRole(roleNames: string[] | undefined): "member" | "local_leader" | null {
+  const n = roleNames ?? [];
+  if (n.includes("local_leader")) return "local_leader";
+  if (n.includes("member")) return "member";
+  return null;
+}
+
+function tableRoleLabel(
+  u: CommunityUserRow,
+  variant: "community" | "leaders" | "admins"
+): string {
+  const names = u.role_names ?? [];
+  if (variant === "admins") {
+    return names.length ? [...names].sort().map(formatRoleLabel).join(", ") : "—";
+  }
+  if (names.includes("super_admin")) return formatRoleLabel("super_admin");
+  if (names.includes("admin")) return formatRoleLabel("admin");
+  const pr = communityPrimaryRole(names);
+  return pr ? formatRoleLabel(pr) : "—";
+}
+
+type CommunitySortKey =
+  | "email"
+  | "phone"
+  | "first_name"
+  | "last_name"
+  | "display_name"
+  | "joined"
+  | "role";
 
 export function CommunitySection({
   initialUsers,
@@ -90,10 +124,11 @@ export function CommunitySection({
   subtitle: string;
   /** Super admin can promote members/local leaders to administrator. */
   isSuperAdmin?: boolean;
-  /** `leaders`: same table/actions as Community, add flow always creates Local leader. */
-  variant?: "community" | "leaders";
+  /** `leaders`: add flow creates Local leader. `admins`: directory of admin / super_admin users. */
+  variant?: "community" | "leaders" | "admins";
 }) {
   const isLeaders = variant === "leaders";
+  const isAdmins = variant === "admins";
   /** Admin (not super) cannot remove other admins; no one removes super admin from the UI */
   const restrictDeletesForPeerAdmin = elevated && !isSuperAdmin;
   const router = useRouter();
@@ -138,6 +173,9 @@ export function CommunitySection({
   const [editPhone, setEditPhone] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [editRoleDraft, setEditRoleDraft] = useState<EditableRole>("member");
+  const [editRoleSaving, setEditRoleSaving] = useState(false);
+  const [editRoleError, setEditRoleError] = useState<string | null>(null);
 
   const [deleteUser, setDeleteUser] = useState<CommunityUserRow | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -147,18 +185,136 @@ export function CommunitySection({
   const [promoteError, setPromoteError] = useState<string | null>(null);
   const [promoteSubmitting, setPromoteSubmitting] = useState(false);
 
+  const [tableSearch, setTableSearch] = useState("");
+  const [orderBy, setOrderBy] = useState<CommunitySortKey>("joined");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+
+  const [roleChangeDraft, setRoleChangeDraft] = useState<"member" | "local_leader">("member");
+  const [roleChangeSaving, setRoleChangeSaving] = useState(false);
+  const [roleChangeError, setRoleChangeError] = useState<string | null>(null);
+
   function rowCanBeDeleted(u: CommunityUserRow): boolean {
     if (u.id === currentUserId) return false;
     if (u.role_names?.includes("super_admin")) return false;
+    if (isAdmins) {
+      if (!isSuperAdmin) return false;
+      const names = u.role_names ?? [];
+      return names.includes("admin") && !names.includes("super_admin");
+    }
     if (restrictDeletesForPeerAdmin && u.role_names?.includes("admin")) return false;
     return true;
   }
 
+  function rowCanBeEdited(u: CommunityUserRow): boolean {
+    if (isAdmins && u.role_names?.includes("super_admin") && !isSuperAdmin) return false;
+    return true;
+  }
+
   function eligibleForAdminPromotion(u: CommunityUserRow): boolean {
+    if (isAdmins) return false;
     if (!isSuperAdmin) return false;
     const names = u.role_names ?? [];
     if (names.includes("admin") || names.includes("super_admin")) return false;
     return names.some((n) => n === "member" || n === "local_leader");
+  }
+
+  function eligibleForSuperAdminRoleSwitch(u: CommunityUserRow): boolean {
+    if (isAdmins) return false;
+    if (!isSuperAdmin) return false;
+    const names = u.role_names ?? [];
+    if (names.includes("super_admin") || names.includes("admin")) return false;
+    return names.includes("member") || names.includes("local_leader");
+  }
+
+  function editableRoleFromUser(u: CommunityUserRow): EditableRole {
+    const names = u.role_names ?? [];
+    if (names.includes("admin")) return "admin";
+    if (names.includes("local_leader")) return "local_leader";
+    return "member";
+  }
+
+  function canEditRoleInForm(u: CommunityUserRow): boolean {
+    if (isAdmins) return false;
+    if (!isSuperAdmin) return false;
+    if (u.role_names?.includes("super_admin")) return false;
+    return true;
+  }
+
+  async function applyPrimaryRole(
+    u: CommunityUserRow,
+    draft: "member" | "local_leader",
+    ctx: "view" | "edit"
+  ): Promise<boolean> {
+    const setSaving = ctx === "view" ? setRoleChangeSaving : setEditRoleSaving;
+    const setErr = ctx === "view" ? setRoleChangeError : setEditRoleError;
+    setSaving(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/community/members/${u.id}/primary-role`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roleName: draft }),
+      });
+      const data = (await res.json()) as { error?: string; role_names?: string[] };
+      if (!res.ok) {
+        setErr(data.error || "Could not update role.");
+        return false;
+      }
+      const nextRoles = data.role_names ?? [draft];
+      setUsers((prev) =>
+        prev.map((row) => (row.id === u.id ? { ...row, role_names: nextRoles } : row))
+      );
+      setViewUser((v) => (v && v.id === u.id ? { ...v, role_names: nextRoles } : v));
+      setEditUser((e) => (e && e.id === u.id ? { ...e, role_names: nextRoles } : e));
+      if (ctx === "view") {
+        setRoleChangeDraft(nextRoles.includes("local_leader") ? "local_leader" : "member");
+      } else {
+        setEditRoleDraft(nextRoles.includes("local_leader") ? "local_leader" : "member");
+      }
+      setInviteFlash("Role updated.");
+      window.setTimeout(() => setInviteFlash(null), 8000);
+      router.refresh();
+      return true;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveRoleChange(u: CommunityUserRow) {
+    await applyPrimaryRole(u, roleChangeDraft, "view");
+  }
+
+  async function applyAdminRole(
+    u: CommunityUserRow,
+    ctx: "view" | "edit"
+  ): Promise<boolean> {
+    const setSaving = ctx === "view" ? setRoleChangeSaving : setEditRoleSaving;
+    const setErr = ctx === "view" ? setRoleChangeError : setEditRoleError;
+    setSaving(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/community/members/${u.id}/promote-admin`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as { error?: string; role_names?: string[] };
+      if (!res.ok) {
+        setErr(data.error || "Could not assign administrator role.");
+        return false;
+      }
+      const nextRoles = data.role_names ?? ["admin"];
+      setUsers((prev) =>
+        prev.map((row) => (row.id === u.id ? { ...row, role_names: nextRoles } : row))
+      );
+      setViewUser((v) => (v && v.id === u.id ? { ...v, role_names: nextRoles } : v));
+      setEditUser((e) => (e && e.id === u.id ? { ...e, role_names: nextRoles } : e));
+      setEditRoleDraft("admin");
+      setInviteFlash("Role updated.");
+      window.setTimeout(() => setInviteFlash(null), 8000);
+      router.refresh();
+      return true;
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function runPromoteAdmin(u: CommunityUserRow) {
@@ -188,14 +344,87 @@ export function CommunitySection({
     }
   }
 
+  useEffect(() => {
+    setPage(0);
+  }, [tableSearch, orderBy, order, filterChapterId]);
+
+  useEffect(() => {
+    if (!viewUser) {
+      setRoleChangeDraft("member");
+      setRoleChangeError(null);
+      return;
+    }
+    setRoleChangeDraft(
+      viewUser.role_names?.includes("local_leader") ? "local_leader" : "member"
+    );
+    setRoleChangeError(null);
+  }, [viewUser]);
+
+  function handleRequestSort(property: CommunitySortKey) {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  }
+
   const filtered = useMemo(() => {
-    if (filterChapterId === "all") return users;
-    return users.filter((u) => u.primary_chapter_id === filterChapterId);
-  }, [users, filterChapterId]);
+    const chapterScoped =
+      filterChapterId === "all" ? users : users.filter((u) => u.primary_chapter_id === filterChapterId);
+    const q = tableSearch.trim().toLowerCase();
+    if (!q) return chapterScoped;
+    return chapterScoped.filter((u) => {
+      const roleLabel = tableRoleLabel(u, variant);
+      const blob = [
+        u.email,
+        u.phone ?? "",
+        u.first_name ?? "",
+        u.last_name ?? "",
+        u.display_name ?? "",
+        u.created_at ? new Date(u.created_at).toLocaleDateString() : "",
+        roleLabel,
+        (u.role_names ?? []).join(" "),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return blob.includes(q);
+    });
+  }, [users, filterChapterId, tableSearch, variant]);
+
+  const sorted = useMemo(() => {
+    const dir = order === "asc" ? 1 : -1;
+    const cmpStr = (a: string | null | undefined, b: string | null | undefined) =>
+      dir * String(a ?? "").localeCompare(String(b ?? ""), undefined, { sensitivity: "base" });
+    const cmpTime = (a: string | null | undefined, b: string | null | undefined) => {
+      const ta = a ? new Date(a).getTime() : 0;
+      const tb = b ? new Date(b).getTime() : 0;
+      return dir * (ta - tb);
+    };
+    return [...filtered].sort((a, b) => {
+      switch (orderBy) {
+        case "email":
+          return cmpStr(a.email, b.email);
+        case "phone":
+          return cmpStr(a.phone, b.phone);
+        case "first_name":
+          return cmpStr(a.first_name, b.first_name);
+        case "last_name":
+          return cmpStr(a.last_name, b.last_name);
+        case "display_name":
+          return cmpStr(a.display_name, b.display_name);
+        case "joined":
+          return cmpTime(a.created_at, b.created_at);
+        case "role": {
+          return cmpStr(tableRoleLabel(a, variant), tableRoleLabel(b, variant));
+        }
+        default:
+          return 0;
+      }
+    });
+  }, [filtered, order, orderBy, variant]);
+
   const paged = useMemo(() => {
-    if (rowsPerPage < 0) return filtered;
-    return filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [filtered, page, rowsPerPage]);
+    if (rowsPerPage < 0) return sorted;
+    return sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [sorted, page, rowsPerPage]);
 
   const showChapterFilter =
     chapterOptions.length > 0 && (elevated || (isLocalLeader && chapterOptions.length > 1));
@@ -217,6 +446,8 @@ export function CommunitySection({
     setEditPhone(u.phone?.trim() ?? "");
     setEditChapterId(u.primary_chapter_id ?? chapterOptions[0]?.id ?? "");
     setEditError(null);
+    setEditRoleError(null);
+    setEditRoleDraft(editableRoleFromUser(u));
   }
 
   function openDeleteMember(u: CommunityUserRow) {
@@ -272,6 +503,13 @@ export function CommunitySection({
           )
         );
       }
+      if (editUser && canEditRoleInForm(editUser) && editableRoleFromUser(editUser) !== editRoleDraft) {
+        const roleSaved =
+          editRoleDraft === "admin"
+            ? await applyAdminRole(editUser, "edit")
+            : await applyPrimaryRole(editUser, editRoleDraft, "edit");
+        if (!roleSaved) return;
+      }
       setEditUser(null);
       router.refresh();
     } finally {
@@ -320,6 +558,56 @@ export function CommunitySection({
       isLocalLeader && localChapterId ? localChapterId : chapterId;
     if (!assignChapter) {
       setSubmitError("Select a primary chapter.");
+      return;
+    }
+
+    if (isAdmins) {
+      setSubmitting(true);
+      try {
+        const res = await fetch("/api/admins/invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+            firstName: fn,
+            lastName: ln,
+            phone: phone.trim() || undefined,
+            primaryChapterId: assignChapter,
+          }),
+        });
+        const payload = (await res.json()) as {
+          error?: string;
+          user?: CommunityUserRow;
+        };
+        if (!res.ok) {
+          setSubmitError(payload.error || "Could not invite administrator.");
+          return;
+        }
+        if (payload.user) {
+          const row = payload.user;
+          setUsers((prev) => [
+            {
+              ...row,
+              phone: row.phone ?? null,
+            } as CommunityUserRow,
+            ...prev,
+          ]);
+        }
+        setInviteFlash(
+          "Administrator created successfully. Email is already verified automatically."
+        );
+        window.setTimeout(() => setInviteFlash(null), 14000);
+        setAddOpen(false);
+        setEmail("");
+        setFirstName("");
+        setLastName("");
+        setPassword("");
+        setPhone("");
+        router.refresh();
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
 
@@ -449,7 +737,7 @@ export function CommunitySection({
   return (
     <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.45)" }}>
       <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
-        {isLeaders ? "Leaders" : "Community"}
+        {isAdmins ? "Administrators" : isLeaders ? "Leaders" : "Community"}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         {subtitle}
@@ -493,41 +781,118 @@ export function CommunitySection({
             >
               Add new
             </Button>
-              <Button variant="outlined" size="small" onClick={() => setImportOpen(true)}>
-                {isLeaders ? "Import Local leaders" : "Import Members"}
-              </Button>
+              {!isAdmins ? (
+                <Button variant="outlined" size="small" onClick={() => setImportOpen(true)}>
+                  {isLeaders ? "Import Local leaders" : "Import Members"}
+                </Button>
+              ) : null}
             </>
           ) : null}
         </Box>
-        {showChapterFilter ? (
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel id={isLeaders ? "leaders-ch-filter" : "comm-ch-filter"}>Chapter</InputLabel>
-            <Select
-              labelId={isLeaders ? "leaders-ch-filter" : "comm-ch-filter"}
-              label="Chapter"
-              value={filterChapterId}
-              onChange={(e) => setFilterChapterId(e.target.value)}
-            >
-              <MenuItem value="all">All chapters</MenuItem>
-              {chapterOptions.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        ) : null}
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
+          <TextField
+            size="small"
+            label="Search"
+            placeholder="Email, name, phone, role…"
+            value={tableSearch}
+            onChange={(e) => setTableSearch(e.target.value)}
+            sx={{ minWidth: { sm: 220 } }}
+          />
+          {showChapterFilter ? (
+            <FormControl size="small" sx={{ minWidth: 220 }}>
+              <InputLabel
+                id={
+                  isAdmins ? "admins-ch-filter" : isLeaders ? "leaders-ch-filter" : "comm-ch-filter"
+                }
+              >
+                Chapter
+              </InputLabel>
+              <Select
+                labelId={
+                  isAdmins ? "admins-ch-filter" : isLeaders ? "leaders-ch-filter" : "comm-ch-filter"
+                }
+                label="Chapter"
+                value={filterChapterId}
+                onChange={(e) => setFilterChapterId(e.target.value)}
+              >
+                <MenuItem value="all">All chapters</MenuItem>
+                {chapterOptions.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : null}
+        </Stack>
       </Box>
 
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ color: "primary.main" }}>Email</TableCell>
-            <TableCell sx={{ color: "primary.main" }}>Phone</TableCell>
-            <TableCell sx={{ color: "primary.main" }}>First name</TableCell>
-            <TableCell sx={{ color: "primary.main" }}>Last name</TableCell>
-            <TableCell sx={{ color: "primary.main" }}>Display name</TableCell>
-            <TableCell sx={{ color: "primary.main" }}>Joined</TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
+                active={orderBy === "email"}
+                direction={orderBy === "email" ? order : "asc"}
+                onClick={() => handleRequestSort("email")}
+              >
+                Email
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
+                active={orderBy === "phone"}
+                direction={orderBy === "phone" ? order : "asc"}
+                onClick={() => handleRequestSort("phone")}
+              >
+                Phone
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
+                active={orderBy === "first_name"}
+                direction={orderBy === "first_name" ? order : "asc"}
+                onClick={() => handleRequestSort("first_name")}
+              >
+                First name
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
+                active={orderBy === "last_name"}
+                direction={orderBy === "last_name" ? order : "asc"}
+                onClick={() => handleRequestSort("last_name")}
+              >
+                Last name
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
+                active={orderBy === "display_name"}
+                direction={orderBy === "display_name" ? order : "asc"}
+                onClick={() => handleRequestSort("display_name")}
+              >
+                Display name
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
+                active={orderBy === "joined"}
+                direction={orderBy === "joined" ? order : "asc"}
+                onClick={() => handleRequestSort("joined")}
+              >
+                Joined
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
+                active={orderBy === "role"}
+                direction={orderBy === "role" ? order : "asc"}
+                onClick={() => handleRequestSort("role")}
+              >
+                Role
+              </TableSortLabel>
+            </TableCell>
             <TableCell sx={{ color: "primary.main" }} align="right">
               Actions
             </TableCell>
@@ -544,6 +909,7 @@ export function CommunitySection({
               <TableCell>
                 {u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}
               </TableCell>
+              <TableCell>{tableRoleLabel(u, variant)}</TableCell>
               <TableCell align="right">
                 <IconButton
                   size="small"
@@ -553,7 +919,7 @@ export function CommunitySection({
                 >
                   <Visibility fontSize="small" />
                 </IconButton>
-                {canUpdate ? (
+                {canUpdate && rowCanBeEdited(u) ? (
                   <IconButton
                     size="small"
                     color="primary"
@@ -580,7 +946,7 @@ export function CommunitySection({
       </Table>
       <TablePagination
         component="div"
-        count={filtered.length}
+        count={sorted.length}
         page={rowsPerPage < 0 ? 0 : page}
         onPageChange={(_, nextPage) => setPage(nextPage)}
         rowsPerPage={rowsPerPage}
@@ -600,7 +966,11 @@ export function CommunitySection({
       />
       {filtered.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-          {isLeaders ? "No local leaders match this filter." : "No members match this filter."}
+          {isAdmins
+            ? "No administrators match this filter."
+            : isLeaders
+              ? "No local leaders match this filter."
+              : "No members match this filter."}
         </Typography>
       ) : null}
 
@@ -610,12 +980,24 @@ export function CommunitySection({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>{isLeaders ? "Add local leader" : "Add community member"}</DialogTitle>
+        <DialogTitle>
+          {isAdmins
+            ? "Add administrator"
+            : isLeaders
+              ? "Add local leader"
+              : "Add community member"}
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             {submitError ? <Alert severity="error">{submitError}</Alert> : null}
             <Typography variant="body2" color="text.secondary">
-              {isLeaders ? (
+              {isAdmins ? (
+                <>
+                  Creates a dashboard user with the <strong>Administrator</strong> role (super admin
+                  only). If your session switches to the new user after sign-up, sign back in as an admin
+                  to continue.
+                </>
+              ) : isLeaders ? (
                 <>
                   Creates a dashboard user with the <strong>Local leader</strong> role. If your session
                   switches to the new user after sign-up, sign back in as an admin to finish setup if
@@ -623,9 +1005,9 @@ export function CommunitySection({
                 </>
               ) : (
                 <>
-              Creates a dashboard login. The new user may need to confirm their email depending on your
-              Supabase Auth settings. If your session switches to the new user after sign-up, sign back in
-              as an admin and assign the role again if needed.
+                  Creates a dashboard login. The new user may need to confirm their email depending on your
+                  Supabase Auth settings. If your session switches to the new user after sign-up, sign back
+                  in as an admin and assign the role again if needed.
                 </>
               )}
             </Typography>
@@ -661,7 +1043,7 @@ export function CommunitySection({
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="off"
             />
-            {!isLeaders && elevated ? (
+            {!isLeaders && !isAdmins && elevated ? (
               <FormControl fullWidth>
                 <InputLabel id="comm-invite-role">Role</InputLabel>
                 <Select
@@ -677,12 +1059,16 @@ export function CommunitySection({
                 </Select>
               </FormControl>
             ) : null}
-            {!isLeaders && !elevated && isLocalLeader ? (
+            {!isLeaders && !isAdmins && !elevated && isLocalLeader ? (
               <Typography variant="body2" color="text.secondary">
                 Role: <strong>Member</strong> (only admins can invite local leaders here.)
               </Typography>
             ) : null}
-            {isLeaders ? (
+            {isAdmins ? (
+              <Typography variant="body2" color="text.secondary">
+                Role: <strong>Administrator</strong>
+              </Typography>
+            ) : isLeaders ? (
               <Typography variant="body2" color="text.secondary">
                 Role: <strong>Local leader</strong>
               </Typography>
@@ -734,7 +1120,13 @@ export function CommunitySection({
             onClick={() => void handleAddSubmit()}
             disabled={submitting || chapterOptions.length === 0}
           >
-            {submitting ? "Creating…" : isLeaders ? "Create leader" : "Create user"}
+            {submitting
+              ? "Creating…"
+              : isAdmins
+                ? "Create administrator"
+                : isLeaders
+                  ? "Create leader"
+                  : "Create user"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -800,12 +1192,19 @@ export function CommunitySection({
         open={!!viewUser}
         onClose={() => {
           setPromoteError(null);
+          setRoleChangeError(null);
           setViewUser(null);
         }}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>{isLeaders ? "Leader details" : "Member details"}</DialogTitle>
+        <DialogTitle>
+          {isAdmins
+            ? "Administrator details"
+            : isLeaders
+              ? "Leader details"
+              : "Member details"}
+        </DialogTitle>
         <DialogContent>
           {viewUser ? (
             <Box sx={{ display: "grid", gap: 1, pt: 1 }}>
@@ -876,6 +1275,44 @@ export function CommunitySection({
                   </Typography>
                 </>
               ) : null}
+              {viewUser && eligibleForSuperAdminRoleSwitch(viewUser) ? (
+                <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+                  {roleChangeError ? (
+                    <Alert severity="error" sx={{ mb: 1 }}>
+                      {roleChangeError}
+                    </Alert>
+                  ) : null}
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Super admin: switch between <strong>Member</strong> and <strong>Local leader</strong>.
+                  </Typography>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
+                    <FormControl size="small" sx={{ minWidth: 200 }}>
+                      <InputLabel id="super-role-switch">Dashboard role</InputLabel>
+                      <Select
+                        labelId="super-role-switch"
+                        label="Dashboard role"
+                        value={roleChangeDraft}
+                        onChange={(e) =>
+                          setRoleChangeDraft(e.target.value as "member" | "local_leader")
+                        }
+                      >
+                        <MenuItem value="member">Member</MenuItem>
+                        <MenuItem value="local_leader">Local leader</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Button
+                      variant="outlined"
+                      disabled={
+                        roleChangeSaving ||
+                        communityPrimaryRole(viewUser.role_names) === roleChangeDraft
+                      }
+                      onClick={() => void saveRoleChange(viewUser)}
+                    >
+                      {roleChangeSaving ? "Saving…" : "Apply role"}
+                    </Button>
+                  </Stack>
+                </Box>
+              ) : null}
             </Box>
           ) : null}
         </DialogContent>
@@ -896,11 +1333,17 @@ export function CommunitySection({
 
       <Dialog
         open={!!editUser}
-        onClose={() => !editSaving && setEditUser(null)}
+        onClose={() => {
+          if (editSaving || editRoleSaving) return;
+          setEditRoleError(null);
+          setEditUser(null);
+        }}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>{isLeaders ? "Edit leader" : "Edit member"}</DialogTitle>
+        <DialogTitle>
+          {isAdmins ? "Edit administrator" : isLeaders ? "Edit leader" : "Edit member"}
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             {editError ? <Alert severity="error">{editError}</Alert> : null}
@@ -932,6 +1375,34 @@ export function CommunitySection({
               onChange={(e) => setEditPhone(e.target.value)}
               autoComplete="tel"
             />
+            {editUser && canEditRoleInForm(editUser) ? (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {editRoleError ? <Alert severity="error">{editRoleError}</Alert> : null}
+                <Typography variant="body2" color="text.secondary">
+                  Super admin: choose the role for this user.
+                </Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <InputLabel id="edit-primary-role">Dashboard role</InputLabel>
+                    <Select
+                      labelId="edit-primary-role"
+                      label="Dashboard role"
+                      value={editRoleDraft}
+                      onChange={(e) =>
+                        setEditRoleDraft(e.target.value as "member" | "local_leader")
+                      }
+                    >
+                      <MenuItem value="member">Member</MenuItem>
+                      <MenuItem value="local_leader">Local leader</MenuItem>
+                      <MenuItem value="admin">Administrator</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  This role is applied when you click <strong>Save changes</strong>.
+                </Typography>
+              </Box>
+            ) : null}
             {chapterOptions.length > 0 ? (
               <Autocomplete
                 options={chapterSearchOptions}
@@ -956,13 +1427,19 @@ export function CommunitySection({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditUser(null)} disabled={editSaving}>
+          <Button
+            onClick={() => {
+              setEditRoleError(null);
+              setEditUser(null);
+            }}
+            disabled={editSaving || editRoleSaving}
+          >
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={() => void saveEditMember()}
-            disabled={editSaving || chapterOptions.length === 0}
+            disabled={editSaving || editRoleSaving || chapterOptions.length === 0}
           >
             {editSaving ? "Saving…" : "Save changes"}
           </Button>
@@ -980,7 +1457,9 @@ export function CommunitySection({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>{isLeaders ? "Delete leader" : "Delete member"}</DialogTitle>
+        <DialogTitle>
+          {isAdmins ? "Delete administrator" : isLeaders ? "Delete leader" : "Delete member"}
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2" paragraph>
             This permanently removes the user&apos;s dashboard account and auth access. Related data may

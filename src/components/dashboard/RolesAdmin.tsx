@@ -9,6 +9,8 @@ import {
   Paper,
   Stack,
   Table,
+  TableSortLabel,
+  TextField,
   TableBody,
   TableCell,
   TableContainer,
@@ -86,6 +88,26 @@ export function RolesAdmin({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
+  const [roleSearch, setRoleSearch] = useState("");
+  const [moduleSortDesc, setModuleSortDesc] = useState(false);
+
+  const modulesOrdered = useMemo(() => {
+    const m = [...modules];
+    m.sort((a, b) => {
+      const c = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      return moduleSortDesc ? -c : c;
+    });
+    return m;
+  }, [modules, moduleSortDesc]);
+
+  const rolesFiltered = useMemo(() => {
+    const q = roleSearch.trim().toLowerCase();
+    if (!q) return roles;
+    return roles.filter((r) => {
+      const blob = [r.name, r.description ?? ""].join(" ").toLowerCase();
+      return blob.includes(q);
+    });
+  }, [roles, roleSearch]);
 
   useEffect(() => {
     setDraft(buildDraft(roles, modules, matrix));
@@ -180,12 +202,31 @@ export function RolesAdmin({
         </Alert>
       ) : null}
 
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2, flexWrap: "wrap" }}>
+        <TextField
+          size="small"
+          label="Search roles"
+          placeholder="Role name or description…"
+          value={roleSearch}
+          onChange={(e) => setRoleSearch(e.target.value)}
+          sx={{ minWidth: 220, maxWidth: 420 }}
+        />
+        <TableSortLabel
+          active
+          direction={moduleSortDesc ? "desc" : "asc"}
+          onClick={() => setModuleSortDesc((d) => !d)}
+          sx={{ alignSelf: "center", cursor: "pointer" }}
+        >
+          Module columns (by name)
+        </TableSortLabel>
+      </Stack>
+
       <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
         <Table size="small" sx={{ minWidth: 720 }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ minWidth: 140 }}>Role / module</TableCell>
-              {modules.map((m) => (
+              {modulesOrdered.map((m) => (
                 <TableCell key={m.id} align="left" sx={{ minWidth: 160, verticalAlign: "bottom" }}>
                   <Typography variant="subtitle2" component="span">
                     {m.name}
@@ -198,7 +239,7 @@ export function RolesAdmin({
             </TableRow>
           </TableHead>
           <TableBody>
-            {roles.map((r) => (
+            {rolesFiltered.map((r) => (
               <TableRow key={r.id}>
                 <TableCell sx={{ verticalAlign: "top" }}>
                   <strong>{r.name}</strong>
@@ -208,7 +249,7 @@ export function RolesAdmin({
                     </Typography>
                   ) : null}
                 </TableCell>
-                {modules.map((m) => {
+                {modulesOrdered.map((m) => {
                   const k = cellKey(r.id, m.id);
                   const f = draft[k];
                   return (
@@ -246,6 +287,15 @@ export function RolesAdmin({
                 })}
               </TableRow>
             ))}
+            {rolesFiltered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={modulesOrdered.length + 1}>
+                  <Typography variant="body2" color="text.secondary">
+                    No roles match this search.
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : null}
           </TableBody>
         </Table>
       </TableContainer>

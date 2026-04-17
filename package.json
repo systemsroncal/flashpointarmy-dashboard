@@ -9,8 +9,8 @@
     "preinstall": "node scripts/check-node.js",
     "clean": "node scripts/clean-next.js",
     "dev:reset": "node scripts/dev-reset.js",
-    "dev": "node --max-old-space-size=4096 node_modules/next/dist/bin/next dev --turbo -p 3000",
-    "dev:webpack": "node --max-old-space-size=4096 node_modules/next/dist/bin/next dev",
+    "dev": "node --max-old-space-size=8192 node_modules/next/dist/bin/next dev --turbo -p 3000",
+    "dev:webpack": "node --max-old-space-size=8192 node_modules/next/dist/bin/next dev",
     "build": "node --max-old-space-size=6144 node_modules/next/dist/bin/next build",
     "start": "next start",
     "lint": "next lint"

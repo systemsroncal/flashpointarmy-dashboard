@@ -21,12 +21,13 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   TextField,
   Typography,
 } from "@mui/material";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export type LocationRow = {
   id: string;
@@ -34,6 +35,8 @@ export type LocationRow = {
   region: string | null;
   created_at: string | null;
 };
+
+type LocationSortKey = "name" | "region" | "created_at";
 
 export function LocationsSection({
   rows: initial,
@@ -57,6 +60,45 @@ export function LocationsSection({
   const [editRegion, setEditRegion] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<LocationRow | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [tableSearch, setTableSearch] = useState("");
+  const [orderBy, setOrderBy] = useState<LocationSortKey>("name");
+  const [order, setOrder] = useState<"asc" | "desc">("asc");
+
+  function handleRequestSort(property: LocationSortKey) {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  }
+
+  const displayedRows = useMemo(() => {
+    const q = tableSearch.trim().toLowerCase();
+    const base = !q
+      ? rows
+      : rows.filter((loc) => {
+          const blob = [loc.name, loc.region ?? "", loc.created_at ?? ""]
+            .join(" ")
+            .toLowerCase();
+          return blob.includes(q);
+        });
+    const dir = order === "asc" ? 1 : -1;
+    return [...base].sort((a, b) => {
+      switch (orderBy) {
+        case "name":
+          return dir * a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        case "region":
+          return dir * String(a.region ?? "").localeCompare(String(b.region ?? ""), undefined, {
+            sensitivity: "base",
+          });
+        case "created_at": {
+          const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dir * (ta - tb);
+        }
+        default:
+          return 0;
+      }
+    });
+  }, [rows, tableSearch, order, orderBy]);
 
   async function refresh() {
     router.refresh();
@@ -159,17 +201,44 @@ export function LocationsSection({
         </Paper>
       ) : null}
 
+      <Box sx={{ mb: 2, maxWidth: 420 }}>
+        <TextField
+          size="small"
+          fullWidth
+          label="Search"
+          placeholder="Name, region…"
+          value={tableSearch}
+          onChange={(e) => setTableSearch(e.target.value)}
+        />
+      </Box>
+
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Region</TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={orderBy === "name"}
+                  direction={orderBy === "name" ? order : "asc"}
+                  onClick={() => handleRequestSort("name")}
+                >
+                  Name
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={orderBy === "region"}
+                  direction={orderBy === "region" ? order : "asc"}
+                  onClick={() => handleRequestSort("region")}
+                >
+                  Region
+                </TableSortLabel>
+              </TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((loc) => (
+            {displayedRows.map((loc) => (
               <TableRow key={loc.id}>
                 <TableCell>
                   {editing === loc.id ? (
@@ -232,7 +301,7 @@ export function LocationsSection({
                 </TableCell>
               </TableRow>
             ))}
-            {rows.length === 0 ? (
+            {displayedRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3}>
                   <Typography color="text.secondary" variant="body2">

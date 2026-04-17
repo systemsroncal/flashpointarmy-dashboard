@@ -43,12 +43,32 @@ export async function PATCH(
 
   const session = await getSessionAndPermissions();
   if ("error" in session) return session.error;
-  const { permissions } = session;
+  const { user, permissions, supabase } = session;
 
-  const canPatch =
+  const admin = createAdminClient();
+  const [targetRoles, callerRoles] = await Promise.all([
+    loadUserRoleNames(admin, userId),
+    loadUserRoleNames(supabase, user.id),
+  ]);
+  const targetIsAdminDirectory =
+    targetRoles.includes("admin") || targetRoles.includes("super_admin");
+
+  const canPatchCommunity =
     can(permissions, MODULE_SLUGS.community, "update") ||
     can(permissions, MODULE_SLUGS.leaders, "update");
-  if (!canPatch) {
+  const canPatchAdmins = can(permissions, MODULE_SLUGS.admins, "update");
+
+  if (targetIsAdminDirectory) {
+    if (!canPatchAdmins) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+    if (isSuperAdminUser(targetRoles) && !isSuperAdminUser(callerRoles)) {
+      return NextResponse.json(
+        { error: "Only super admins can edit super admin accounts." },
+        { status: 403 }
+      );
+    }
+  } else if (!canPatchCommunity) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -79,7 +99,6 @@ export async function PATCH(
   }
 
   try {
-    const admin = createAdminClient();
     const displayName = `${firstName} ${lastName}`.trim();
 
     const profileUpdate: Record<string, unknown> = {
@@ -175,13 +194,6 @@ export async function DELETE(
   if ("error" in session) return session.error;
   const { user, permissions } = session;
 
-  const canRemove =
-    can(permissions, MODULE_SLUGS.community, "delete") ||
-    can(permissions, MODULE_SLUGS.leaders, "delete");
-  if (!canRemove) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
-
   if (userId === user.id) {
     return NextResponse.json({ error: "You cannot delete your own account." }, { status: 400 });
   }
@@ -192,6 +204,21 @@ export async function DELETE(
       loadUserRoleNames(session.supabase, user.id),
       loadUserRoleNames(admin, userId),
     ]);
+
+    const targetIsAdminDirectory =
+      targetRoles.includes("admin") || targetRoles.includes("super_admin");
+    const canRemoveCommunity =
+      can(permissions, MODULE_SLUGS.community, "delete") ||
+      can(permissions, MODULE_SLUGS.leaders, "delete");
+    const canRemoveAdmins = can(permissions, MODULE_SLUGS.admins, "delete");
+
+    if (targetIsAdminDirectory) {
+      if (!canRemoveAdmins) {
+        return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+      }
+    } else if (!canRemoveCommunity) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
 
     if (isSuperAdminUser(targetRoles)) {
       return NextResponse.json(

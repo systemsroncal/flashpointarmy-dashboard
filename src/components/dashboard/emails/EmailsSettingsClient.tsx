@@ -26,6 +26,7 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  TableSortLabel,
   Tabs,
   TextField,
   Tooltip,
@@ -66,6 +67,15 @@ const TEMPLATE_LABELS: Record<string, string> = {
   gathering_created: "New gathering",
   register_otp: "Registration OTP (sign-up)",
 };
+
+type EmailLogSortKey =
+  | "created_at"
+  | "status"
+  | "template"
+  | "from_address"
+  | "to_address"
+  | "subject"
+  | "error_message";
 
 export type EmailSendLogRow = {
   id: string;
@@ -127,10 +137,75 @@ export function EmailsSettingsClient({
   const [logsLoading, setLogsLoading] = useState(false);
   const [detailLog, setDetailLog] = useState<EmailSendLogRow | null>(null);
   const [previewLog, setPreviewLog] = useState<EmailSendLogRow | null>(null);
+  const [logSearch, setLogSearch] = useState("");
+  const [logOrderBy, setLogOrderBy] = useState<EmailLogSortKey>("created_at");
+  const [logOrder, setLogOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     setLogs(initialLogs);
   }, [initialLogs]);
+
+  function handleLogSort(property: EmailLogSortKey) {
+    const isAsc = logOrderBy === property && logOrder === "asc";
+    setLogOrder(isAsc ? "desc" : "asc");
+    setLogOrderBy(property);
+  }
+
+  const displayedLogs = useMemo(() => {
+    const q = logSearch.trim().toLowerCase();
+    const base = !q
+      ? logs
+      : logs.filter((row) => {
+          const tpl = row.template_key
+            ? (TEMPLATE_LABELS[row.template_key] ?? row.template_key)
+            : "";
+          const blob = [
+            new Date(row.created_at).toLocaleString(),
+            row.status,
+            tpl,
+            row.from_address ?? "",
+            row.to_address,
+            row.subject ?? "",
+            row.error_message ?? "",
+          ]
+            .join(" ")
+            .toLowerCase();
+          return blob.includes(q);
+        });
+    const dir = logOrder === "asc" ? 1 : -1;
+    return [...base].sort((a, b) => {
+      const cmpStr = (x: string | null | undefined, y: string | null | undefined) =>
+        dir * String(x ?? "").localeCompare(String(y ?? ""), undefined, { sensitivity: "base" });
+      switch (logOrderBy) {
+        case "created_at": {
+          const ta = new Date(a.created_at).getTime();
+          const tb = new Date(b.created_at).getTime();
+          return dir * (ta - tb);
+        }
+        case "status":
+          return cmpStr(a.status, b.status);
+        case "template": {
+          const la = a.template_key
+            ? (TEMPLATE_LABELS[a.template_key] ?? a.template_key)
+            : "";
+          const lb = b.template_key
+            ? (TEMPLATE_LABELS[b.template_key] ?? b.template_key)
+            : "";
+          return cmpStr(la, lb);
+        }
+        case "from_address":
+          return cmpStr(a.from_address, b.from_address);
+        case "to_address":
+          return cmpStr(a.to_address, b.to_address);
+        case "subject":
+          return cmpStr(a.subject, b.subject);
+        case "error_message":
+          return cmpStr(a.error_message, b.error_message);
+        default:
+          return 0;
+      }
+    });
+  }, [logs, logSearch, logOrder, logOrderBy]);
 
   async function refreshLogs() {
     setLogsLoading(true);
@@ -286,23 +361,89 @@ export function EmailsSettingsClient({
           {logs.length === 0 ? (
             <Typography color="text.secondary">No log entries yet. Apply migration 015 if this table is missing.</Typography>
           ) : (
+            <>
+              <TextField
+                size="small"
+                fullWidth
+                label="Search log"
+                placeholder="Time, status, template, addresses, subject…"
+                value={logSearch}
+                onChange={(e) => setLogSearch(e.target.value)}
+                sx={{ mb: 2, maxWidth: 480 }}
+              />
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Time</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Template</TableCell>
-                  <TableCell>From</TableCell>
-                  <TableCell>To</TableCell>
-                  <TableCell>Subject</TableCell>
-                  <TableCell sx={{ minWidth: 160 }}>Error</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={logOrderBy === "created_at"}
+                      direction={logOrderBy === "created_at" ? logOrder : "asc"}
+                      onClick={() => handleLogSort("created_at")}
+                    >
+                      Time
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={logOrderBy === "status"}
+                      direction={logOrderBy === "status" ? logOrder : "asc"}
+                      onClick={() => handleLogSort("status")}
+                    >
+                      Status
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={logOrderBy === "template"}
+                      direction={logOrderBy === "template" ? logOrder : "asc"}
+                      onClick={() => handleLogSort("template")}
+                    >
+                      Template
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={logOrderBy === "from_address"}
+                      direction={logOrderBy === "from_address" ? logOrder : "asc"}
+                      onClick={() => handleLogSort("from_address")}
+                    >
+                      From
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={logOrderBy === "to_address"}
+                      direction={logOrderBy === "to_address" ? logOrder : "asc"}
+                      onClick={() => handleLogSort("to_address")}
+                    >
+                      To
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={logOrderBy === "subject"}
+                      direction={logOrderBy === "subject" ? logOrder : "asc"}
+                      onClick={() => handleLogSort("subject")}
+                    >
+                      Subject
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 160 }}>
+                    <TableSortLabel
+                      active={logOrderBy === "error_message"}
+                      direction={logOrderBy === "error_message" ? logOrder : "asc"}
+                      onClick={() => handleLogSort("error_message")}
+                    >
+                      Error
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                     Actions
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {logs.map((row) => (
+                {displayedLogs.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell sx={{ whiteSpace: "nowrap", fontSize: "0.75rem" }}>
                       {new Date(row.created_at).toLocaleString()}
@@ -363,8 +504,18 @@ export function EmailsSettingsClient({
                     </TableCell>
                   </TableRow>
                 ))}
+                {displayedLogs.length === 0 && logs.length > 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8}>
+                      <Typography variant="body2" color="text.secondary">
+                        No log entries match this search.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : null}
               </TableBody>
             </Table>
+            </>
           )}
         </Paper>
       ) : null}

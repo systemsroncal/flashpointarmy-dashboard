@@ -8,6 +8,8 @@ export const MODULE_SLUGS = {
   community: "community",
   gatherings: "gatherings",
   leaders: "leaders",
+  /** Dashboard users with administrator / super admin roles (directory + CRUD). */
+  admins: "admins",
   training: "training",
   communications: "communications",
   growth: "growth",
