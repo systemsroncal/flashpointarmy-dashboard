@@ -3,6 +3,7 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { Barlow } from "next/font/google";
 import { AppProviders } from "@/components/providers/AppProviders";
 import "./globals.css";
+import "plyr/dist/plyr.css";
 
 const barlow = Barlow({
   weight: ["400", "500", "600", "700"],

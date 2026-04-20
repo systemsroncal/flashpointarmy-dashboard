@@ -832,24 +832,6 @@ export function CommunitySection({
           <TableRow>
             <TableCell sx={{ color: "primary.main" }}>
               <TableSortLabel
-                active={orderBy === "email"}
-                direction={orderBy === "email" ? order : "asc"}
-                onClick={() => handleRequestSort("email")}
-              >
-                Email
-              </TableSortLabel>
-            </TableCell>
-            <TableCell sx={{ color: "primary.main" }}>
-              <TableSortLabel
-                active={orderBy === "phone"}
-                direction={orderBy === "phone" ? order : "asc"}
-                onClick={() => handleRequestSort("phone")}
-              >
-                Phone
-              </TableSortLabel>
-            </TableCell>
-            <TableCell sx={{ color: "primary.main" }}>
-              <TableSortLabel
                 active={orderBy === "first_name"}
                 direction={orderBy === "first_name" ? order : "asc"}
                 onClick={() => handleRequestSort("first_name")}
@@ -864,6 +846,24 @@ export function CommunitySection({
                 onClick={() => handleRequestSort("last_name")}
               >
                 Last name
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
+                active={orderBy === "email"}
+                direction={orderBy === "email" ? order : "asc"}
+                onClick={() => handleRequestSort("email")}
+              >
+                Email
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
+                active={orderBy === "phone"}
+                direction={orderBy === "phone" ? order : "asc"}
+                onClick={() => handleRequestSort("phone")}
+              >
+                Phone
               </TableSortLabel>
             </TableCell>
             <TableCell sx={{ color: "primary.main" }}>
@@ -901,10 +901,10 @@ export function CommunitySection({
         <TableBody>
           {paged.map((u) => (
             <TableRow key={u.id}>
-              <TableCell>{u.email}</TableCell>
-              <TableCell>{u.phone?.trim() || "—"}</TableCell>
               <TableCell>{u.first_name ?? "—"}</TableCell>
               <TableCell>{u.last_name ?? "—"}</TableCell>
+              <TableCell>{u.email}</TableCell>
+              <TableCell>{u.phone?.trim() || "—"}</TableCell>
               <TableCell>{u.display_name ?? "—"}</TableCell>
               <TableCell>
                 {u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}

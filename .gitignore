@@ -34,3 +34,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local uploads (API writes binaries here; DB stores path string only)
+/public/uploads/
+
+# TinyMCE self-hosted assets (copied from node_modules on npm install)
+/public/tinymce/

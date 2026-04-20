@@ -4,7 +4,7 @@ import {
   fileExtensionForKind,
   validateAvatarFile,
 } from "@/lib/upload/validate-image";
-import { writeUserAvatarImage } from "@/lib/uploads/local-public-image";
+import { writeGatheringImage } from "@/lib/uploads/local-public-image";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -44,18 +44,9 @@ export async function POST(req: Request) {
     }
 
     const ext = fileExtensionForKind(kind);
-    const publicPath = await writeUserAvatarImage(user.id, Buffer.from(buf), ext);
+    const publicPath = await writeGatheringImage(user.id, Buffer.from(buf), ext);
 
-    const { error: pErr } = await supabase
-      .from("profiles")
-      .update({ avatar_url: publicPath })
-      .eq("id", user.id);
-
-    if (pErr) {
-      return NextResponse.json({ error: pErr.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ ok: true, avatar_url: publicPath });
+    return NextResponse.json({ ok: true, image_url: publicPath });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Upload failed." },
