@@ -45,7 +45,7 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   const sessions = sessionsRaw ?? [];
   const sessionIds = sessions.map((s) => s.id);
 
-  let completedIds = new Set<string>();
+  const completedIds = new Set<string>();
   if (sessionIds.length) {
     const { data: prog } = await supabase
       .from("course_session_progress")

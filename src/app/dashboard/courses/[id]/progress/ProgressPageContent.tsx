@@ -85,7 +85,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
   }
 
   const userIds = [...byUser.keys()];
-  let labels = new Map<string, string>();
+  const labels = new Map<string, string>();
   if (userIds.length) {
     const { data: du } = await admin
       .from("dashboard_users")

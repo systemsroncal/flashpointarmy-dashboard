@@ -41,7 +41,7 @@ export default async function EditCoursePageContent({ courseId }: { courseId: st
   const sessions = sessionsRaw ?? [];
   const sessionIds = sessions.map((s) => s.id);
 
-  let elementsBySession = new Map<string, unknown[]>();
+  const elementsBySession = new Map<string, unknown[]>();
   if (sessionIds.length) {
     const { data: els } = await supabase
       .from("course_elements")

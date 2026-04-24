@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /** VPS/CI: do not fail `next build` on ESLint; run `npm run lint` separately in dev/CI. */
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   /**
    * Serve `/uploads/*` via App Route so Turbopack/dev reliably returns files under `public/uploads`
    * (otherwise `/uploads/...` can hit the app router and show a 404 page even when the file exists).
