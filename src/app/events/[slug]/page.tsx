@@ -1,3 +1,4 @@
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { EventCategoryPill } from "@/components/events/EventCategoryPill";
 import { EventImageCarousel } from "@/components/events/EventImageCarousel";
@@ -130,7 +131,7 @@ export default async function PublicEventPage({
                   {item.featured_image_url ? (
                     <Box
                       component="img"
-                      src={item.featured_image_url}
+                      src={publicAssetSrc(item.featured_image_url)}
                       alt=""
                       sx={{
                         width: "100%",

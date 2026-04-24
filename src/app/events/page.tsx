@@ -1,3 +1,4 @@
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { Box, Paper, Typography } from "@mui/material";
 import Link from "next/link";
@@ -62,7 +63,7 @@ export default async function PublicEventsPage() {
                 <Paper sx={{ p: 1.25, height: "100%", bgcolor: "rgba(0,0,0,0.35)" }}>
                   <Box
                     component="img"
-                    src={ev.featured_image_url || "/favicon.ico"}
+                    src={publicAssetSrc(ev.featured_image_url || "/favicon.ico")}
                     alt=""
                     sx={{
                       width: "100%",

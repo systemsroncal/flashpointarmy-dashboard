@@ -3,6 +3,7 @@
 import { Box, IconButton } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useMemo, useState } from "react";
 
 export function EventImageCarousel({
@@ -17,7 +18,7 @@ export function EventImageCarousel({
   const images = useMemo(() => {
     const list = [featuredImageUrl, ...galleryImageUrls]
       .filter((x): x is string => Boolean(x && x.trim()))
-      .map((x) => x.trim());
+      .map((x) => publicAssetSrc(x.trim()));
     return [...new Set(list)];
   }, [featuredImageUrl, galleryImageUrls]);
 

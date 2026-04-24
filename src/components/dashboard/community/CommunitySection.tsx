@@ -850,6 +850,15 @@ export function CommunitySection({
             </TableCell>
             <TableCell sx={{ color: "primary.main" }}>
               <TableSortLabel
+                active={orderBy === "display_name"}
+                direction={orderBy === "display_name" ? order : "asc"}
+                onClick={() => handleRequestSort("display_name")}
+              >
+                Display name
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ color: "primary.main" }}>
+              <TableSortLabel
                 active={orderBy === "email"}
                 direction={orderBy === "email" ? order : "asc"}
                 onClick={() => handleRequestSort("email")}
@@ -864,15 +873,6 @@ export function CommunitySection({
                 onClick={() => handleRequestSort("phone")}
               >
                 Phone
-              </TableSortLabel>
-            </TableCell>
-            <TableCell sx={{ color: "primary.main" }}>
-              <TableSortLabel
-                active={orderBy === "display_name"}
-                direction={orderBy === "display_name" ? order : "asc"}
-                onClick={() => handleRequestSort("display_name")}
-              >
-                Display name
               </TableSortLabel>
             </TableCell>
             <TableCell sx={{ color: "primary.main" }}>
@@ -903,9 +903,9 @@ export function CommunitySection({
             <TableRow key={u.id}>
               <TableCell>{u.first_name ?? "—"}</TableCell>
               <TableCell>{u.last_name ?? "—"}</TableCell>
+              <TableCell>{u.display_name ?? "—"}</TableCell>
               <TableCell>{u.email}</TableCell>
               <TableCell>{u.phone?.trim() || "—"}</TableCell>
-              <TableCell>{u.display_name ?? "—"}</TableCell>
               <TableCell>
                 {u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}
               </TableCell>

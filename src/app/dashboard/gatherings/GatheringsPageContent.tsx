@@ -1,3 +1,4 @@
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import Link from "next/link";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -101,7 +102,7 @@ export default async function GatheringsPageContent() {
             >
               <Box
                 component="img"
-                src={e.featured_image_url || "/favicon.ico"}
+                src={publicAssetSrc(e.featured_image_url || "/favicon.ico")}
                 alt=""
                 sx={{
                   width: 96,

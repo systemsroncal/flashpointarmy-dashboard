@@ -11,6 +11,8 @@ export const MODULE_SLUGS = {
   /** Dashboard users with administrator / super admin roles (directory + CRUD). */
   admins: "admins",
   training: "training",
+  /** Admin course builder, progress reports (admin / super_admin only in DB). */
+  courses: "courses",
   communications: "communications",
   growth: "growth",
   logs: "logs",

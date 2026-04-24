@@ -11,6 +11,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import PeopleIcon from "@mui/icons-material/People";
 import PublicIcon from "@mui/icons-material/Public";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 import SchoolIcon from "@mui/icons-material/School";
 import SecurityIcon from "@mui/icons-material/Security";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -56,6 +57,26 @@ type NavItem = {
   icon: React.ReactNode;
 };
 
+const COURSE_LEARNER_PREFIX = "/dashboard/course";
+
+function isNavItemSelected(item: NavItem, pathname: string): boolean {
+  if (item.href === "/dashboard") {
+    return pathname === "/dashboard";
+  }
+  if (item.module === MODULE_SLUGS.training) {
+    return (
+      pathname === item.href ||
+      pathname.startsWith(`${item.href}/`) ||
+      pathname === COURSE_LEARNER_PREFIX ||
+      pathname.startsWith(`${COURSE_LEARNER_PREFIX}/`)
+    );
+  }
+  if (item.module === MODULE_SLUGS.courses) {
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
 const NAV: NavItem[] = [
   {
     label: "National overview",
@@ -98,6 +119,12 @@ const NAV: NavItem[] = [
     href: "/dashboard/training",
     module: MODULE_SLUGS.training,
     icon: <SchoolIcon />,
+  },
+  {
+    label: "Courses",
+    href: "/dashboard/courses",
+    module: MODULE_SLUGS.courses,
+    icon: <MenuBookIcon />,
   },
   {
     label: "Communications",
@@ -239,10 +266,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
       <List sx={{ flex: 1, py: 1, overflowY: "auto" }}>
         {visibleNav.map((item) => {
-          const selected =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const selected = isNavItemSelected(item, pathname);
           return (
             <ListItem key={item.href} disablePadding>
               <ListItemButton
@@ -259,12 +283,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   },
                 }}
               >
-                <ListItemIcon sx={{ color: "primary.main", minWidth: 38 }}>
+                <ListItemIcon
+                  sx={{
+                    color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
+                    minWidth: 38,
+                  }}
+                >
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
                   primary={item.label}
-                  primaryTypographyProps={{ variant: "body2", fontWeight: 600, fontSize: "0.82rem" }}
+                  primaryTypographyProps={{
+                    variant: "body2",
+                    fontWeight: 600,
+                    fontSize: "0.82rem",
+                    color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
+                  }}
                 />
               </ListItemButton>
             </ListItem>
@@ -308,7 +342,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           }}
           sx={{ mt: 0.5, borderRadius: 1 }}
         >
-          <ListItemIcon sx={{ minWidth: 38 }}>
+          <ListItemIcon sx={{ minWidth: 38, color: "rgba(255,255,255,0.92)" }}>
             <ExitToAppIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Sign out" primaryTypographyProps={{ variant: "body2" }} />

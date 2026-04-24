@@ -25,9 +25,19 @@ type Props = {
   value: string;
   onChange: (html: string) => void;
   disabled?: boolean;
+  /** Field label above the editor (default: Description). */
+  label?: string;
+  /** TinyMCE helper line under the editor (default: true). */
+  showHelper?: boolean;
 };
 
-export function GatheringDescriptionEditor({ value, onChange, disabled }: Props) {
+export function GatheringDescriptionEditor({
+  value,
+  onChange,
+  disabled,
+  label = "Description",
+  showHelper = true,
+}: Props) {
   const init = useMemo(
     () => ({
       height: 440,
@@ -69,7 +79,7 @@ export function GatheringDescriptionEditor({ value, onChange, disabled }: Props)
   return (
     <Box sx={{ mb: 2 }}>
       <InputLabel shrink sx={{ mb: 0.75, position: "relative", transform: "none" }}>
-        Description
+        {label}
       </InputLabel>
       <Editor
         tinymceScriptSrc={`${TINYMCE_BASE}/tinymce.min.js`}
@@ -79,9 +89,11 @@ export function GatheringDescriptionEditor({ value, onChange, disabled }: Props)
         disabled={disabled ?? false}
         init={init}
       />
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
-        Self-hosted TinyMCE (GPL). HTML is saved to the database. For images, prefer HTTPS URLs.
-      </Typography>
+      {showHelper ? (
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
+          Self-hosted TinyMCE (GPL). HTML is saved to the database. For images, prefer HTTPS URLs.
+        </Typography>
+      ) : null}
     </Box>
   );
 }

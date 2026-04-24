@@ -17,6 +17,7 @@ const LOCAL_LEADER_HIDDEN_MODULES = new Set<string>([
   MODULE_SLUGS.communications,
   MODULE_SLUGS.logs,
   MODULE_SLUGS.admins,
+  MODULE_SLUGS.courses,
 ]);
 
 /** Modules a pure member may see in the sidebar (plus permission checks). */

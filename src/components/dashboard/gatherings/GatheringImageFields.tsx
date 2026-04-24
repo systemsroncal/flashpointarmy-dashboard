@@ -6,6 +6,7 @@ import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import { Box, CircularProgress, IconButton, Paper, TextField, Tooltip, Typography } from "@mui/material";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 
 async function uploadToGatheringsBucket(file: File): Promise<string> {
   const fd = new FormData();
@@ -175,7 +176,7 @@ export function GatheringImageFields({
             >
               <Box
                 component="img"
-                src={featuredImageUrl}
+                src={publicAssetSrc(featuredImageUrl)}
                 alt="Featured"
                 sx={{
                   maxWidth: "100%",
@@ -273,7 +274,7 @@ export function GatheringImageFields({
               >
                 <Box
                   component="img"
-                  src={url}
+                  src={publicAssetSrc(url)}
                   alt=""
                   sx={{
                     width: "100%",

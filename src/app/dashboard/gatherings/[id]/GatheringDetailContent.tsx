@@ -1,3 +1,4 @@
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import Link from "next/link";
 import { MODULE_SLUGS } from "@/config/modules";
 import { EventCategoryPill } from "@/components/events/EventCategoryPill";
@@ -157,7 +158,7 @@ export default async function GatheringDetailContent({
                   {u.featured_image_url ? (
                     <Box
                       component="img"
-                      src={u.featured_image_url}
+                      src={publicAssetSrc(u.featured_image_url)}
                       alt=""
                       sx={{
                         width: "100%",

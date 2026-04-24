@@ -35,3 +35,16 @@ export async function writeGatheringImage(userId: string, buffer: Buffer, ext: s
   await writeFile(path.join(absDir, fileName), buffer);
   return toWebPath("gatherings", userId, fileName);
 }
+
+/** Course builder assets: images or PDFs under `public/uploads/courses/{userId}/`. */
+export async function writeCourseAsset(
+  userId: string,
+  buffer: Buffer,
+  ext: string
+): Promise<string> {
+  const absDir = path.join(uploadsRoot(), "courses", userId);
+  await mkdir(absDir, { recursive: true });
+  const fileName = `${randomUUID()}.${ext}`;
+  await writeFile(path.join(absDir, fileName), buffer);
+  return toWebPath("courses", userId, fileName);
+}

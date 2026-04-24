@@ -10,7 +10,12 @@ import {
 } from "@mui/material";
 import { resolveVideoForPlyr, type ResolvedPlyrVideo } from "@/lib/media/resolve-plyr-video";
 import { useEffect, useRef, useState } from "react";
-import type Plyr from "plyr";
+
+type PlyrLike = {
+  on: (event: string, fn: () => void) => void;
+  play: () => void | Promise<void>;
+  destroy: () => void;
+};
 
 function createPlyrRoot(resolved: ResolvedPlyrVideo): HTMLElement | null {
   switch (resolved.kind) {
@@ -47,7 +52,10 @@ function createPlyrRoot(resolved: ResolvedPlyrVideo): HTMLElement | null {
       const iframe = document.createElement("iframe");
       iframe.src = resolved.src;
       iframe.setAttribute("allowfullscreen", "");
-      iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture; encrypted-media");
+      iframe.setAttribute(
+        "allow",
+        "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+      );
       iframe.style.border = "0";
       iframe.title = "Video";
       wrap.appendChild(iframe);
@@ -66,6 +74,9 @@ const plyrControls = [
   "fullscreen",
 ] as const;
 
+/** MUI Dialog mounts children in a portal after paint; Plyr/YouTube need a real layout box. */
+const DIALOG_LAYOUT_MS = 240;
+
 export function EventVideoPlyrDialog({ videoUrl }: { videoUrl: string | null | undefined }) {
   const trimmed = videoUrl?.trim() ?? "";
   const resolved = trimmed ? resolveVideoForPlyr(trimmed) : ({ kind: "none" } as const);
@@ -77,61 +88,79 @@ export function EventVideoPlyrDialog({ videoUrl }: { videoUrl: string | null | u
 function EventVideoPlyrDialogInner({ videoUrl }: { videoUrl: string }) {
   const [open, setOpen] = useState(true);
   const mountRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<Plyr | null>(null);
+  const playerRef = useRef<PlyrLike | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    const mount = mountRef.current;
-    if (!mount) return;
-
-    const resolved = resolveVideoForPlyr(videoUrl);
-    if (resolved.kind === "none") return;
-
-    mount.innerHTML = "";
-    const root = createPlyrRoot(resolved);
-    if (!root) return;
-    mount.appendChild(root);
 
     let cancelled = false;
+    let rafId = 0;
 
-    void import("plyr").then(({ default: PlyrCtor }) => {
-      if (cancelled || !mount.contains(root)) return;
+    const destroy = () => {
+      playerRef.current?.destroy();
+      playerRef.current = null;
+      const m = mountRef.current;
+      if (m) m.innerHTML = "";
+    };
 
-      const player = new PlyrCtor(root, {
-        controls: [...plyrControls],
-        muted: true,
-        clickToPlay: true,
-        hideControls: false,
-        resetOnEnd: false,
-        youtube: {
-          rel: 0,
-          modestbranding: 1,
-          iv_load_policy: 3,
-          playsinline: 1,
-          noCookie: true,
-        },
-        vimeo: {
-          dnt: true,
-          byline: false,
-          portrait: false,
-          title: false,
-        },
+    const init = () => {
+      const mount = mountRef.current;
+      if (!mount || !mount.isConnected || cancelled) return;
+
+      const resolved = resolveVideoForPlyr(videoUrl);
+      if (resolved.kind === "none") return;
+
+      destroy();
+      const root = createPlyrRoot(resolved);
+      if (!root) return;
+      mount.appendChild(root);
+
+      void import("plyr").then((plyrModule: unknown) => {
+        if (cancelled || !mount.isConnected || !mount.contains(root)) return;
+
+        const PlyrCtor = (plyrModule as { default: new (el: HTMLElement, opts?: object) => PlyrLike })
+          .default;
+        const player = new PlyrCtor(root, {
+          controls: [...plyrControls],
+          muted: true,
+          clickToPlay: true,
+          hideControls: false,
+          resetOnEnd: false,
+          youtube: {
+            rel: 0,
+            modestbranding: 1,
+            iv_load_policy: 3,
+            playsinline: 1,
+            noCookie: true,
+          },
+          vimeo: {
+            dnt: true,
+            byline: false,
+            portrait: false,
+            title: false,
+          },
+        });
+
+        playerRef.current = player;
+        player.on("ready", () => {
+          void Promise.resolve(player.play()).catch(() => {});
+        });
       });
+    };
 
-      playerRef.current = player;
-
-      const tryPlay = () => {
-        void Promise.resolve(player.play()).catch(() => {});
-      };
-
-      player.on("ready", tryPlay);
-    });
+    const timeoutId = window.setTimeout(() => {
+      if (cancelled) return;
+      rafId = window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        init();
+      });
+    }, DIALOG_LAYOUT_MS);
 
     return () => {
       cancelled = true;
-      playerRef.current?.destroy();
-      playerRef.current = null;
-      mount.innerHTML = "";
+      clearTimeout(timeoutId);
+      if (rafId) cancelAnimationFrame(rafId);
+      destroy();
     };
   }, [open, videoUrl]);
 
@@ -141,7 +170,19 @@ function EventVideoPlyrDialogInner({ videoUrl }: { videoUrl: string }) {
       onClose={() => setOpen(false)}
       maxWidth="md"
       fullWidth
+      disableEnforceFocus
+      disableAutoFocus
       aria-labelledby="event-video-dialog-title"
+      slotProps={{
+        paper: {
+          sx: {
+            overflow: "visible",
+            maxWidth: "min(960px, 100vw - 32px)",
+            // Avoid transform on Paper breaking iframe layout/sizing for embedded players
+            transform: "none",
+          },
+        },
+      }}
     >
       <DialogTitle
         id="event-video-dialog-title"
@@ -154,11 +195,16 @@ function EventVideoPlyrDialogInner({ videoUrl }: { videoUrl: string }) {
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent sx={{ pt: 0 }}>
+      <DialogContent sx={{ pt: 0, overflow: "visible" }}>
         <div
           ref={mountRef}
           className="event-video-plyr-mount"
-          style={{ width: "100%", aspectRatio: "16 / 9", maxHeight: "70vh" }}
+          style={{
+            width: "100%",
+            minHeight: 320,
+            aspectRatio: "16 / 9",
+            maxHeight: "70vh",
+          }}
         />
       </DialogContent>
     </Dialog>

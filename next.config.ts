@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /**
+   * Serve `/uploads/*` via App Route so Turbopack/dev reliably returns files under `public/uploads`
+   * (otherwise `/uploads/...` can hit the app router and show a 404 page even when the file exists).
+   */
+  async rewrites() {
+    return [{ source: "/uploads/:path*", destination: "/api/uploads/:path*" }];
+  },
   reactStrictMode: true,
   /**
    * Extra dev hostnames allowed to request `/_next/*` (HMR, chunks). Needed when exposing

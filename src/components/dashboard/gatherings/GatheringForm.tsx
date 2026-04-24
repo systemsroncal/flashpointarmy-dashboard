@@ -18,7 +18,8 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { slugify } from "@/lib/slug";
+import { useEffect, useMemo, useState } from "react";
 
 type ChapterOpt = {
   id: string;
@@ -32,16 +33,6 @@ type CatOpt = { id: string; name: string; slug: string };
 type GatheringStatus = "draft" | "published" | "trash";
 
 const DEFAULT_CTA_LABEL = "REGISTER NOW";
-
-function slugify(raw: string): string {
-  return raw
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 export function GatheringForm({
   chapters,
@@ -95,6 +86,15 @@ export function GatheringForm({
   const [notifyAllUsers, setNotifyAllUsers] = useState((initialValues?.audienceScope ?? "chapter") === "all");
   const [status, setStatus] = useState<GatheringStatus>(initialValues?.status ?? "draft");
   const [slug, setSlug] = useState(initialValues?.slug ?? "");
+  /** When false, slug is kept in sync with the title (slugify). Set true when the user edits the slug field. */
+  const [slugManual, setSlugManual] = useState(
+    Boolean(editing && (initialValues?.slug ?? "").trim().length > 0)
+  );
+
+  useEffect(() => {
+    if (slugManual) return;
+    setSlug(slugify(title));
+  }, [title, slugManual]);
   const [isVirtual, setIsVirtual] = useState(initialValues?.isVirtual ?? false);
   const [virtualUrl, setVirtualUrl] = useState(initialValues?.virtualUrl ?? "");
   const [galleryImageUrls, setGalleryImageUrls] = useState<string[]>(
@@ -199,9 +199,16 @@ export function GatheringForm({
         required
         fullWidth
         value={slug}
-        onChange={(e) => setSlug(e.target.value)}
+        onChange={(e) => {
+          setSlugManual(true);
+          setSlug(e.target.value);
+        }}
         sx={{ mb: 2 }}
-        helperText={publicPreviewUrl ? `Public URL: ${publicPreviewUrl}` : "Set a URL slug for this event."}
+        helperText={
+          publicPreviewUrl
+            ? `Public URL: ${publicPreviewUrl}${slugManual ? "" : " · Autocompleted from title; edit to customize."}`
+            : "Set a URL slug for this event."
+        }
       />
       <TextField
         label="Subtitle"

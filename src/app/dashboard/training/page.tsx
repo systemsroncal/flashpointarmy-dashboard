@@ -1,12 +1,11 @@
-import { Paper, Typography } from "@mui/material";
+import { DataPaneFallback } from "@/components/dashboard/DataPaneFallback";
+import { Suspense } from "react";
+import TrainingPageContent from "./TrainingPageContent";
 
 export default function TrainingPage() {
   return (
-    <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
-      <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
-        Training
-      </Typography>
-      <Typography color="text.secondary">Module coming soon.</Typography>
-    </Paper>
+    <Suspense fallback={<DataPaneFallback label="Loading training" />}>
+      <TrainingPageContent />
+    </Suspense>
   );
 }

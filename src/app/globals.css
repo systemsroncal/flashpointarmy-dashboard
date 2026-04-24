@@ -33,3 +33,28 @@ body {
 #nprogress .spinner {
   display: none;
 }
+
+/* Plyr inside dialog: give the root a stable width (embed sizing comes from Plyr). */
+.event-video-plyr-mount .plyr {
+  width: 100%;
+  min-height: 280px;
+}
+
+/* Course session: 16:9 dentro del viewport; ancho capado para que la altura no pase ~72vh */
+.course-video-plyr-mount {
+  position: relative;
+  width: 100%;
+  max-width: min(100%, calc(72vh * 16 / 9));
+  margin-inline: auto;
+  overflow: hidden;
+}
+
+.course-video-plyr-mount > .plyr {
+  width: 100%;
+  height: 100%;
+}
+
+.course-video-plyr-mount .plyr__video-wrapper,
+.course-video-plyr-mount .plyr__video-embed {
+  max-width: 100%;
+}
