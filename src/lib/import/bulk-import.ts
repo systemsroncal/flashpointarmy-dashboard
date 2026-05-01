@@ -8,6 +8,19 @@ export type ImportResultItem = {
   chapter?: string;
 };
 
+/** Excel / Fluent Forms: email column headers (aliases; normalized match in pickField). */
+export const EMAIL_EXCEL_KEYS = [
+  "Email",
+  "email",
+  "E-mail",
+  "E-mail address",
+  "Email Address",
+  "email address",
+  "Email address",
+  "user_email",
+  "User Email",
+];
+
 /** Excel column header for phone in leader/member bulk files (aliases supported). */
 export const PHONE_EXCEL_KEYS = ["Phone number", "phone", "Phone"];
 
@@ -94,6 +107,9 @@ export function pickLeaderEmail(row: FlatRow) {
     "Leader Email",
     "leader email",
     "Local Leader Email",
+    "Email Address",
+    "Email",
+    "email",
   ]).toLowerCase();
 }
 

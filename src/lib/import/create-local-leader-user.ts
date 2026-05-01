@@ -12,10 +12,14 @@ export async function createLocalLeaderUserForChapter(
     phone: string;
     chapterId: string;
     leaderRoleId: string;
+    /** Webhook / external: use this password when set (min 8 chars checked by caller). */
+    passwordOverride?: string | null;
   }
 ): Promise<{ userId: string } | { error: string }> {
-  const { email, firstName, lastName, phone, chapterId, leaderRoleId } = opts;
-  const password = phone || "Welcome123!";
+  const { email, firstName, lastName, phone, chapterId, leaderRoleId, passwordOverride } = opts;
+  const trimmedOverride = passwordOverride?.trim() ?? "";
+  const password =
+    trimmedOverride.length >= 8 ? trimmedOverride : phone || "Welcome123!";
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
     password,

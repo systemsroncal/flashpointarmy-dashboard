@@ -2,6 +2,7 @@ import { MODULE_SLUGS } from "@/config/modules";
 import {
   cleanPhone,
   containsTestText,
+  EMAIL_EXCEL_KEYS,
   PHONE_EXCEL_KEYS,
   pickChapterName,
   pickField,
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
   const batchEmails = new Set<string>();
   const batchPhones = new Set<string>();
 
-  const emails = rows.map((r) => pickField(r, ["Email", "email"]).toLowerCase()).filter(Boolean);
+  const emails = rows.map((r) => pickField(r, EMAIL_EXCEL_KEYS).toLowerCase()).filter(Boolean);
   const phones = rows.map((r) => cleanPhone(pickField(r, PHONE_EXCEL_KEYS))).filter(Boolean);
 
   if (emails.length > 0) {
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
   for (const row of rows) {
     const fullName = pickField(row, ["name", "Name"]);
     const { firstName, lastName } = splitName(fullName);
-    const email = pickField(row, ["Email", "email"]).toLowerCase();
+    const email = pickField(row, EMAIL_EXCEL_KEYS).toLowerCase();
     const phone = cleanPhone(pickField(row, PHONE_EXCEL_KEYS));
     const chapterName = pickChapterName(row);
     if (containsTestText(row)) {
