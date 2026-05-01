@@ -173,7 +173,6 @@ export async function POST(req: Request) {
   }
 
   const newId = created.user.id;
-  await admin.auth.admin.updateUserById(newId, { email_confirm: true });
 
   const { data: roleRow, error: roleLookupErr } = await admin
     .from("roles")
@@ -193,6 +192,53 @@ export async function POST(req: Request) {
     await admin.auth.admin.deleteUser(newId);
     return NextResponse.json({ error: roleInsErr.message || "Could not assign role." }, { status: 500 });
   }
+
+  const displayName = `${firstName} ${lastName}`.trim();
+  const { error: authUpErr } = await admin.auth.admin.updateUserById(newId, {
+    email_confirm: true,
+    user_metadata: {
+      first_name: firstName,
+      last_name: lastName,
+      primary_chapter_id: chapterId,
+      phone: phone || null,
+    },
+  });
+  if (authUpErr) {
+    await admin.from("user_roles").delete().eq("user_id", newId);
+    await admin.auth.admin.deleteUser(newId);
+    return NextResponse.json(
+      { error: authUpErr.message || "Could not confirm email / sync auth profile." },
+      { status: 500 }
+    );
+  }
+
+  const { error: profErr } = await admin
+    .from("profiles")
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      display_name: displayName,
+      primary_chapter_id: chapterId,
+      ...(phone ? { phone } : {}),
+    })
+    .eq("id", newId);
+  if (profErr) {
+    await admin.from("user_roles").delete().eq("user_id", newId);
+    await admin.auth.admin.deleteUser(newId);
+    return NextResponse.json({ error: profErr.message || "Could not sync profile." }, { status: 500 });
+  }
+
+  await admin
+    .from("dashboard_users")
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      display_name: displayName,
+      primary_chapter_id: chapterId,
+      ...(phone ? { phone } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", newId);
 
   return NextResponse.json({
     ok: true,
