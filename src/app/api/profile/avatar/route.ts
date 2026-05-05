@@ -46,10 +46,24 @@ export async function POST(req: Request) {
     const ext = fileExtensionForKind(kind);
     const publicPath = await writeUserAvatarImage(user.id, Buffer.from(buf), ext);
 
+    const fallbackDisplayName =
+      (user.user_metadata?.display_name as string | undefined)?.trim() ||
+      [user.user_metadata?.first_name, user.user_metadata?.last_name]
+        .map((v) => String(v ?? "").trim())
+        .filter(Boolean)
+        .join(" ") ||
+      (user.email?.split("@")[0] ?? "User");
+
     const { error: pErr } = await supabase
       .from("profiles")
-      .update({ avatar_url: publicPath })
-      .eq("id", user.id);
+      .upsert(
+        {
+          id: user.id,
+          avatar_url: publicPath,
+          display_name: fallbackDisplayName,
+        },
+        { onConflict: "id" }
+      );
 
     if (pErr) {
       return NextResponse.json({ error: pErr.message }, { status: 400 });

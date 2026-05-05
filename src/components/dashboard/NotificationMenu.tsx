@@ -53,12 +53,14 @@ export function NotificationMenu({ userId }: { userId: string }) {
 
   const refresh = useCallback(async () => {
     const supabase = createClient();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from("notifications")
       .select("id, title, body, read_at, created_at")
       .eq("user_id", userId)
+      .gte("created_at", sevenDaysAgo)
       .order("created_at", { ascending: false })
-      .limit(25);
+      .limit(200);
     setItems((data as NotificationRow[]) ?? []);
   }, [userId]);
 

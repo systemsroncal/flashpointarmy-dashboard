@@ -1,6 +1,7 @@
 "use client";
 
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { validateAvatarFile } from "@/lib/upload/validate-image";
 import { createClient } from "@/utils/supabase/client";
 import CloseIcon from "@mui/icons-material/Close";
@@ -45,6 +46,7 @@ export function UserProfileDrawer({
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarNonce, setAvatarNonce] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,12 +67,12 @@ export function UserProfileDrawer({
     }
     const row = data as ProfileRow | null;
     setProfile(row);
-    setFirstName(row?.first_name ?? "");
-    setLastName(row?.last_name ?? "");
+    setFirstName(row?.first_name ?? du.first_name ?? "");
+    setLastName(row?.last_name ?? du.last_name ?? "");
     setDisplayName(row?.display_name ?? du.display_name ?? "");
     setPhone(row?.phone?.trim() ?? du.phone?.trim() ?? "");
     setAvatarUrl(row?.avatar_url ?? "");
-  }, [du.display_name, du.id]);
+  }, [du.display_name, du.first_name, du.id, du.last_name, du.phone]);
 
   useEffect(() => {
     if (open) {
@@ -160,6 +162,7 @@ export function UserProfileDrawer({
         return;
       }
       if (data.avatar_url) setAvatarUrl(data.avatar_url);
+      setAvatarNonce(Date.now());
       router.refresh();
     } finally {
       setAvatarUploading(false);
@@ -174,13 +177,24 @@ export function UserProfileDrawer({
       const supabase = createClient();
       const { error: pErr } = await supabase
         .from("profiles")
-        .update({ avatar_url: null })
-        .eq("id", du.id);
+        .upsert(
+          {
+            id: du.id,
+            avatar_url: null,
+            display_name:
+              displayName.trim() ||
+              profile?.display_name ||
+              du.display_name ||
+              du.email.split("@")[0],
+          },
+          { onConflict: "id" }
+        );
       if (pErr) {
         setError(pErr.message);
         return;
       }
       setAvatarUrl("");
+      setAvatarNonce(Date.now());
       router.refresh();
     } finally {
       setAvatarUploading(false);
@@ -192,6 +206,9 @@ export function UserProfileDrawer({
     [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") ||
     du.display_name ||
     du.email.split("@")[0];
+  const avatarSrc = avatarUrl.trim()
+    ? `${publicAssetSrc(avatarUrl.trim())}${avatarUrl.includes("?") ? "&" : "?"}v=${avatarNonce || "1"}`
+    : undefined;
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: "100%", sm: 380 }, maxWidth: "100vw" } }}>
@@ -214,7 +231,7 @@ export function UserProfileDrawer({
           <>
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 2 }}>
               <Avatar
-                src={avatarUrl.trim() || undefined}
+                src={avatarSrc}
                 sx={{ width: 96, height: 96, mb: 1, bgcolor: "primary.dark", fontSize: "2rem" }}
               >
                 {initial.slice(0, 2).toUpperCase()}
@@ -236,7 +253,9 @@ export function UserProfileDrawer({
                   {initial}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  {[profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "—"}
+                  {[profile?.first_name ?? du.first_name, profile?.last_name ?? du.last_name]
+                    .filter(Boolean)
+                    .join(" ") || "—"}
                 </Typography>
                 {profile?.phone?.trim() || du.phone?.trim() ? (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>

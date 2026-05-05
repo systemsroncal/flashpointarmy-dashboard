@@ -41,11 +41,13 @@ import { useState } from "react";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/client";
 import { NotificationMenu } from "./NotificationMenu";
+import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { UserProfileDrawer } from "./UserProfileDrawer";
 
 const DRAWER_WIDTH = 220;
@@ -97,7 +99,7 @@ const NAV: NavItem[] = [
     icon: <PeopleIcon />,
   },
   {
-    label: "Gatherings",
+    label: "Events",
     href: "/dashboard/gatherings",
     module: MODULE_SLUGS.gatherings,
     icon: <EventIcon />,
@@ -323,7 +325,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-          <Avatar src={user.avatar_url ?? undefined} sx={{ width: 40, height: 40, bgcolor: "primary.dark" }}>
+          <Avatar
+            src={user.avatar_url ? publicAssetSrc(user.avatar_url) : undefined}
+            sx={{ width: 40, height: 40, bgcolor: "primary.dark" }}
+          >
             {displayInitial.slice(0, 2).toUpperCase()}
           </Avatar>
           <Box sx={{ minWidth: 0, flex: 1 }}>
@@ -393,6 +398,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </IconButton>
           ) : null}
           <Box sx={{ flexGrow: 1 }} />
+          <RoleWelcomeVideoPrompt />
           <NotificationMenu userId={user.id} />
         </Toolbar>
       </AppBar>

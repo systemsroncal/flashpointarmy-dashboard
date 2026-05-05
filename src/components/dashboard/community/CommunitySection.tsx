@@ -6,14 +6,17 @@ import Visibility from "@mui/icons-material/Visibility";
 import {
   Alert,
   Autocomplete,
+  Avatar,
   Box,
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   LinearProgress,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem,
@@ -31,6 +34,7 @@ import {
   Typography,
 } from "@mui/material";
 import { PHONE_EXCEL_KEYS } from "@/lib/import/bulk-import";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { parseUploadFile } from "@/lib/import/parse-upload";
 import { usStateByCode } from "@/data/usStates";
 import { useSyncedState } from "@/hooks/useSyncedState";
@@ -39,6 +43,7 @@ import { useEffect, useMemo, useState } from "react";
 
 export type CommunityUserRow = {
   id: string;
+  avatar_url?: string | null;
   email: string;
   phone: string | null;
   display_name: string | null;
@@ -159,6 +164,15 @@ export function CommunitySection({
   const [importResults, setImportResults] = useState<
     { status: "imported" | "omitted"; email?: string; phone?: string; reason?: string; chapter?: string }[]
   >([]);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncFromDate, setSyncFromDate] = useState("");
+  const [syncToDate, setSyncToDate] = useState("");
+  const [syncChapters, setSyncChapters] = useState(true);
+  const [syncLeaders, setSyncLeaders] = useState(true);
+  const [syncMembers, setSyncMembers] = useState(true);
+  const [syncLogs, setSyncLogs] = useState<string[]>([]);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const chapterSearchOptions = useMemo(
     () => chapterOptions.map((c) => ({ id: c.id, label: c.name })),
@@ -734,6 +748,71 @@ export function CommunitySection({
     }
   }
 
+  async function runFluentSync() {
+    if (!syncFromDate || !syncToDate) {
+      setSyncError("Select start and end dates.");
+      return;
+    }
+    if (!syncChapters && !syncLeaders && !syncMembers) {
+      setSyncError("Select at least one sync target.");
+      return;
+    }
+    setSyncError(null);
+    setSyncLogs([]);
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/external/fluent-form-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fromDate: syncFromDate,
+          toDate: syncToDate,
+          syncChapters,
+          syncLeaders,
+          syncMembers,
+        }),
+      });
+      if (!res.ok || !res.body) {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error || "Could not start Fluent Forms sync.");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const evt = JSON.parse(trimmed) as { level: string; message: string };
+            const prefix =
+              evt.level === "ok"
+                ? "[OK]"
+                : evt.level === "warn"
+                  ? "[WARN]"
+                  : evt.level === "error"
+                    ? "[ERROR]"
+                    : "[INFO]";
+            setSyncLogs((prev) => [...prev, `${prefix} ${evt.message}`]);
+          } catch {
+            setSyncLogs((prev) => [...prev, trimmed]);
+          }
+        }
+      }
+      router.refresh();
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Sync failed.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
     <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.45)" }}>
       <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
@@ -786,6 +865,11 @@ export function CommunitySection({
                   {isLeaders ? "Import Local leaders" : "Import Members"}
                 </Button>
               ) : null}
+              {!isLeaders && !isAdmins ? (
+                <Button variant="outlined" size="small" onClick={() => setSyncOpen(true)}>
+                  Sync Fluent Forms
+                </Button>
+              ) : null}
             </>
           ) : null}
         </Box>
@@ -830,6 +914,7 @@ export function CommunitySection({
       <Table size="small">
         <TableHead>
           <TableRow>
+            <TableCell sx={{ color: "primary.main" }}>Avatar</TableCell>
             <TableCell sx={{ color: "primary.main" }}>
               <TableSortLabel
                 active={orderBy === "first_name"}
@@ -901,6 +986,14 @@ export function CommunitySection({
         <TableBody>
           {paged.map((u) => (
             <TableRow key={u.id}>
+              <TableCell>
+                <Avatar
+                  src={u.avatar_url ? publicAssetSrc(u.avatar_url) : undefined}
+                  sx={{ width: 30, height: 30 }}
+                >
+                  {(u.display_name || u.email || "U").slice(0, 1).toUpperCase()}
+                </Avatar>
+              </TableCell>
               <TableCell>{u.first_name ?? "—"}</TableCell>
               <TableCell>{u.last_name ?? "—"}</TableCell>
               <TableCell>{u.display_name ?? "—"}</TableCell>
@@ -1503,6 +1596,73 @@ export function CommunitySection({
             onClick={() => void confirmDeleteMember()}
           >
             Delete permanently
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={syncOpen} onClose={() => !syncing && setSyncOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Sync from WordPress Fluent Forms</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
+            {syncError ? <Alert severity="error">{syncError}</Alert> : null}
+            <Typography variant="body2" color="text.secondary">
+              Pulls Fluent Forms records by date range and imports in real time. Existing users and chapters are omitted.
+            </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                fullWidth
+                size="small"
+                type="date"
+                label="From"
+                value={syncFromDate}
+                onChange={(e) => setSyncFromDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                type="date"
+                label="To"
+                value={syncToDate}
+                onChange={(e) => setSyncToDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Stack>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+              <FormControlLabel
+                control={<Checkbox checked={syncChapters} onChange={(e) => setSyncChapters(e.target.checked)} />}
+                label="Chapters (by Church Affiliation)"
+              />
+              <FormControlLabel
+                control={<Checkbox checked={syncLeaders} onChange={(e) => setSyncLeaders(e.target.checked)} />}
+                label="Local leaders"
+              />
+              <FormControlLabel
+                control={<Checkbox checked={syncMembers} onChange={(e) => setSyncMembers(e.target.checked)} />}
+                label="Members"
+              />
+            </Stack>
+            <Box sx={{ maxHeight: 260, overflow: "auto", border: "1px solid rgba(255,255,255,0.12)", p: 1 }}>
+              {syncLogs.length === 0 ? (
+                <Typography variant="caption" color="text.secondary">
+                  Sync logs will appear here...
+                </Typography>
+              ) : (
+                syncLogs.map((line, idx) => (
+                  <Typography key={`${line}-${idx}`} variant="caption" display="block">
+                    {line}
+                  </Typography>
+                ))
+              )}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSyncOpen(false)} disabled={syncing}>
+            Close
+          </Button>
+          <Button variant="contained" onClick={() => void runFluentSync()} disabled={syncing}>
+            {syncing ? "Syncing..." : "Start sync"}
           </Button>
         </DialogActions>
       </Dialog>

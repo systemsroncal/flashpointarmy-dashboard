@@ -45,6 +45,7 @@ export default async function AdminsPageContent() {
   type UserRow = {
     id: string;
     email: string;
+    avatar_url: string | null;
     phone: string | null;
     display_name: string | null;
     created_at: string;
@@ -96,6 +97,15 @@ export default async function AdminsPageContent() {
 
   if (merged.length > 0) {
     const userIds = merged.map((u) => u.id);
+    const { data: avatarRows } = await admin
+      .from("profiles")
+      .select("id, avatar_url")
+      .in("id", userIds);
+    const avatarById = new Map<string, string | null>();
+    for (const row of avatarRows ?? []) {
+      avatarById.set(row.id as string, (row as { avatar_url?: string | null }).avatar_url ?? null);
+    }
+
     const { data: roleJoinRows } = await admin
       .from("user_roles")
       .select("user_id, roles(name)")
@@ -113,6 +123,7 @@ export default async function AdminsPageContent() {
     }
     merged = merged.map((u) => ({
       ...u,
+      avatar_url: avatarById.get(u.id) ?? null,
       role_names: (byUser.get(u.id) ?? []).sort(),
     }));
     if (!isSuperAdmin) {
