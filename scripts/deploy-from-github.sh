@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run on the VPS from the repo root (or any cwd; script cd's to project root).
 # Usage: bash scripts/deploy-from-github.sh
-# Env: GIT_BRANCH (default main), PM2_APP_NAME (default flashpoint-dashboard), SKIP_PM2=1 to skip restart
+# Env: GIT_BRANCH (default main), PM2_APP_NAME (default app-fparmychapters), SKIP_PM2=1 to skip restart
 
 set -euo pipefail
 
@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 BRANCH="${GIT_BRANCH:-main}"
-PM2_NAME="${PM2_APP_NAME:-flashpoint-dashboard}"
+PM2_NAME="${PM2_APP_NAME:-app-fparmychapters}"
 
 echo "[deploy] $(pwd) branch=$BRANCH"
 
