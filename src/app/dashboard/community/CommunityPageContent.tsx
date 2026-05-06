@@ -1,15 +1,8 @@
 import { CommunitySection } from "@/components/dashboard/community/CommunitySection";
 import { MODULE_SLUGS } from "@/config/modules";
-import {
-  listAllDashboardUsers,
-  listDashboardUsersByIds,
-  listProfilesByIds,
-  listUserRoleJoinsByUserIds,
-} from "@/lib/admin/dashboard-user-queries";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Paper, Typography } from "@mui/material";
 import { redirect } from "next/navigation";
@@ -72,93 +65,8 @@ export default async function CommunityPageContent() {
   };
 
   /** Service role: RLS on `dashboard_users` / `profiles` is self-only for JWT; listing all users must bypass RLS after permission checks above. */
-  const admin = createAdminClient();
-
-  let merged: UserRow[] = [];
-
-  if (!elevated && isLocalLeader && localChapterId) {
-    const { data: members } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("primary_chapter_id", localChapterId);
-    const ids = (members ?? []).map((m: { id: string }) => m.id);
-    if (ids.length > 0) {
-      const data = await listDashboardUsersByIds(admin, ids);
-      merged = data.map((u) => ({
-        ...(u as Omit<UserRow, "role_names">),
-        role_names: [],
-        address_line: null,
-        city: null,
-        state: null,
-        zip_code: null,
-      }));
-    }
-  } else {
-    const data = await listAllDashboardUsers(admin);
-    merged = data.map((u) => ({
-      ...(u as Omit<UserRow, "role_names">),
-      role_names: [],
-      address_line: null,
-      city: null,
-      state: null,
-      zip_code: null,
-    }));
-  }
-
-  if (merged.length > 0) {
-    const userIds = merged.map((u) => u.id);
-    const profileRows = await listProfilesByIds(admin, userIds);
-    const avatarById = new Map<string, string | null>();
-    const mailById = new Map<
-      string,
-      {
-        phone: string | null;
-        address_line: string | null;
-        city: string | null;
-        state: string | null;
-        zip_code: string | null;
-      }
-    >();
-    for (const row of profileRows ?? []) {
-      const id = row.id as string;
-      avatarById.set(id, (row as { avatar_url?: string | null }).avatar_url ?? null);
-      mailById.set(id, {
-        phone: (row as { phone?: string | null }).phone?.trim() || null,
-        address_line: (row as { address_line?: string | null }).address_line ?? null,
-        city: (row as { city?: string | null }).city ?? null,
-        state: (row as { state?: string | null }).state ?? null,
-        zip_code: (row as { zip_code?: string | null }).zip_code ?? null,
-      });
-    }
-
-    const roleRows = await listUserRoleJoinsByUserIds(admin, userIds);
-
-    const byUser = new Map<string, string[]>();
-    for (const row of roleRows) {
-      const uid = row.user_id as string;
-      const rel = row.roles as { name: string } | { name: string }[] | null;
-      const roleName = Array.isArray(rel) ? rel[0]?.name : rel?.name;
-      if (!roleName) continue;
-      const list = byUser.get(uid) ?? [];
-      if (!list.includes(roleName)) list.push(roleName);
-      byUser.set(uid, list);
-    }
-    merged = merged.map((u) => {
-      const m = mailById.get(u.id);
-      return {
-        ...u,
-        avatar_url: avatarById.get(u.id) ?? null,
-        role_names: (byUser.get(u.id) ?? []).sort(),
-        phone: m?.phone || u.phone || null,
-        address_line: m?.address_line ?? u.address_line,
-        city: m?.city ?? u.city,
-        state: m?.state ?? u.state,
-        zip_code: m?.zip_code ?? u.zip_code,
-      };
-    });
-  } else {
-    merged = merged.map((u) => ({ ...u, avatar_url: null }));
-  }
+  // Community rows are now loaded on-demand from /api/community/members (server pagination + search).
+  const merged: UserRow[] = [];
 
   let chapterOptions: ChapterRow[] = [];
   try {

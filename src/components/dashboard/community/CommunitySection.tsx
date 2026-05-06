@@ -39,7 +39,7 @@ import { parseUploadFile } from "@/lib/import/parse-upload";
 import { usStateByCode } from "@/data/usStates";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type CommunityUserRow = {
   id: string;
@@ -137,6 +137,7 @@ export function CommunitySection({
 }) {
   const isLeaders = variant === "leaders";
   const isAdmins = variant === "admins";
+  const remoteMode = !isLeaders && !isAdmins;
   /** Admin (not super) cannot remove other admins; no one removes super admin from the UI */
   const restrictDeletesForPeerAdmin = elevated && !isSuperAdmin;
   const router = useRouter();
@@ -157,6 +158,12 @@ export function CommunitySection({
   const [inviteFlash, setInviteFlash] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(initialUsers.length);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [searchOptions, setSearchOptions] = useState<Array<{ id: string; label: string }>>([]);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const [importOpen, setImportOpen] = useState(false);
   const [importRows, setImportRows] = useState<Record<string, string>[]>([]);
@@ -369,6 +376,57 @@ export function CommunitySection({
     setPage(0);
   }, [tableSearch, orderBy, order, filterChapterId]);
 
+  const fetchRemoteRows = useCallback(async () => {
+    if (!remoteMode) return;
+    setTableLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        perPage: String(rowsPerPage < 0 ? 200 : rowsPerPage),
+        chapterId: filterChapterId,
+      });
+      if (selectedUserId) params.set("selectedUserId", selectedUserId);
+      const res = await fetch(`/api/community/members?${params.toString()}`, { cache: "no-store" });
+      const payload = (await res.json()) as { rows?: CommunityUserRow[]; total?: number; error?: string };
+      if (!res.ok) return;
+      setUsers(payload.rows ?? []);
+      setTotalCount(payload.total ?? 0);
+    } finally {
+      setTableLoading(false);
+    }
+  }, [remoteMode, page, rowsPerPage, filterChapterId, selectedUserId, setUsers]);
+
+  useEffect(() => {
+    void fetchRemoteRows();
+  }, [fetchRemoteRows]);
+
+  useEffect(() => {
+    if (!remoteMode) return;
+    const q = searchInput.trim();
+    if (q.length < 2) {
+      setSearchOptions([]);
+      setSearchLoading(false);
+      return;
+    }
+    const tid = window.setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const params = new URLSearchParams({
+          autocomplete: "1",
+          q,
+          chapterId: filterChapterId,
+        });
+        const res = await fetch(`/api/community/members?${params.toString()}`, { cache: "no-store" });
+        const payload = (await res.json()) as { options?: Array<{ id: string; label: string }> };
+        if (!res.ok) return;
+        setSearchOptions(payload.options ?? []);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 250);
+    return () => window.clearTimeout(tid);
+  }, [remoteMode, searchInput, filterChapterId]);
+
   useEffect(() => {
     if (!viewUser) {
       setRoleChangeDraft("member");
@@ -388,6 +446,7 @@ export function CommunitySection({
   }
 
   const filtered = useMemo(() => {
+    if (remoteMode) return users;
     const chapterScoped =
       filterChapterId === "all" ? users : users.filter((u) => u.primary_chapter_id === filterChapterId);
     const q = tableSearch.trim().toLowerCase();
@@ -411,6 +470,7 @@ export function CommunitySection({
   }, [users, filterChapterId, tableSearch, variant]);
 
   const sorted = useMemo(() => {
+    if (remoteMode) return users;
     const dir = order === "asc" ? 1 : -1;
     const cmpStr = (a: string | null | undefined, b: string | null | undefined) =>
       dir * String(a ?? "").localeCompare(String(b ?? ""), undefined, { sensitivity: "base" });
@@ -443,9 +503,10 @@ export function CommunitySection({
   }, [filtered, order, orderBy, variant]);
 
   const paged = useMemo(() => {
+    if (remoteMode) return users;
     if (rowsPerPage < 0) return sorted;
     return sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [sorted, page, rowsPerPage]);
+  }, [remoteMode, users, sorted, page, rowsPerPage]);
 
   const showChapterFilter =
     chapterOptions.length > 0 && (elevated || (isLocalLeader && chapterOptions.length > 1));
@@ -909,14 +970,34 @@ export function CommunitySection({
           ) : null}
         </Box>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
-          <TextField
-            size="small"
-            label="Search"
-            placeholder="Email, name, phone, role…"
-            value={tableSearch}
-            onChange={(e) => setTableSearch(e.target.value)}
-            sx={{ minWidth: { sm: 220 } }}
-          />
+          {remoteMode ? (
+            <Autocomplete
+              options={searchOptions}
+              loading={searchLoading}
+              value={searchOptions.find((o) => o.id === selectedUserId) ?? null}
+              inputValue={searchInput}
+              onInputChange={(_, v) => setSearchInput(v)}
+              onChange={(_, option) => {
+                setSelectedUserId(option?.id ?? "");
+                setPage(0);
+              }}
+              clearOnEscape
+              sx={{ minWidth: { sm: 300 } }}
+              getOptionLabel={(o) => o.label}
+              renderInput={(params) => (
+                <TextField {...params} size="small" label="Search user (DB)" placeholder="Type name or email..." />
+              )}
+            />
+          ) : (
+            <TextField
+              size="small"
+              label="Search"
+              placeholder="Email, name, phone, role…"
+              value={tableSearch}
+              onChange={(e) => setTableSearch(e.target.value)}
+              sx={{ minWidth: { sm: 220 } }}
+            />
+          )}
           {showChapterFilter ? (
             <FormControl size="small" sx={{ minWidth: 220 }}>
               <InputLabel
@@ -945,6 +1026,7 @@ export function CommunitySection({
           ) : null}
         </Stack>
       </Box>
+      {tableLoading ? <LinearProgress sx={{ mb: 1 }} /> : null}
 
       <Table size="small">
         <TableHead>
@@ -1074,7 +1156,7 @@ export function CommunitySection({
       </Table>
       <TablePagination
         component="div"
-        count={sorted.length}
+        count={remoteMode ? totalCount : sorted.length}
         page={rowsPerPage < 0 ? 0 : page}
         onPageChange={(_, nextPage) => setPage(nextPage)}
         rowsPerPage={rowsPerPage}
