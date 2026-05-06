@@ -170,15 +170,15 @@ export async function GET(req: Request) {
   }
 
   const merged = rows.map((u) => {
-    const p = profileById.get(u.id) || {};
+    const p = profileById.get(u.id);
     return {
       ...u,
-      avatar_url: p.avatar_url ?? null,
-      phone: (p.phone?.trim?.() || u.phone || null) as string | null,
-      address_line: p.address_line ?? null,
-      city: p.city ?? null,
-      state: p.state ?? null,
-      zip_code: p.zip_code ?? null,
+      avatar_url: p?.avatar_url ?? null,
+      phone: (p?.phone?.trim?.() || u.phone || null) as string | null,
+      address_line: p?.address_line ?? null,
+      city: p?.city ?? null,
+      state: p?.state ?? null,
+      zip_code: p?.zip_code ?? null,
       role_names: (roleByUser.get(u.id) ?? []).sort(),
     };
   });
