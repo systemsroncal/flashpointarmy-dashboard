@@ -6,10 +6,6 @@ import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
-type FilterableQuery = {
-  eq: (column: string, value: string) => FilterableQuery;
-};
-
 type RoleRelation = { name: string } | { name: string }[] | null;
 type UserRoleRow = { user_id: string; roles: RoleRelation };
 type ProfileRow = {
@@ -55,17 +51,6 @@ export async function GET(req: Request) {
 
   const admin = createAdminClient();
 
-  const applyBaseFilters = <T extends FilterableQuery>(query: T): T => {
-    let qx: FilterableQuery = query;
-    if (!elevated && isLocalLeader && localChapterId) {
-      qx = qx.eq("primary_chapter_id", localChapterId);
-    }
-    if (chapterId !== "all") {
-      qx = qx.eq("primary_chapter_id", chapterId);
-    }
-    return qx as T;
-  };
-
   if (autocomplete) {
     if (q.length < 2) return NextResponse.json({ options: [] });
     let lookup = admin
@@ -76,7 +61,12 @@ export async function GET(req: Request) {
       )
       .order("email")
       .limit(20);
-    lookup = applyBaseFilters(lookup);
+    if (!elevated && isLocalLeader && localChapterId) {
+      lookup = lookup.eq("primary_chapter_id", localChapterId);
+    }
+    if (chapterId !== "all") {
+      lookup = lookup.eq("primary_chapter_id", chapterId);
+    }
     const { data } = await lookup;
     const rows = (data ?? []) as Array<{
       id: string;
@@ -127,7 +117,12 @@ export async function GET(req: Request) {
       { count: "exact" }
     )
     .order("email");
-  query = applyBaseFilters(query);
+  if (!elevated && isLocalLeader && localChapterId) {
+    query = query.eq("primary_chapter_id", localChapterId);
+  }
+  if (chapterId !== "all") {
+    query = query.eq("primary_chapter_id", chapterId);
+  }
   if (selectedUserId) {
     query = query.eq("id", selectedUserId);
   } else if (q.length >= 2) {
