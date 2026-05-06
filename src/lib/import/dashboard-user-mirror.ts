@@ -11,7 +11,7 @@ export async function loadAuthUsersByEmail(
   if (!targets.size) return out;
   const perPage = 1000;
   for (let page = 1; page <= 500; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers(page, perPage);
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
     if (error) break;
     const users = data?.users ?? [];
     for (const u of users) {
