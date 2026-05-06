@@ -13,6 +13,7 @@ import type { SvgIconComponent } from "@mui/icons-material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
+import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
 import {
   aggregateReferenceLeaderMemberByState,
   sumReferenceTotals,
@@ -105,14 +106,16 @@ export function NationalOverview({
 
     const { loadOverviewStats } = await import("@/lib/stats/overview-stats");
     let referenceAddition: { leaders: number; members: number } | undefined;
-    try {
-      const res = await fetch("/backgrounds/cities_donors.json", { cache: "force-cache" });
-      if (res.ok) {
-        const json = (await res.json()) as CitiesDonorsJson;
-        referenceAddition = sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
+    if (includeReferenceInOverviewStatTotals()) {
+      try {
+        const res = await fetch("/backgrounds/cities_donors.json", { cache: "force-cache" });
+        if (res.ok) {
+          const json = (await res.json()) as CitiesDonorsJson;
+          referenceAddition = sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
+        }
+      } catch {
+        referenceAddition = undefined;
       }
-    } catch {
-      referenceAddition = undefined;
     }
     const next = await loadOverviewStats(supabase, {
       scope: "national",
@@ -196,19 +199,19 @@ export function NationalOverview({
     () =>
       [
         {
-          label: "Active Chapters",
+          label: "Chapters",
           value: stats.activeChapters,
           color: "#3b82f6",
           icon: PlaceOutlined,
         },
         {
-          label: "Community Gatherings",
+          label: "Community Events",
           value: stats.communityGatherings,
           color: "#22c55e",
           icon: CheckCircleOutline,
         },
         {
-          label: "Members Engaged",
+          label: "Members",
           value: stats.membersEngaged,
           color: "#f97316",
           icon: GroupsOutlined,
@@ -338,7 +341,7 @@ export function NationalOverview({
                       const rl = ref?.leaders ?? 0;
                       const rm = ref?.members ?? 0;
                       return [
-                        ["Active Chapters", popupData.activeChapters + rl, "#0ea5e9"],
+                        ["Chapters", popupData.activeChapters + rl, "#0ea5e9"],
                         ["Registered Members", popupData.registeredMembers + rm + rl, "#15803d"],
                         ["Upcoming Gatherings", popupData.upcomingGatherings, "#ca8a04"],
                         ["Local Leaders", popupData.localLeaders + rl, "#7c3aed"],

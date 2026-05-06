@@ -7,6 +7,7 @@ import {
   sumReferenceTotals,
 } from "@/lib/donors/aggregate-donors-by-state";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
 import { loadOverviewStats } from "@/lib/stats/overview-stats";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
@@ -33,15 +34,17 @@ export default async function DashboardHomeContent() {
   }
 
   let referenceAddition: { leaders: number; members: number } | undefined;
-  try {
-    const raw = await readFile(
-      path.join(process.cwd(), "public/backgrounds/cities_donors.json"),
-      "utf8"
-    );
-    const json = JSON.parse(raw) as CitiesDonorsJson;
-    referenceAddition = sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
-  } catch {
-    referenceAddition = undefined;
+  if (includeReferenceInOverviewStatTotals()) {
+    try {
+      const raw = await readFile(
+        path.join(process.cwd(), "public/backgrounds/cities_donors.json"),
+        "utf8"
+      );
+      const json = JSON.parse(raw) as CitiesDonorsJson;
+      referenceAddition = sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
+    } catch {
+      referenceAddition = undefined;
+    }
   }
 
   let stats;

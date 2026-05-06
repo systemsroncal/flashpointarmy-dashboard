@@ -69,7 +69,7 @@ export async function findOrCreateChapterByImportRow(
     .from("chapters")
     .insert({
       name: chapterName,
-      address_line: address || null,
+      address_line: null,
       city: city || null,
       state,
       zip_code: zip || null,

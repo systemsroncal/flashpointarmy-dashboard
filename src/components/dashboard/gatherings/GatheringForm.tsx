@@ -255,7 +255,7 @@ export function GatheringForm({
             disabled={!chapterId}
           />
         }
-        label="Use chapter address for location"
+        label="Use chapter area (city, state, ZIP) for location"
       />
       {canNotifyAllUsers && chapterId ? (
         <FormControlLabel

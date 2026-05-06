@@ -7,6 +7,7 @@ import {
   loadUserRoleNames,
 } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
+import { usStateByCode } from "@/data/usStates";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -18,6 +19,10 @@ type PatchBody = {
   lastName?: string;
   phone?: string | null;
   primaryChapterId?: string;
+  addressLine?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
 };
 
 async function getSessionAndPermissions() {
@@ -88,6 +93,32 @@ export async function PATCH(
       : String(phoneRaw).trim() || null;
   const primaryChapterId = (body.primaryChapterId ?? "").trim();
 
+  const address_line =
+    body.addressLine !== undefined
+      ? String(body.addressLine ?? "").trim() || null
+      : undefined;
+  const city =
+    body.city !== undefined ? String(body.city ?? "").trim() || null : undefined;
+  const zip_code =
+    body.zipCode !== undefined ? String(body.zipCode ?? "").trim() || null : undefined;
+
+  let stateCode: string | null | undefined = undefined;
+  if ("state" in body) {
+    if (body.state === null || body.state === "") {
+      stateCode = null;
+    } else {
+      const s = String(body.state).trim();
+      if (!s) stateCode = null;
+      else {
+        const u = usStateByCode(s);
+        if (!u) {
+          return NextResponse.json({ error: "Invalid US state." }, { status: 400 });
+        }
+        stateCode = u.code;
+      }
+    }
+  }
+
   if (!firstName || !lastName) {
     return NextResponse.json(
       { error: "First name and last name are required." },
@@ -108,6 +139,10 @@ export async function PATCH(
       primary_chapter_id: primaryChapterId,
     };
     if (phone !== undefined) profileUpdate.phone = phone;
+    if (address_line !== undefined) profileUpdate.address_line = address_line;
+    if (city !== undefined) profileUpdate.city = city;
+    if (stateCode !== undefined) profileUpdate.state = stateCode;
+    if (zip_code !== undefined) profileUpdate.zip_code = zip_code;
 
     const { error: profileErr } = await admin.from("profiles").update(profileUpdate).eq("id", userId);
 
@@ -118,17 +153,25 @@ export async function PATCH(
       );
     }
 
-    if (phone !== undefined) {
-      const { error: duErr } = await admin
-        .from("dashboard_users")
-        .update({ phone })
-        .eq("id", userId);
-      if (duErr) {
-        return NextResponse.json(
-          { error: duErr.message || "Could not update user directory." },
-          { status: 500 }
-        );
-      }
+    const duUpdate: Record<string, unknown> = {
+      first_name: firstName,
+      last_name: lastName,
+      display_name: displayName,
+      primary_chapter_id: primaryChapterId,
+      updated_at: new Date().toISOString(),
+    };
+    if (phone !== undefined) duUpdate.phone = phone;
+    if (address_line !== undefined) duUpdate.address_line = address_line;
+    if (city !== undefined) duUpdate.city = city;
+    if (stateCode !== undefined) duUpdate.state = stateCode;
+    if (zip_code !== undefined) duUpdate.zip_code = zip_code;
+
+    const { error: duErr } = await admin.from("dashboard_users").update(duUpdate).eq("id", userId);
+    if (duErr) {
+      return NextResponse.json(
+        { error: duErr.message || "Could not update user directory." },
+        { status: 500 }
+      );
     }
 
     const { data: authUser } = await admin.auth.admin.getUserById(userId);
@@ -140,6 +183,10 @@ export async function PATCH(
       primary_chapter_id: primaryChapterId,
     };
     if (phone !== undefined) meta.phone = phone;
+    if (address_line !== undefined) meta.address_line = address_line;
+    if (city !== undefined) meta.city = city;
+    if (stateCode !== undefined) meta.state = stateCode;
+    if (zip_code !== undefined) meta.zip_code = zip_code;
 
     const { error: authErr } = await admin.auth.admin.updateUserById(userId, {
       user_metadata: meta,
@@ -154,9 +201,17 @@ export async function PATCH(
 
     const { data: duRow } = await admin
       .from("dashboard_users")
-      .select("phone")
+      .select("phone, address_line, city, state, zip_code")
       .eq("id", userId)
       .maybeSingle();
+
+    const du = duRow as {
+      phone?: string | null;
+      address_line?: string | null;
+      city?: string | null;
+      state?: string | null;
+      zip_code?: string | null;
+    } | null;
 
     return NextResponse.json({
       ok: true,
@@ -166,7 +221,11 @@ export async function PATCH(
         last_name: lastName,
         display_name: displayName,
         primary_chapter_id: primaryChapterId,
-        phone: (duRow as { phone?: string | null } | null)?.phone ?? phone ?? null,
+        phone: du?.phone ?? phone ?? null,
+        address_line: du?.address_line ?? address_line ?? null,
+        city: du?.city ?? city ?? null,
+        state: du?.state ?? stateCode ?? null,
+        zip_code: du?.zip_code ?? zip_code ?? null,
       },
     });
   } catch (e) {

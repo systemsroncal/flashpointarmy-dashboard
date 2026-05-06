@@ -31,7 +31,13 @@ export const flashpointTheme = createTheme({
   typography: {
     fontFamily: "var(--font-barlow), system-ui, Helvetica, Arial, sans-serif",
     h4: { fontWeight: 700, letterSpacing: "0.04em" },
-    h6: { fontWeight: 600 },
+    h5: { fontSize: "calc(1.25rem + 2px)" },
+    h6: { fontWeight: 600, fontSize: "calc(1.125rem + 2px)" },
+    subtitle1: { fontSize: "calc(1rem + 2px)" },
+    subtitle2: { fontSize: "calc(0.875rem + 2px)" },
+    body1: { fontSize: "calc(1rem + 2px)" },
+    body2: { fontSize: "calc(0.875rem + 2px)" },
+    caption: { fontSize: "calc(0.75rem + 2px)" },
     button: { letterSpacing: "0.08em", fontWeight: 600 },
   },
   shape: {

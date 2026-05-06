@@ -53,7 +53,7 @@ export async function loadOverviewStats(
   opts: {
     scope: OverviewScope;
     stateCode: string | null;
-    /** Added to membersEngaged (members) and localLeaders (leaders) for national overview. */
+    /** Added to national overview totals when present; gated by `NEXT_PUBLIC_REFERENCE_OVERVIEW_STATS`. */
     referenceAddition?: ReferenceAddition | null;
   }
 ): Promise<OverviewStatBlock> {

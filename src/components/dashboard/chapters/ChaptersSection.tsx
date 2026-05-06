@@ -192,7 +192,6 @@ export function ChaptersSection({
   const [createLeaders, setCreateLeaders] = useState<string[]>([]);
   const [createForm, setCreateForm] = useState({
     name: "",
-    address_line: "",
     city: "",
     /** FIPS state id (value of the state select). */
     stateId: "",
@@ -221,7 +220,6 @@ export function ChaptersSection({
       const blob = [
         r.name,
         r.city ?? "",
-        r.address_line ?? "",
         leaders,
         stLabel,
         STATUS_LABEL[r.status] ?? r.status,
@@ -298,7 +296,7 @@ export function ChaptersSection({
       .from("chapters")
       .update({
         name: editRow.name,
-        address_line: editRow.address_line,
+        address_line: null,
         city: editRow.city,
         state: st,
         zip_code: editRow.zip_code,
@@ -355,7 +353,6 @@ export function ChaptersSection({
   function resetCreateForm() {
     setCreateForm({
       name: "",
-      address_line: "",
       city: "",
       stateId: "",
       zip_code: "",
@@ -377,7 +374,7 @@ export function ChaptersSection({
       .from("chapters")
       .insert({
         name,
-        address_line: createForm.address_line.trim() || null,
+        address_line: null,
         city: createForm.city.trim() || null,
         state,
         zip_code: createForm.zip_code.trim() || null,
@@ -607,7 +604,6 @@ export function ChaptersSection({
           {viewRow ? (
             <Box sx={{ display: "grid", gap: 1, pt: 1 }}>
               <Typography><strong>Name:</strong> {viewRow.name}</Typography>
-              <Typography><strong>Address:</strong> {viewRow.address_line ?? "—"}</Typography>
               <Typography><strong>City:</strong> {viewRow.city ?? "—"}</Typography>
               <Typography>
                 <strong>State:</strong>{" "}
@@ -639,12 +635,6 @@ export function ChaptersSection({
                 fullWidth
                 value={editRow.name}
                 onChange={(e) => setEditRow({ ...editRow, name: e.target.value })}
-              />
-              <TextField
-                label="Address"
-                fullWidth
-                value={editRow.address_line ?? ""}
-                onChange={(e) => setEditRow({ ...editRow, address_line: e.target.value })}
               />
               <TextField
                 label="City"
@@ -712,12 +702,6 @@ export function ChaptersSection({
               required
               value={createForm.name}
               onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
-            />
-            <TextField
-              label="Address"
-              fullWidth
-              value={createForm.address_line}
-              onChange={(e) => setCreateForm((f) => ({ ...f, address_line: e.target.value }))}
             />
             <TextField
               label="City"

@@ -33,6 +33,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { PHONE_EXCEL_KEYS } from "@/lib/import/bulk-import";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { parseUploadFile } from "@/lib/import/parse-upload";
@@ -51,6 +52,10 @@ export type CommunityUserRow = {
   primary_chapter_id: string | null;
   first_name: string | null;
   last_name: string | null;
+  address_line: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
   /** Role slugs from `public.roles.name` (e.g. member, local_leader). */
   role_names: string[];
 };
@@ -58,7 +63,6 @@ export type CommunityUserRow = {
 export type ChapterOption = {
   id: string;
   name: string;
-  address_line: string | null;
   city: string | null;
   state: string;
   zip_code: string | null;
@@ -185,6 +189,10 @@ export function CommunitySection({
   const [editLastName, setEditLastName] = useState("");
   const [editChapterId, setEditChapterId] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [editAddrLine, setEditAddrLine] = useState("");
+  const [editAddrCity, setEditAddrCity] = useState("");
+  const [editAddrState, setEditAddrState] = useState("");
+  const [editAddrZip, setEditAddrZip] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [editRoleDraft, setEditRoleDraft] = useState<EditableRole>("member");
@@ -458,6 +466,10 @@ export function CommunitySection({
     setEditFirstName(u.first_name ?? "");
     setEditLastName(u.last_name ?? "");
     setEditPhone(u.phone?.trim() ?? "");
+    setEditAddrLine(u.address_line?.trim() ?? "");
+    setEditAddrCity(u.city?.trim() ?? "");
+    setEditAddrState(u.state?.trim() ?? "");
+    setEditAddrZip(u.zip_code?.trim() ?? "");
     setEditChapterId(u.primary_chapter_id ?? chapterOptions[0]?.id ?? "");
     setEditError(null);
     setEditRoleError(null);
@@ -493,6 +505,10 @@ export function CommunitySection({
           lastName: ln,
           phone: editPhone.trim() || null,
           primaryChapterId: editChapterId,
+          addressLine: editAddrLine.trim() || null,
+          city: editAddrCity.trim() || null,
+          state: usStateByCode(editAddrState)?.code ?? null,
+          zipCode: editAddrZip.trim() || null,
         }),
       });
       const data = (await res.json()) as { error?: string; user?: Partial<CommunityUserRow> };
@@ -512,6 +528,14 @@ export function CommunitySection({
                   display_name: row.display_name ?? `${fn} ${ln}`.trim(),
                   primary_chapter_id: row.primary_chapter_id ?? editChapterId,
                   phone: row.phone !== undefined ? row.phone : editPhone.trim() || null,
+                  address_line:
+                    row.address_line !== undefined ? row.address_line : editAddrLine.trim() || null,
+                  city: row.city !== undefined ? row.city : editAddrCity.trim() || null,
+                  state:
+                    row.state !== undefined
+                      ? row.state
+                      : usStateByCode(editAddrState)?.code ?? null,
+                  zip_code: row.zip_code !== undefined ? row.zip_code : editAddrZip.trim() || null,
                 }
               : x
           )
@@ -1323,6 +1347,26 @@ export function CommunitySection({
                   : "—"}
               </Typography>
               <Typography variant="subtitle2" sx={{ mt: 1, color: "primary.main" }}>
+                Mailing address (profile)
+              </Typography>
+              <Typography>
+                <strong>Street / address:</strong> {viewUser.address_line?.trim() || "—"}
+              </Typography>
+              <Typography>
+                <strong>City:</strong> {viewUser.city?.trim() || "—"}
+              </Typography>
+              <Typography>
+                <strong>State:</strong>{" "}
+                {viewUser.state?.trim()
+                  ? usStateByCode(viewUser.state)
+                    ? `${usStateByCode(viewUser.state)!.name} (${viewUser.state})`
+                    : viewUser.state
+                  : "—"}
+              </Typography>
+              <Typography>
+                <strong>ZIP code:</strong> {viewUser.zip_code?.trim() || "—"}
+              </Typography>
+              <Typography variant="subtitle2" sx={{ mt: 1, color: "primary.main" }}>
                 Primary chapter
               </Typography>
               {(() => {
@@ -1332,9 +1376,6 @@ export function CommunitySection({
                   <>
                     <Typography>
                       <strong>Chapter name:</strong> {ch?.name ?? chapterName(viewUser.primary_chapter_id)}
-                    </Typography>
-                    <Typography>
-                      <strong>Address:</strong> {ch?.address_line?.trim() || "—"}
                     </Typography>
                     <Typography>
                       <strong>City:</strong> {ch?.city?.trim() || "—"}
@@ -1467,6 +1508,37 @@ export function CommunitySection({
               value={editPhone}
               onChange={(e) => setEditPhone(e.target.value)}
               autoComplete="tel"
+            />
+            <Typography variant="subtitle2" sx={{ color: "primary.main", mt: 0.5 }}>
+              Mailing address (optional)
+            </Typography>
+            <TextField
+              label="Street address"
+              fullWidth
+              value={editAddrLine}
+              onChange={(e) => setEditAddrLine(e.target.value)}
+              autoComplete="street-address"
+            />
+            <TextField
+              label="City"
+              fullWidth
+              value={editAddrCity}
+              onChange={(e) => setEditAddrCity(e.target.value)}
+              autoComplete="address-level2"
+            />
+            <UsStateSearchAutocomplete
+              valueCode={editAddrState}
+              onSelectCode={setEditAddrState}
+              disabled={editSaving || editRoleSaving}
+              label="State"
+              size="medium"
+            />
+            <TextField
+              label="ZIP code"
+              fullWidth
+              value={editAddrZip}
+              onChange={(e) => setEditAddrZip(e.target.value)}
+              autoComplete="postal-code"
             />
             {editUser && canEditRoleInForm(editUser) ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>

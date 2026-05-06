@@ -3,7 +3,7 @@ import {
   EMAIL_EXCEL_KEYS,
   PHONE_EXCEL_KEYS,
   pickField,
-  splitName,
+  parsePersonNamesFromImportRow,
   type FlatRow,
 } from "@/lib/import/bulk-import";
 
@@ -86,14 +86,7 @@ export function parseFluentFlatRow(flat: FlatRow): {
 } {
   const email = normalizeEmail(pickField(flat, EMAIL_EXCEL_KEYS));
   const password = pickField(flat, PASSWORD_KEYS).trim();
-  let firstName = pickField(flat, FIRST_NAME_KEYS).trim();
-  let lastName = pickField(flat, LAST_NAME_KEYS).trim();
-  if (!firstName || !lastName) {
-    const full = pickField(flat, FULL_NAME_KEYS).trim();
-    const s = splitName(full);
-    if (!firstName) firstName = s.firstName;
-    if (!lastName) lastName = s.lastName;
-  }
+  const { firstName, lastName } = parsePersonNamesFromImportRow(flat);
   const phone = pickField(flat, PHONE_EXCEL_KEYS).trim();
   const primaryChapterId = pickField(flat, CHAPTER_ID_KEYS).trim();
   return { email, password, firstName, lastName, phone, primaryChapterId };

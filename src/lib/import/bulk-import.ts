@@ -80,6 +80,47 @@ export function splitName(fullName: string) {
   return { firstName: first || "", lastName: rest.join(" ").trim() };
 }
 
+/** Same name columns as Fluent Forms + legacy Excel "Name" only. */
+export const IMPORT_FIRST_NAME_KEYS = [
+  "First Name",
+  "first_name",
+  "First name",
+  "fname",
+  "Given name",
+];
+export const IMPORT_LAST_NAME_KEYS = [
+  "Last Name",
+  "last_name",
+  "Last name",
+  "lname",
+  "Surname",
+  "Family name",
+];
+export const IMPORT_FULL_NAME_KEYS = ["name", "Name", "Full Name", "full_name", "Display name"];
+
+/**
+ * Resolves first/last from dedicated columns, full-name fields, or a single "Name" column.
+ */
+export function parsePersonNamesFromImportRow(row: FlatRow): { firstName: string; lastName: string } {
+  let firstName = pickField(row, IMPORT_FIRST_NAME_KEYS).trim();
+  let lastName = pickField(row, IMPORT_LAST_NAME_KEYS).trim();
+  if (!firstName || !lastName) {
+    const full = pickField(row, IMPORT_FULL_NAME_KEYS).trim();
+    const s = splitName(full);
+    if (!firstName) firstName = s.firstName;
+    if (!lastName) lastName = s.lastName;
+  }
+  if (!firstName || !lastName) {
+    const legacy = pickField(row, ["name", "Name"]).trim();
+    if (legacy) {
+      const s = splitName(legacy);
+      if (!firstName) firstName = s.firstName;
+      if (!lastName) lastName = s.lastName;
+    }
+  }
+  return { firstName: firstName.trim(), lastName: lastName.trim() };
+}
+
 export function cleanPhone(phone: string) {
   return phone.replace(/[^\d+]/g, "").trim();
 }

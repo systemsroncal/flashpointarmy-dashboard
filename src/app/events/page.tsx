@@ -1,3 +1,4 @@
+import { formatEventLocationLine } from "@/lib/gatherings/event-location";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { Box, Paper, Typography } from "@mui/material";
@@ -19,7 +20,7 @@ export default async function PublicEventsPage() {
   const { data: events } = await admin
     .from("gatherings")
     .select(
-      "id, title, starts_at, slug, featured_image_url, is_virtual, virtual_url, location_manual, use_chapter_address, chapter:chapters(name, address_line, city, state, zip_code)"
+      "id, title, starts_at, slug, featured_image_url, is_virtual, virtual_url, location_manual, use_chapter_address, chapter:chapters(name, city, state, zip_code)"
     )
     .eq("status", "published")
     .order("starts_at", { ascending: true });
@@ -44,19 +45,23 @@ export default async function PublicEventsPage() {
           {rows.map((ev) => {
             const chapter = (ev.chapter as Array<{
               name: string;
-              address_line: string | null;
               city: string | null;
               state: string | null;
               zip_code: string | null;
             }> | null)?.[0];
-            const location = ev.is_virtual
-              ? "Virtual event"
-              : ev.location_manual?.trim() ||
-                (ev.use_chapter_address && chapter
-                  ? [chapter.address_line, chapter.city, chapter.state, chapter.zip_code]
-                      .filter(Boolean)
-                      .join(", ")
-                  : chapter?.name || "Location TBD");
+            const location = formatEventLocationLine({
+              is_virtual: Boolean(ev.is_virtual),
+              location_manual: ev.location_manual as string | null,
+              use_chapter_address: Boolean(ev.use_chapter_address),
+              chapter: chapter
+                ? {
+                    name: chapter.name,
+                    city: chapter.city,
+                    state: chapter.state,
+                    zip_code: chapter.zip_code,
+                  }
+                : null,
+            });
 
             return (
               <Link key={ev.id} href={ev.slug ? `/events/${ev.slug}` : "#"} style={{ textDecoration: "none", color: "inherit" }}>

@@ -13,6 +13,11 @@ import { createLocalLeaderUserForChapter } from "@/lib/import/create-local-leade
 import type { FlatRow } from "@/lib/import/bulk-import";
 import { pickChapterName } from "@/lib/import/bulk-import";
 import { findOrCreateChapterByImportRow } from "@/lib/import/chapter-import";
+import {
+  mailingForUserMetadata,
+  userMailingAddressFromImportRow,
+} from "@/lib/import/user-mailing-address";
+import { validateImportIdentity } from "@/lib/import/validate-import-identity";
 
 type SyncBody = {
   fromDate: string;
@@ -124,7 +129,13 @@ async function fetchFormEntriesByDate(
       if (res.status === 404) continue;
       matchedRoute = true;
       if (!res.ok) {
-        throw new Error(`WordPress Fluent Forms returned ${res.status} for form ${formId}.`);
+        const authHint =
+          res.status === 401
+            ? token
+              ? " Invalid or expired FLUENT_FORM_SYNC_TOKEN (Bearer must match what WordPress/Fluent REST accepts)."
+              : " Missing FLUENT_FORM_SYNC_TOKEN: add it to .env so the sync can authenticate to wp-json/fluentform/v1."
+            : "";
+        throw new Error(`WordPress Fluent Forms returned ${res.status} for form ${formId}.${authHint}`);
       }
       const payload = (await res.json()) as unknown;
       entries = extractEntries(payload);
@@ -221,6 +232,7 @@ export async function POST(req: Request) {
             for (const entry of entries) {
               const flat = toFlatEntry(entry);
               const { email, password, firstName, lastName, phone, primaryChapterId } = parseFluentFlatRow(flat);
+              const mailing = userMailingAddressFromImportRow(flat);
 
               if (task.key === "chapters") {
                 const chapterName = pickChapterName(flat).trim();
@@ -246,16 +258,20 @@ export async function POST(req: Request) {
                 continue;
               }
 
-              if (!email || !email.includes("@")) {
+              const identity = validateImportIdentity(email, firstName, lastName);
+              if (!identity.ok) {
                 omitted += 1;
-                send({ level: "warn", message: "User omitted: invalid email." });
+                send({ level: "warn", message: `User omitted: ${identity.reason}` });
                 continue;
               }
+              const emailNorm = identity.email;
+              const firstOk = identity.firstName;
+              const lastOk = identity.lastName;
 
-              const { data: dup } = await admin.from("dashboard_users").select("id").ilike("email", email).maybeSingle();
+              const { data: dup } = await admin.from("dashboard_users").select("id").ilike("email", emailNorm).maybeSingle();
               if (dup?.id) {
                 omitted += 1;
-                send({ level: "warn", message: `User omitted (already registered): ${email}` });
+                send({ level: "warn", message: `User omitted (already registered): ${emailNorm}` });
                 continue;
               }
 
@@ -267,7 +283,7 @@ export async function POST(req: Request) {
               });
               if ("error" in chapterRes) {
                 omitted += 1;
-                send({ level: "error", message: `Chapter resolve failed (${email}): ${chapterRes.error}` });
+                send({ level: "error", message: `Chapter resolve failed (${emailNorm}): ${chapterRes.error}` });
                 continue;
               }
               const chapterId = chapterRes.chapterId;
@@ -279,20 +295,21 @@ export async function POST(req: Request) {
                   continue;
                 }
                 const leader = await createLocalLeaderUserForChapter(admin, {
-                  email,
-                  firstName,
-                  lastName,
+                  email: emailNorm,
+                  firstName: firstOk,
+                  lastName: lastOk,
                   phone,
                   chapterId,
                   leaderRoleId,
                   passwordOverride: password,
+                  mailing,
                 });
                 if ("error" in leader) {
                   omitted += 1;
-                  send({ level: "error", message: `Leader error (${email}): ${leader.error}` });
+                  send({ level: "error", message: `Leader error (${emailNorm}): ${leader.error}` });
                 } else {
                   imported += 1;
-                  send({ level: "ok", message: `Leader synced: ${email}` });
+                  send({ level: "ok", message: `Leader synced: ${emailNorm}` });
                 }
                 continue;
               }
@@ -304,19 +321,20 @@ export async function POST(req: Request) {
               }
 
               const { data: created, error: createErr } = await admin.auth.admin.createUser({
-                email,
+                email: emailNorm,
                 password: password.length >= 8 ? password : phone || "Welcome123!",
                 email_confirm: true,
                 user_metadata: {
-                  first_name: firstName,
-                  last_name: lastName,
+                  first_name: firstOk,
+                  last_name: lastOk,
                   primary_chapter_id: chapterId,
                   phone: phone || null,
+                  ...mailingForUserMetadata(mailing),
                 },
               });
               if (createErr || !created.user?.id) {
                 omitted += 1;
-                send({ level: "error", message: `Member create failed (${email}): ${createErr?.message || "Unknown error"}` });
+                send({ level: "error", message: `Member create failed (${emailNorm}): ${createErr?.message || "Unknown error"}` });
                 continue;
               }
               const newId = created.user.id;
@@ -326,38 +344,47 @@ export async function POST(req: Request) {
               if (roleErr) {
                 await admin.auth.admin.deleteUser(newId);
                 omitted += 1;
-                send({ level: "error", message: `Member role failed (${email}): ${roleErr.message}` });
+                send({ level: "error", message: `Member role failed (${emailNorm}): ${roleErr.message}` });
                 continue;
               }
 
-              const displayName = `${firstName} ${lastName}`.trim();
+              const displayName = `${firstOk} ${lastOk}`.trim();
               await admin.auth.admin.updateUserById(newId, {
                 email_confirm: true,
                 user_metadata: {
-                  first_name: firstName,
-                  last_name: lastName,
+                  first_name: firstOk,
+                  last_name: lastOk,
                   primary_chapter_id: chapterId,
                   phone: phone || null,
+                  ...mailingForUserMetadata(mailing),
                 },
               });
               await admin.from("profiles").update({
-                first_name: firstName,
-                last_name: lastName,
+                first_name: firstOk,
+                last_name: lastOk,
                 display_name: displayName,
                 primary_chapter_id: chapterId,
                 ...(phone ? { phone } : {}),
+                address_line: mailing.address_line,
+                city: mailing.city,
+                state: mailing.state,
+                zip_code: mailing.zip_code,
               }).eq("id", newId);
               await admin.from("dashboard_users").update({
-                first_name: firstName,
-                last_name: lastName,
+                first_name: firstOk,
+                last_name: lastOk,
                 display_name: displayName,
                 primary_chapter_id: chapterId,
                 ...(phone ? { phone } : {}),
+                address_line: mailing.address_line,
+                city: mailing.city,
+                state: mailing.state,
+                zip_code: mailing.zip_code,
                 updated_at: new Date().toISOString(),
               }).eq("id", newId);
 
               imported += 1;
-              send({ level: "ok", message: `Member synced: ${email}` });
+              send({ level: "ok", message: `Member synced: ${emailNorm}` });
             }
           }
 

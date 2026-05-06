@@ -53,12 +53,15 @@ export default async function AdminsPageContent() {
     last_name: string | null;
     primary_chapter_id: string | null;
     role_names: string[];
+    address_line: string | null;
+    city: string | null;
+    state: string | null;
+    zip_code: string | null;
   };
 
   type ChapterRow = {
     id: string;
     name: string;
-    address_line: string | null;
     city: string | null;
     state: string;
     zip_code: string | null;
@@ -92,18 +95,36 @@ export default async function AdminsPageContent() {
       )
       .in("id", adminUserIds)
       .order("email");
-    merged = (data ?? []).map((u) => ({ ...(u as Omit<UserRow, "role_names">), role_names: [] }));
+    merged = (data ?? []).map((u) => ({
+      ...(u as Omit<UserRow, "role_names">),
+      role_names: [],
+      address_line: null,
+      city: null,
+      state: null,
+      zip_code: null,
+    }));
   }
 
   if (merged.length > 0) {
     const userIds = merged.map((u) => u.id);
-    const { data: avatarRows } = await admin
+    const { data: profileRows } = await admin
       .from("profiles")
-      .select("id, avatar_url")
+      .select("id, avatar_url, address_line, city, state, zip_code")
       .in("id", userIds);
     const avatarById = new Map<string, string | null>();
-    for (const row of avatarRows ?? []) {
-      avatarById.set(row.id as string, (row as { avatar_url?: string | null }).avatar_url ?? null);
+    const mailById = new Map<
+      string,
+      { address_line: string | null; city: string | null; state: string | null; zip_code: string | null }
+    >();
+    for (const row of profileRows ?? []) {
+      const id = row.id as string;
+      avatarById.set(id, (row as { avatar_url?: string | null }).avatar_url ?? null);
+      mailById.set(id, {
+        address_line: (row as { address_line?: string | null }).address_line ?? null,
+        city: (row as { city?: string | null }).city ?? null,
+        state: (row as { state?: string | null }).state ?? null,
+        zip_code: (row as { zip_code?: string | null }).zip_code ?? null,
+      });
     }
 
     const { data: roleJoinRows } = await admin
@@ -121,11 +142,18 @@ export default async function AdminsPageContent() {
       if (!list.includes(roleName)) list.push(roleName);
       byUser.set(uid, list);
     }
-    merged = merged.map((u) => ({
-      ...u,
-      avatar_url: avatarById.get(u.id) ?? null,
-      role_names: (byUser.get(u.id) ?? []).sort(),
-    }));
+    merged = merged.map((u) => {
+      const m = mailById.get(u.id);
+      return {
+        ...u,
+        avatar_url: avatarById.get(u.id) ?? null,
+        role_names: (byUser.get(u.id) ?? []).sort(),
+        address_line: m?.address_line ?? u.address_line,
+        city: m?.city ?? u.city,
+        state: m?.state ?? u.state,
+        zip_code: m?.zip_code ?? u.zip_code,
+      };
+    });
     if (!isSuperAdmin) {
       merged = merged.filter((u) => !(u.role_names ?? []).includes("super_admin"));
     }
@@ -135,7 +163,7 @@ export default async function AdminsPageContent() {
   try {
     const { data: allCh } = await supabase
       .from("chapters")
-      .select("id, name, address_line, city, state, zip_code")
+      .select("id, name, city, state, zip_code")
       .order("name");
     if (elevated || !isLocalLeader) {
       chapterOptions = (allCh ?? []) as ChapterRow[];

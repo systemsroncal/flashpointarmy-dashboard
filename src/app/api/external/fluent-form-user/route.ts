@@ -7,6 +7,11 @@ import {
 } from "@/lib/external/fluent-form-user";
 import { resolveChapterIdForExternalWebhook } from "@/lib/external/resolve-webhook-chapter";
 import { createLocalLeaderUserForChapter } from "@/lib/import/create-local-leader-user";
+import {
+  mailingForUserMetadata,
+  userMailingAddressFromImportRow,
+} from "@/lib/import/user-mailing-address";
+import { validateImportIdentity } from "@/lib/import/validate-import-identity";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 function getWebhookSecret(req: Request): string | null {
@@ -85,17 +90,21 @@ export async function POST(req: Request) {
   }
 
   const flat = mergeNestedFormFields(raw);
-  const { email, password, firstName, lastName, phone, primaryChapterId } = parseFluentFlatRow(flat);
+  const parsed = parseFluentFlatRow(flat);
+  const { password, phone, primaryChapterId } = parsed;
+  const mailing = userMailingAddressFromImportRow(flat);
   const systemUserId = process.env.FLUENT_FORM_SYSTEM_USER_ID?.trim() || null;
 
-  if (!email || !email.includes("@")) {
-    return NextResponse.json({ error: "A valid email is required (Email or Email Address)." }, { status: 400 });
+  const identity = validateImportIdentity(parsed.email, parsed.firstName, parsed.lastName);
+  if (!identity.ok) {
+    return NextResponse.json({ error: identity.reason }, { status: 400 });
   }
+  const email = identity.email;
+  const firstName = identity.firstName;
+  const lastName = identity.lastName;
+
   if (password.length < 8) {
     return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
-  }
-  if (!firstName || !lastName) {
-    return NextResponse.json({ error: "First and last name are required (or a single Name field)." }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -134,6 +143,7 @@ export async function POST(req: Request) {
       chapterId,
       leaderRoleId: roleRow.id as string,
       passwordOverride: password,
+      mailing,
     });
 
     if ("error" in createdLeader) {
@@ -163,6 +173,7 @@ export async function POST(req: Request) {
       last_name: lastName,
       primary_chapter_id: chapterId,
       phone: phone || null,
+      ...mailingForUserMetadata(mailing),
     },
   });
 
@@ -201,6 +212,7 @@ export async function POST(req: Request) {
       last_name: lastName,
       primary_chapter_id: chapterId,
       phone: phone || null,
+      ...mailingForUserMetadata(mailing),
     },
   });
   if (authUpErr) {
@@ -220,6 +232,10 @@ export async function POST(req: Request) {
       display_name: displayName,
       primary_chapter_id: chapterId,
       ...(phone ? { phone } : {}),
+      address_line: mailing.address_line,
+      city: mailing.city,
+      state: mailing.state,
+      zip_code: mailing.zip_code,
     })
     .eq("id", newId);
   if (profErr) {
@@ -236,6 +252,10 @@ export async function POST(req: Request) {
       display_name: displayName,
       primary_chapter_id: chapterId,
       ...(phone ? { phone } : {}),
+      address_line: mailing.address_line,
+      city: mailing.city,
+      state: mailing.state,
+      zip_code: mailing.zip_code,
       updated_at: new Date().toISOString(),
     })
     .eq("id", newId);

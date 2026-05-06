@@ -3,6 +3,8 @@
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { validateAvatarFile } from "@/lib/upload/validate-image";
+import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
+import { usStateByCode } from "@/data/usStates";
 import { createClient } from "@/utils/supabase/client";
 import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -26,7 +28,18 @@ type ProfileRow = {
   display_name: string | null;
   avatar_url: string | null;
   phone: string | null;
+  address_line: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
 };
+
+function formatStateForDisplay(code: string | null | undefined): string {
+  const c = code?.trim();
+  if (!c) return "";
+  const u = usStateByCode(c);
+  return u ? `${u.name} (${u.code})` : c;
+}
 
 export function UserProfileDrawer({
   open,
@@ -45,6 +58,10 @@ export function UserProfileDrawer({
   const [lastName, setLastName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
+  const [addrLine, setAddrLine] = useState("");
+  const [addrCity, setAddrCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+  const [addrZip, setAddrZip] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarNonce, setAvatarNonce] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -57,7 +74,7 @@ export function UserProfileDrawer({
     const supabase = createClient();
     const { data, error: qErr } = await supabase
       .from("profiles")
-      .select("first_name, last_name, display_name, avatar_url, phone")
+      .select("first_name, last_name, display_name, avatar_url, phone, address_line, city, state, zip_code")
       .eq("id", du.id)
       .maybeSingle();
     setLoading(false);
@@ -71,6 +88,10 @@ export function UserProfileDrawer({
     setLastName(row?.last_name ?? du.last_name ?? "");
     setDisplayName(row?.display_name ?? du.display_name ?? "");
     setPhone(row?.phone?.trim() ?? du.phone?.trim() ?? "");
+    setAddrLine(row?.address_line?.trim() ?? "");
+    setAddrCity(row?.city?.trim() ?? "");
+    setAddrState(row?.state?.trim() ?? "");
+    setAddrZip(row?.zip_code?.trim() ?? "");
     setAvatarUrl(row?.avatar_url ?? "");
   }, [du.display_name, du.first_name, du.id, du.last_name, du.phone]);
 
@@ -93,15 +114,24 @@ export function UserProfileDrawer({
       du.email.split("@")[0];
 
     const ph = phone.trim() || null;
-    const { error: pErr } = await supabase
-      .from("profiles")
-      .update({
+    const al = addrLine.trim() || null;
+    const ac = addrCity.trim() || null;
+    const ast = usStateByCode(addrState)?.code ?? null;
+    const az = addrZip.trim() || null;
+    const { error: pErr } = await supabase.from("profiles").upsert(
+      {
+        id: du.id,
         first_name: fn || null,
         last_name: ln || null,
         display_name: disp,
         phone: ph,
-      })
-      .eq("id", du.id);
+        address_line: al,
+        city: ac,
+        state: ast,
+        zip_code: az,
+      },
+      { onConflict: "id" }
+    );
 
     if (pErr) {
       setError(pErr.message);
@@ -116,6 +146,11 @@ export function UserProfileDrawer({
         last_name: ln || null,
         display_name: disp,
         phone: ph,
+        address_line: al,
+        city: ac,
+        state: ast,
+        zip_code: az,
+        updated_at: new Date().toISOString(),
       })
       .eq("id", du.id);
 
@@ -130,6 +165,10 @@ export function UserProfileDrawer({
         first_name: fn || null,
         last_name: ln || null,
         phone: ph,
+        address_line: al,
+        city: ac,
+        state: ast,
+        zip_code: az,
       },
     });
     if (authUpdErr) {
@@ -262,6 +301,21 @@ export function UserProfileDrawer({
                     {profile?.phone?.trim() || du.phone?.trim()}
                   </Typography>
                 ) : null}
+                {profile?.address_line?.trim() ||
+                profile?.city?.trim() ||
+                profile?.state?.trim() ||
+                profile?.zip_code?.trim() ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    {[
+                      profile?.address_line?.trim(),
+                      profile?.city?.trim(),
+                      formatStateForDisplay(profile?.state),
+                      profile?.zip_code?.trim(),
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </Typography>
+                ) : null}
                 <Button
                   startIcon={<EditOutlinedIcon />}
                   variant="outlined"
@@ -302,6 +356,32 @@ export function UserProfileDrawer({
                   size="small"
                   fullWidth
                   autoComplete="tel"
+                />
+                <TextField
+                  label="Street address (optional)"
+                  value={addrLine}
+                  onChange={(e) => setAddrLine(e.target.value)}
+                  size="small"
+                  fullWidth
+                />
+                <TextField
+                  label="City (optional)"
+                  value={addrCity}
+                  onChange={(e) => setAddrCity(e.target.value)}
+                  size="small"
+                  fullWidth
+                />
+                <UsStateSearchAutocomplete
+                  valueCode={addrState}
+                  onSelectCode={setAddrState}
+                  disabled={saving}
+                />
+                <TextField
+                  label="ZIP (optional)"
+                  value={addrZip}
+                  onChange={(e) => setAddrZip(e.target.value)}
+                  size="small"
+                  fullWidth
                 />
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>

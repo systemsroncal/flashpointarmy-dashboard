@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { UserMailingFields } from "@/lib/import/user-mailing-address";
+import { mailingForUserMetadata } from "@/lib/import/user-mailing-address";
 
 /**
  * Creates auth user + local_leader role + chapter_leaders link (same behavior as leaders bulk import).
@@ -14,9 +16,12 @@ export async function createLocalLeaderUserForChapter(
     leaderRoleId: string;
     /** Webhook / external: use this password when set (min 8 chars checked by caller). */
     passwordOverride?: string | null;
+    /** Home / mailing address (street on user — not stored on chapter). */
+    mailing?: UserMailingFields | null;
   }
 ): Promise<{ userId: string } | { error: string }> {
-  const { email, firstName, lastName, phone, chapterId, leaderRoleId, passwordOverride } = opts;
+  const { email, firstName, lastName, phone, chapterId, leaderRoleId, passwordOverride, mailing } = opts;
+  const mailMeta = mailing ? mailingForUserMetadata(mailing) : {};
   const trimmedOverride = passwordOverride?.trim() ?? "";
   const password =
     trimmedOverride.length >= 8 ? trimmedOverride : phone || "Welcome123!";
@@ -29,6 +34,7 @@ export async function createLocalLeaderUserForChapter(
       last_name: lastName,
       primary_chapter_id: chapterId,
       phone: phone || null,
+      ...mailMeta,
     },
   });
   if (createErr || !created.user?.id) {
@@ -62,6 +68,7 @@ export async function createLocalLeaderUserForChapter(
       last_name: lastName,
       primary_chapter_id: chapterId,
       phone: phone || null,
+      ...mailMeta,
     },
   });
 
@@ -73,6 +80,14 @@ export async function createLocalLeaderUserForChapter(
       display_name: displayName,
       primary_chapter_id: chapterId,
       ...(phone ? { phone } : {}),
+      ...(mailing
+        ? {
+            address_line: mailing.address_line,
+            city: mailing.city,
+            state: mailing.state,
+            zip_code: mailing.zip_code,
+          }
+        : {}),
     })
     .eq("id", userId);
   if (profErr) {
@@ -90,6 +105,14 @@ export async function createLocalLeaderUserForChapter(
       display_name: displayName,
       primary_chapter_id: chapterId,
       ...(phone ? { phone } : {}),
+      ...(mailing
+        ? {
+            address_line: mailing.address_line,
+            city: mailing.city,
+            state: mailing.state,
+            zip_code: mailing.zip_code,
+          }
+        : {}),
       updated_at: new Date().toISOString(),
     })
     .eq("id", userId);

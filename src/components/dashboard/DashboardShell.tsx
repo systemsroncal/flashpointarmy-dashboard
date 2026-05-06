@@ -298,7 +298,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   primaryTypographyProps={{
                     variant: "body2",
                     fontWeight: 600,
-                    fontSize: "0.82rem",
+                    fontSize: "calc(0.82rem + 3px)",
                     color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
                   }}
                 />
@@ -350,7 +350,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <ListItemIcon sx={{ minWidth: 38, color: "rgba(255,255,255,0.92)" }}>
             <ExitToAppIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Sign out" primaryTypographyProps={{ variant: "body2" }} />
+          <ListItemText
+            primary="Sign out"
+            primaryTypographyProps={{ variant: "body2", fontSize: "calc(0.875rem + 3px)" }}
+          />
         </ListItemButton>
       </Box>
     </Box>

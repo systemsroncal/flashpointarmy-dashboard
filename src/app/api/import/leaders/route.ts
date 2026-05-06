@@ -4,14 +4,16 @@ import {
   containsTestText,
   EMAIL_EXCEL_KEYS,
   PHONE_EXCEL_KEYS,
+  parsePersonNamesFromImportRow,
   pickChapterName,
   pickField,
-  splitName,
   type FlatRow,
   type ImportResultItem,
 } from "@/lib/import/bulk-import";
+import { validateImportIdentity } from "@/lib/import/validate-import-identity";
 import { createLocalLeaderUserForChapter } from "@/lib/import/create-local-leader-user";
 import { findOrCreateChapterByImportRow } from "@/lib/import/chapter-import";
+import { userMailingAddressFromImportRow } from "@/lib/import/user-mailing-address";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
@@ -70,19 +72,27 @@ export async function POST(req: Request) {
   }
 
   for (const row of rows) {
-    const fullName = pickField(row, ["name", "Name"]);
-    const { firstName, lastName } = splitName(fullName);
-    const email = pickField(row, EMAIL_EXCEL_KEYS).toLowerCase();
+    const { firstName, lastName } = parsePersonNamesFromImportRow(row);
+    const emailRaw = pickField(row, EMAIL_EXCEL_KEYS);
+    const emailLower = emailRaw.toLowerCase();
     const phone = cleanPhone(pickField(row, PHONE_EXCEL_KEYS));
     const chapterName = pickChapterName(row);
     if (containsTestText(row)) {
-      results.push({ status: "omitted", email, phone, reason: "Contains test text." });
+      results.push({ status: "omitted", email: emailLower, phone, reason: "Contains test text." });
       continue;
     }
-    if (!email || !email.includes("@") || !firstName || !lastName || !chapterName) {
-      results.push({ status: "omitted", email, phone, reason: "Missing required fields." });
+    const identity = validateImportIdentity(emailRaw, firstName, lastName);
+    if (!identity.ok) {
+      results.push({ status: "omitted", email: emailLower, phone, reason: identity.reason });
       continue;
     }
+    if (!chapterName?.trim()) {
+      results.push({ status: "omitted", email: identity.email, phone, reason: "Missing chapter name." });
+      continue;
+    }
+    const email = identity.email;
+    const fn = identity.firstName;
+    const ln = identity.lastName;
     if (existingEmails.has(email) || batchEmails.has(email)) {
       results.push({ status: "omitted", email, phone, reason: "Duplicate email." });
       continue;
@@ -103,14 +113,16 @@ export async function POST(req: Request) {
       continue;
     }
     const chapterId = chapterRes.chapter.id;
+    const mailing = userMailingAddressFromImportRow(row);
 
     const createdLeader = await createLocalLeaderUserForChapter(admin, {
       email,
-      firstName,
-      lastName,
+      firstName: fn,
+      lastName: ln,
       phone,
       chapterId,
       leaderRoleId,
+      mailing,
     });
     if ("error" in createdLeader) {
       results.push({ status: "omitted", email, phone, reason: createdLeader.error });
