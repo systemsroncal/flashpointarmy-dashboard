@@ -44,10 +44,18 @@ export async function findOrCreateChapterByImportRow(
   if (!chapterName) {
     return { error: "Missing chapter name." };
   }
-  const address = pickField(row, ["Address", "address"]);
-  const churchStateRaw = pickField(row, ["Church State", "State", "state", "Church state"]);
+  const address = pickField(row, ["Address", "address", "address_line_1", "Address Line 1"]);
+  const churchStateRaw = pickField(row, [
+    "Church State",
+    "State",
+    "state",
+    "Church state",
+    "input_text_3",
+  ]);
   const city = parseCityFromAddress(address) || pickField(row, ["City", "city"]);
-  const zip = parseZipFromAddress(address) || pickField(row, ["ZIP code", "Zip", "zip"]);
+  const zip =
+    parseZipFromAddress(address) ||
+    pickField(row, ["ZIP code", "Zip", "zip", "zip_code", "Postal code", "postal_code"]);
   const stateResolved = resolveChapterUsState({ churchStateRaw, address });
   if ("error" in stateResolved) {
     return { error: stateResolved.error };
@@ -96,10 +104,18 @@ export async function resolveChapterForMemberImport(
   importingUserId: string
 ): Promise<{ chapter: ChapterRow; chapters: ChapterRow[] } | { error: string }> {
   const named = pickChapterName(row).trim();
-  const address = pickField(row, ["Address", "address"]);
-  const zip = parseZipFromAddress(address) || pickField(row, ["ZIP code", "Zip", "zip"]);
-  const city = pickField(row, ["City", "city"]) || "";
-  const churchStateRaw = pickField(row, ["Church State", "State", "state", "Church state"]);
+  const address = pickField(row, ["Address", "address", "address_line_1", "Address Line 1"]);
+  const zip =
+    parseZipFromAddress(address) ||
+    pickField(row, ["ZIP code", "Zip", "zip", "zip_code", "Postal code", "postal_code"]);
+  const city = parseCityFromAddress(address) || pickField(row, ["City", "city"]) || "";
+  const churchStateRaw = pickField(row, [
+    "Church State",
+    "State",
+    "state",
+    "Church state",
+    "input_text_3",
+  ]);
   const stateResolved = resolveChapterUsState({ churchStateRaw, address });
   const state = "error" in stateResolved ? "" : stateResolved.code;
 

@@ -22,7 +22,38 @@ export const EMAIL_EXCEL_KEYS = [
 ];
 
 /** Excel column header for phone in leader/member bulk files (aliases supported). */
-export const PHONE_EXCEL_KEYS = ["Phone number", "phone", "Phone"];
+export const PHONE_EXCEL_KEYS = [
+  "numeric_field",
+  "Numeric Field",
+  "Phone number",
+  "phone",
+  "Phone",
+  "Mobile",
+  "mobile",
+  "Cell",
+  "cell",
+  "input_phone",
+];
+
+/**
+ * Resolves phone from known columns, then from any flat key whose name suggests phone / Fluent numeric.
+ */
+export function pickPhoneFromImportRow(row: FlatRow): string {
+  const direct = pickField(row, PHONE_EXCEL_KEYS).trim();
+  if (direct) {
+    const c = cleanPhone(direct);
+    if (c.length >= 7) return c;
+  }
+  for (const [k, v] of Object.entries(row)) {
+    const kn = normalizeHeaderKey(k);
+    if (!/\b(phone|mobile|cell|tel|numeric)\b/.test(kn)) continue;
+    const s = String(v ?? "").trim();
+    if (!s) continue;
+    const c = cleanPhone(s);
+    if (c.length >= 7) return c;
+  }
+  return "";
+}
 
 /** Normalize Excel/CSV header keys: strip BOM, collapse whitespace, lowercase. */
 export function normalizeHeaderKey(k: string): string {
@@ -57,6 +88,8 @@ const CHAPTER_NAME_EXACT = [
   "Name of church",
   "Affiliation",
   "Chapter",
+  /** Fluent Forms "Start a Chapter" (form 4) common machine name for church / org */
+  "input_text_1",
 ];
 
 export function pickChapterName(row: FlatRow): string {

@@ -15,12 +15,25 @@ export type UserMailingFields = {
 
 /** Mailing / home address from the same Excel / Fluent columns used for chapter heuristics. */
 export function userMailingAddressFromImportRow(row: FlatRow): UserMailingFields {
-  const rawAddress = pickField(row, ["Address", "address"]).trim();
-  const churchStateRaw = pickField(row, ["Church State", "State", "state", "Church state"]);
+  const rawAddress = pickField(row, [
+    "Address",
+    "address",
+    "address_line_1",
+    "Address line 1",
+    "Address Line 1",
+  ]).trim();
+  const churchStateRaw = pickField(row, [
+    "Church State",
+    "State",
+    "state",
+    "Church state",
+    "input_text_3",
+  ]);
   const city =
     (parseCityFromAddress(rawAddress) || pickField(row, ["City", "city"]).trim()) || null;
   const zip =
-    (parseZipFromAddress(rawAddress) || pickField(row, ["ZIP code", "Zip", "zip"]).trim()) ||
+    (parseZipFromAddress(rawAddress) ||
+      pickField(row, ["ZIP code", "Zip", "zip", "zip_code", "Postal code", "postal_code"]).trim()) ||
     null;
   const stateResolved = resolveChapterUsState({ churchStateRaw, address: rawAddress });
   const state = "error" in stateResolved ? null : stateResolved.code;

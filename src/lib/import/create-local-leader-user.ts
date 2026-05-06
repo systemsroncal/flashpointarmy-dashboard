@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ensureDashboardUserMirror } from "@/lib/import/dashboard-user-mirror";
 import type { UserMailingFields } from "@/lib/import/user-mailing-address";
 import { mailingForUserMetadata } from "@/lib/import/user-mailing-address";
 
@@ -97,25 +98,22 @@ export async function createLocalLeaderUserForChapter(
     return { error: profErr.message || "Could not set profile primary chapter." };
   }
 
-  await admin
-    .from("dashboard_users")
-    .update({
-      first_name: firstName,
-      last_name: lastName,
-      display_name: displayName,
-      primary_chapter_id: chapterId,
-      ...(phone ? { phone } : {}),
-      ...(mailing
-        ? {
-            address_line: mailing.address_line,
-            city: mailing.city,
-            state: mailing.state,
-            zip_code: mailing.zip_code,
-          }
-        : {}),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", userId);
+  const mirror = await ensureDashboardUserMirror(admin, {
+    id: userId,
+    email,
+    firstName,
+    lastName,
+    displayName,
+    primaryChapterId: chapterId,
+    phone,
+    mailing: mailing ?? null,
+  });
+  if (mirror.error) {
+    await admin.from("chapter_leaders").delete().eq("user_id", userId).eq("chapter_id", chapterId);
+    await admin.from("user_roles").delete().eq("user_id", userId);
+    await admin.auth.admin.deleteUser(userId);
+    return { error: mirror.error };
+  }
 
   return { userId };
 }

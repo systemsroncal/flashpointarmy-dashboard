@@ -41,6 +41,8 @@ export default async function LeadersPageContent() {
 
   const localChapterId = profile?.primary_chapter_id ?? null;
 
+  const admin = createAdminClient();
+
   const { data: leaderRole } = await supabase
     .from("roles")
     .select("id")
@@ -49,14 +51,12 @@ export default async function LeadersPageContent() {
 
   let leaderUserIds: string[] = [];
   if (leaderRole?.id) {
-    const { data: urRows } = await supabase
+    const { data: urRows } = await admin
       .from("user_roles")
       .select("user_id")
       .eq("role_id", leaderRole.id as string);
     leaderUserIds = [...new Set((urRows ?? []).map((r: { user_id: string }) => r.user_id))];
   }
-
-  const admin = createAdminClient();
 
   if (!elevated && isLocalLeader && localChapterId && leaderUserIds.length > 0) {
     const { data: inChapter } = await admin
@@ -117,17 +117,24 @@ export default async function LeadersPageContent() {
     const userIds = merged.map((u) => u.id);
     const { data: profileRows } = await admin
       .from("profiles")
-      .select("id, avatar_url, address_line, city, state, zip_code")
+      .select("id, avatar_url, phone, address_line, city, state, zip_code")
       .in("id", userIds);
     const avatarById = new Map<string, string | null>();
     const mailById = new Map<
       string,
-      { address_line: string | null; city: string | null; state: string | null; zip_code: string | null }
+      {
+        phone: string | null;
+        address_line: string | null;
+        city: string | null;
+        state: string | null;
+        zip_code: string | null;
+      }
     >();
     for (const row of profileRows ?? []) {
       const id = row.id as string;
       avatarById.set(id, (row as { avatar_url?: string | null }).avatar_url ?? null);
       mailById.set(id, {
+        phone: (row as { phone?: string | null }).phone?.trim() || null,
         address_line: (row as { address_line?: string | null }).address_line ?? null,
         city: (row as { city?: string | null }).city ?? null,
         state: (row as { state?: string | null }).state ?? null,
@@ -156,6 +163,7 @@ export default async function LeadersPageContent() {
         ...u,
         avatar_url: avatarById.get(u.id) ?? null,
         role_names: (byUser.get(u.id) ?? []).sort(),
+        phone: m?.phone || u.phone || null,
         address_line: m?.address_line ?? u.address_line,
         city: m?.city ?? u.city,
         state: m?.state ?? u.state,

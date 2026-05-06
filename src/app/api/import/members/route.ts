@@ -3,9 +3,9 @@ import {
   cleanPhone,
   containsTestText,
   EMAIL_EXCEL_KEYS,
-  PHONE_EXCEL_KEYS,
   parsePersonNamesFromImportRow,
   pickField,
+  pickPhoneFromImportRow,
   type FlatRow,
   type ImportResultItem,
 } from "@/lib/import/bulk-import";
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   const batchPhones = new Set<string>();
 
   const emails = rows.map((r) => pickField(r, EMAIL_EXCEL_KEYS).toLowerCase()).filter(Boolean);
-  const phones = rows.map((r) => cleanPhone(pickField(r, PHONE_EXCEL_KEYS))).filter(Boolean);
+  const phones = rows.map((r) => pickPhoneFromImportRow(r)).filter(Boolean);
   if (emails.length > 0) {
     const { data } = await admin.from("dashboard_users").select("email").in("email", emails);
     for (const item of data ?? []) existingEmails.add((item.email || "").toLowerCase());
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     const { firstName, lastName } = parsePersonNamesFromImportRow(row);
     const emailRaw = pickField(row, EMAIL_EXCEL_KEYS);
     const emailLower = emailRaw.toLowerCase();
-    const phone = cleanPhone(pickField(row, PHONE_EXCEL_KEYS));
+    const phone = pickPhoneFromImportRow(row);
     if (containsTestText(row)) {
       results.push({ status: "omitted", email: emailLower, phone, reason: "Contains test text." });
       continue;

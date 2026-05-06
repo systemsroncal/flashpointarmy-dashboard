@@ -8,15 +8,22 @@ import {
   mergeNestedFormFields,
   parseFluentFlatRow,
 } from "@/lib/external/fluent-form-user";
-import { resolveChapterIdForExternalWebhook } from "@/lib/external/resolve-webhook-chapter";
 import { createLocalLeaderUserForChapter } from "@/lib/import/create-local-leader-user";
 import type { FlatRow } from "@/lib/import/bulk-import";
 import { pickChapterName } from "@/lib/import/bulk-import";
-import { findOrCreateChapterByImportRow } from "@/lib/import/chapter-import";
+import {
+  findOrCreateChapterByImportRow,
+  resolveChapterForMemberImport,
+  type ChapterRow,
+} from "@/lib/import/chapter-import";
 import {
   mailingForUserMetadata,
   userMailingAddressFromImportRow,
 } from "@/lib/import/user-mailing-address";
+import {
+  ensureDashboardUserMirror,
+  syncExistingUserFromFluentForm,
+} from "@/lib/import/dashboard-user-mirror";
 import { validateImportIdentity } from "@/lib/import/validate-import-identity";
 
 type SyncBody = {
@@ -33,6 +40,8 @@ type SyncEvent = {
 };
 
 type FluentEntry = Record<string, unknown>;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const DEFAULT_FORM_IDS = {
   chapters: Number(process.env.FLUENT_FORM_SYNC_CHAPTERS_FORM_ID || 4),
@@ -96,6 +105,26 @@ function extractEntries(payload: unknown): FluentEntry[] {
     }
   }
   return [];
+}
+
+async function loadDashboardUsersByEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  emails: string[]
+): Promise<Map<string, { id: string }>> {
+  const out = new Map<string, { id: string }>();
+  if (!emails.length) return out;
+  const uniq = [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))];
+  const chunkSize = 400;
+  for (let i = 0; i < uniq.length; i += chunkSize) {
+    const batch = uniq.slice(i, i + chunkSize);
+    const { data } = await admin.from("dashboard_users").select("id,email").in("email", batch);
+    for (const row of data ?? []) {
+      const email = String((row as { email?: string }).email || "").trim().toLowerCase();
+      const id = String((row as { id?: string }).id || "");
+      if (email && id) out.set(email, { id });
+    }
+  }
+  return out;
 }
 
 /**
@@ -249,14 +278,60 @@ export async function POST(req: Request) {
           const leaderRoleId = (roleRows ?? []).find((r) => r.name === "local_leader")?.id ?? null;
           const memberRoleId = (roleRows ?? []).find((r) => r.name === "member")?.id ?? null;
 
-          const { data: chaptersData } = await admin.from("chapters").select("name");
-          const chapterNames = new Set((chaptersData ?? []).map((c) => String(c.name || "").trim().toLowerCase()).filter(Boolean));
+          let chapterRows: ChapterRow[] = [];
+          const { data: chaptersData } = await admin
+            .from("chapters")
+            .select("id,name,city,state,zip_code")
+            .order("name");
+          chapterRows = (chaptersData ?? []) as ChapterRow[];
+          const chapterNames = new Set(
+            chapterRows.map((c) => String(c.name || "").trim().toLowerCase()).filter(Boolean)
+          );
+          const chapterIds = new Set(chapterRows.map((c) => c.id));
+
+          const resolveChapterForSyncRow = async (opts: {
+            formId: number;
+            flat: FlatRow;
+            primaryChapterId: string;
+          }): Promise<{ chapterId: string } | { error: string }> => {
+            const trimmed = opts.primaryChapterId.trim();
+            if (UUID_RE.test(trimmed) && chapterIds.has(trimmed)) {
+              return { chapterId: trimmed };
+            }
+            if (opts.formId === 1) {
+              const res = await findOrCreateChapterByImportRow(admin, opts.flat, systemUserId);
+              if ("error" in res) return { error: res.error };
+              if (res.created && !chapterRows.some((c) => c.id === res.chapter.id)) {
+                chapterRows = [...chapterRows, res.chapter];
+                chapterNames.add(res.chapter.name.trim().toLowerCase());
+                chapterIds.add(res.chapter.id);
+              }
+              return { chapterId: res.chapter.id };
+            }
+            const res = await resolveChapterForMemberImport(admin, opts.flat, chapterRows, systemUserId);
+            if ("error" in res) return { error: res.error };
+            chapterRows = res.chapters;
+            for (const ch of chapterRows) {
+              chapterNames.add(String(ch.name || "").trim().toLowerCase());
+              chapterIds.add(ch.id);
+            }
+            return { chapterId: res.chapter.id };
+          };
 
           for (const task of tasks) {
             if (!task.enabled) continue;
             send({ level: "info", message: `Fetching form ${task.formId} entries for ${task.key}...` });
             const entries = await fetchFormEntriesByDate(task.formId, fromDate, toDate);
             send({ level: "info", message: `Found ${entries.length} records for ${task.key}.` });
+            const byEmail = await loadDashboardUsersByEmail(
+              admin,
+              entries
+                .map((entry) => {
+                  const parsed = parseFluentFlatRow(toFlatEntry(entry));
+                  return parsed.email.trim().toLowerCase();
+                })
+                .filter(Boolean)
+            );
 
             for (const entry of entries) {
               const flat = toFlatEntry(entry);
@@ -297,18 +372,11 @@ export async function POST(req: Request) {
               const firstOk = identity.firstName;
               const lastOk = identity.lastName;
 
-              const { data: dup } = await admin.from("dashboard_users").select("id").ilike("email", emailNorm).maybeSingle();
-              if (dup?.id) {
-                omitted += 1;
-                send({ level: "warn", message: `User omitted (already registered): ${emailNorm}` });
-                continue;
-              }
-
-              const chapterRes = await resolveChapterIdForExternalWebhook(admin, {
-                formId: task.key === "leaders" ? 1 : 4,
+              /** Match webhook strategy but with in-memory chapter cache for large sync runs. */
+              const chapterRes = await resolveChapterForSyncRow({
+                formId: task.formId,
                 flat,
                 primaryChapterId,
-                systemUserId,
               });
               if ("error" in chapterRes) {
                 omitted += 1;
@@ -316,6 +384,55 @@ export async function POST(req: Request) {
                 continue;
               }
               const chapterId = chapterRes.chapterId;
+
+              const existingDu = byEmail.get(emailNorm);
+              if (existingDu?.id) {
+                if (task.key === "leaders") {
+                  const ex = await syncExistingUserFromFluentForm(admin, {
+                    userId: existingDu.id,
+                    email: emailNorm,
+                    taskKey: "leaders",
+                    chapterId,
+                    firstName: firstOk,
+                    lastName: lastOk,
+                    phone,
+                    mailing,
+                    leaderRoleId,
+                    memberRoleId,
+                  });
+                  if (ex.error) {
+                    omitted += 1;
+                    send({ level: "error", message: `Leader existing-user sync (${emailNorm}): ${ex.error}` });
+                  } else {
+                    imported += 1;
+                    send({ level: "ok", message: `Leader updated: ${emailNorm}` });
+                  }
+                } else if (task.key === "members") {
+                  const ex = await syncExistingUserFromFluentForm(admin, {
+                    userId: existingDu.id,
+                    email: emailNorm,
+                    taskKey: "members",
+                    chapterId,
+                    firstName: firstOk,
+                    lastName: lastOk,
+                    phone,
+                    mailing,
+                    leaderRoleId,
+                    memberRoleId,
+                  });
+                  if (ex.error) {
+                    omitted += 1;
+                    send({ level: "error", message: `Member existing-user sync (${emailNorm}): ${ex.error}` });
+                  } else {
+                    imported += 1;
+                    send({ level: "ok", message: `Member updated: ${emailNorm}` });
+                  }
+                } else {
+                  omitted += 1;
+                  send({ level: "warn", message: `User already registered (skipped for chapters pass): ${emailNorm}` });
+                }
+                continue;
+              }
 
               if (task.key === "leaders") {
                 if (!leaderRoleId) {
@@ -339,6 +456,7 @@ export async function POST(req: Request) {
                 } else {
                   imported += 1;
                   send({ level: "ok", message: `Leader synced: ${emailNorm}` });
+                  byEmail.set(emailNorm, { id: leader.userId });
                 }
                 continue;
               }
@@ -399,21 +517,27 @@ export async function POST(req: Request) {
                 state: mailing.state,
                 zip_code: mailing.zip_code,
               }).eq("id", newId);
-              await admin.from("dashboard_users").update({
-                first_name: firstOk,
-                last_name: lastOk,
-                display_name: displayName,
-                primary_chapter_id: chapterId,
-                ...(phone ? { phone } : {}),
-                address_line: mailing.address_line,
-                city: mailing.city,
-                state: mailing.state,
-                zip_code: mailing.zip_code,
-                updated_at: new Date().toISOString(),
-              }).eq("id", newId);
+              const mirrorM = await ensureDashboardUserMirror(admin, {
+                id: newId,
+                email: emailNorm,
+                firstName: firstOk,
+                lastName: lastOk,
+                displayName,
+                primaryChapterId: chapterId,
+                phone,
+                mailing,
+              });
+              if (mirrorM.error) {
+                await admin.from("user_roles").delete().eq("user_id", newId);
+                await admin.auth.admin.deleteUser(newId);
+                omitted += 1;
+                send({ level: "error", message: `Member mirror failed (${emailNorm}): ${mirrorM.error}` });
+                continue;
+              }
 
               imported += 1;
               send({ level: "ok", message: `Member synced: ${emailNorm}` });
+              byEmail.set(emailNorm, { id: newId });
             }
           }
 

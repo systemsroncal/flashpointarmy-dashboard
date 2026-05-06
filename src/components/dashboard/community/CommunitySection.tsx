@@ -34,7 +34,6 @@ import {
   Typography,
 } from "@mui/material";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
-import { PHONE_EXCEL_KEYS } from "@/lib/import/bulk-import";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { parseUploadFile } from "@/lib/import/parse-upload";
 import { usStateByCode } from "@/data/usStates";
@@ -1254,8 +1253,8 @@ export function CommunitySection({
           <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
             {importError ? <Alert severity="error">{importError}</Alert> : null}
             <Typography variant="body2" color="text.secondary">
-              Excel: include a <strong>{PHONE_EXCEL_KEYS[0]}</strong> column for each user&apos;s phone (also used as
-              temporary password when present).
+              Excel: include a <strong>phone</strong> column (or Fluent <strong>numeric_field</strong>) for each
+              user&apos;s phone (also used as temporary password when present).
             </Typography>
             {!isLeaders ? (
               <Typography variant="body2" color="text.secondary">
@@ -1369,27 +1368,11 @@ export function CommunitySection({
               <Typography variant="subtitle2" sx={{ mt: 1, color: "primary.main" }}>
                 Primary chapter
               </Typography>
-              {(() => {
-                const ch = chapterById(viewUser.primary_chapter_id);
-                const st = ch?.state ? usStateByCode(ch.state) : null;
-                return (
-                  <>
-                    <Typography>
-                      <strong>Chapter name:</strong> {ch?.name ?? chapterName(viewUser.primary_chapter_id)}
-                    </Typography>
-                    <Typography>
-                      <strong>City:</strong> {ch?.city?.trim() || "—"}
-                    </Typography>
-                    <Typography>
-                      <strong>State:</strong>{" "}
-                      {st ? `${st.name} (${st.code})` : ch?.state?.trim() || "—"}
-                    </Typography>
-                    <Typography>
-                      <strong>ZIP code:</strong> {ch?.zip_code?.trim() || "—"}
-                    </Typography>
-                  </>
-                );
-              })()}
+              <Typography>
+                <strong>Chapter name:</strong>{" "}
+                {chapterById(viewUser.primary_chapter_id)?.name ??
+                  chapterName(viewUser.primary_chapter_id)}
+              </Typography>
               <Typography sx={{ mt: 1 }}>
                 <strong>Joined:</strong>{" "}
                 {viewUser.created_at

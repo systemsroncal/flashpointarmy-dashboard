@@ -1,9 +1,9 @@
 import { normalizeEmail } from "@/lib/auth/email-otp";
 import {
   EMAIL_EXCEL_KEYS,
-  PHONE_EXCEL_KEYS,
   pickField,
   parsePersonNamesFromImportRow,
+  pickPhoneFromImportRow,
   type FlatRow,
 } from "@/lib/import/bulk-import";
 
@@ -87,7 +87,7 @@ export function parseFluentFlatRow(flat: FlatRow): {
   const email = normalizeEmail(pickField(flat, EMAIL_EXCEL_KEYS));
   const password = pickField(flat, PASSWORD_KEYS).trim();
   const { firstName, lastName } = parsePersonNamesFromImportRow(flat);
-  const phone = pickField(flat, PHONE_EXCEL_KEYS).trim();
+  const phone = pickPhoneFromImportRow(flat);
   const primaryChapterId = pickField(flat, CHAPTER_ID_KEYS).trim();
   return { email, password, firstName, lastName, phone, primaryChapterId };
 }
