@@ -98,13 +98,38 @@ function extractEntries(payload: unknown): FluentEntry[] {
   return [];
 }
 
+/**
+ * WordPress REST + Application Passwords: Basic auth.
+ * Prefer FLUENT_FORM_SYNC_USER + FLUENT_FORM_SYNC_APP_PASSWORD (or FLUENT_FORM_SYNC_PASSWORD).
+ * Otherwise FLUENT_FORM_SYNC_TOKEN as Bearer (e.g. JWT plugins).
+ */
+function fluentFormSyncAuthHeaders(): {
+  headers: Record<string, string>;
+  mode: "basic" | "bearer" | "none";
+} {
+  const user = process.env.FLUENT_FORM_SYNC_USER?.trim() || "";
+  const rawPass =
+    process.env.FLUENT_FORM_SYNC_APP_PASSWORD ?? process.env.FLUENT_FORM_SYNC_PASSWORD ?? "";
+  const appPassword = rawPass.replace(/\s+/g, "").trim();
+  const token = process.env.FLUENT_FORM_SYNC_TOKEN?.trim() || "";
+
+  if (user && appPassword) {
+    const basic = Buffer.from(`${user}:${appPassword}`, "utf8").toString("base64");
+    return { headers: { Authorization: `Basic ${basic}` }, mode: "basic" };
+  }
+  if (token) {
+    return { headers: { Authorization: `Bearer ${token}` }, mode: "bearer" };
+  }
+  return { headers: {}, mode: "none" };
+}
+
 async function fetchFormEntriesByDate(
   formId: number,
   fromDate: Date,
   toDate: Date
 ): Promise<FluentEntry[]> {
   const baseUrl = (process.env.FLUENT_FORM_SYNC_BASE_URL || "https://fparmychapters.com").replace(/\/$/, "");
-  const token = process.env.FLUENT_FORM_SYNC_TOKEN?.trim() || "";
+  const { headers: authHeaders, mode: authMode } = fluentFormSyncAuthHeaders();
   const perPage = 200;
   const maxPages = 50;
   const out: FluentEntry[] = [];
@@ -123,7 +148,7 @@ async function fetchFormEntriesByDate(
     for (const buildUrl of endpointCandidates) {
       const url = buildUrl(page);
       const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: authHeaders,
         cache: "no-store",
       });
       if (res.status === 404) continue;
@@ -131,10 +156,14 @@ async function fetchFormEntriesByDate(
       if (!res.ok) {
         const authHint =
           res.status === 401
-            ? token
-              ? " Invalid or expired FLUENT_FORM_SYNC_TOKEN (Bearer must match what WordPress/Fluent REST accepts)."
-              : " Missing FLUENT_FORM_SYNC_TOKEN: add it to .env so the sync can authenticate to wp-json/fluentform/v1."
-            : "";
+            ? authMode === "basic"
+              ? " Check FLUENT_FORM_SYNC_USER and FLUENT_FORM_SYNC_APP_PASSWORD (WordPress Application Password for that user, spaces removed automatically)."
+              : authMode === "bearer"
+                ? " Invalid or expired FLUENT_FORM_SYNC_TOKEN (Bearer must match what WordPress/Fluent REST accepts)."
+                : " Set FLUENT_FORM_SYNC_USER + FLUENT_FORM_SYNC_APP_PASSWORD (recommended) or FLUENT_FORM_SYNC_TOKEN."
+            : res.status === 403
+              ? " 403 = authenticated but not allowed: use an Administrator (or a user allowed to read Fluent submissions via REST), and check Fluent Forms / security plugins / host rules blocking REST."
+              : "";
         throw new Error(`WordPress Fluent Forms returned ${res.status} for form ${formId}.${authHint}`);
       }
       const payload = (await res.json()) as unknown;
