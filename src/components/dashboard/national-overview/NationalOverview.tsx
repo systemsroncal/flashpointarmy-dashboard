@@ -99,46 +99,80 @@ export function NationalOverview({
   }, []);
 
   const reloadOverviewData = useCallback(async () => {
-    const supabase = createClient();
-    const { data: chData } = await supabase.from("chapters").select("id,name,state").order("name");
-    const rows = chData ?? [];
-    setChapterRows(rows);
+    try {
+      const supabase = createClient();
+      const { data: chData } = await supabase.from("chapters").select("id,name,state").order("name");
+      const rows = chData ?? [];
+      setChapterRows(rows);
 
-    const { loadOverviewStats } = await import("@/lib/stats/overview-stats");
-    let referenceAddition: { leaders: number; members: number } | undefined;
-    if (includeReferenceInOverviewStatTotals()) {
-      try {
-        const res = await fetch("/backgrounds/cities_donors.json", { cache: "force-cache" });
-        if (res.ok) {
-          const json = (await res.json()) as CitiesDonorsJson;
-          referenceAddition = sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
+      const { loadOverviewStats } = await import("@/lib/stats/overview-stats");
+      let referenceAddition: { leaders: number; members: number } | undefined;
+      if (includeReferenceInOverviewStatTotals()) {
+        try {
+          const res = await fetch("/backgrounds/cities_donors.json", { cache: "force-cache" });
+          if (res.ok) {
+            const json = (await res.json()) as CitiesDonorsJson;
+            referenceAddition = sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
+          }
+        } catch {
+          referenceAddition = undefined;
         }
-      } catch {
-        referenceAddition = undefined;
+      }
+      const next = await loadOverviewStats(supabase, {
+        scope: "national",
+        stateCode: null,
+        referenceAddition,
+      });
+      setStats(next);
+
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: feedData } = await supabase
+        .from("community_activity")
+        .select("id, feed_category, title, subtitle, state_code, created_at, icon_key")
+        .gte("created_at", fiveMinAgo)
+        .order("created_at", { ascending: false });
+      setFeed((feedData ?? []).map((r) => ({ ...r, icon_key: r.icon_key ?? null })));
+
+      if (popupOpenRef.current && popupStateRef.current) {
+        const popup = await loadStatePopupStats(supabase, popupStateRef.current);
+        setPopupData(popup);
+      }
+
+      setLastUpdatedAt(Date.now());
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[NationalOverview] refresh falló (red/Supabase)", err);
       }
     }
-    const next = await loadOverviewStats(supabase, {
-      scope: "national",
-      stateCode: null,
-      referenceAddition,
-    });
-    setStats(next);
-
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { data: feedData } = await supabase
-      .from("community_activity")
-      .select("id, feed_category, title, subtitle, state_code, created_at, icon_key")
-      .gte("created_at", fiveMinAgo)
-      .order("created_at", { ascending: false });
-    setFeed((feedData ?? []).map((r) => ({ ...r, icon_key: r.icon_key ?? null })));
-
-    if (popupOpenRef.current && popupStateRef.current) {
-      const popup = await loadStatePopupStats(supabase, popupStateRef.current);
-      setPopupData(popup);
-    }
-
-    setLastUpdatedAt(Date.now());
   }, []);
+
+  const overviewReloadBusyRef = useRef(false);
+  const overviewReloadQueuedRef = useRef(false);
+  const realtimeOverviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const kickReloadOverview = useCallback(async () => {
+    if (overviewReloadBusyRef.current) {
+      overviewReloadQueuedRef.current = true;
+      return;
+    }
+    overviewReloadBusyRef.current = true;
+    try {
+      do {
+        overviewReloadQueuedRef.current = false;
+        await reloadOverviewData();
+      } while (overviewReloadQueuedRef.current);
+    } finally {
+      overviewReloadBusyRef.current = false;
+    }
+  }, [reloadOverviewData]);
+
+  const scheduleRealtimeOverviewReload = useCallback(() => {
+    if (realtimeOverviewTimerRef.current) clearTimeout(realtimeOverviewTimerRef.current);
+    realtimeOverviewTimerRef.current = setTimeout(() => {
+      realtimeOverviewTimerRef.current = null;
+      void kickReloadOverview();
+    }, 900);
+  }, [kickReloadOverview]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -160,7 +194,7 @@ export function NationalOverview({
           "postgres_changes",
           { event: "*", schema: "public", table },
           () => {
-            void reloadOverviewData();
+            scheduleRealtimeOverviewReload();
           }
         );
       }
@@ -169,14 +203,15 @@ export function NationalOverview({
       /* Realtime unavailable */
     }
 
-    void reloadOverviewData();
-    const interval = setInterval(() => void reloadOverviewData(), 25000);
+    void kickReloadOverview();
+    const interval = setInterval(() => void kickReloadOverview(), 25000);
 
     return () => {
       clearInterval(interval);
+      if (realtimeOverviewTimerRef.current) clearTimeout(realtimeOverviewTimerRef.current);
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [reloadOverviewData]);
+  }, [kickReloadOverview, scheduleRealtimeOverviewReload]);
 
   async function openStatePopup(code: string, anchor: { x: number; y: number }) {
     setPopupState(code);

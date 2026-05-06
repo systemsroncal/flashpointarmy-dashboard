@@ -33,13 +33,23 @@ export type NotificationRow = {
   created_at: string;
 };
 
-const POLL_MS = 3500;
+/** Long URLs with hundreds of UUIDs in `.in()` tend to time out (504); keep chunks small. */
+const IN_CHUNK_SIZE = 40;
+const MAX_EVENTS = 80;
+const POLL_MS = 12_000;
+
+function chunkIds<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
 
 export function NotificationMenu({ userId }: { userId: string }) {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const knownIdsRef = useRef<Set<string> | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const open = Boolean(anchor);
 
   useEffect(() => {
@@ -51,60 +61,88 @@ export function NotificationMenu({ userId }: { userId: string }) {
     setItems([]);
   }, [userId]);
 
-  const refresh = useCallback(async () => {
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
+
+  const runRefresh = useCallback(async () => {
     const supabase = createClient();
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: events } = await supabase
-      .from("notification_events")
-      .select("id, title, body, created_at")
-      .gte("created_at", sevenDaysAgo)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    const eventRows = (events ??
-      []) as Array<{ id: string; title: string; body: string | null; created_at: string }>;
-    const eventIds = eventRows.map((e) => e.id);
-    if (!eventIds.length) {
-      setItems([]);
-      return;
+    try {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: events, error: evErr } = await supabase
+        .from("notification_events")
+        .select("id, title, body, created_at")
+        .gte("created_at", sevenDaysAgo)
+        .order("created_at", { ascending: false })
+        .limit(MAX_EVENTS);
+      if (evErr) return;
+      const eventRows = (events ??
+        []) as Array<{ id: string; title: string; body: string | null; created_at: string }>;
+      const eventIds = eventRows.map((e) => e.id);
+      if (!eventIds.length) {
+        setItems([]);
+        return;
+      }
+      const readByEvent = new Map<string, string | null>();
+      const dismissedSet = new Set<string>();
+      for (const ids of chunkIds(eventIds, IN_CHUNK_SIZE)) {
+        const [{ data: reads, error: rErr }, { data: dismissed, error: dErr }] = await Promise.all([
+          supabase.from("notification_reads").select("event_id, read_at").eq("user_id", userId).in("event_id", ids),
+          supabase.from("notification_dismissed").select("event_id").eq("user_id", userId).in("event_id", ids),
+        ]);
+        if (rErr || dErr) return;
+        for (const row of (reads ?? []) as Array<{ event_id: string; read_at: string | null }>) {
+          readByEvent.set(row.event_id, row.read_at ?? null);
+        }
+        for (const row of (dismissed ?? []) as Array<{ event_id: string }>) {
+          dismissedSet.add(row.event_id);
+        }
+      }
+      const merged: NotificationRow[] = eventRows
+        .filter((e) => !dismissedSet.has(e.id))
+        .map((e) => ({
+          id: e.id,
+          title: e.title,
+          body: e.body,
+          read_at: readByEvent.get(e.id) ?? null,
+          created_at: e.created_at,
+        }));
+      setItems(merged);
+    } catch {
+      /* Red 504 / network: keep previous items; avoid hammering Supabase */
     }
-    const [{ data: reads }, { data: dismissed }] = await Promise.all([
-      supabase.from("notification_reads").select("event_id, read_at").eq("user_id", userId).in("event_id", eventIds),
-      supabase.from("notification_dismissed").select("event_id").eq("user_id", userId).in("event_id", eventIds),
-    ]);
-    const readByEvent = new Map<string, string | null>();
-    for (const row of (reads ?? []) as Array<{ event_id: string; read_at: string | null }>) {
-      readByEvent.set(row.event_id, row.read_at ?? null);
-    }
-    const dismissedSet = new Set(
-      ((dismissed ?? []) as Array<{ event_id: string }>).map((row) => row.event_id)
-    );
-    const merged: NotificationRow[] = eventRows
-      .filter((e) => !dismissedSet.has(e.id))
-      .map((e) => ({
-        id: e.id,
-        title: e.title,
-        body: e.body,
-        read_at: readByEvent.get(e.id) ?? null,
-        created_at: e.created_at,
-      }));
-    setItems(merged);
   }, [userId]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const requestRefresh = useCallback(
+    (debounceMs: number) => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      if (debounceMs <= 0) {
+        void runRefresh();
+        return;
+      }
+      refreshTimerRef.current = setTimeout(() => {
+        refreshTimerRef.current = null;
+        void runRefresh();
+      }, debounceMs);
+    },
+    [runRefresh]
+  );
 
   useEffect(() => {
-    const t = setInterval(() => {
-      void refresh();
-    }, POLL_MS);
+    requestRefresh(0);
+  }, [requestRefresh]);
+
+  useEffect(() => {
+    const t = setInterval(() => requestRefresh(0), POLL_MS);
     return () => clearInterval(t);
-  }, [refresh]);
+  }, [requestRefresh]);
 
   useEffect(() => {
     if (!open) return;
-    void refresh();
-  }, [open, refresh]);
+    requestRefresh(0);
+  }, [open, requestRefresh]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -120,7 +158,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
             table: "notification_events",
           },
           () => {
-            void refresh();
+            requestRefresh(1200);
           }
         )
         .subscribe();
@@ -130,7 +168,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
     return () => {
       if (ch) void supabase.removeChannel(ch);
     };
-  }, [userId, refresh]);
+  }, [userId, requestRefresh]);
 
   useEffect(() => {
     const ids = items.map((n) => n.id);
@@ -164,7 +202,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
     } else {
       await supabase.from("notification_reads").delete().eq("user_id", userId).eq("event_id", id);
     }
-    void refresh();
+    requestRefresh(0);
   };
 
   const remove = async (id: string) => {
@@ -177,7 +215,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
       },
       { onConflict: "user_id,event_id" }
     );
-    void refresh();
+    requestRefresh(0);
   };
 
   return (
@@ -294,7 +332,12 @@ export function NotificationMenu({ userId }: { userId: string }) {
                         {body}
                       </Typography>
                     ) : null}
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", opacity: 0.8 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.65rem", opacity: 0.8 }}
+                      suppressHydrationWarning
+                    >
                       {new Date(n.created_at).toLocaleString()}
                     </Typography>
                   </Box>
