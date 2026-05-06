@@ -1,32 +1,27 @@
--- Protect notifications from burst storms (millions of rows/hour).
--- Strategy:
--- 1) Fast indexes for burst checks and dedupe checks.
--- 2) BEFORE INSERT guard trigger:
---    - Drops inserts when global recent volume is above threshold.
---    - Drops near-duplicate notifications per user within a short window.
+-- Legacy burst guard targeted public.notifications (indexes + BEFORE INSERT trigger).
+-- If that table was dropped in favor of notification_events (030), there is nothing to apply here.
+do $body$
+begin
+  if to_regclass('public.notifications') is null then
+    raise notice '029: skip notifications burst guard (public.notifications not present).';
+    return;
+  end if;
 
-create index if not exists idx_notifications_created_at_desc
-  on public.notifications (created_at desc);
+  execute 'create index if not exists idx_notifications_created_at_desc on public.notifications (created_at desc)';
+  execute 'create index if not exists idx_notifications_user_title_created_desc on public.notifications (user_id, title, created_at desc)';
 
-create index if not exists idx_notifications_user_title_created_desc
-  on public.notifications (user_id, title, created_at desc);
-
+  execute $fn$
 create or replace function public.notifications_guard_before_insert()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $tg$
 declare
-  -- Hard safety valve: if there are already too many recent notifications,
-  -- temporarily drop new ones to protect database health.
   burst_limit constant integer := 20000;
   burst_window constant interval := interval '10 minutes';
-
-  -- Near-duplicate guard for repeated fan-out events.
   dedupe_window constant interval := interval '15 minutes';
 begin
-  -- Fast burst check using OFFSET + LIMIT with created_at index.
   if exists (
     select 1
     from public.notifications n
@@ -38,7 +33,6 @@ begin
     return null;
   end if;
 
-  -- Drop duplicates for same recipient and same content in a short window.
   if exists (
     select 1
     from public.notifications n
@@ -53,12 +47,9 @@ begin
 
   return new;
 end;
-$$;
+$tg$
+  $fn$;
 
-drop trigger if exists trg_notifications_guard_before_insert on public.notifications;
-
-create trigger trg_notifications_guard_before_insert
-  before insert on public.notifications
-  for each row
-  execute function public.notifications_guard_before_insert();
-
+  execute 'drop trigger if exists trg_notifications_guard_before_insert on public.notifications';
+  execute 'create trigger trg_notifications_guard_before_insert before insert on public.notifications for each row execute function public.notifications_guard_before_insert()';
+end $body$;
