@@ -41,3 +41,6 @@ next-env.d.ts
 
 # TinyMCE self-hosted assets (copied from node_modules on npm install)
 /public/tinymce/
+
+# Supabase CLI local link/cache (machine-specific)
+/supabase/.temp/
