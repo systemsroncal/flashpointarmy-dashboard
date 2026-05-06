@@ -1,5 +1,10 @@
 import { CommunitySection } from "@/components/dashboard/community/CommunitySection";
 import { MODULE_SLUGS } from "@/config/modules";
+import {
+  listDashboardUsersByIds,
+  listProfilesByIds,
+  listUserRoleJoinsByUserIds,
+} from "@/lib/admin/dashboard-user-queries";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
@@ -88,14 +93,8 @@ export default async function AdminsPageContent() {
   let merged: UserRow[] = [];
 
   if (adminUserIds.length > 0) {
-    const { data } = await admin
-      .from("dashboard_users")
-      .select(
-        "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id"
-      )
-      .in("id", adminUserIds)
-      .order("email");
-    merged = (data ?? []).map((u) => ({
+    const data = await listDashboardUsersByIds(admin, adminUserIds);
+    merged = data.map((u) => ({
       ...(u as Omit<UserRow, "role_names">),
       role_names: [],
       address_line: null,
@@ -107,10 +106,7 @@ export default async function AdminsPageContent() {
 
   if (merged.length > 0) {
     const userIds = merged.map((u) => u.id);
-    const { data: profileRows } = await admin
-      .from("profiles")
-      .select("id, avatar_url, phone, address_line, city, state, zip_code")
-      .in("id", userIds);
+    const profileRows = await listProfilesByIds(admin, userIds);
     const avatarById = new Map<string, string | null>();
     const mailById = new Map<
       string,
@@ -134,13 +130,10 @@ export default async function AdminsPageContent() {
       });
     }
 
-    const { data: roleJoinRows } = await admin
-      .from("user_roles")
-      .select("user_id, roles(name)")
-      .in("user_id", userIds);
+    const roleJoinRows = await listUserRoleJoinsByUserIds(admin, userIds);
 
     const byUser = new Map<string, string[]>();
-    for (const row of roleJoinRows ?? []) {
+    for (const row of roleJoinRows) {
       const uid = row.user_id as string;
       const rel = row.roles as { name: string } | { name: string }[] | null;
       const roleName = Array.isArray(rel) ? rel[0]?.name : rel?.name;

@@ -1,5 +1,11 @@
 import { CommunitySection } from "@/components/dashboard/community/CommunitySection";
 import { MODULE_SLUGS } from "@/config/modules";
+import {
+  listAllDashboardUsers,
+  listDashboardUsersByIds,
+  listProfilesByIds,
+  listUserRoleJoinsByUserIds,
+} from "@/lib/admin/dashboard-user-queries";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
@@ -77,14 +83,8 @@ export default async function CommunityPageContent() {
       .eq("primary_chapter_id", localChapterId);
     const ids = (members ?? []).map((m: { id: string }) => m.id);
     if (ids.length > 0) {
-      const { data } = await admin
-        .from("dashboard_users")
-        .select(
-          "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id"
-        )
-        .in("id", ids)
-        .order("email");
-      merged = (data ?? []).map((u) => ({
+      const data = await listDashboardUsersByIds(admin, ids);
+      merged = data.map((u) => ({
         ...(u as Omit<UserRow, "role_names">),
         role_names: [],
         address_line: null,
@@ -94,13 +94,8 @@ export default async function CommunityPageContent() {
       }));
     }
   } else {
-    const { data } = await admin
-      .from("dashboard_users")
-      .select(
-        "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id"
-      )
-      .order("email");
-    merged = (data ?? []).map((u) => ({
+    const data = await listAllDashboardUsers(admin);
+    merged = data.map((u) => ({
       ...(u as Omit<UserRow, "role_names">),
       role_names: [],
       address_line: null,
@@ -112,10 +107,7 @@ export default async function CommunityPageContent() {
 
   if (merged.length > 0) {
     const userIds = merged.map((u) => u.id);
-    const { data: profileRows } = await admin
-      .from("profiles")
-      .select("id, avatar_url, phone, address_line, city, state, zip_code")
-      .in("id", userIds);
+    const profileRows = await listProfilesByIds(admin, userIds);
     const avatarById = new Map<string, string | null>();
     const mailById = new Map<
       string,
@@ -139,13 +131,10 @@ export default async function CommunityPageContent() {
       });
     }
 
-    const { data: roleRows } = await admin
-      .from("user_roles")
-      .select("user_id, roles(name)")
-      .in("user_id", userIds);
+    const roleRows = await listUserRoleJoinsByUserIds(admin, userIds);
 
     const byUser = new Map<string, string[]>();
-    for (const row of roleRows ?? []) {
+    for (const row of roleRows) {
       const uid = row.user_id as string;
       const rel = row.roles as { name: string } | { name: string }[] | null;
       const roleName = Array.isArray(rel) ? rel[0]?.name : rel?.name;
