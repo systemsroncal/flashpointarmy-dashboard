@@ -328,8 +328,24 @@ export async function POST(req: Request) {
 
   const stream = new ReadableStream({
     start(controller) {
-      const send = (evt: SyncEvent) =>
-        controller.enqueue(encoder.encode(`${JSON.stringify(evt)}\n`));
+      let streamEnded = false;
+      const send = (evt: SyncEvent) => {
+        if (streamEnded) return;
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify(evt)}\n`));
+        } catch {
+          streamEnded = true;
+        }
+      };
+      const endStream = () => {
+        if (streamEnded) return;
+        streamEnded = true;
+        try {
+          controller.close();
+        } catch {
+          /* already closed / client aborted */
+        }
+      };
 
       void (async () => {
         try {
@@ -736,11 +752,11 @@ export async function POST(req: Request) {
           }
 
           send({ level: "ok", message: `Sync completed. Imported: ${imported}. Omitted: ${omitted}.` });
-          controller.close();
         } catch (error) {
           const msg = error instanceof Error ? error.message : "Unknown sync error.";
           send({ level: "error", message: msg });
-          controller.close();
+        } finally {
+          endStream();
         }
       })();
     },
