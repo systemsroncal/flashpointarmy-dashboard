@@ -10,6 +10,11 @@ import {
   type ImportResultItem,
 } from "@/lib/import/bulk-import";
 import { validateImportIdentity } from "@/lib/import/validate-import-identity";
+import {
+  ensureDashboardUserMirror,
+  loadAuthUsersByEmail,
+  syncExistingUserFromFluentForm,
+} from "@/lib/import/dashboard-user-mirror";
 import { resolveChapterForMemberImport, type ChapterRow } from "@/lib/import/chapter-import";
 import { mailingForUserMetadata, userMailingAddressFromImportRow } from "@/lib/import/user-mailing-address";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -55,7 +60,7 @@ export async function POST(req: Request) {
   let chapters = (chaptersData ?? []) as ChapterRow[];
 
   const results: ImportResultItem[] = [];
-  const existingEmails = new Set<string>();
+  const existingByEmail = new Map<string, { id: string }>();
   const existingPhones = new Set<string>();
   const batchEmails = new Set<string>();
   const batchPhones = new Set<string>();
@@ -63,8 +68,15 @@ export async function POST(req: Request) {
   const emails = rows.map((r) => pickField(r, EMAIL_EXCEL_KEYS).toLowerCase()).filter(Boolean);
   const phones = rows.map((r) => pickPhoneFromImportRow(r)).filter(Boolean);
   if (emails.length > 0) {
-    const { data } = await admin.from("dashboard_users").select("email").in("email", emails);
-    for (const item of data ?? []) existingEmails.add((item.email || "").toLowerCase());
+    const { data } = await admin.from("dashboard_users").select("id,email").in("email", emails);
+    for (const item of data ?? []) {
+      const email = String(item.email || "").toLowerCase();
+      if (email) existingByEmail.set(email, { id: String((item as { id?: string }).id || "") });
+    }
+    const authByEmail = await loadAuthUsersByEmail(admin, emails);
+    for (const [email, v] of authByEmail.entries()) {
+      if (!existingByEmail.has(email)) existingByEmail.set(email, v);
+    }
   }
   if (phones.length > 0) {
     const { data } = await admin.from("profiles").select("phone").in("phone", phones);
@@ -88,10 +100,6 @@ export async function POST(req: Request) {
     const email = identity.email;
     const fn = identity.firstName;
     const ln = identity.lastName;
-    if (existingEmails.has(email) || batchEmails.has(email)) {
-      results.push({ status: "omitted", email, phone, reason: "Duplicate email." });
-      continue;
-    }
     if (phone && (existingPhones.has(phone) || batchPhones.has(phone))) {
       results.push({ status: "omitted", email, phone, reason: "Duplicate phone." });
       continue;
@@ -104,9 +112,30 @@ export async function POST(req: Request) {
     }
     chapters = chapterPick.chapters;
     const chapter = chapterPick.chapter;
+    const mailing = userMailingAddressFromImportRow(row);
+    const existing = existingByEmail.get(email);
+    if (existing?.id) {
+      const updated = await syncExistingUserFromFluentForm(admin, {
+        userId: existing.id,
+        email,
+        taskKey: "members",
+        chapterId: chapter.id,
+        firstName: fn,
+        lastName: ln,
+        phone,
+        mailing,
+        leaderRoleId: null,
+        memberRoleId,
+      });
+      if (updated.error) {
+        results.push({ status: "omitted", email, phone, reason: updated.error });
+      } else {
+        results.push({ status: "imported", email, phone, chapter: chapter.name });
+      }
+      continue;
+    }
 
     const password = phone || "Welcome123!";
-    const mailing = userMailingAddressFromImportRow(row);
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
@@ -144,8 +173,38 @@ export async function POST(req: Request) {
       continue;
     }
 
+    const displayName = `${fn} ${ln}`.trim();
+    await admin.from("profiles").update({
+      first_name: fn,
+      last_name: ln,
+      display_name: displayName,
+      primary_chapter_id: chapter.id,
+      ...(phone ? { phone } : {}),
+      address_line: mailing.address_line,
+      city: mailing.city,
+      state: mailing.state,
+      zip_code: mailing.zip_code,
+    }).eq("id", userId);
+    const mirror = await ensureDashboardUserMirror(admin, {
+      id: userId,
+      email,
+      firstName: fn,
+      lastName: ln,
+      displayName,
+      primaryChapterId: chapter.id,
+      phone,
+      mailing,
+    });
+    if (mirror.error) {
+      await admin.from("user_roles").delete().eq("user_id", userId);
+      await admin.auth.admin.deleteUser(userId);
+      results.push({ status: "omitted", email, phone, reason: mirror.error });
+      continue;
+    }
+
     batchEmails.add(email);
     if (phone) batchPhones.add(phone);
+    existingByEmail.set(email, { id: userId });
     results.push({ status: "imported", email, phone, chapter: chapter.name });
   }
 

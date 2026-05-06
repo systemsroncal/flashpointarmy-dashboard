@@ -127,6 +127,28 @@ async function loadDashboardUsersByEmail(
   return out;
 }
 
+async function loadAuthUsersByEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  emails: string[]
+): Promise<Map<string, { id: string }>> {
+  const targets = new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean));
+  const out = new Map<string, { id: string }>();
+  if (!targets.size) return out;
+  const perPage = 1000;
+  for (let page = 1; page <= 500; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers(page, perPage);
+    if (error) break;
+    const users = data?.users ?? [];
+    for (const u of users) {
+      const email = String(u.email || "").trim().toLowerCase();
+      if (!email || !targets.has(email)) continue;
+      out.set(email, { id: u.id });
+    }
+    if (users.length < perPage || out.size === targets.size) break;
+  }
+  return out;
+}
+
 /**
  * WordPress REST + Application Passwords: Basic auth.
  * Prefer FLUENT_FORM_SYNC_USER + FLUENT_FORM_SYNC_APP_PASSWORD (or FLUENT_FORM_SYNC_PASSWORD).
@@ -332,6 +354,15 @@ export async function POST(req: Request) {
                 })
                 .filter(Boolean)
             );
+            const byAuthEmail = await loadAuthUsersByEmail(
+              admin,
+              entries
+                .map((entry) => {
+                  const parsed = parseFluentFlatRow(toFlatEntry(entry));
+                  return parsed.email.trim().toLowerCase();
+                })
+                .filter(Boolean)
+            );
 
             for (const entry of entries) {
               const flat = toFlatEntry(entry);
@@ -385,7 +416,7 @@ export async function POST(req: Request) {
               }
               const chapterId = chapterRes.chapterId;
 
-              const existingDu = byEmail.get(emailNorm);
+              const existingDu = byEmail.get(emailNorm) ?? byAuthEmail.get(emailNorm);
               if (existingDu?.id) {
                 if (task.key === "leaders") {
                   const ex = await syncExistingUserFromFluentForm(admin, {
@@ -480,6 +511,29 @@ export async function POST(req: Request) {
                 },
               });
               if (createErr || !created.user?.id) {
+                if (createErr?.message && /already|registered|exists|duplicate/i.test(createErr.message)) {
+                  const fallback = byAuthEmail.get(emailNorm);
+                  if (fallback?.id) {
+                    const ex = await syncExistingUserFromFluentForm(admin, {
+                      userId: fallback.id,
+                      email: emailNorm,
+                      taskKey: "members",
+                      chapterId,
+                      firstName: firstOk,
+                      lastName: lastOk,
+                      phone,
+                      mailing,
+                      leaderRoleId,
+                      memberRoleId,
+                    });
+                    if (!ex.error) {
+                      imported += 1;
+                      send({ level: "ok", message: `Member updated: ${emailNorm}` });
+                      byEmail.set(emailNorm, { id: fallback.id });
+                      continue;
+                    }
+                  }
+                }
                 omitted += 1;
                 send({ level: "error", message: `Member create failed (${emailNorm}): ${createErr?.message || "Unknown error"}` });
                 continue;

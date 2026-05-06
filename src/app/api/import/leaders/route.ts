@@ -12,6 +12,7 @@ import {
 } from "@/lib/import/bulk-import";
 import { validateImportIdentity } from "@/lib/import/validate-import-identity";
 import { createLocalLeaderUserForChapter } from "@/lib/import/create-local-leader-user";
+import { loadAuthUsersByEmail, syncExistingUserFromFluentForm } from "@/lib/import/dashboard-user-mirror";
 import { findOrCreateChapterByImportRow } from "@/lib/import/chapter-import";
 import { userMailingAddressFromImportRow } from "@/lib/import/user-mailing-address";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -54,17 +55,24 @@ export async function POST(req: Request) {
   if (!leaderRoleId) return NextResponse.json({ error: "Role local_leader not found." }, { status: 500 });
 
   const results: ImportResultItem[] = [];
-  const existingEmails = new Set<string>();
   const existingPhones = new Set<string>();
   const batchEmails = new Set<string>();
   const batchPhones = new Set<string>();
+  const existingByEmail = new Map<string, { id: string }>();
 
   const emails = rows.map((r) => pickField(r, EMAIL_EXCEL_KEYS).toLowerCase()).filter(Boolean);
   const phones = rows.map((r) => pickPhoneFromImportRow(r)).filter(Boolean);
 
   if (emails.length > 0) {
-    const { data } = await admin.from("dashboard_users").select("email").in("email", emails);
-    for (const item of data ?? []) existingEmails.add((item.email || "").toLowerCase());
+    const { data } = await admin.from("dashboard_users").select("id,email").in("email", emails);
+    for (const item of data ?? []) {
+      const email = String(item.email || "").toLowerCase();
+      if (email) existingByEmail.set(email, { id: String((item as { id?: string }).id || "") });
+    }
+    const authByEmail = await loadAuthUsersByEmail(admin, emails);
+    for (const [email, v] of authByEmail.entries()) {
+      if (!existingByEmail.has(email)) existingByEmail.set(email, v);
+    }
   }
   if (phones.length > 0) {
     const { data } = await admin.from("profiles").select("phone").in("phone", phones);
@@ -93,10 +101,6 @@ export async function POST(req: Request) {
     const email = identity.email;
     const fn = identity.firstName;
     const ln = identity.lastName;
-    if (existingEmails.has(email) || batchEmails.has(email)) {
-      results.push({ status: "omitted", email, phone, reason: "Duplicate email." });
-      continue;
-    }
     if (phone && (existingPhones.has(phone) || batchPhones.has(phone))) {
       results.push({ status: "omitted", email, phone, reason: "Duplicate phone." });
       continue;
@@ -114,6 +118,27 @@ export async function POST(req: Request) {
     }
     const chapterId = chapterRes.chapter.id;
     const mailing = userMailingAddressFromImportRow(row);
+    const existing = existingByEmail.get(email);
+    if (existing?.id) {
+      const updated = await syncExistingUserFromFluentForm(admin, {
+        userId: existing.id,
+        email,
+        taskKey: "leaders",
+        chapterId,
+        firstName: fn,
+        lastName: ln,
+        phone,
+        mailing,
+        leaderRoleId,
+        memberRoleId: null,
+      });
+      if (updated.error) {
+        results.push({ status: "omitted", email, phone, reason: updated.error });
+      } else {
+        results.push({ status: "imported", email, phone, chapter: chapterName });
+      }
+      continue;
+    }
 
     const createdLeader = await createLocalLeaderUserForChapter(admin, {
       email,
@@ -130,6 +155,7 @@ export async function POST(req: Request) {
     }
     batchEmails.add(email);
     if (phone) batchPhones.add(phone);
+    existingByEmail.set(email, { id: createdLeader.userId });
     results.push({ status: "imported", email, phone, chapter: chapterName });
   }
 

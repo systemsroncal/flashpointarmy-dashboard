@@ -2,6 +2,28 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { UserMailingFields } from "@/lib/import/user-mailing-address";
 import { mailingForUserMetadata } from "@/lib/import/user-mailing-address";
 
+export async function loadAuthUsersByEmail(
+  admin: SupabaseClient,
+  emails: string[]
+): Promise<Map<string, { id: string }>> {
+  const targets = new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean));
+  const out = new Map<string, { id: string }>();
+  if (!targets.size) return out;
+  const perPage = 1000;
+  for (let page = 1; page <= 500; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers(page, perPage);
+    if (error) break;
+    const users = data?.users ?? [];
+    for (const u of users) {
+      const email = String(u.email || "").trim().toLowerCase();
+      if (!email || !targets.has(email)) continue;
+      out.set(email, { id: u.id });
+    }
+    if (users.length < perPage || out.size === targets.size) break;
+  }
+  return out;
+}
+
 /**
  * Ensures `public.dashboard_users` has a row for this auth user (insert if missing).
  * Import/sync used `.update()` only; if the auth trigger did not run, Community/Leaders lists skip the user.

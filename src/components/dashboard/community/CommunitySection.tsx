@@ -889,7 +889,19 @@ export function CommunitySection({
                 </Button>
               ) : null}
               {!isLeaders && !isAdmins ? (
-                <Button variant="outlined" size="small" onClick={() => setSyncOpen(true)}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    // Community sync should default to all targets on each open.
+                    setSyncChapters(true);
+                    setSyncLeaders(true);
+                    setSyncMembers(true);
+                    setSyncError(null);
+                    setSyncLogs([]);
+                    setSyncOpen(true);
+                  }}
+                >
                   Sync Fluent Forms
                 </Button>
               ) : null}

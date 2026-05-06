@@ -7,6 +7,7 @@ import {
 } from "@/lib/external/fluent-form-user";
 import { resolveChapterIdForExternalWebhook } from "@/lib/external/resolve-webhook-chapter";
 import { createLocalLeaderUserForChapter } from "@/lib/import/create-local-leader-user";
+import { ensureDashboardUserMirror, loadAuthUsersByEmail, syncExistingUserFromFluentForm } from "@/lib/import/dashboard-user-mirror";
 import {
   mailingForUserMetadata,
   userMailingAddressFromImportRow,
@@ -120,10 +121,9 @@ export async function POST(req: Request) {
   }
   const { chapterId, chapterCreated } = chapterRes;
 
+  const authByEmail = await loadAuthUsersByEmail(admin, [email]);
   const { data: dup } = await admin.from("dashboard_users").select("id").ilike("email", email).maybeSingle();
-  if (dup?.id) {
-    return NextResponse.json({ error: "This email is already registered." }, { status: 409 });
-  }
+  const existingUserId = dup?.id || authByEmail.get(email)?.id || null;
 
   if (formId === 1) {
     const { data: roleRow, error: roleLookupErr } = await admin
@@ -133,6 +133,32 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (roleLookupErr || !roleRow?.id) {
       return NextResponse.json({ error: "Role local_leader not found." }, { status: 500 });
+    }
+
+    if (existingUserId) {
+      const updated = await syncExistingUserFromFluentForm(admin, {
+        userId: existingUserId,
+        email,
+        taskKey: "leaders",
+        chapterId,
+        firstName,
+        lastName,
+        phone,
+        mailing,
+        leaderRoleId: roleRow.id as string,
+        memberRoleId: null,
+      });
+      if (updated.error) return NextResponse.json({ error: updated.error }, { status: 500 });
+      return NextResponse.json({
+        ok: true,
+        user_id: existingUserId,
+        email,
+        role: "local_leader",
+        form_id: formId,
+        chapter_id: chapterId,
+        chapter_created: chapterCreated,
+        updated_existing: true,
+      });
     }
 
     const createdLeader = await createLocalLeaderUserForChapter(admin, {
@@ -164,6 +190,42 @@ export async function POST(req: Request) {
   }
 
   /* form_id === 4 — member */
+  const { data: roleRow, error: roleLookupErr } = await admin
+    .from("roles")
+    .select("id")
+    .eq("name", "member")
+    .maybeSingle();
+
+  if (roleLookupErr || !roleRow?.id) {
+    return NextResponse.json({ error: "Role member not found." }, { status: 500 });
+  }
+
+  if (existingUserId) {
+    const updated = await syncExistingUserFromFluentForm(admin, {
+      userId: existingUserId,
+      email,
+      taskKey: "members",
+      chapterId,
+      firstName,
+      lastName,
+      phone,
+      mailing,
+      leaderRoleId: null,
+      memberRoleId: roleRow.id as string,
+    });
+    if (updated.error) return NextResponse.json({ error: updated.error }, { status: 500 });
+    return NextResponse.json({
+      ok: true,
+      user_id: existingUserId,
+      email,
+      role: "member",
+      form_id: formId,
+      chapter_id: chapterId,
+      chapter_created: chapterCreated,
+      updated_existing: true,
+    });
+  }
+
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
     password,
@@ -184,17 +246,6 @@ export async function POST(req: Request) {
   }
 
   const newId = created.user.id;
-
-  const { data: roleRow, error: roleLookupErr } = await admin
-    .from("roles")
-    .select("id")
-    .eq("name", "member")
-    .maybeSingle();
-
-  if (roleLookupErr || !roleRow?.id) {
-    await admin.auth.admin.deleteUser(newId);
-    return NextResponse.json({ error: "Role member not found." }, { status: 500 });
-  }
 
   await admin.from("user_roles").delete().eq("user_id", newId);
   const { error: roleInsErr } = await admin.from("user_roles").insert({ user_id: newId, role_id: roleRow.id });
@@ -244,21 +295,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: profErr.message || "Could not sync profile." }, { status: 500 });
   }
 
-  await admin
-    .from("dashboard_users")
-    .update({
-      first_name: firstName,
-      last_name: lastName,
-      display_name: displayName,
-      primary_chapter_id: chapterId,
-      ...(phone ? { phone } : {}),
-      address_line: mailing.address_line,
-      city: mailing.city,
-      state: mailing.state,
-      zip_code: mailing.zip_code,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", newId);
+  const mirror = await ensureDashboardUserMirror(admin, {
+    id: newId,
+    email,
+    firstName,
+    lastName,
+    displayName,
+    primaryChapterId: chapterId,
+    phone,
+    mailing,
+  });
+  if (mirror.error) {
+    await admin.from("user_roles").delete().eq("user_id", newId);
+    await admin.auth.admin.deleteUser(newId);
+    return NextResponse.json({ error: mirror.error }, { status: 500 });
+  }
 
   return NextResponse.json({
     ok: true,
