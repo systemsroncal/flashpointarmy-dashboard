@@ -43,6 +43,42 @@ type FluentEntry = Record<string, unknown>;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function toErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return "";
+}
+
+function isStatementTimeoutError(err: unknown): boolean {
+  const msg = toErrorMessage(err).toLowerCase();
+  return msg.includes("statement timeout") || msg.includes("canceling statement due to statement timeout");
+}
+
+async function withStatementTimeoutRetry<T>(
+  task: () => Promise<T>,
+  opts?: { attempts?: number; initialDelayMs?: number; factor?: number }
+): Promise<T> {
+  const attempts = Math.max(1, opts?.attempts ?? 4);
+  const factor = Math.max(1, opts?.factor ?? 2);
+  let delayMs = Math.max(50, opts?.initialDelayMs ?? 250);
+  let lastErr: unknown = null;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await task();
+    } catch (err) {
+      lastErr = err;
+      if (!isStatementTimeoutError(err) || i === attempts - 1) throw err;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      delayMs = Math.floor(delayMs * factor);
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Statement timeout retry failed.");
+}
+
 const DEFAULT_FORM_IDS = {
   chapters: Number(process.env.FLUENT_FORM_SYNC_CHAPTERS_FORM_ID || 4),
   leaders: Number(process.env.FLUENT_FORM_SYNC_LEADERS_FORM_ID || 4),
@@ -310,27 +346,88 @@ export async function POST(req: Request) {
             chapterRows.map((c) => String(c.name || "").trim().toLowerCase()).filter(Boolean)
           );
           const chapterIds = new Set(chapterRows.map((c) => c.id));
+          const reservedLeaderChapterIds = new Set<string>();
 
           const resolveChapterForSyncRow = async (opts: {
-            formId: number;
+            taskKey: "leaders" | "members";
             flat: FlatRow;
             primaryChapterId: string;
+            existingUserId?: string | null;
           }): Promise<{ chapterId: string } | { error: string }> => {
             const trimmed = opts.primaryChapterId.trim();
             if (UUID_RE.test(trimmed) && chapterIds.has(trimmed)) {
               return { chapterId: trimmed };
             }
-            if (opts.formId === 1) {
-              const res = await findOrCreateChapterByImportRow(admin, opts.flat, systemUserId);
-              if ("error" in res) return { error: res.error };
-              if (res.created && !chapterRows.some((c) => c.id === res.chapter.id)) {
-                chapterRows = [...chapterRows, res.chapter];
-                chapterNames.add(res.chapter.name.trim().toLowerCase());
-                chapterIds.add(res.chapter.id);
+            if (opts.taskKey === "leaders") {
+              const chapterName = pickChapterName(opts.flat).trim();
+              if (!chapterName) return { error: "Missing chapter name." };
+              const groupPattern = new RegExp(`^${escapeRegex(chapterName)} Group (\\d+)$`, "i");
+              const chapterMatches = chapterRows.filter((c) => {
+                const name = String(c.name || "").trim();
+                return name.localeCompare(chapterName, undefined, { sensitivity: "accent" }) === 0 || groupPattern.test(name);
+              });
+              const chapterMatchIds = chapterMatches.map((c) => c.id);
+
+              if (opts.existingUserId) {
+                const { data: linkedRows } = await admin
+                  .from("chapter_leaders")
+                  .select("chapter_id")
+                  .eq("user_id", opts.existingUserId);
+                const linked = new Set((linkedRows ?? []).map((r) => String((r as { chapter_id?: string }).chapter_id || "")));
+                const sameFamily = chapterMatches.find((c) => linked.has(c.id));
+                if (sameFamily?.id) {
+                  reservedLeaderChapterIds.add(sameFamily.id);
+                  return { chapterId: sameFamily.id };
+                }
               }
-              return { chapterId: res.chapter.id };
+
+              if (chapterMatchIds.length) {
+                const { data: assignedRows } = await admin
+                  .from("chapter_leaders")
+                  .select("chapter_id")
+                  .in("chapter_id", chapterMatchIds);
+                const occupied = new Set(
+                  (assignedRows ?? []).map((r) => String((r as { chapter_id?: string }).chapter_id || ""))
+                );
+                const freeExisting = chapterMatches.find(
+                  (c) => !occupied.has(c.id) && !reservedLeaderChapterIds.has(c.id)
+                );
+                if (freeExisting?.id) {
+                  reservedLeaderChapterIds.add(freeExisting.id);
+                  return { chapterId: freeExisting.id };
+                }
+              }
+
+              let maxGroup = 0;
+              for (const c of chapterMatches) {
+                const name = String(c.name || "").trim();
+                const groupMatch = name.match(groupPattern);
+                if (groupMatch?.[1]) {
+                  const n = Number(groupMatch[1]);
+                  if (Number.isFinite(n)) maxGroup = Math.max(maxGroup, n);
+                }
+              }
+              const nextName = `${chapterName} Group ${maxGroup + 1}`;
+              const syntheticFlat: FlatRow = {
+                ...opts.flat,
+                "Church Affiliation": nextName,
+                input_text_1: nextName,
+              };
+              const grouped = await withStatementTimeoutRetry(() =>
+                findOrCreateChapterByImportRow(admin, syntheticFlat, systemUserId)
+              );
+              if ("error" in grouped) return { error: grouped.error };
+              if (!chapterRows.some((c) => c.id === grouped.chapter.id)) {
+                chapterRows = [...chapterRows, grouped.chapter];
+                chapterNames.add(grouped.chapter.name.trim().toLowerCase());
+                chapterIds.add(grouped.chapter.id);
+              }
+              reservedLeaderChapterIds.add(grouped.chapter.id);
+              return { chapterId: grouped.chapter.id };
             }
-            const res = await resolveChapterForMemberImport(admin, opts.flat, chapterRows, systemUserId);
+            const res = await withStatementTimeoutRetry(() =>
+              resolveChapterForMemberImport(admin, opts.flat, chapterRows, systemUserId)
+            );
             if ("error" in res) return { error: res.error };
             chapterRows = res.chapters;
             for (const ch of chapterRows) {
@@ -381,7 +478,9 @@ export async function POST(req: Request) {
                   send({ level: "warn", message: `Chapter omitted (already exists): ${chapterName}` });
                   continue;
                 }
-                const res = await findOrCreateChapterByImportRow(admin, flat, systemUserId);
+                const res = await withStatementTimeoutRetry(() =>
+                  findOrCreateChapterByImportRow(admin, flat, systemUserId)
+                );
                 if ("error" in res) {
                   omitted += 1;
                   send({ level: "error", message: `Chapter error (${chapterName}): ${res.error}` });
@@ -402,12 +501,14 @@ export async function POST(req: Request) {
               const emailNorm = identity.email;
               const firstOk = identity.firstName;
               const lastOk = identity.lastName;
+              const existingDu = byEmail.get(emailNorm) ?? byAuthEmail.get(emailNorm);
 
               /** Match webhook strategy but with in-memory chapter cache for large sync runs. */
               const chapterRes = await resolveChapterForSyncRow({
-                formId: task.formId,
+                taskKey: task.key,
                 flat,
                 primaryChapterId,
+                existingUserId: existingDu?.id ?? null,
               });
               if ("error" in chapterRes) {
                 omitted += 1;
@@ -416,21 +517,22 @@ export async function POST(req: Request) {
               }
               const chapterId = chapterRes.chapterId;
 
-              const existingDu = byEmail.get(emailNorm) ?? byAuthEmail.get(emailNorm);
               if (existingDu?.id) {
                 if (task.key === "leaders") {
-                  const ex = await syncExistingUserFromFluentForm(admin, {
-                    userId: existingDu.id,
-                    email: emailNorm,
-                    taskKey: "leaders",
-                    chapterId,
-                    firstName: firstOk,
-                    lastName: lastOk,
-                    phone,
-                    mailing,
-                    leaderRoleId,
-                    memberRoleId,
-                  });
+                  const ex = await withStatementTimeoutRetry(() =>
+                    syncExistingUserFromFluentForm(admin, {
+                      userId: existingDu.id,
+                      email: emailNorm,
+                      taskKey: "leaders",
+                      chapterId,
+                      firstName: firstOk,
+                      lastName: lastOk,
+                      phone,
+                      mailing,
+                      leaderRoleId,
+                      memberRoleId,
+                    })
+                  );
                   if (ex.error) {
                     omitted += 1;
                     send({ level: "error", message: `Leader existing-user sync (${emailNorm}): ${ex.error}` });
@@ -471,16 +573,18 @@ export async function POST(req: Request) {
                   send({ level: "error", message: "Role local_leader not found." });
                   continue;
                 }
-                const leader = await createLocalLeaderUserForChapter(admin, {
-                  email: emailNorm,
-                  firstName: firstOk,
-                  lastName: lastOk,
-                  phone,
-                  chapterId,
-                  leaderRoleId,
-                  passwordOverride: password,
-                  mailing,
-                });
+                const leader = await withStatementTimeoutRetry(() =>
+                  createLocalLeaderUserForChapter(admin, {
+                    email: emailNorm,
+                    firstName: firstOk,
+                    lastName: lastOk,
+                    phone,
+                    chapterId,
+                    leaderRoleId,
+                    passwordOverride: password,
+                    mailing,
+                  })
+                );
                 if ("error" in leader) {
                   omitted += 1;
                   send({ level: "error", message: `Leader error (${emailNorm}): ${leader.error}` });

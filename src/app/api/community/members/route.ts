@@ -6,6 +6,22 @@ import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
+type FilterableQuery = {
+  eq: (column: string, value: string) => FilterableQuery;
+};
+
+type RoleRelation = { name: string } | { name: string }[] | null;
+type UserRoleRow = { user_id: string; roles: RoleRelation };
+type ProfileRow = {
+  id: string;
+  avatar_url: string | null;
+  phone: string | null;
+  address_line: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
+};
+
 export async function GET(req: Request) {
   const supabase = await createClient();
   const {
@@ -39,8 +55,8 @@ export async function GET(req: Request) {
 
   const admin = createAdminClient();
 
-  const applyBaseFilters = <T>(query: T): T => {
-    let qx = query as any;
+  const applyBaseFilters = <T extends FilterableQuery>(query: T): T => {
+    let qx: FilterableQuery = query;
     if (!elevated && isLocalLeader && localChapterId) {
       qx = qx.eq("primary_chapter_id", localChapterId);
     }
@@ -62,16 +78,45 @@ export async function GET(req: Request) {
       .limit(20);
     lookup = applyBaseFilters(lookup);
     const { data } = await lookup;
-    const options = (data ?? []).map((row) => {
-      const first = (row as { first_name?: string | null }).first_name ?? "";
-      const last = (row as { last_name?: string | null }).last_name ?? "";
-      const display = (row as { display_name?: string | null }).display_name ?? "";
-      const full = `${first} ${last}`.trim() || display || (row as { email: string }).email;
-      return {
-        id: String((row as { id: string }).id),
-        label: `${full} — ${(row as { email: string }).email}`,
-      };
-    });
+    const rows = (data ?? []) as Array<{
+      id: string;
+      email: string;
+      first_name: string | null;
+      last_name: string | null;
+      display_name: string | null;
+    }>;
+    const ids = rows.map((r) => r.id);
+    const { data: roleRows } = ids.length
+      ? await admin.from("user_roles").select("user_id, roles(name)").in("user_id", ids)
+      : { data: [] as UserRoleRow[] };
+    const roleByUser = new Map<string, string[]>();
+    for (const row of (roleRows ?? []) as UserRoleRow[]) {
+      const uid = String(row.user_id);
+      const rel = row.roles;
+      const roleName = Array.isArray(rel) ? rel[0]?.name : rel?.name;
+      if (!roleName) continue;
+      const arr = roleByUser.get(uid) ?? [];
+      if (!arr.includes(roleName)) arr.push(roleName);
+      roleByUser.set(uid, arr);
+    }
+    const options = rows
+      .filter((row) => {
+        const names = roleByUser.get(row.id) ?? [];
+        return (
+          names.includes("member") &&
+          !names.some((n) => n === "local_leader" || n === "admin" || n === "super_admin")
+        );
+      })
+      .map((row) => {
+        const first = row.first_name ?? "";
+        const last = row.last_name ?? "";
+        const display = row.display_name ?? "";
+        const full = `${first} ${last}`.trim() || display || row.email;
+        return {
+          id: row.id,
+          label: `${full} — ${row.email}`,
+        };
+      });
     return NextResponse.json({ options });
   }
 
@@ -111,17 +156,17 @@ export async function GET(req: Request) {
         .from("profiles")
         .select("id, avatar_url, phone, address_line, city, state, zip_code")
         .in("id", userIds)
-    : { data: [] as any[] };
+    : { data: [] as ProfileRow[] };
   const { data: roleRows } = userIds.length
     ? await admin.from("user_roles").select("user_id, roles(name)").in("user_id", userIds)
-    : { data: [] as any[] };
+    : { data: [] as UserRoleRow[] };
 
-  const profileById = new Map<string, any>();
-  for (const p of profileRows ?? []) profileById.set(String((p as any).id), p);
+  const profileById = new Map<string, ProfileRow>();
+  for (const p of (profileRows ?? []) as ProfileRow[]) profileById.set(String(p.id), p);
   const roleByUser = new Map<string, string[]>();
-  for (const r of roleRows ?? []) {
-    const uid = String((r as any).user_id);
-    const rel = (r as any).roles as { name: string } | { name: string }[] | null;
+  for (const r of (roleRows ?? []) as UserRoleRow[]) {
+    const uid = String(r.user_id);
+    const rel = r.roles;
     const roleName = Array.isArray(rel) ? rel[0]?.name : rel?.name;
     if (!roleName) continue;
     const arr = roleByUser.get(uid) ?? [];

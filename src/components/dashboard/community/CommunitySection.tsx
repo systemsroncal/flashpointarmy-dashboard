@@ -161,6 +161,7 @@ export function CommunitySection({
   const [totalCount, setTotalCount] = useState(initialUsers.length);
   const [tableLoading, setTableLoading] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedSearchOption, setSelectedSearchOption] = useState<{ id: string; label: string } | null>(null);
   const [searchOptions, setSearchOptions] = useState<Array<{ id: string; label: string }>>([]);
   const [searchInput, setSearchInput] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
@@ -391,6 +392,7 @@ export function CommunitySection({
       if (!res.ok) return;
       setUsers(payload.rows ?? []);
       setTotalCount(payload.total ?? 0);
+      if (!selectedUserId) setSelectedSearchOption(null);
     } finally {
       setTableLoading(false);
     }
@@ -974,11 +976,20 @@ export function CommunitySection({
             <Autocomplete
               options={searchOptions}
               loading={searchLoading}
-              value={searchOptions.find((o) => o.id === selectedUserId) ?? null}
+              value={selectedSearchOption}
+              isOptionEqualToValue={(opt, val) => opt.id === val.id}
               inputValue={searchInput}
-              onInputChange={(_, v) => setSearchInput(v)}
+              onInputChange={(_, v, reason) => {
+                setSearchInput(v);
+                if (reason === "clear") {
+                  setSelectedUserId("");
+                  setSelectedSearchOption(null);
+                  setPage(0);
+                }
+              }}
               onChange={(_, option) => {
                 setSelectedUserId(option?.id ?? "");
+                setSelectedSearchOption(option ?? null);
                 setPage(0);
               }}
               clearOnEscape
