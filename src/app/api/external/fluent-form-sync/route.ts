@@ -640,7 +640,7 @@ export async function POST(req: Request) {
                 });
                 await new Promise((resolve) => setTimeout(resolve, attempt * 250));
               }
-              if (createErr || !created.user?.id) {
+              if (createErr || !created?.user?.id) {
                 const alreadyExists = Boolean(
                   createErr?.message && /already|registered|exists|duplicate/i.test(createErr.message)
                 );
@@ -678,7 +678,7 @@ export async function POST(req: Request) {
                 send({ level: "error", message: `Member create failed (${emailNorm}): ${createErr?.message || "Unknown error"}` });
                 continue;
               }
-              const newId = created.user.id;
+              const newId = created!.user!.id;
 
               await admin.from("user_roles").delete().eq("user_id", newId);
               const { error: roleErr } = await admin.from("user_roles").insert({ user_id: newId, role_id: memberRoleId });
