@@ -58,6 +58,18 @@ function isStatementTimeoutError(err: unknown): boolean {
   return msg.includes("statement timeout") || msg.includes("canceling statement due to statement timeout");
 }
 
+function isTransientCreateUserErrorMessage(msg: string): boolean {
+  const v = msg.trim().toLowerCase();
+  if (!v || v === "{}") return true;
+  return (
+    v.includes("database error") ||
+    v.includes("timeout") ||
+    v.includes("rate limit") ||
+    v.includes("internal") ||
+    v.includes("temporar")
+  );
+}
+
 async function withStatementTimeoutRetry<T>(
   task: () => Promise<T>,
   opts?: { attempts?: number; initialDelayMs?: number; factor?: number }
@@ -602,34 +614,58 @@ export async function POST(req: Request) {
                 continue;
               }
 
-              const { data: created, error: createErr } = await admin.auth.admin.createUser({
-                email: emailNorm,
-                password: password.length >= 8 ? password : phone || "Welcome123!",
-                email_confirm: true,
-                user_metadata: {
-                  first_name: firstOk,
-                  last_name: lastOk,
-                  primary_chapter_id: chapterId,
-                  phone: phone || null,
-                  ...mailingForUserMetadata(mailing),
-                },
-              });
+              let created: Awaited<ReturnType<typeof admin.auth.admin.createUser>>["data"] | null = null;
+              let createErr: Awaited<ReturnType<typeof admin.auth.admin.createUser>>["error"] | null = null;
+              for (let attempt = 1; attempt <= 3; attempt += 1) {
+                const res = await admin.auth.admin.createUser({
+                  email: emailNorm,
+                  password: password.length >= 8 ? password : phone || "Welcome123!",
+                  email_confirm: true,
+                  user_metadata: {
+                    first_name: firstOk,
+                    last_name: lastOk,
+                    primary_chapter_id: chapterId,
+                    phone: phone || null,
+                    ...mailingForUserMetadata(mailing),
+                  },
+                });
+                created = res.data;
+                createErr = res.error;
+                if (!createErr && created.user?.id) break;
+                const errMsg = createErr?.message ?? "";
+                if (!isTransientCreateUserErrorMessage(errMsg) || attempt >= 3) break;
+                send({
+                  level: "warn",
+                  message: `Transient member create error (${emailNorm}) attempt ${attempt}/3: ${errMsg || "unknown"}`,
+                });
+                await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+              }
               if (createErr || !created.user?.id) {
-                if (createErr?.message && /already|registered|exists|duplicate/i.test(createErr.message)) {
-                  const fallback = byAuthEmail.get(emailNorm);
+                const alreadyExists = Boolean(
+                  createErr?.message && /already|registered|exists|duplicate/i.test(createErr.message)
+                );
+                if (alreadyExists || isTransientCreateUserErrorMessage(createErr?.message ?? "")) {
+                  let fallback = byAuthEmail.get(emailNorm);
+                  if (!fallback?.id) {
+                    const looked = await loadAuthUsersByEmail(admin, [emailNorm]);
+                    fallback = looked.get(emailNorm);
+                    if (fallback?.id) byAuthEmail.set(emailNorm, { id: fallback.id });
+                  }
                   if (fallback?.id) {
-                    const ex = await syncExistingUserFromFluentForm(admin, {
-                      userId: fallback.id,
-                      email: emailNorm,
-                      taskKey: "members",
-                      chapterId,
-                      firstName: firstOk,
-                      lastName: lastOk,
-                      phone,
-                      mailing,
-                      leaderRoleId,
-                      memberRoleId,
-                    });
+                    const ex = await withStatementTimeoutRetry(() =>
+                      syncExistingUserFromFluentForm(admin, {
+                        userId: fallback.id,
+                        email: emailNorm,
+                        taskKey: "members",
+                        chapterId,
+                        firstName: firstOk,
+                        lastName: lastOk,
+                        phone,
+                        mailing,
+                        leaderRoleId,
+                        memberRoleId,
+                      })
+                    );
                     if (!ex.error) {
                       imported += 1;
                       send({ level: "ok", message: `Member updated: ${emailNorm}` });

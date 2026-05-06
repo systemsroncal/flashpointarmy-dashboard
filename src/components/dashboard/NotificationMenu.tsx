@@ -54,14 +54,40 @@ export function NotificationMenu({ userId }: { userId: string }) {
   const refresh = useCallback(async () => {
     const supabase = createClient();
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data } = await supabase
-      .from("notifications")
-      .select("id, title, body, read_at, created_at")
-      .eq("user_id", userId)
+    const { data: events } = await supabase
+      .from("notification_events")
+      .select("id, title, body, created_at")
       .gte("created_at", sevenDaysAgo)
       .order("created_at", { ascending: false })
       .limit(200);
-    setItems((data as NotificationRow[]) ?? []);
+    const eventRows = (events ??
+      []) as Array<{ id: string; title: string; body: string | null; created_at: string }>;
+    const eventIds = eventRows.map((e) => e.id);
+    if (!eventIds.length) {
+      setItems([]);
+      return;
+    }
+    const [{ data: reads }, { data: dismissed }] = await Promise.all([
+      supabase.from("notification_reads").select("event_id, read_at").eq("user_id", userId).in("event_id", eventIds),
+      supabase.from("notification_dismissed").select("event_id").eq("user_id", userId).in("event_id", eventIds),
+    ]);
+    const readByEvent = new Map<string, string | null>();
+    for (const row of (reads ?? []) as Array<{ event_id: string; read_at: string | null }>) {
+      readByEvent.set(row.event_id, row.read_at ?? null);
+    }
+    const dismissedSet = new Set(
+      ((dismissed ?? []) as Array<{ event_id: string }>).map((row) => row.event_id)
+    );
+    const merged: NotificationRow[] = eventRows
+      .filter((e) => !dismissedSet.has(e.id))
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        body: e.body,
+        read_at: readByEvent.get(e.id) ?? null,
+        created_at: e.created_at,
+      }));
+    setItems(merged);
   }, [userId]);
 
   useEffect(() => {
@@ -91,8 +117,7 @@ export function NotificationMenu({ userId }: { userId: string }) {
           {
             event: "INSERT",
             schema: "public",
-            table: "notifications",
-            filter: `user_id=eq.${userId}`,
+            table: "notification_events",
           },
           () => {
             void refresh();
@@ -127,16 +152,31 @@ export function NotificationMenu({ userId }: { userId: string }) {
 
   const setRead = async (id: string, read: boolean) => {
     const supabase = createClient();
-    await supabase
-      .from("notifications")
-      .update({ read_at: read ? new Date().toISOString() : null })
-      .eq("id", id);
+    if (read) {
+      await supabase.from("notification_reads").upsert(
+        {
+          user_id: userId,
+          event_id: id,
+          read_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,event_id" }
+      );
+    } else {
+      await supabase.from("notification_reads").delete().eq("user_id", userId).eq("event_id", id);
+    }
     void refresh();
   };
 
   const remove = async (id: string) => {
     const supabase = createClient();
-    await supabase.from("notifications").delete().eq("id", id);
+    await supabase.from("notification_dismissed").upsert(
+      {
+        user_id: userId,
+        event_id: id,
+        dismissed_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,event_id" }
+    );
     void refresh();
   };
 
