@@ -26,5 +26,24 @@ export const createClient = () => {
       `NEXT_PUBLIC_SUPABASE_URL no es una URL válida (valor actual: "${url.slice(0, 40)}…").`
     );
   }
-  return createBrowserClient(url, key);
+  const isDev = process.env.NODE_ENV === "development";
+  return createBrowserClient(url, key, {
+    ...(isDev
+      ? {
+          global: {
+            fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+              try {
+                return await fetch(input, init);
+              } catch (err) {
+                console.error(
+                  "[Supabase] Fallo de red hacia Auth/API. Revisa URL y anon key en .env.local, VPN/firewall, y que el proyecto no esté pausado.",
+                  { url: String(input), error: err }
+                );
+                throw err;
+              }
+            },
+          },
+        }
+      : {}),
+  });
 };
