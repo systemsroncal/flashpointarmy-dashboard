@@ -3,6 +3,7 @@
 import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
 import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles";
+import { formatAuthSignInError } from "@/utils/supabase/auth-errors";
 import { createClient } from "@/utils/supabase/client";
 import ArrowForward from "@mui/icons-material/ArrowForward";
 import { Box, Button, Link as MuiLink, TextField, Typography } from "@mui/material";
@@ -30,18 +31,20 @@ function LoginForm() {
         password,
       });
       if (err) {
-        const msg = err.message || "";
-        if (/failed to fetch|network|load failed/i.test(msg)) {
-          setError(
-            `${msg}. Comprueba NEXT_PUBLIC_SUPABASE_URL y la clave anon en .env.local, que el proyecto Supabase esté activo y que no bloquee el navegador extensiones o la red.`
-          );
-        } else {
-          setError(msg);
-        }
+        setError(formatAuthSignInError(err));
         return;
       }
-      router.push(redirectTo);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        setError(
+          "El inicio de sesión no dejó sesión en el navegador. Prueba sin bloqueo de cookies, otra ventana privada, o revisa que la URL del sitio coincida con la configuración de Supabase (Auth → URL)."
+        );
+        return;
+      }
       router.refresh();
+      router.push(redirectTo);
     } catch (unknownErr) {
       setError(
         unknownErr instanceof Error
