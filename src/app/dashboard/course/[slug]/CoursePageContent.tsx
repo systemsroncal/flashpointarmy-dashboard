@@ -1,6 +1,7 @@
 import { CourseGridClient, type SessionCardModel } from "@/components/courses/CourseGridClient";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
@@ -72,6 +73,9 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   });
 
   const authorLabel = (course.author_display_name as string | null)?.trim() || "FlashPoint Team";
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  const canEditCourse = isElevatedRole(roleNames);
+  const editCourseHref = canEditCourse ? `/dashboard/courses/${course.id}/edit` : null;
 
   return (
     <Box
@@ -90,6 +94,7 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
         courseTitle={course.title as string}
         authorLabel={authorLabel}
         sessions={cards}
+        editCourseHref={editCourseHref}
       />
     </Box>
   );

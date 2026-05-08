@@ -114,6 +114,12 @@ const NAV: NavItem[] = [
     icon: <GroupsIcon />,
   },
   {
+    label: "Leaders",
+    href: "/dashboard/leaders",
+    module: MODULE_SLUGS.leaders,
+    icon: <MilitaryTechIcon />,
+  },
+  {
     label: "Community",
     href: "/dashboard/community",
     module: MODULE_SLUGS.community,
@@ -124,12 +130,6 @@ const NAV: NavItem[] = [
     href: "/dashboard/gatherings",
     module: MODULE_SLUGS.gatherings,
     icon: <EventIcon />,
-  },
-  {
-    label: "Leaders",
-    href: "/dashboard/leaders",
-    module: MODULE_SLUGS.leaders,
-    icon: <MilitaryTechIcon />,
   },
   {
     label: "Movilization",

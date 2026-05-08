@@ -1,9 +1,10 @@
 "use client";
 
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import EditIcon from "@mui/icons-material/Edit";
 import LockIcon from "@mui/icons-material/Lock";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Button, Paper, Typography } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -21,19 +22,35 @@ export function CourseGridClient({
   courseTitle,
   authorLabel,
   sessions,
+  editCourseHref,
 }: {
   courseSlug: string;
   courseTitle: string;
   authorLabel: string;
   sessions: SessionCardModel[];
+  editCourseHref?: string | null;
 }) {
   const sorted = [...sessions].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ fontWeight: 900, color: "#fff", mb: 2 }}>
-        {courseTitle}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, mb: 2 }}>
+        <Typography variant="h5" sx={{ fontWeight: 900, color: "#fff" }}>
+          {courseTitle}
+        </Typography>
+        {editCourseHref ? (
+          <Button
+            component={Link}
+            href={editCourseHref}
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon fontSize="small" />}
+            sx={{ flexShrink: 0 }}
+          >
+            Edit course
+          </Button>
+        ) : null}
+      </Box>
       <Paper
         sx={{
           p: { xs: 1.5, sm: 2 },
