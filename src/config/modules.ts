@@ -18,6 +18,8 @@ export const MODULE_SLUGS = {
   logs: "logs",
   adminRoles: "admin_roles",
   emails: "emails",
+  /** Nav placeholder; accent color #c32020 in shell. */
+  movilization: "movilization",
 } as const;
 
 export type ModuleSlug = (typeof MODULE_SLUGS)[keyof typeof MODULE_SLUGS];

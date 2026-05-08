@@ -121,11 +121,14 @@ export default async function SessionPageContent({
     }
   }
 
+  const sortedSessionIds = sessions.map((s) => s.id as string);
+
   return (
     <CourseSessionPlayer
       courseSlug={course.slug as string}
+      courseTitle={course.title as string}
+      sortedSessionIds={sortedSessionIds}
       sessionId={current.id}
-      sessionSlug={current.slug as string}
       sessionTitle={current.title as string}
       sessionSubtitle={(current.subtitle as string | null) ?? null}
       coverImageUrl={(current.cover_image_url as string | null) ?? null}

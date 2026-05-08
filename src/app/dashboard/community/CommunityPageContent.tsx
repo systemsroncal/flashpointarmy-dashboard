@@ -23,11 +23,11 @@ export default async function CommunityPageContent() {
     );
   }
 
-  const create = can(permissions, MODULE_SLUGS.community, "create");
-  const updatePerm = can(permissions, MODULE_SLUGS.community, "update");
-  const deletePerm = can(permissions, MODULE_SLUGS.community, "delete");
   const roles = await loadUserRoleNames(supabase, user.id);
   const elevated = isElevatedRole(roles);
+  const create = can(permissions, MODULE_SLUGS.community, "create") && elevated;
+  const updatePerm = can(permissions, MODULE_SLUGS.community, "update") && elevated;
+  const deletePerm = can(permissions, MODULE_SLUGS.community, "delete") && elevated;
   const isSuperAdmin = roles.includes("super_admin");
   const isLocalLeader = roles.includes("local_leader");
 

@@ -13,6 +13,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Divider,
   Drawer,
   IconButton,
@@ -33,6 +34,13 @@ type ProfileRow = {
   state: string | null;
   zip_code: string | null;
 };
+
+function formatRoleSlug(slug: string): string {
+  return slug
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
 
 function formatStateForDisplay(code: string | null | undefined): string {
   const c = code?.trim();
@@ -278,6 +286,18 @@ export function UserProfileDrawer({
               <Typography variant="body2" color="text.secondary">
                 {du.email}
               </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                Role in dashboard
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 0.5, justifyContent: "center" }}>
+                {du.role_names?.length ? (
+                  [...du.role_names].sort().map((name) => (
+                    <Chip key={name} size="small" label={formatRoleSlug(name)} variant="outlined" />
+                  ))
+                ) : (
+                  <Chip size="small" label="No role assigned" variant="outlined" />
+                )}
+              </Box>
             </Box>
 
             {error ? (

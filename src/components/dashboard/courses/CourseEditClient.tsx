@@ -1,5 +1,6 @@
 "use client";
 
+import { CourseQuizFormEditor, coerceQuizPayload } from "@/components/dashboard/courses/CourseQuizFormEditor";
 import { slugify } from "@/lib/slug";
 import type { QuizElementPayload } from "@/types/course-content";
 import type { AuthorOption } from "@/lib/courses/author-options";
@@ -36,7 +37,7 @@ import {
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 type ElementRow = {
@@ -58,18 +59,23 @@ type SessionRow = {
   elements: ElementRow[];
 };
 
-const DEFAULT_QUIZ: QuizElementPayload = {
-  maxPoints: 10,
+const DEFAULT_QUIZ_PAYLOAD = coerceQuizPayload({
+  maxPoints: null,
   questions: [
     {
       id: "q1",
       type: "tf",
-      promptHtml: "<p>Sample question (true/false).</p>",
+      promptHtml: "<p>Ejemplo: verdadero o falso.</p>",
       points: 10,
       correctTrue: true,
+      trueLabelHtml: "<span>Verdadero</span>",
+      falseLabelHtml: "<span>Falso</span>",
     },
   ],
-};
+});
+
+const RICH_EDITOR_HELPER_ES =
+  "TinyMCE autohospedado (GPL). El formato se guarda como HTML. Para imágenes, usa enlaces HTTPS.";
 
 function SortableShell({
   id,
@@ -122,6 +128,8 @@ export function CourseEditClient({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const dragBlockIdxRef = useRef<number | null>(null);
+  const dragBlockSessionRef = useRef<string | null>(null);
   /** dnd-kit aria-describedby IDs must match SSR vs client; stable context ids avoid global counter drift. */
   const sessionDndId = useMemo(() => `course-edit-dnd-${courseId}`, [courseId]);
   const sessionSortableId = useMemo(() => `course-edit-sort-${courseId}`, [courseId]);
@@ -151,6 +159,17 @@ export function CourseEditClient({
     );
   }, []);
 
+  const reorderBlocksByDrag = useCallback((sessionId: string, fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx) return;
+    setSessions((prev) =>
+      prev.map((s) => {
+        if (s.id !== sessionId) return s;
+        const els = arrayMove(s.elements, fromIdx, toIdx).map((e, i) => ({ ...e, sort_order: i }));
+        return { ...s, elements: els };
+      })
+    );
+  }, []);
+
   async function saveAll() {
     setErr(null);
     setMsg(null);
@@ -158,7 +177,7 @@ export function CourseEditClient({
     try {
       const nextSlug = slugify(slug || title);
       if (!nextSlug) {
-        setErr("Slug is required.");
+        setErr("El slug es obligatorio.");
         return;
       }
       const { error: cErr } = await supabase
@@ -202,17 +221,17 @@ export function CourseEditClient({
         }
       }
 
-      setMsg("Saved.");
+      setMsg("Guardado.");
       router.refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Save failed.");
+      setErr(e instanceof Error ? e.message : "No se pudo guardar.");
     } finally {
       setBusy(false);
     }
   }
 
   async function addSession() {
-    const t = window.prompt("Session title?");
+    const t = window.prompt("Título de la nueva sesión:");
     if (!t?.trim()) return;
     const sl = slugify(t);
     const max = sessions.reduce((m, s) => Math.max(m, s.sort_order), -1);
@@ -227,7 +246,7 @@ export function CourseEditClient({
       .select("id, slug, title, subtitle, cover_image_url, sort_order")
       .single();
     if (error || !data) {
-      setErr(error?.message ?? "Could not add session.");
+      setErr(error?.message ?? "No se pudo añadir la sesión.");
       return;
     }
     setSessions((prev) => [
@@ -254,7 +273,7 @@ export function CourseEditClient({
     if (type === "image") payload = { url: "" };
     if (type === "rich_text") payload = { html: "<p></p>" };
     if (type === "plain_text") payload = { text: "" };
-    if (type === "quiz") payload = DEFAULT_QUIZ;
+    if (type === "quiz") payload = JSON.parse(JSON.stringify(DEFAULT_QUIZ_PAYLOAD)) as QuizElementPayload;
 
     const { data, error } = await supabase
       .from("course_elements")
@@ -269,7 +288,7 @@ export function CourseEditClient({
       .select("id, element_type, title_html, description_html, payload, sort_order")
       .single();
     if (error || !data) {
-      setErr(error?.message ?? "Could not add element.");
+      setErr(error?.message ?? "No se pudo añadir el bloque.");
       return;
     }
     const row: ElementRow = {
@@ -286,7 +305,7 @@ export function CourseEditClient({
   }
 
   async function removeElement(sessionId: string, elementId: string) {
-    if (!window.confirm("Delete this block?")) return;
+    if (!window.confirm("¿Eliminar este bloque?")) return;
     const { error } = await supabase.from("course_elements").delete().eq("id", elementId);
     if (error) {
       setErr(error.message);
@@ -304,7 +323,7 @@ export function CourseEditClient({
   return (
     <Box>
       <Typography variant="h6" sx={{ color: "primary.main", mb: 2 }}>
-        Edit course
+        Editar curso
       </Typography>
       {err ? (
         <Typography color="error" sx={{ mb: 1 }}>
@@ -318,12 +337,12 @@ export function CourseEditClient({
       ) : null}
 
       <Stack spacing={2} sx={{ maxWidth: 900, mb: 2 }}>
-        <TextField label="Title" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth />
+        <TextField label="Título" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth />
         <TextField label="Slug" value={slug} onChange={(e) => setSlug(e.target.value)} fullWidth />
-        <TextField label="Subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} fullWidth />
+        <TextField label="Subtítulo" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} fullWidth />
         <TextField
           select
-          label="Author"
+          label="Autor"
           value={author?.id ?? ""}
           onChange={(e) => {
             const id = e.target.value;
@@ -333,7 +352,7 @@ export function CourseEditClient({
           fullWidth
         >
           <MenuItem value="">
-            <em>Default label (FlashPoint Team)</em>
+            <em>Etiqueta predeterminada (equipo FlashPoint)</em>
           </MenuItem>
           {authorOptions.map((a) => (
             <MenuItem key={a.id} value={a.id}>
@@ -343,20 +362,20 @@ export function CourseEditClient({
         </TextField>
         <Stack direction="row" spacing={2}>
           <Button variant={published ? "contained" : "outlined"} onClick={() => setPublished((p) => !p)}>
-            {published ? "Published" : "Draft"}
+            {published ? "Publicado" : "Borrador"}
           </Button>
           <Button variant={appliesGrades ? "contained" : "outlined"} onClick={() => setAppliesGrades((p) => !p)}>
-            {appliesGrades ? "Grades on" : "Grades off"}
+            {appliesGrades ? "Calificaciones activadas" : "Calificaciones desactivadas"}
           </Button>
         </Stack>
       </Stack>
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
         <Typography variant="subtitle1" fontWeight={800}>
-          Sessions (drag to reorder)
+          Sesiones (arrastra para reordenar)
         </Typography>
         <Button startIcon={<AddIcon />} onClick={() => void addSession()}>
-          Add session
+          Añadir sesión
         </Button>
       </Box>
 
@@ -376,18 +395,18 @@ export function CourseEditClient({
               {(handle) => (
                 <Accordion defaultExpanded>
                   <AccordionSummary>
-                    <Typography fontWeight={700}>{s.title || "(untitled session)"}</Typography>
+                    <Typography fontWeight={700}>{s.title || "(sesión sin título)"}</Typography>
                   </AccordionSummary>
                   <AccordionDetails>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                       <DragIndicatorIcon sx={{ cursor: "grab", color: "text.secondary" }} {...handle} />
                       <Typography variant="caption" color="text.secondary">
-                        Drag handle to reorder sessions
+                        Arrastra el icono para reordenar las sesiones
                       </Typography>
                     </Box>
                     <Stack spacing={1.5} sx={{ mb: 2 }}>
                       <TextField
-                        label="Session title"
+                        label="Título de la sesión"
                         value={s.title}
                         onChange={(e) =>
                           setSessions((prev) =>
@@ -397,7 +416,7 @@ export function CourseEditClient({
                         fullWidth
                       />
                       <TextField
-                        label="Session slug"
+                        label="Slug de la sesión"
                         value={s.slug}
                         onChange={(e) =>
                           setSessions((prev) =>
@@ -407,7 +426,7 @@ export function CourseEditClient({
                         fullWidth
                       />
                       <TextField
-                        label="Subtitle"
+                        label="Subtítulo"
                         value={s.subtitle}
                         onChange={(e) =>
                           setSessions((prev) =>
@@ -417,7 +436,7 @@ export function CourseEditClient({
                         fullWidth
                       />
                       <TextField
-                        label="Cover image URL"
+                        label="URL de imagen de portada"
                         value={s.cover_image_url}
                         onChange={(e) =>
                           setSessions((prev) =>
@@ -429,14 +448,45 @@ export function CourseEditClient({
                     </Stack>
 
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                      Content blocks (order: ↑ ↓)
+                      Bloques de contenido (arrastra el bloque o usa ↑ ↓)
                     </Typography>
                     {s.elements.map((el, elIdx) => (
-                      <Paper key={el.id} sx={{ p: 1.5, mb: 1, bgcolor: "rgba(0,0,0,0.35)" }}>
+                      <Paper
+                        key={el.id}
+                        draggable
+                        onDragStart={() => {
+                          dragBlockIdxRef.current = elIdx;
+                          dragBlockSessionRef.current = s.id;
+                        }}
+                        onDragEnd={() => {
+                          dragBlockIdxRef.current = null;
+                          dragBlockSessionRef.current = null;
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const from = dragBlockIdxRef.current;
+                          const sid = dragBlockSessionRef.current;
+                          dragBlockIdxRef.current = null;
+                          dragBlockSessionRef.current = null;
+                          if (from == null || sid !== s.id) return;
+                          reorderBlocksByDrag(s.id, from, elIdx);
+                        }}
+                        sx={{
+                          p: 1.5,
+                          mb: 1,
+                          bgcolor: "rgba(0,0,0,0.35)",
+                          cursor: "grab",
+                          "&:active": { cursor: "grabbing" },
+                        }}
+                      >
                                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1, flexWrap: "wrap" }}>
                                   <IconButton
                                     size="small"
-                                    aria-label="Move block up"
+                                    aria-label="Subir bloque"
                                     disabled={elIdx === 0}
                                     onClick={() => moveElement(s.id, el.id, -1)}
                                   >
@@ -444,19 +494,29 @@ export function CourseEditClient({
                                   </IconButton>
                                   <IconButton
                                     size="small"
-                                    aria-label="Move block down"
+                                    aria-label="Bajar bloque"
                                     disabled={elIdx === s.elements.length - 1}
                                     onClick={() => moveElement(s.id, el.id, 1)}
                                   >
                                     <KeyboardArrowDownIcon />
                                   </IconButton>
                                   <FormControl size="small" sx={{ minWidth: 160 }}>
-                                    <InputLabel>Type</InputLabel>
+                                    <InputLabel>Tipo de bloque</InputLabel>
                                     <Select
-                                      label="Type"
+                                      label="Tipo de bloque"
                                       value={el.element_type}
                                       onChange={(e) => {
                                         const v = e.target.value;
+                                        const nextPayloadFor = (nextType: string): unknown => {
+                                          if (nextType === "quiz")
+                                            return JSON.parse(JSON.stringify(DEFAULT_QUIZ_PAYLOAD));
+                                          if (nextType === "video") return { url: "" };
+                                          if (nextType === "pdf") return { url: "", fileName: "" };
+                                          if (nextType === "image") return { url: "" };
+                                          if (nextType === "rich_text") return { html: "<p></p>" };
+                                          if (nextType === "plain_text") return { text: "" };
+                                          return {};
+                                        };
                                         setSessions((prev) =>
                                           prev.map((ss) =>
                                             ss.id !== s.id
@@ -464,30 +524,38 @@ export function CourseEditClient({
                                               : {
                                                   ...ss,
                                                   elements: ss.elements.map((x) =>
-                                                    x.id === el.id ? { ...x, element_type: v } : x
+                                                    x.id === el.id
+                                                      ? {
+                                                          ...x,
+                                                          element_type: v,
+                                                          payload: nextPayloadFor(v),
+                                                        }
+                                                      : x
                                                   ),
                                                 }
                                           )
                                         );
                                       }}
                                     >
-                                      <MenuItem value="plain_text">Plain text</MenuItem>
-                                      <MenuItem value="rich_text">Rich text</MenuItem>
-                                      <MenuItem value="video">Video</MenuItem>
+                                      <MenuItem value="plain_text">Texto plano</MenuItem>
+                                      <MenuItem value="rich_text">Texto enriquecido</MenuItem>
+                                      <MenuItem value="video">Vídeo</MenuItem>
                                       <MenuItem value="pdf">PDF</MenuItem>
-                                      <MenuItem value="image">Image</MenuItem>
-                                      <MenuItem value="quiz">Quiz</MenuItem>
+                                      <MenuItem value="image">Imagen</MenuItem>
+                                      <MenuItem value="quiz">Cuestionario</MenuItem>
                                     </Select>
                                   </FormControl>
                                   <Button color="error" size="small" onClick={() => void removeElement(s.id, el.id)}>
                                     <DeleteOutlineIcon fontSize="small" />
                                   </Button>
                                 </Box>
-                                <TextField
-                                  label="Title (optional, HTML)"
-                                  fullWidth
+                                <GatheringDescriptionEditor
+                                  key={`${el.id}-block-title`}
+                                  compact
+                                  showHelper={false}
+                                  label="Título del bloque (opcional)"
                                   value={el.title_html}
-                                  onChange={(e) =>
+                                  onChange={(html) =>
                                     setSessions((prev) =>
                                       prev.map((ss) =>
                                         ss.id !== s.id
@@ -495,22 +563,22 @@ export function CourseEditClient({
                                           : {
                                               ...ss,
                                               elements: ss.elements.map((x) =>
-                                                x.id === el.id ? { ...x, title_html: e.target.value } : x
+                                                x.id === el.id ? { ...x, title_html: html } : x
                                               ),
                                             }
                                       )
                                     )
                                   }
-                                  sx={{ mb: 1.5, "& .MuiInputBase-input": { fontFamily: "monospace", fontSize: 13 } }}
                                 />
                                 {el.element_type === "quiz" ? (
-                                  <TextField
-                                    label="Intro text (optional, HTML)"
-                                    fullWidth
-                                    multiline
-                                    minRows={3}
+                                  <GatheringDescriptionEditor
+                                    key={`${el.id}-quiz-intro`}
+                                    compact
+                                    showHelper
+                                    helperText={`Lo verán antes del cuestionario. ${RICH_EDITOR_HELPER_ES}`}
+                                    label="Texto introductorio (opcional)"
                                     value={el.description_html}
-                                    onChange={(e) =>
+                                    onChange={(html) =>
                                       setSessions((prev) =>
                                         prev.map((ss) =>
                                           ss.id !== s.id
@@ -518,19 +586,19 @@ export function CourseEditClient({
                                             : {
                                                 ...ss,
                                                 elements: ss.elements.map((x) =>
-                                                  x.id === el.id ? { ...x, description_html: e.target.value } : x
+                                                  x.id === el.id ? { ...x, description_html: html } : x
                                                 ),
                                               }
                                         )
                                       )
                                     }
-                                    sx={{ mb: 1, "& textarea": { fontFamily: "monospace", fontSize: 13 } }}
                                   />
                                 ) : (
                                   <GatheringDescriptionEditor
                                     key={`${el.id}-block-desc`}
-                                    label="Description (optional)"
+                                    label="Descripción (opcional)"
                                     showHelper
+                                    helperText={RICH_EDITOR_HELPER_ES}
                                     value={el.description_html}
                                     onChange={(html) =>
                                       setSessions((prev) =>
@@ -550,7 +618,7 @@ export function CourseEditClient({
                                 )}
                                 {el.element_type === "video" ? (
                                   <TextField
-                                    label="Video URL"
+                                    label="URL del vídeo"
                                     fullWidth
                                     sx={{ mt: 1 }}
                                     value={(el.payload as { url?: string }).url ?? ""}
@@ -575,7 +643,7 @@ export function CourseEditClient({
                                 {el.element_type === "pdf" ? (
                                   <Stack spacing={1} sx={{ mt: 1 }}>
                                     <TextField
-                                      label="PDF URL"
+                                      label="URL del PDF"
                                       fullWidth
                                       value={(el.payload as { url?: string }).url ?? ""}
                                       onChange={(e) =>
@@ -602,7 +670,7 @@ export function CourseEditClient({
                                       }
                                     />
                                     <TextField
-                                      label="File label"
+                                      label="Nombre del archivo (visible)"
                                       fullWidth
                                       value={(el.payload as { fileName?: string }).fileName ?? ""}
                                       onChange={(e) =>
@@ -632,7 +700,7 @@ export function CourseEditClient({
                                 ) : null}
                                 {el.element_type === "image" ? (
                                   <TextField
-                                    label="Image URL"
+                                    label="URL de la imagen"
                                     fullWidth
                                     sx={{ mt: 1 }}
                                     value={(el.payload as { url?: string }).url ?? ""}
@@ -657,7 +725,8 @@ export function CourseEditClient({
                                 {el.element_type === "rich_text" ? (
                                   <Box sx={{ mt: 1 }}>
                                     <GatheringDescriptionEditor
-                                      label="Rich text body"
+                                      label="Contenido del bloque"
+                                      helperText={RICH_EDITOR_HELPER_ES}
                                       value={(el.payload as { html?: string }).html ?? ""}
                                       onChange={(html) =>
                                         setSessions((prev) =>
@@ -678,7 +747,7 @@ export function CourseEditClient({
                                 ) : null}
                                 {el.element_type === "plain_text" ? (
                                   <TextField
-                                    label="Text"
+                                    label="Texto"
                                     fullWidth
                                     multiline
                                     minRows={3}
@@ -701,32 +770,22 @@ export function CourseEditClient({
                                   />
                                 ) : null}
                                 {el.element_type === "quiz" ? (
-                                  <TextField
-                                    label="Quiz JSON (maxPoints + questions[])"
-                                    fullWidth
-                                    multiline
-                                    minRows={8}
-                                    sx={{ mt: 1, fontFamily: "monospace" }}
-                                    value={JSON.stringify(el.payload ?? DEFAULT_QUIZ, null, 2)}
-                                    onChange={(e) => {
-                                      try {
-                                        const parsed = JSON.parse(e.target.value) as QuizElementPayload;
-                                        setSessions((prev) =>
-                                          prev.map((ss) =>
-                                            ss.id !== s.id
-                                              ? ss
-                                              : {
-                                                  ...ss,
-                                                  elements: ss.elements.map((x) =>
-                                                    x.id === el.id ? { ...x, payload: parsed } : x
-                                                  ),
-                                                }
-                                          )
-                                        );
-                                      } catch {
-                                        /* invalid JSON while typing */
-                                      }
-                                    }}
+                                  <CourseQuizFormEditor
+                                    payload={coerceQuizPayload(el.payload)}
+                                    onPayloadChange={(qp) =>
+                                      setSessions((prev) =>
+                                        prev.map((ss) =>
+                                          ss.id !== s.id
+                                            ? ss
+                                            : {
+                                                ...ss,
+                                                elements: ss.elements.map((x) =>
+                                                  x.id === el.id ? { ...x, payload: qp } : x
+                                                ),
+                                              }
+                                        )
+                                      )
+                                    }
                                   />
                                 ) : null}
                       </Paper>
@@ -734,22 +793,22 @@ export function CourseEditClient({
 
                     <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
                       <Button size="small" onClick={() => void addElement(s.id, "video")}>
-                        + Video
+                        + Vídeo
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "rich_text")}>
-                        + Rich text
+                        + Texto enriquecido
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "plain_text")}>
-                        + Text
+                        + Texto plano
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "pdf")}>
                         + PDF
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "image")}>
-                        + Image
+                        + Imagen
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "quiz")}>
-                        + Quiz
+                        + Cuestionario
                       </Button>
                     </Stack>
                   </AccordionDetails>
@@ -761,7 +820,7 @@ export function CourseEditClient({
       </DndContext>
 
       <Button variant="contained" sx={{ mt: 2 }} disabled={busy} onClick={() => void saveAll()}>
-        {busy ? "Saving…" : "Save course"}
+        {busy ? "Guardando…" : "Guardar curso"}
       </Button>
     </Box>
   );

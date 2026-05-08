@@ -36,8 +36,8 @@ export default async function AdminsPageContent() {
 
   const create =
     can(permissions, MODULE_SLUGS.admins, "create") && isSuperAdmin;
-  const updatePerm = can(permissions, MODULE_SLUGS.admins, "update");
-  const deletePerm = can(permissions, MODULE_SLUGS.admins, "delete");
+  const updatePerm = can(permissions, MODULE_SLUGS.admins, "update") && elevated;
+  const deletePerm = can(permissions, MODULE_SLUGS.admins, "delete") && elevated;
 
   const { data: profile } = await supabase
     .from("profiles")

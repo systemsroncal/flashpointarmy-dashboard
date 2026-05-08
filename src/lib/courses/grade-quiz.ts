@@ -24,6 +24,13 @@ function correctMulti(q: QuizQuestion, answer: unknown): boolean {
   return true;
 }
 
+function correctText(q: QuizQuestion, answer: unknown): boolean {
+  const opts = q.acceptableAnswers ?? [];
+  if (!opts.length || typeof answer !== "string") return false;
+  const norm = answer.trim().toLowerCase();
+  return opts.some((o) => o.trim().toLowerCase() === norm);
+}
+
 function questionCorrect(q: QuizQuestion, answer: unknown): boolean {
   switch (q.type) {
     case "tf":
@@ -32,22 +39,36 @@ function questionCorrect(q: QuizQuestion, answer: unknown): boolean {
       return correctSingle(q, answer);
     case "multi":
       return correctMulti(q, answer);
+    case "text":
+      return correctText(q, answer);
     default:
       return false;
   }
 }
 
+function effectiveMaxScore(payload: QuizElementPayload, weightSum: number): number {
+  const raw = payload.maxPoints;
+  if (raw == null) return weightSum;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return weightSum;
+  return n;
+}
+
 /**
- * Proportional score: each correct question awards its `points` weight.
- * `maxScore` comes from payload (course grading cap).
+ * Proportional score: correct questions earn their `points` weight.
+ * When `maxPoints` is omitted, cap equals sum of weights (score = earned weights when all weighted correctly).
  */
 export function gradeQuizPayload(
   payload: QuizElementPayload,
   answers: Record<string, unknown>
 ): { score: number; maxScore: number } {
-  const maxScore = Number.isFinite(payload.maxPoints) ? Math.max(0, payload.maxPoints) : 0;
   const questions = payload.questions ?? [];
-  const weightSum = questions.reduce((s, q) => s + (Number.isFinite(q.points) ? Math.max(0, q.points) : 0), 0);
+  const weightSum = questions.reduce(
+    (s, q) => s + (Number.isFinite(q.points) ? Math.max(0, q.points) : 0),
+    0
+  );
+
+  const maxScore = effectiveMaxScore(payload, weightSum);
 
   let earnedWeights = 0;
   for (const q of questions) {

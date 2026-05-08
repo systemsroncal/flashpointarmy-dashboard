@@ -5,7 +5,8 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { Box, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Box, Paper, Typography } from "@mui/material";
+import { CourseProgressUsersTable } from "@/components/dashboard/courses/CourseProgressUsersTable";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -117,42 +118,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Public URL: /dashboard/course/{course.slug as string}
       </Typography>
-      <Paper sx={{ bgcolor: "rgba(0,0,0,0.45)", overflow: "auto" }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>User</TableCell>
-              <TableCell align="right">Sessions completed</TableCell>
-              <TableCell align="right">Quiz (best attempt)</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={3}>
-                  <Typography color="text.secondary">No progress recorded yet.</Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((r) => (
-                <TableRow key={r.uid}>
-                  <TableCell>{r.label}</TableCell>
-                  <TableCell align="right">
-                    {r.done} / {totalSessions}
-                  </TableCell>
-                  <TableCell align="right">
-                    {quizIds.length === 0
-                      ? "—"
-                      : r.quiz
-                        ? `${r.quiz.best} / ${r.quiz.max}`
-                        : "—"}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Paper>
+      <CourseProgressUsersTable rows={rows} totalSessions={totalSessions} quizCount={quizIds.length} />
       {Boolean(course.applies_grades) ? null : (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
           This course has grades disabled; quiz scores are still listed per attempt when quizzes exist.

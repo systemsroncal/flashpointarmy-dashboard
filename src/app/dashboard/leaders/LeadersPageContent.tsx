@@ -35,8 +35,8 @@ export default async function LeadersPageContent() {
   const isLocalLeader = roles.includes("local_leader");
   const create =
     can(permissions, MODULE_SLUGS.leaders, "create") && elevated;
-  const updatePerm = can(permissions, MODULE_SLUGS.leaders, "update");
-  const deletePerm = can(permissions, MODULE_SLUGS.leaders, "delete");
+  const updatePerm = can(permissions, MODULE_SLUGS.leaders, "update") && elevated;
+  const deletePerm = can(permissions, MODULE_SLUGS.leaders, "delete") && elevated;
 
   const { data: profile } = await supabase
     .from("profiles")

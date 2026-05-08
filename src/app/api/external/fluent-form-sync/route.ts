@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -302,6 +303,11 @@ export async function POST(req: Request) {
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.community, "create")) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const callerRolesSync = await loadUserRoleNames(supabase, user.id);
+  if (!isElevatedRole(callerRolesSync)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

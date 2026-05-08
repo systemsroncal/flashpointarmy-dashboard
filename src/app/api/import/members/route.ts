@@ -18,6 +18,7 @@ import {
 import { resolveChapterForMemberImport, type ChapterRow } from "@/lib/import/chapter-import";
 import { mailingForUserMetadata, userMailingAddressFromImportRow } from "@/lib/import/user-mailing-address";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -34,6 +35,11 @@ export async function POST(req: Request) {
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.community, "create")) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const callerRoles = await loadUserRoleNames(supabase, user.id);
+  if (!isElevatedRole(callerRoles)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

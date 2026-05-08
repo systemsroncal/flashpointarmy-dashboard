@@ -1,7 +1,10 @@
 "use client";
 
 import CampaignIcon from "@mui/icons-material/Campaign";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EventIcon from "@mui/icons-material/Event";
+import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import GroupsIcon from "@mui/icons-material/Groups";
 import ListAltIcon from "@mui/icons-material/ListAlt";
@@ -14,12 +17,13 @@ import PublicIcon from "@mui/icons-material/Public";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import SchoolIcon from "@mui/icons-material/School";
 import SecurityIcon from "@mui/icons-material/Security";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import EmailIcon from "@mui/icons-material/Email";
+import SettingsIcon from "@mui/icons-material/Settings";
 import {
   AppBar,
   Avatar,
   Box,
+  Collapse,
   Divider,
   Drawer,
   IconButton,
@@ -37,7 +41,7 @@ import type { Theme } from "@mui/material/styles";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
@@ -47,6 +51,7 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/client";
 import { NotificationMenu } from "./NotificationMenu";
+import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { UserProfileDrawer } from "./UserProfileDrawer";
 
@@ -60,6 +65,8 @@ type NavItem = {
 };
 
 const COURSE_LEARNER_PREFIX = "/dashboard/course";
+
+type NavAccentMode = "gold" | "movilization";
 
 function isNavItemSelected(item: NavItem, pathname: string): boolean {
   if (item.href === "/dashboard") {
@@ -78,6 +85,20 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
   }
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
+
+const MOVILIZATION_HREF = "/dashboard/movilization";
+
+const MOVILIZATION_RED = "#c32020";
+
+/** Persisted accent for sidebar selection colors (toggle via Movilization nav). */
+const NAV_ACCENT_STORAGE_KEY = "fp-dashboard-nav-accent";
+const SETTINGS_MODULES = new Set<string>([
+  MODULE_SLUGS.emails,
+  MODULE_SLUGS.logs,
+  MODULE_SLUGS.admins,
+  MODULE_SLUGS.adminRoles,
+  MODULE_SLUGS.courses,
+]);
 
 const NAV: NavItem[] = [
   {
@@ -111,6 +132,12 @@ const NAV: NavItem[] = [
     icon: <MilitaryTechIcon />,
   },
   {
+    label: "Movilization",
+    href: MOVILIZATION_HREF,
+    module: MODULE_SLUGS.movilization,
+    icon: <FlagOutlined />,
+  },
+  {
     label: "Administrators",
     href: "/dashboard/admins",
     module: MODULE_SLUGS.admins,
@@ -133,12 +160,6 @@ const NAV: NavItem[] = [
     href: "/dashboard/communications",
     module: MODULE_SLUGS.communications,
     icon: <CampaignIcon />,
-  },
-  {
-    label: "Growth Track",
-    href: "/dashboard/growth",
-    module: MODULE_SLUGS.growth,
-    icon: <TrendingUpIcon />,
   },
   {
     label: "Logs",
@@ -189,15 +210,33 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [desktopDrawerOpen, setDesktopDrawerOpen] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const permissions = usePermissions();
   const user = useDashboardUser();
 
+  const [navAccent, setNavAccent] = useState<NavAccentMode>("gold");
+
+  useLayoutEffect(() => {
+    try {
+      if (localStorage.getItem(NAV_ACCENT_STORAGE_KEY) === "movilization") {
+        setNavAccent("movilization");
+      }
+    } catch {
+      /* private mode / SSR */
+    }
+  }, []);
+
+  const redNavAccent = navAccent === "movilization";
+
   const sidebarOpen = desktop ? desktopDrawerOpen : mobileDrawerOpen;
   const setSidebarOpen = desktop ? setDesktopDrawerOpen : setMobileDrawerOpen;
 
-  const visibleNav = NAV.filter((item) => {
+  const allVisibleNav = NAV.filter((item) => {
+    if (item.module === MODULE_SLUGS.movilization) {
+      return true;
+    }
     if (!isNavModuleAllowedForRoles(item.module, user.role_names)) {
       return false;
     }
@@ -209,6 +248,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     }
     return can(permissions, item.module, "read");
   });
+  const settingsAllowedByRole =
+    user.role_names.includes("admin") || user.role_names.includes("super_admin");
+  const settingsNav = settingsAllowedByRole
+    ? allVisibleNav.filter((item) => SETTINGS_MODULES.has(item.module))
+    : [];
+  const visibleNav = allVisibleNav.filter((item) => !SETTINGS_MODULES.has(item.module));
+  const settingsHasActive = settingsNav.some((item) => isNavItemSelected(item, pathname));
+
+  useEffect(() => {
+    if (settingsHasActive) setSettingsOpen(true);
+  }, [settingsHasActive]);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -265,29 +315,53 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           />
         </Box>
       </Box>
-      <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
+      <Divider sx={{ borderColor: redNavAccent ? "rgba(195,32,32,0.22)" : "rgba(255,215,0,0.2)" }} />
       <List sx={{ flex: 1, py: 1, overflowY: "auto" }}>
         {visibleNav.map((item) => {
           const selected = isNavItemSelected(item, pathname);
+          const isMovilization = item.module === MODULE_SLUGS.movilization;
           return (
             <ListItem key={item.href} disablePadding>
               <ListItemButton
-                component={Link}
-                href={item.href}
+                {...(isMovilization
+                  ? ({ component: "button", type: "button" } as const)
+                  : { component: Link, href: item.href })}
                 selected={selected}
-                onClick={() => !desktop && setMobileDrawerOpen(false)}
+                onClick={() => {
+                  if (isMovilization) {
+                    setNavAccent((prev) => {
+                      const next: NavAccentMode = prev === "gold" ? "movilization" : "gold";
+                      try {
+                        localStorage.setItem(NAV_ACCENT_STORAGE_KEY, next);
+                      } catch {
+                        /* ignore */
+                      }
+                      return next;
+                    });
+                  }
+                  if (!desktop) setMobileDrawerOpen(false);
+                }}
                 sx={{
                   py: 0.75,
-                  "&.Mui-selected": {
-                    borderLeft: "3px solid",
-                    borderColor: "primary.main",
-                    bgcolor: "rgba(255,215,0,0.08)",
-                  },
+                  "&.Mui-selected": redNavAccent
+                    ? {
+                        borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                        bgcolor: "rgba(195, 32, 32, 0.1)",
+                      }
+                    : {
+                        borderLeft: "3px solid",
+                        borderColor: "primary.main",
+                        bgcolor: "rgba(255,215,0,0.08)",
+                      },
                 }}
               >
                 <ListItemIcon
                   sx={{
-                    color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
+                    color: selected
+                      ? redNavAccent
+                        ? MOVILIZATION_RED
+                        : "primary.main"
+                      : "rgba(255,255,255,0.92)",
                     minWidth: 38,
                   }}
                 >
@@ -299,13 +373,126 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     variant: "body2",
                     fontWeight: 600,
                     fontSize: "calc(0.82rem + 3px)",
-                    color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
+                    color: selected
+                      ? redNavAccent
+                        ? MOVILIZATION_RED
+                        : "primary.main"
+                      : "rgba(255,255,255,0.88)",
                   }}
                 />
               </ListItemButton>
             </ListItem>
           );
         })}
+        {settingsNav.length > 0 ? (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => setSettingsOpen((prev) => !prev)}
+                selected={settingsHasActive}
+                sx={{
+                  py: 0.75,
+                  "&.Mui-selected": redNavAccent
+                    ? {
+                        borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                        bgcolor: "rgba(195, 32, 32, 0.1)",
+                      }
+                    : {
+                        borderLeft: "3px solid",
+                        borderColor: "primary.main",
+                        bgcolor: "rgba(255,215,0,0.08)",
+                      },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: settingsHasActive
+                      ? redNavAccent
+                        ? MOVILIZATION_RED
+                        : "primary.main"
+                      : "rgba(255,255,255,0.92)",
+                    minWidth: 38,
+                  }}
+                >
+                  <SettingsIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Settings"
+                  primaryTypographyProps={{
+                    variant: "body2",
+                    fontWeight: 600,
+                    fontSize: "calc(0.82rem + 3px)",
+                    color: settingsHasActive
+                      ? redNavAccent
+                        ? MOVILIZATION_RED
+                        : "primary.main"
+                      : "rgba(255,255,255,0.88)",
+                  }}
+                />
+                {settingsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              </ListItemButton>
+            </ListItem>
+            <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
+              <List disablePadding>
+                {settingsNav.map((item) => {
+                  const selected = isNavItemSelected(item, pathname);
+                  return (
+                    <ListItem key={item.href} disablePadding>
+                      <ListItemButton
+                        component={Link}
+                        href={item.href}
+                        selected={selected}
+                        onClick={() => {
+                          if (!desktop) setMobileDrawerOpen(false);
+                        }}
+                        sx={{
+                          py: 0.65,
+                          pl: 4.5,
+                          "&.Mui-selected": redNavAccent
+                            ? {
+                                borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                                bgcolor: "rgba(195, 32, 32, 0.1)",
+                              }
+                            : {
+                                borderLeft: "3px solid",
+                                borderColor: "primary.main",
+                                bgcolor: "rgba(255,215,0,0.08)",
+                              },
+                        }}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            color: selected
+                              ? redNavAccent
+                                ? MOVILIZATION_RED
+                                : "primary.main"
+                              : "rgba(255,255,255,0.92)",
+                            minWidth: 36,
+                          }}
+                        >
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.label}
+                          primaryTypographyProps={{
+                            variant: "body2",
+                            fontWeight: 500,
+                            fontSize: "calc(0.8rem + 3px)",
+                            color: selected
+                              ? redNavAccent
+                                ? MOVILIZATION_RED
+                                : "primary.main"
+                              : "rgba(255,255,255,0.88)",
+                          }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </Collapse>
+          </>
+        ) : null}
       </List>
       <Divider />
       <Box
@@ -363,6 +550,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
+      <FirstLoginPasswordGate />
       <AppBar
         position="fixed"
         elevation={0}
@@ -370,7 +558,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           zIndex: (t) => t.zIndex.drawer + 1,
           bgcolor: "rgba(12,12,14,0.88)",
           backdropFilter: "blur(8px)",
-          borderBottom: "1px solid rgba(255,215,0,0.12)",
+          borderBottom: redNavAccent ? "1px solid rgba(195,32,32,0.18)" : "1px solid rgba(255,215,0,0.12)",
           width: { xs: "100%", md: `calc(100% - ${appBarShift}px)` },
           ml: { md: `${appBarShift}px` },
           transition: theme.transitions.create(["width", "margin"], {
@@ -418,12 +606,26 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 width: DRAWER_WIDTH,
                 [`& .MuiDrawer-paper`]: {
                   ...drawerPaperSx(theme),
+                  ...(redNavAccent
+                    ? {
+                        borderRight: "1px solid rgba(195,32,32,0.22)",
+                        scrollbarColor: "rgba(195,32,32,0.28) rgba(0,0,0,0.35)",
+                      }
+                    : {}),
                   position: "fixed",
                   height: "100%",
                 },
               }
             : {
-                [`& .MuiDrawer-paper`]: drawerPaperSx(theme),
+                [`& .MuiDrawer-paper`]: {
+                  ...drawerPaperSx(theme),
+                  ...(redNavAccent
+                    ? {
+                        borderRight: "1px solid rgba(195,32,32,0.22)",
+                        scrollbarColor: "rgba(195,32,32,0.28) rgba(0,0,0,0.35)",
+                      }
+                    : {}),
+                },
               }),
         }}
       >

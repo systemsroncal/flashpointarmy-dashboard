@@ -4,19 +4,23 @@ import { Box, InputLabel, Typography } from "@mui/material";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 
-const Editor = dynamic(() => import("@tinymce/tinymce-react").then((m) => m.Editor), {
-  ssr: false,
-  loading: () => (
+function EditorLoading() {
+  return (
     <Box
       sx={{
-        minHeight: 400,
+        minHeight: 200,
         bgcolor: "action.hover",
         borderRadius: 1,
         border: 1,
         borderColor: "divider",
       }}
     />
-  ),
+  );
+}
+
+const Editor = dynamic(() => import("@tinymce/tinymce-react").then((m) => m.Editor), {
+  ssr: false,
+  loading: () => <EditorLoading />,
 });
 
 const TINYMCE_BASE = "/tinymce";
@@ -29,6 +33,10 @@ type Props = {
   label?: string;
   /** TinyMCE helper line under the editor (default: true). */
   showHelper?: boolean;
+  /** Shorter toolbar and height (e.g. quiz fields). Sin botón «código fuente» en la barra. */
+  compact?: boolean;
+  /** Texto de ayuda bajo el editor si `showHelper` es true (sustituye el texto por defecto en inglés). */
+  helperText?: string;
 };
 
 export function GatheringDescriptionEditor({
@@ -37,9 +45,32 @@ export function GatheringDescriptionEditor({
   disabled,
   label = "Description",
   showHelper = true,
+  compact = false,
+  helperText,
 }: Props) {
-  const init = useMemo(
-    () => ({
+  const init = useMemo(() => {
+    if (compact) {
+      return {
+        height: 140,
+        base_url: TINYMCE_BASE,
+        suffix: ".min",
+        menubar: false,
+        branding: false,
+        promotion: false,
+        statusbar: false,
+        plugins: ["lists", "link", "autoresize"].join(" "),
+        toolbar: "undo redo | bold italic underline | bullist numlist | link | removeformat",
+        autoresize_bottom_margin: 8,
+        autoresize_max_height: 280,
+        min_height: 88,
+        paste_data_images: false,
+        relative_urls: false,
+        convert_urls: true,
+        content_style:
+          'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.45; margin: 6px; } p { margin: 0 0 0.5em 0; } p:last-child { margin-bottom: 0; }',
+      };
+    }
+    return {
       height: 440,
       base_url: TINYMCE_BASE,
       suffix: ".min",
@@ -72,12 +103,14 @@ export function GatheringDescriptionEditor({
       convert_urls: true,
       content_style:
         'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.5; }',
-    }),
-    []
-  );
+    };
+  }, [compact]);
+
+  const defaultHelper =
+    "Self-hosted TinyMCE (GPL). HTML is saved to the database. For images, prefer HTTPS URLs.";
 
   return (
-    <Box sx={{ mb: 2 }}>
+    <Box sx={{ mb: compact ? 1.25 : 2 }}>
       <InputLabel shrink sx={{ mb: 0.75, position: "relative", transform: "none" }}>
         {label}
       </InputLabel>
@@ -91,7 +124,7 @@ export function GatheringDescriptionEditor({
       />
       {showHelper ? (
         <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
-          Self-hosted TinyMCE (GPL). HTML is saved to the database. For images, prefer HTTPS URLs.
+          {helperText ?? defaultHelper}
         </Typography>
       ) : null}
     </Box>

@@ -20,6 +20,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TableSortLabel,
   TextField,
@@ -27,7 +28,7 @@ import {
 } from "@mui/material";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type LocationRow = {
   id: string;
@@ -63,6 +64,8 @@ export function LocationsSection({
   const [tableSearch, setTableSearch] = useState("");
   const [orderBy, setOrderBy] = useState<LocationSortKey>("name");
   const [order, setOrder] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   function handleRequestSort(property: LocationSortKey) {
     const isAsc = orderBy === property && order === "asc";
@@ -99,6 +102,15 @@ export function LocationsSection({
       }
     });
   }, [rows, tableSearch, order, orderBy]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [tableSearch, order, orderBy]);
+
+  const pagedRows = useMemo(() => {
+    if (rowsPerPage < 0) return displayedRows;
+    return displayedRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [displayedRows, page, rowsPerPage]);
 
   async function refresh() {
     router.refresh();
@@ -238,7 +250,7 @@ export function LocationsSection({
             </TableRow>
           </TableHead>
           <TableBody>
-            {displayedRows.map((loc) => (
+            {pagedRows.map((loc) => (
               <TableRow key={loc.id}>
                 <TableCell>
                   {editing === loc.id ? (
@@ -313,6 +325,21 @@ export function LocationsSection({
           </TableBody>
         </Table>
       </TableContainer>
+      {displayedRows.length > 0 ? (
+        <TablePagination
+          component="div"
+          count={displayedRows.length}
+          page={rowsPerPage < 0 ? 0 : page}
+          onPageChange={(_, nextPage) => setPage(nextPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            const v = Number(e.target.value);
+            setRowsPerPage(v);
+            setPage(0);
+          }}
+          rowsPerPageOptions={[10, 20, 25, 50, 100, { label: "All", value: -1 }]}
+        />
+      ) : null}
 
       <Dialog
         open={!!deleteTarget}

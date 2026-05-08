@@ -75,6 +75,7 @@ export async function POST(req: Request) {
         last_name: ln,
         primary_chapter_id: chapterRaw,
         phone: phone || null,
+        require_password_change: true,
       },
     });
 

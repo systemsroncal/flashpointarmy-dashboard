@@ -3,6 +3,7 @@
 import DeleteOutline from "@mui/icons-material/DeleteOutline";
 import Edit from "@mui/icons-material/Edit";
 import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import {
   Alert,
   Autocomplete,
@@ -18,6 +19,7 @@ import {
   FormControl,
   FormControlLabel,
   IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Paper,
@@ -157,7 +159,7 @@ export function CommunitySection({
   const [submitting, setSubmitting] = useState(false);
   const [inviteFlash, setInviteFlash] = useState<string | null>(null);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [totalCount, setTotalCount] = useState(initialUsers.length);
   const [tableLoading, setTableLoading] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
@@ -205,6 +207,8 @@ export function CommunitySection({
   const [editRoleDraft, setEditRoleDraft] = useState<EditableRole>("member");
   const [editRoleSaving, setEditRoleSaving] = useState(false);
   const [editRoleError, setEditRoleError] = useState<string | null>(null);
+  const [editNewPassword, setEditNewPassword] = useState("");
+  const [editPasswordVisible, setEditPasswordVisible] = useState(false);
 
   const [deleteUser, setDeleteUser] = useState<CommunityUserRow | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -513,6 +517,8 @@ export function CommunitySection({
   const showChapterFilter =
     chapterOptions.length > 0 && (elevated || (isLocalLeader && chapterOptions.length > 1));
 
+  const showActionsColumn = elevated;
+
   function chapterName(id: string | null) {
     if (!id) return "—";
     return chapterOptions.find((c) => c.id === id)?.name ?? "—";
@@ -536,6 +542,8 @@ export function CommunitySection({
     setEditError(null);
     setEditRoleError(null);
     setEditRoleDraft(editableRoleFromUser(u));
+    setEditNewPassword("");
+    setEditPasswordVisible(false);
   }
 
   function openDeleteMember(u: CommunityUserRow) {
@@ -556,6 +564,17 @@ export function CommunitySection({
       setEditError("Select a primary chapter.");
       return;
     }
+    const passwordPayload: { newPassword?: string } = {};
+    if (elevated) {
+      const np = editNewPassword.trim();
+      if (np) {
+        if (np.length < 8) {
+          setEditError("Password must be at least 8 characters.");
+          return;
+        }
+        passwordPayload.newPassword = np;
+      }
+    }
     setEditSaving(true);
     setEditError(null);
     try {
@@ -571,6 +590,7 @@ export function CommunitySection({
           city: editAddrCity.trim() || null,
           state: usStateByCode(editAddrState)?.code ?? null,
           zipCode: editAddrZip.trim() || null,
+          ...passwordPayload,
         }),
       });
       const data = (await res.json()) as { error?: string; user?: Partial<CommunityUserRow> };
@@ -610,6 +630,8 @@ export function CommunitySection({
             : await applyPrimaryRole(editUser, editRoleDraft, "edit");
         if (!roleSaved) return;
       }
+      setEditNewPassword("");
+      setEditPasswordVisible(false);
       setEditUser(null);
       router.refresh();
     } finally {
@@ -1106,9 +1128,11 @@ export function CommunitySection({
                 Role
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ color: "primary.main" }} align="right">
-              Actions
-            </TableCell>
+            {showActionsColumn ? (
+              <TableCell sx={{ color: "primary.main" }} align="right">
+                Actions
+              </TableCell>
+            ) : null}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -1131,36 +1155,38 @@ export function CommunitySection({
                 {u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}
               </TableCell>
               <TableCell>{tableRoleLabel(u, variant)}</TableCell>
-              <TableCell align="right">
-                <IconButton
-                  size="small"
-                  color="inherit"
-                  onClick={() => setViewUser(u)}
-                  aria-label="View"
-                >
-                  <Visibility fontSize="small" />
-                </IconButton>
-                {canUpdate && rowCanBeEdited(u) ? (
+              {showActionsColumn ? (
+                <TableCell align="right">
                   <IconButton
                     size="small"
-                    color="primary"
-                    onClick={() => openEditMember(u)}
-                    aria-label="Edit"
+                    color="inherit"
+                    onClick={() => setViewUser(u)}
+                    aria-label="View"
                   >
-                    <Edit fontSize="small" />
+                    <Visibility fontSize="small" />
                   </IconButton>
-                ) : null}
-                {canDelete && rowCanBeDeleted(u) ? (
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => openDeleteMember(u)}
-                    aria-label="Delete"
-                  >
-                    <DeleteOutline fontSize="small" />
-                  </IconButton>
-                ) : null}
-              </TableCell>
+                  {canUpdate && rowCanBeEdited(u) ? (
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => openEditMember(u)}
+                      aria-label="Edit"
+                    >
+                      <Edit fontSize="small" />
+                    </IconButton>
+                  ) : null}
+                  {canDelete && rowCanBeDeleted(u) ? (
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => openDeleteMember(u)}
+                      aria-label="Delete"
+                    >
+                      <DeleteOutline fontSize="small" />
+                    </IconButton>
+                  ) : null}
+                </TableCell>
+              ) : null}
             </TableRow>
           ))}
         </TableBody>
@@ -1558,6 +1584,8 @@ export function CommunitySection({
         onClose={() => {
           if (editSaving || editRoleSaving) return;
           setEditRoleError(null);
+          setEditNewPassword("");
+          setEditPasswordVisible(false);
           setEditUser(null);
         }}
         maxWidth="sm"
@@ -1628,6 +1656,40 @@ export function CommunitySection({
               onChange={(e) => setEditAddrZip(e.target.value)}
               autoComplete="postal-code"
             />
+            {elevated ? (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <Typography variant="subtitle2" sx={{ color: "primary.main", mt: 0.5 }}>
+                  Sign-in password (optional)
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Administrators only. Leave blank to keep the current password. Minimum 8 characters if you set a
+                  new one.
+                </Typography>
+                <TextField
+                  label="New password"
+                  type={editPasswordVisible ? "text" : "password"}
+                  fullWidth
+                  value={editNewPassword}
+                  onChange={(e) => setEditNewPassword(e.target.value)}
+                  autoComplete="new-password"
+                  disabled={editSaving || editRoleSaving}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label={editPasswordVisible ? "Hide password" : "Show password"}
+                          edge="end"
+                          onClick={() => setEditPasswordVisible((v) => !v)}
+                          disabled={editSaving || editRoleSaving}
+                        >
+                          {editPasswordVisible ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            ) : null}
             {editUser && canEditRoleInForm(editUser) ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 {editRoleError ? <Alert severity="error">{editRoleError}</Alert> : null}
@@ -1683,6 +1745,8 @@ export function CommunitySection({
           <Button
             onClick={() => {
               setEditRoleError(null);
+              setEditNewPassword("");
+              setEditPasswordVisible(false);
               setEditUser(null);
             }}
             disabled={editSaving || editRoleSaving}

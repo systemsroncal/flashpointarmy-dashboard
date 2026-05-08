@@ -185,7 +185,7 @@ export function ChaptersSection({
     { status: "imported" | "omitted"; chapter?: string; reason?: string }[]
   >([]);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [tableSearch, setTableSearch] = useState("");
   const [orderBy, setOrderBy] = useState<ChapterSortKey>("name");
   const [order, setOrder] = useState<"asc" | "desc">("asc");

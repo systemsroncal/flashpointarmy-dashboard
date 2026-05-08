@@ -3,6 +3,7 @@ import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import {
   isAdminButNotSuper,
+  isElevatedRole,
   isSuperAdminUser,
   loadUserRoleNames,
 } from "@/lib/auth/user-roles";
@@ -23,6 +24,8 @@ type PatchBody = {
   city?: string | null;
   state?: string | null;
   zipCode?: string | null;
+  /** Admin/super_admin only (enforced server-side). Minimum 8 characters when sent. */
+  newPassword?: string;
 };
 
 async function getSessionAndPermissions() {
@@ -77,11 +80,43 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
+  if (!targetIsAdminDirectory && !isElevatedRole(callerRoles)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
   let body: PatchBody;
   try {
     body = (await req.json()) as PatchBody;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const newPasswordProvided =
+    body.newPassword !== undefined && String(body.newPassword).trim() !== "";
+  const newPassword = newPasswordProvided ? String(body.newPassword).trim() : "";
+
+  if (newPasswordProvided) {
+    if (!isElevatedRole(callerRoles)) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+    if (isSuperAdminUser(targetRoles) && !isSuperAdminUser(callerRoles)) {
+      return NextResponse.json(
+        { error: "Only super admins can change this user's password." },
+        { status: 403 }
+      );
+    }
+    if (isAdminButNotSuper(callerRoles) && targetRoles.includes("admin")) {
+      return NextResponse.json(
+        { error: "Admins cannot change another administrator's password." },
+        { status: 403 }
+      );
+    }
+    if (newPassword.length < 8) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters." },
+        { status: 400 }
+      );
+    }
   }
 
   const firstName = (body.firstName ?? "").trim();
@@ -190,6 +225,7 @@ export async function PATCH(
 
     const { error: authErr } = await admin.auth.admin.updateUserById(userId, {
       user_metadata: meta,
+      ...(newPasswordProvided ? { password: newPassword } : {}),
     });
 
     if (authErr) {
@@ -276,6 +312,10 @@ export async function DELETE(
         return NextResponse.json({ error: "Forbidden." }, { status: 403 });
       }
     } else if (!canRemoveCommunity) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+
+    if (!targetIsAdminDirectory && !isElevatedRole(callerRoles)) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 

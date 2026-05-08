@@ -74,6 +74,12 @@ export async function POST(req: Request) {
       if (!can(permissions, MODULE_SLUGS.community, "create")) {
         return NextResponse.json({ error: "Forbidden." }, { status: 403 });
       }
+      if (!elevated) {
+        return NextResponse.json(
+          { error: "Only administrators can add users from this directory." },
+          { status: 403 }
+        );
+      }
     } else {
       if (!can(permissions, MODULE_SLUGS.leaders, "create")) {
         return NextResponse.json({ error: "Forbidden." }, { status: 403 });
@@ -101,9 +107,9 @@ export async function POST(req: Request) {
 
     const localChapterId = profile?.primary_chapter_id ?? null;
     const assignChapter =
-      isLocalLeader && localChapterId && !elevated ? localChapterId : chapterRaw;
+      isLocalLeader && localChapterId && context !== "community" && !elevated ? localChapterId : chapterRaw;
 
-    if (isLocalLeader && !elevated && chapterRaw !== localChapterId) {
+    if (context !== "community" && isLocalLeader && !elevated && chapterRaw !== localChapterId) {
       return NextResponse.json(
         { error: "You can only invite users to your primary chapter." },
         { status: 403 }
@@ -121,6 +127,7 @@ export async function POST(req: Request) {
         last_name: ln,
         primary_chapter_id: assignChapter,
         phone: phone || null,
+        require_password_change: true,
       },
     });
 

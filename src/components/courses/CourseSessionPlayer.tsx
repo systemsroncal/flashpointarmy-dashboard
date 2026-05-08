@@ -5,6 +5,10 @@ import { CourseQuizBlock } from "@/components/courses/CourseQuizBlock";
 import { EventDescriptionHtml } from "@/components/events/EventDescriptionHtml";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import {
+  insertCourseCompletedFeed,
+  insertCourseSessionCompletedFeed,
+} from "@/lib/community/training-feed";
 import type { QuizElementPayload } from "@/types/course-content";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -35,8 +39,9 @@ export type SessionElementRow = {
 
 export function CourseSessionPlayer({
   courseSlug,
+  courseTitle,
+  sortedSessionIds,
   sessionId,
-  sessionSlug,
   sessionTitle,
   sessionSubtitle,
   coverImageUrl,
@@ -49,8 +54,9 @@ export function CourseSessionPlayer({
   quizScores,
 }: {
   courseSlug: string;
+  courseTitle: string;
+  sortedSessionIds: string[];
   sessionId: string;
-  sessionSlug: string;
   sessionTitle: string;
   sessionSubtitle: string | null;
   coverImageUrl: string | null;
@@ -110,8 +116,46 @@ export function CourseSessionPlayer({
   async function markComplete() {
     setBusyComplete(true);
     try {
-      await mergePersist({ completed_at: new Date().toISOString() });
+      const completedAt = new Date().toISOString();
+      await mergePersist({ completed_at: completedAt });
       setCompleted(true);
+      try {
+        await insertCourseSessionCompletedFeed({
+          supabase,
+          userId: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          sessionTitle,
+          courseTitle,
+        });
+
+        const { data: progRows } = await supabase
+          .from("course_session_progress")
+          .select("session_id, completed_at")
+          .eq("user_id", user.id)
+          .in("session_id", sortedSessionIds.length ? sortedSessionIds : [sessionId]);
+
+        const done = new Set<string>();
+        for (const row of progRows ?? []) {
+          if (row.completed_at) done.add(row.session_id as string);
+        }
+        done.add(sessionId);
+        const allSessions = sortedSessionIds.length > 0 ? sortedSessionIds : [sessionId];
+        const allDone = allSessions.length > 0 && allSessions.every((id) => done.has(id));
+        if (allDone) {
+          await insertCourseCompletedFeed({
+            supabase,
+            userId: user.id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            courseTitle,
+          });
+        }
+      } catch {
+        /* feed is best-effort */
+      }
       router.refresh();
     } finally {
       setBusyComplete(false);

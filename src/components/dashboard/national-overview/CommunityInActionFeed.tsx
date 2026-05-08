@@ -11,6 +11,7 @@ import SecurityOutlined from "@mui/icons-material/SecurityOutlined";
 import ScheduleOutlined from "@mui/icons-material/ScheduleOutlined";
 import StarOutlined from "@mui/icons-material/StarOutlined";
 import TrendingUpOutlined from "@mui/icons-material/TrendingUpOutlined";
+import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import { Box, Chip, Typography } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
 
@@ -44,6 +45,8 @@ function englishCategoryLabel(row: ActivityFeedRow): string {
     hosted_events: "Recently hosted events",
     growth: "Growth milestone",
     community: "Community",
+    training_session: "Training · session",
+    training_course: "Training · course",
   };
   if (byCat[c]) return byCat[c];
   return c
@@ -127,6 +130,14 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
     iconColor: "#fecaca",
   };
 
+  const oliveSchool: FeedVisual = {
+    categoryLabel: englishCategoryLabel(row),
+    Icon: MenuBookOutlined,
+    railBg: "rgba(55, 65, 20, 0.6)",
+    glow: "rgba(212, 232, 120, 0.35)",
+    iconColor: "#ecfccb",
+  };
+
   if (key === "calendar") return purple;
   if (key === "clock") return tealClock;
   if (key === "trend") return tealGrowth;
@@ -143,6 +154,9 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   if (cat === "leadership") return goldLead;
   if (cat === "chapter") return blueChapter;
   if (cat === "member") return orangeMember;
+  if (key === "school") return oliveSchool;
+
+  if (cat === "training_session" || cat === "training_course") return oliveSchool;
   if (cat === "manual") return manualNote;
 
   return navyBolt;

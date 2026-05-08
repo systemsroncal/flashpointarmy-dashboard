@@ -9,10 +9,11 @@ import {
   FormControlLabel,
   Radio,
   RadioGroup,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { EventDescriptionHtml } from "@/components/events/EventDescriptionHtml";
 
 export function CourseQuizBlock({
@@ -27,22 +28,38 @@ export function CourseQuizBlock({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [done, setDone] = useState(Boolean(existingScore));
   const [localScore, setLocalScore] = useState(existingScore);
 
   const questions = payload.questions ?? [];
 
+  const weightSum = useMemo(
+    () =>
+      (payload.questions ?? []).reduce(
+        (s, q) => s + (Number.isFinite(q.points) ? Math.max(0, q.points) : 0),
+        0
+      ),
+    [payload]
+  );
+
+  const displayMaxScore = useMemo(() => {
+    const raw = payload.maxPoints;
+    if (raw != null && Number.isFinite(Number(raw)) && Number(raw) > 0) return Number(raw);
+    return weightSum;
+  }, [payload.maxPoints, weightSum]);
+
   const initial = useMemo(() => {
     const m: Record<string, unknown> = {};
-    for (const q of questions) {
+    for (const q of payload.questions ?? []) {
       if (q.type === "multi") m[q.id] = [];
-      else if (q.type === "tf") m[q.id] = false;
-      else m[q.id] = "";
+      else if (q.type === "single" || q.type === "text") m[q.id] = "";
     }
     return m;
-  }, [questions]);
+  }, [payload]);
 
-  const [answers, setAnswers] = useState<Record<string, unknown>>(initial);
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  useEffect(() => {
+    setAnswers(initial);
+  }, [initial]);
 
   if (localScore) {
     return (
@@ -72,7 +89,6 @@ export function CourseQuizBlock({
         return;
       }
       setLocalScore({ score: json.score ?? 0, maxScore: json.maxScore ?? 0 });
-      setDone(true);
       router.refresh();
     } catch {
       setErr("Network error.");
@@ -81,13 +97,21 @@ export function CourseQuizBlock({
     }
   }
 
+  function tfLabel(html: string | undefined, fb: string) {
+    const h = (html ?? "").trim();
+    return h || `<span>${fb}</span>`;
+  }
+
   return (
     <Box sx={{ p: 2, borderRadius: 1, border: "1px solid rgba(255,215,0,0.18)", bgcolor: "rgba(0,0,0,0.35)" }}>
       <Typography fontWeight={800} sx={{ mb: 1 }}>
         Quiz
       </Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-        Maximum points for this block: {payload.maxPoints ?? 0}
+        Maximum points for this block: {displayMaxScore}
+        {weightSum > 0 && payload.maxPoints != null && Number.isFinite(Number(payload.maxPoints)) && Number(payload.maxPoints) > 0
+          ? ` (question weights sum: ${weightSum})`
+          : null}
       </Typography>
       {questions.map((q) => (
         <Box key={q.id} sx={{ mb: 2.5 }}>
@@ -99,14 +123,25 @@ export function CourseQuizBlock({
           </Box>
           {q.type === "tf" ? (
             <RadioGroup
-              row
+              row={false}
               value={answers[q.id] === true ? "t" : answers[q.id] === false ? "f" : ""}
               onChange={(_, v) =>
-                setAnswers((a) => ({ ...a, [q.id]: v === "t" ? true : v === "f" ? false : undefined }))
+                setAnswers((a) => ({
+                  ...a,
+                  [q.id]: v === "t" ? true : v === "f" ? false : undefined,
+                }))
               }
             >
-              <FormControlLabel value="t" control={<Radio />} label="True" />
-              <FormControlLabel value="f" control={<Radio />} label="False" />
+              <FormControlLabel
+                value="t"
+                control={<Radio />}
+                label={<EventDescriptionHtml html={tfLabel(q.trueLabelHtml, "Verdadero")} sx={{ "& p": { m: 0 } }} />}
+              />
+              <FormControlLabel
+                value="f"
+                control={<Radio />}
+                label={<EventDescriptionHtml html={tfLabel(q.falseLabelHtml, "Falso")} sx={{ "& p": { m: 0 } }} />}
+              />
             </RadioGroup>
           ) : null}
           {q.type === "single" ? (
@@ -150,6 +185,15 @@ export function CourseQuizBlock({
               })}
             </FormControl>
           ) : null}
+          {q.type === "text" ? (
+            <TextField
+              fullWidth
+              size="small"
+              label="Your answer"
+              value={String(answers[q.id] ?? "")}
+              onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+            />
+          ) : null}
         </Box>
       ))}
       {err ? (
@@ -157,7 +201,7 @@ export function CourseQuizBlock({
           {err}
         </Typography>
       ) : null}
-      <Button variant="contained" onClick={() => void submit()} disabled={busy || done}>
+      <Button variant="contained" onClick={() => void submit()} disabled={busy || Boolean(localScore)}>
         {busy ? "Submitting…" : "Submit answers"}
       </Button>
     </Box>

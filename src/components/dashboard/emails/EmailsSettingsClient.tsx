@@ -25,6 +25,7 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TablePagination,
   TableRow,
   TableSortLabel,
   Tabs,
@@ -140,6 +141,8 @@ export function EmailsSettingsClient({
   const [logSearch, setLogSearch] = useState("");
   const [logOrderBy, setLogOrderBy] = useState<EmailLogSortKey>("created_at");
   const [logOrder, setLogOrder] = useState<"asc" | "desc">("desc");
+  const [logPage, setLogPage] = useState(0);
+  const [logsRowsPerPage, setLogsRowsPerPage] = useState(25);
 
   useEffect(() => {
     setLogs(initialLogs);
@@ -206,6 +209,18 @@ export function EmailsSettingsClient({
       }
     });
   }, [logs, logSearch, logOrder, logOrderBy]);
+
+  useEffect(() => {
+    setLogPage(0);
+  }, [logSearch, logOrderBy, logOrder]);
+
+  const pagedLogs = useMemo(() => {
+    if (logsRowsPerPage < 0) return displayedLogs;
+    return displayedLogs.slice(
+      logPage * logsRowsPerPage,
+      logPage * logsRowsPerPage + logsRowsPerPage
+    );
+  }, [displayedLogs, logPage, logsRowsPerPage]);
 
   async function refreshLogs() {
     setLogsLoading(true);
@@ -443,7 +458,7 @@ export function EmailsSettingsClient({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {displayedLogs.map((row) => (
+                {pagedLogs.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell sx={{ whiteSpace: "nowrap", fontSize: "0.75rem" }}>
                       {new Date(row.created_at).toLocaleString()}
@@ -515,6 +530,21 @@ export function EmailsSettingsClient({
                 ) : null}
               </TableBody>
             </Table>
+            {displayedLogs.length > 0 ? (
+              <TablePagination
+                component="div"
+                count={displayedLogs.length}
+                page={logsRowsPerPage < 0 ? 0 : logPage}
+                onPageChange={(_, next) => setLogPage(next)}
+                rowsPerPage={logsRowsPerPage}
+                onRowsPerPageChange={(e) => {
+                  const v = Number(e.target.value);
+                  setLogsRowsPerPage(v);
+                  setLogPage(0);
+                }}
+                rowsPerPageOptions={[10, 20, 25, 50, 100, { label: "All", value: -1 }]}
+              />
+            ) : null}
             </>
           )}
         </Paper>

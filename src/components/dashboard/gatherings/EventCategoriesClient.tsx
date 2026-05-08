@@ -13,6 +13,7 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TablePagination,
   TableRow,
   TableSortLabel,
   TextField,
@@ -20,7 +21,7 @@ import {
 } from "@mui/material";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Cat = { id: string; name: string; slug: string; sort_order: number | null };
 
@@ -42,6 +43,8 @@ export function EventCategoriesClient({
   const [tableSearch, setTableSearch] = useState("");
   const [orderBy, setOrderBy] = useState<CatSortKey>("sort_order");
   const [order, setOrder] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   function handleRequestSort(property: CatSortKey) {
     const isAsc = orderBy === property && order === "asc";
@@ -69,6 +72,15 @@ export function EventCategoriesClient({
       }
     });
   }, [rows, tableSearch, order, orderBy]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [tableSearch, order, orderBy]);
+
+  const pagedRows = useMemo(() => {
+    if (rowsPerPage < 0) return displayed;
+    return displayed.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [displayed, page, rowsPerPage]);
 
   async function add() {
     if (!canMutate || !name.trim()) return;
@@ -165,7 +177,7 @@ export function EventCategoriesClient({
             </TableRow>
           </TableHead>
           <TableBody>
-            {displayed.map((r) => (
+            {pagedRows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell>{r.name}</TableCell>
                 <TableCell>{r.slug}</TableCell>
@@ -188,6 +200,21 @@ export function EventCategoriesClient({
             ))}
           </TableBody>
         </Table>
+        {displayed.length > 0 ? (
+          <TablePagination
+            component="div"
+            count={displayed.length}
+            page={rowsPerPage < 0 ? 0 : page}
+            onPageChange={(_, nextPage) => setPage(nextPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              const v = Number(e.target.value);
+              setRowsPerPage(v);
+              setPage(0);
+            }}
+            rowsPerPageOptions={[10, 20, 25, 50, 100, { label: "All", value: -1 }]}
+          />
+        ) : null}
       </Paper>
 
       <Dialog

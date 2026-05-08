@@ -9,13 +9,14 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TableSortLabel,
   TextField,
   Typography,
 } from "@mui/material";
 import type { PostgrestError } from "@supabase/supabase-js";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type AuditRow = {
   id: string;
@@ -65,6 +66,8 @@ export function LogsTable({
   const [tableSearch, setTableSearch] = useState("");
   const [orderBy, setOrderBy] = useState<LogSortKey>("date");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   function handleRequestSort(property: LogSortKey) {
     const isAsc = orderBy === property && order === "asc";
@@ -114,6 +117,15 @@ export function LogsTable({
       }
     });
   }, [rows, forbidden, error, tableSearch, order, orderBy]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [tableSearch, order, orderBy]);
+
+  const pagedRows = useMemo(() => {
+    if (rowsPerPage < 0) return displayed;
+    return displayed.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [displayed, page, rowsPerPage]);
 
   if (forbidden) {
     return (
@@ -199,7 +211,7 @@ export function LogsTable({
             </TableRow>
           </TableHead>
           <TableBody>
-            {displayed.map((r) => (
+            {pagedRows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell>
                   {r.created_at ? new Date(r.created_at).toLocaleString("en-US") : "—"}
@@ -225,6 +237,21 @@ export function LogsTable({
           </TableBody>
         </Table>
       </TableContainer>
+      {displayed.length > 0 ? (
+        <TablePagination
+          component="div"
+          count={displayed.length}
+          page={rowsPerPage < 0 ? 0 : page}
+          onPageChange={(_, nextPage) => setPage(nextPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            const v = Number(e.target.value);
+            setRowsPerPage(v);
+            setPage(0);
+          }}
+          rowsPerPageOptions={[10, 20, 25, 50, 100, { label: "All", value: -1 }]}
+        />
+      ) : null}
     </>
   );
 }

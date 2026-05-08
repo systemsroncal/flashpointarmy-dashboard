@@ -16,16 +16,21 @@ export type QuizOption = { id: string; labelHtml: string; correct: boolean };
 
 export type QuizQuestion = {
   id: string;
-  type: "tf" | "single" | "multi";
+  type: "tf" | "single" | "multi" | "text";
   promptHtml: string;
   points: number;
-  /** For true/false questions */
+  /** True/false (HTML labels optional). */
   correctTrue?: boolean;
+  trueLabelHtml?: string;
+  falseLabelHtml?: string;
   options?: QuizOption[];
+  /** For `text`: each string is trimmed, case-insensitive match. */
+  acceptableAnswers?: string[];
 };
 
 export type QuizElementPayload = {
-  maxPoints: number;
+  /** If null/omitted/empty in UI → effective max score = sum(question.points). */
+  maxPoints?: number | null;
   questions: QuizQuestion[];
 };
 
