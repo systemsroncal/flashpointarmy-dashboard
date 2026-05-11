@@ -1,9 +1,9 @@
 import { CommunitySection } from "@/components/dashboard/community/CommunitySection";
 import { MODULE_SLUGS } from "@/config/modules";
 import {
-  listDashboardUsersByIds,
+  listDashboardUsersByIdsWithAuthFallback,
   listProfilesByIds,
-  listUserRoleJoinsByUserIds,
+  listRoleNamesByUserIds,
 } from "@/lib/admin/dashboard-user-queries";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -93,7 +93,7 @@ export default async function AdminsPageContent() {
   let merged: UserRow[] = [];
 
   if (adminUserIds.length > 0) {
-    const data = await listDashboardUsersByIds(admin, adminUserIds);
+    const data = await listDashboardUsersByIdsWithAuthFallback(admin, adminUserIds);
     merged = data.map((u) => ({
       ...(u as Omit<UserRow, "role_names">),
       role_names: [],
@@ -112,6 +112,7 @@ export default async function AdminsPageContent() {
       string,
       {
         phone: string | null;
+        primary_chapter_id: string | null;
         address_line: string | null;
         city: string | null;
         state: string | null;
@@ -123,6 +124,7 @@ export default async function AdminsPageContent() {
       avatarById.set(id, (row as { avatar_url?: string | null }).avatar_url ?? null);
       mailById.set(id, {
         phone: (row as { phone?: string | null }).phone?.trim() || null,
+        primary_chapter_id: row.primary_chapter_id ?? null,
         address_line: (row as { address_line?: string | null }).address_line ?? null,
         city: (row as { city?: string | null }).city ?? null,
         state: (row as { state?: string | null }).state ?? null,
@@ -130,24 +132,14 @@ export default async function AdminsPageContent() {
       });
     }
 
-    const roleJoinRows = await listUserRoleJoinsByUserIds(admin, userIds);
-
-    const byUser = new Map<string, string[]>();
-    for (const row of roleJoinRows) {
-      const uid = row.user_id as string;
-      const rel = row.roles as { name: string } | { name: string }[] | null;
-      const roleName = Array.isArray(rel) ? rel[0]?.name : rel?.name;
-      if (!roleName) continue;
-      const list = byUser.get(uid) ?? [];
-      if (!list.includes(roleName)) list.push(roleName);
-      byUser.set(uid, list);
-    }
+    const roleByUser = await listRoleNamesByUserIds(admin, userIds);
     merged = merged.map((u) => {
       const m = mailById.get(u.id);
       return {
         ...u,
         avatar_url: avatarById.get(u.id) ?? null,
-        role_names: (byUser.get(u.id) ?? []).sort(),
+        role_names: (roleByUser.get(u.id) ?? []).sort(),
+        primary_chapter_id: m?.primary_chapter_id ?? u.primary_chapter_id,
         phone: m?.phone || u.phone || null,
         address_line: m?.address_line ?? u.address_line,
         city: m?.city ?? u.city,

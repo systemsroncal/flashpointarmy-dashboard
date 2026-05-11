@@ -18,6 +18,7 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import SchoolIcon from "@mui/icons-material/School";
 import SecurityIcon from "@mui/icons-material/Security";
 import EmailIcon from "@mui/icons-material/Email";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 import SettingsIcon from "@mui/icons-material/Settings";
 import {
   AppBar,
@@ -98,6 +99,7 @@ const SETTINGS_MODULES = new Set<string>([
   MODULE_SLUGS.admins,
   MODULE_SLUGS.adminRoles,
   MODULE_SLUGS.courses,
+  MODULE_SLUGS.reports,
 ]);
 
 const NAV: NavItem[] = [
@@ -172,6 +174,12 @@ const NAV: NavItem[] = [
     href: "/dashboard/emails",
     module: MODULE_SLUGS.emails,
     icon: <EmailIcon />,
+  },
+  {
+    label: "Reports",
+    href: "/dashboard/reports",
+    module: MODULE_SLUGS.reports,
+    icon: <AssessmentIcon />,
   },
   {
     label: "Roles & permissions",

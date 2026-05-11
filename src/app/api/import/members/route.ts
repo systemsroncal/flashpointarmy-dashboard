@@ -17,6 +17,7 @@ import {
 } from "@/lib/import/dashboard-user-mirror";
 import { resolveChapterForMemberImport, type ChapterRow } from "@/lib/import/chapter-import";
 import { mailingForUserMetadata, userMailingAddressFromImportRow } from "@/lib/import/user-mailing-address";
+import { DEFAULT_EXTERNAL_USER_PASSWORD } from "@/lib/auth/default-external-user-password";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
@@ -141,7 +142,7 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const password = phone || "Welcome123!";
+    const password = DEFAULT_EXTERNAL_USER_PASSWORD;
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,

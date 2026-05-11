@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { DEFAULT_EXTERNAL_USER_PASSWORD } from "@/lib/auth/default-external-user-password";
 import { ensureDashboardUserMirror } from "@/lib/import/dashboard-user-mirror";
 import type { UserMailingFields } from "@/lib/import/user-mailing-address";
 import { mailingForUserMetadata } from "@/lib/import/user-mailing-address";
@@ -25,7 +26,7 @@ export async function createLocalLeaderUserForChapter(
   const mailMeta = mailing ? mailingForUserMetadata(mailing) : {};
   const trimmedOverride = passwordOverride?.trim() ?? "";
   const password =
-    trimmedOverride.length >= 8 ? trimmedOverride : phone || "Welcome123!";
+    trimmedOverride.length >= 8 ? trimmedOverride : DEFAULT_EXTERNAL_USER_PASSWORD;
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
     password,

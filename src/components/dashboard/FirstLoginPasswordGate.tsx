@@ -34,16 +34,22 @@ export function FirstLoginPasswordGate() {
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      void refresh();
+    });
+    return () => subscription.unsubscribe();
+  }, [refresh, supabase]);
 
   async function submit() {
     setErr(null);
     if (password.length < 8) {
-      setErr("La contraseña debe tener al menos 8 caracteres.");
+      setErr("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirm) {
-      setErr("Las contraseñas no coinciden.");
+      setErr("Passwords do not match.");
       return;
     }
     setBusy(true);
@@ -53,34 +59,50 @@ export function FirstLoginPasswordGate() {
         data: { require_password_change: false },
       });
       if (error) {
-        setErr(error.message || "No se pudo actualizar la contraseña.");
+        setErr(error.message || "Could not update password.");
         return;
       }
       setPassword("");
       setConfirm("");
       setOpen(false);
+      await refresh();
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Dialog open={open} disableEscapeKeyDown hideBackdrop={false} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      disableEscapeKeyDown
+      onClose={(_, reason) => {
+        if (reason === "backdropClick") return;
+      }}
+      maxWidth="xs"
+      fullWidth
+    >
       <DialogTitle sx={{ color: "primary.main", fontWeight: 800 }}>
-        Actualiza tu contraseña
+        Set a new password
       </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Por seguridad, debes elegir una contraseña nueva antes de continuar.
+          For security, you must choose a new password before using the dashboard.
         </Typography>
         {err ? (
           <Typography color="error" sx={{ mb: 1 }}>
             {err}
           </Typography>
         ) : null}
-        <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box
+          component="form"
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submit();
+          }}
+        >
           <TextField
-            label="Nueva contraseña"
+            label="New password"
             type="password"
             autoComplete="new-password"
             fullWidth
@@ -88,15 +110,15 @@ export function FirstLoginPasswordGate() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <TextField
-            label="Confirmar contraseña"
+            label="Confirm password"
             type="password"
             autoComplete="new-password"
             fullWidth
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
           />
-          <Button variant="contained" disabled={busy} onClick={() => void submit()}>
-            {busy ? "Guardando…" : "Guardar contraseña"}
+          <Button type="submit" variant="contained" disabled={busy}>
+            {busy ? "Saving…" : "Save password"}
           </Button>
         </Box>
       </DialogContent>

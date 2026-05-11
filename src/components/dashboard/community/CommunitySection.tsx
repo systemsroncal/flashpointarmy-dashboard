@@ -2,6 +2,7 @@
 
 import DeleteOutline from "@mui/icons-material/DeleteOutline";
 import Edit from "@mui/icons-material/Edit";
+import Search from "@mui/icons-material/Search";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import {
@@ -21,6 +22,8 @@ import {
   IconButton,
   InputAdornment,
   InputLabel,
+  List,
+  ListItemButton,
   MenuItem,
   Paper,
   Select,
@@ -39,9 +42,8 @@ import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutoc
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { parseUploadFile } from "@/lib/import/parse-upload";
 import { usStateByCode } from "@/data/usStates";
-import { useSyncedState } from "@/hooks/useSyncedState";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type CommunityUserRow = {
   id: string;
@@ -99,6 +101,12 @@ function tableRoleLabel(
   return pr ? formatRoleLabel(pr) : "—";
 }
 
+function emailFromSuggestionLabel(label: string): string {
+  const parts = label.split("—");
+  if (parts.length >= 2) return parts[parts.length - 1]!.trim();
+  return label.trim();
+}
+
 type CommunitySortKey =
   | "email"
   | "phone"
@@ -140,10 +148,25 @@ export function CommunitySection({
   const isLeaders = variant === "leaders";
   const isAdmins = variant === "admins";
   const remoteMode = !isLeaders && !isAdmins;
+  const searchFieldId = isAdmins
+    ? "fp-user-dir-search-admins"
+    : isLeaders
+      ? "fp-user-dir-search-leaders"
+      : "fp-user-dir-search-community";
+  const tablePaginationRppId = isAdmins
+    ? "fp-user-dir-rpp-admins"
+    : isLeaders
+      ? "fp-user-dir-rpp-leaders"
+      : "fp-user-dir-rpp-community";
+  const tablePaginationRppLabelId = `${tablePaginationRppId}-label`;
   /** Admin (not super) cannot remove other admins; no one removes super admin from the UI */
   const restrictDeletesForPeerAdmin = elevated && !isSuperAdmin;
   const router = useRouter();
-  const [users, setUsers] = useSyncedState(initialUsers);
+  const [users, setUsers] = useState<CommunityUserRow[]>(initialUsers);
+  useEffect(() => {
+    if (remoteMode) return;
+    setUsers(initialUsers);
+  }, [remoteMode, initialUsers]);
   const [filterChapterId, setFilterChapterId] = useState<string>("all");
   const [addOpen, setAddOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -162,11 +185,15 @@ export function CommunitySection({
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [totalCount, setTotalCount] = useState(initialUsers.length);
   const [tableLoading, setTableLoading] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [selectedSearchOption, setSelectedSearchOption] = useState<{ id: string; label: string } | null>(null);
+  const [tableFetchError, setTableFetchError] = useState<string | null>(null);
   const [searchOptions, setSearchOptions] = useState<Array<{ id: string; label: string }>>([]);
   const [searchInput, setSearchInput] = useState("");
+  const [searchCommitted, setSearchCommitted] = useState("");
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  const searchInputRef = useRef("");
+  searchInputRef.current = searchInput;
 
   const [importOpen, setImportOpen] = useState(false);
   const [importRows, setImportRows] = useState<Record<string, string>[]>([]);
@@ -218,13 +245,19 @@ export function CommunitySection({
   const [promoteError, setPromoteError] = useState<string | null>(null);
   const [promoteSubmitting, setPromoteSubmitting] = useState(false);
 
-  const [tableSearch, setTableSearch] = useState("");
   const [orderBy, setOrderBy] = useState<CommunitySortKey>("joined");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
 
   const [roleChangeDraft, setRoleChangeDraft] = useState<"member" | "local_leader">("member");
   const [roleChangeSaving, setRoleChangeSaving] = useState(false);
   const [roleChangeError, setRoleChangeError] = useState<string | null>(null);
+
+  const applySearchQuery = useCallback((raw: string) => {
+    const v = raw.trim();
+    setSearchCommitted(v);
+    setPage(0);
+    setSuggestionsOpen(false);
+  }, []);
 
   function rowCanBeDeleted(u: CommunityUserRow): boolean {
     if (u.id === currentUserId) return false;
@@ -379,28 +412,33 @@ export function CommunitySection({
 
   useEffect(() => {
     setPage(0);
-  }, [tableSearch, orderBy, order, filterChapterId]);
+  }, [searchCommitted, orderBy, order, filterChapterId]);
 
   const fetchRemoteRows = useCallback(async () => {
     if (!remoteMode) return;
     setTableLoading(true);
+    setTableFetchError(null);
     try {
       const params = new URLSearchParams({
         page: String(page),
         perPage: String(rowsPerPage < 0 ? 200 : rowsPerPage),
         chapterId: filterChapterId,
       });
-      if (selectedUserId) params.set("selectedUserId", selectedUserId);
+      if (searchCommitted.length >= 2) {
+        params.set("q", searchCommitted);
+      }
       const res = await fetch(`/api/community/members?${params.toString()}`, { cache: "no-store" });
       const payload = (await res.json()) as { rows?: CommunityUserRow[]; total?: number; error?: string };
-      if (!res.ok) return;
+      if (!res.ok) {
+        setTableFetchError(payload.error || res.statusText || "Could not load members.");
+        return;
+      }
       setUsers(payload.rows ?? []);
       setTotalCount(payload.total ?? 0);
-      if (!selectedUserId) setSelectedSearchOption(null);
     } finally {
       setTableLoading(false);
     }
-  }, [remoteMode, page, rowsPerPage, filterChapterId, selectedUserId, setUsers]);
+  }, [remoteMode, page, rowsPerPage, filterChapterId, searchCommitted]);
 
   useEffect(() => {
     void fetchRemoteRows();
@@ -455,7 +493,7 @@ export function CommunitySection({
     if (remoteMode) return users;
     const chapterScoped =
       filterChapterId === "all" ? users : users.filter((u) => u.primary_chapter_id === filterChapterId);
-    const q = tableSearch.trim().toLowerCase();
+    const q = searchCommitted.trim().toLowerCase();
     if (!q) return chapterScoped;
     return chapterScoped.filter((u) => {
       const roleLabel = tableRoleLabel(u, variant);
@@ -465,6 +503,10 @@ export function CommunitySection({
         u.first_name ?? "",
         u.last_name ?? "",
         u.display_name ?? "",
+        u.address_line ?? "",
+        u.city ?? "",
+        u.state ?? "",
+        u.zip_code ?? "",
         u.created_at ? new Date(u.created_at).toLocaleDateString() : "",
         roleLabel,
         (u.role_names ?? []).join(" "),
@@ -473,7 +515,7 @@ export function CommunitySection({
         .toLowerCase();
       return blob.includes(q);
     });
-  }, [users, filterChapterId, tableSearch, variant]);
+  }, [remoteMode, users, filterChapterId, searchCommitted, variant]);
 
   const sorted = useMemo(() => {
     if (remoteMode) return users;
@@ -506,7 +548,7 @@ export function CommunitySection({
           return 0;
       }
     });
-  }, [filtered, order, orderBy, variant]);
+  }, [remoteMode, users, filtered, order, orderBy, variant]);
 
   const paged = useMemo(() => {
     if (remoteMode) return users;
@@ -938,6 +980,11 @@ export function CommunitySection({
           {inviteFlash}
         </Alert>
       ) : null}
+      {tableFetchError ? (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setTableFetchError(null)}>
+          {tableFetchError}
+        </Alert>
+      ) : null}
 
       <Box
         sx={{
@@ -994,43 +1041,92 @@ export function CommunitySection({
           ) : null}
         </Box>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
-          {remoteMode ? (
-            <Autocomplete
-              options={searchOptions}
-              loading={searchLoading}
-              value={selectedSearchOption}
-              isOptionEqualToValue={(opt, val) => opt.id === val.id}
-              inputValue={searchInput}
-              onInputChange={(_, v, reason) => {
-                setSearchInput(v);
-                if (reason === "clear") {
-                  setSelectedUserId("");
-                  setSelectedSearchOption(null);
-                  setPage(0);
+          <Box sx={{ position: "relative", minWidth: { sm: 320 }, flex: { sm: "0 1 420px" } }}>
+            <TextField
+              id={searchFieldId}
+              size="small"
+              fullWidth
+              label="Search"
+              placeholder={
+                remoteMode
+                  ? "Email, name, phone, city, state, ZIP. Suggestions while typing — press Enter, the search icon, or click outside to run."
+                  : "Email, name, phone, address, city, state, ZIP, role. Press Enter, the search icon, or click outside to filter."
+              }
+              value={searchInput}
+              onChange={(e) => {
+                setSearchInput(e.target.value);
+                if (remoteMode) setSuggestionsOpen(true);
+              }}
+              onFocus={() => {
+                if (remoteMode && searchInput.trim().length >= 2) setSuggestionsOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  applySearchQuery(searchInput);
                 }
               }}
-              onChange={(_, option) => {
-                setSelectedUserId(option?.id ?? "");
-                setSelectedSearchOption(option ?? null);
-                setPage(0);
+              onBlur={() => {
+                window.setTimeout(() => {
+                  setSuggestionsOpen(false);
+                  applySearchQuery(searchInputRef.current);
+                }, 200);
               }}
-              clearOnEscape
-              sx={{ minWidth: { sm: 300 } }}
-              getOptionLabel={(o) => o.label}
-              renderInput={(params) => (
-                <TextField {...params} size="small" label="Search user (DB)" placeholder="Type name or email..." />
-              )}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      aria-label="Run search"
+                      edge="end"
+                      onMouseDown={(ev) => ev.preventDefault()}
+                      onClick={() => applySearchQuery(searchInput)}
+                    >
+                      <Search fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
-          ) : (
-            <TextField
-              size="small"
-              label="Search"
-              placeholder="Email, name, phone, role…"
-              value={tableSearch}
-              onChange={(e) => setTableSearch(e.target.value)}
-              sx={{ minWidth: { sm: 220 } }}
-            />
-          )}
+            {remoteMode &&
+            suggestionsOpen &&
+            searchOptions.length > 0 &&
+            searchInput.trim().length >= 2 ? (
+              <Paper
+                elevation={6}
+                sx={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  zIndex: 20,
+                  mt: 0.5,
+                  maxHeight: 260,
+                  overflow: "auto",
+                }}
+              >
+                <List dense disablePadding>
+                  {searchOptions.map((opt) => (
+                    <ListItemButton
+                      key={opt.id}
+                      onMouseDown={(ev) => ev.preventDefault()}
+                      onClick={() => {
+                        const email = emailFromSuggestionLabel(opt.label);
+                        setSearchInput(email);
+                        applySearchQuery(email);
+                      }}
+                    >
+                      {opt.label}
+                    </ListItemButton>
+                  ))}
+                </List>
+              </Paper>
+            ) : null}
+            {remoteMode && searchLoading ? (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
+                Loading suggestions…
+              </Typography>
+            ) : null}
+          </Box>
           {showChapterFilter ? (
             <FormControl size="small" sx={{ minWidth: 220 }}>
               <InputLabel
@@ -1041,6 +1137,9 @@ export function CommunitySection({
                 Chapter
               </InputLabel>
               <Select
+                id={
+                  isAdmins ? "fp-chapter-filter-admins" : isLeaders ? "fp-chapter-filter-leaders" : "fp-chapter-filter-community"
+                }
                 labelId={
                   isAdmins ? "admins-ch-filter" : isLeaders ? "leaders-ch-filter" : "comm-ch-filter"
                 }
@@ -1210,6 +1309,12 @@ export function CommunitySection({
           100,
           { label: "All", value: -1 },
         ]}
+        slotProps={{
+          select: {
+            id: tablePaginationRppId,
+            labelId: tablePaginationRppLabelId,
+          },
+        }}
       />
       {filtered.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>

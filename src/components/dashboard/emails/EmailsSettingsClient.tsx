@@ -8,6 +8,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -33,6 +34,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { LaunchDefaultPasswordPanel } from "@/components/dashboard/emails/LaunchDefaultPasswordPanel";
 import { Fragment, useEffect, useMemo, useState } from "react";
 
 type Branding = {
@@ -105,12 +107,14 @@ const TEMPLATE_SHORTCODE_HINTS: Record<string, string> = {
 };
 
 export function EmailsSettingsClient({
+  isSuperAdmin,
   initialBranding,
   initialTemplates,
   initialLogs,
   defaultTestEmail,
   canEdit,
 }: {
+  isSuperAdmin: boolean;
   initialBranding: Branding;
   initialTemplates: TemplateRow[];
   initialLogs: EmailSendLogRow[];
@@ -143,6 +147,11 @@ export function EmailsSettingsClient({
   const [logOrder, setLogOrder] = useState<"asc" | "desc">("desc");
   const [logPage, setLogPage] = useState(0);
   const [logsRowsPerPage, setLogsRowsPerPage] = useState(25);
+  /** Defer heavy MUI tree until after mount so password-manager extensions (e.g. Proton Pass) cannot break SSR hydration. */
+  const [hydrationSafe, setHydrationSafe] = useState(false);
+  useEffect(() => {
+    setHydrationSafe(true);
+  }, []);
 
   useEffect(() => {
     setLogs(initialLogs);
@@ -349,6 +358,23 @@ export function EmailsSettingsClient({
     }
   }
 
+  if (!hydrationSafe) {
+    return (
+      <Box
+        sx={{
+          minHeight: 320,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        aria-busy="true"
+        aria-label="Loading email settings"
+      >
+        <CircularProgress size={28} />
+      </Box>
+    );
+  }
+
   return (
     <Stack spacing={3}>
       <Typography variant="h5">Email configuration</Typography>
@@ -360,6 +386,7 @@ export function EmailsSettingsClient({
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tab label="Templates &amp; branding" />
         <Tab label="Email send log" />
+        {isSuperAdmin ? <Tab label="Launch passwords" /> : null}
       </Tabs>
 
       {msg && <Alert severity="success">{msg}</Alert>}
@@ -547,6 +574,15 @@ export function EmailsSettingsClient({
             ) : null}
             </>
           )}
+        </Paper>
+      ) : null}
+
+      {isSuperAdmin && tab === 2 ? (
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Launch — default password
+          </Typography>
+          <LaunchDefaultPasswordPanel />
         </Paper>
       ) : null}
 

@@ -85,8 +85,8 @@ export default async function CommunityPageContent() {
 
   const subtitle =
     elevated || !isLocalLeader
-      ? "All dashboard users."
-      : "Users assigned to your primary chapter.";
+      ? "Members only (excludes local leaders and administrators)."
+      : "Members in your primary chapter (excludes local leaders and administrators).";
 
   return (
     <CommunitySection

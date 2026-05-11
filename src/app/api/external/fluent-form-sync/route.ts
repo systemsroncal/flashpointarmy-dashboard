@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { MODULE_SLUGS } from "@/config/modules";
+import { DEFAULT_EXTERNAL_USER_PASSWORD } from "@/lib/auth/default-external-user-password";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
@@ -641,7 +642,7 @@ export async function POST(req: Request) {
               for (let attempt = 1; attempt <= 3; attempt += 1) {
                 const res = await admin.auth.admin.createUser({
                   email: emailNorm,
-                  password: password.length >= 8 ? password : phone || "Welcome123!",
+                  password: password.length >= 8 ? password : DEFAULT_EXTERNAL_USER_PASSWORD,
                   email_confirm: true,
                   user_metadata: {
                     first_name: firstOk,

@@ -20,6 +20,8 @@ export const MODULE_SLUGS = {
   emails: "emails",
   /** Nav placeholder; accent color #c32020 in shell. */
   movilization: "movilization",
+  /** Analytics & charts (Settings area). */
+  reports: "reports",
 } as const;
 
 export type ModuleSlug = (typeof MODULE_SLUGS)[keyof typeof MODULE_SLUGS];

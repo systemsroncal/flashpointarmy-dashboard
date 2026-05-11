@@ -6,7 +6,7 @@ import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles"
 import { formatAuthSignInError } from "@/utils/supabase/auth-errors";
 import { createClient } from "@/utils/supabase/client";
 import ArrowForward from "@mui/icons-material/ArrowForward";
-import { Box, Button, Link as MuiLink, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Link as MuiLink, TextField, Typography } from "@mui/material";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -15,6 +15,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? "/dashboard";
+  const sessionReason = searchParams.get("reason");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +69,11 @@ function LoginForm() {
         }}
       >
         <Box component="form" onSubmit={handleSubmit} noValidate>
+          {sessionReason === "session_expired" ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Your session expired or is no longer valid. Please sign in again.
+            </Alert>
+          ) : null}
           <Box>
             <Typography component="label" htmlFor="login-email" sx={authLabelSx}>
               Username or Email Address

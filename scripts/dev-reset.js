@@ -1,8 +1,7 @@
 /**
- * dev-reset: borra caché Next (.next), libera el puerto (por defecto 3000) y arranca `npm run dev`.
- * Uso: npm run dev:reset
- */
-/* eslint-disable @typescript-eslint/no-require-imports */
+ * dev-reset: remove Next cache (.next), free the port (default 3000), then run `npm run dev`.
+ * Usage: npm run dev:reset
+ *//* eslint-disable @typescript-eslint/no-require-imports */
 const { execSync, spawn } = require("child_process");
 const path = require("path");
 

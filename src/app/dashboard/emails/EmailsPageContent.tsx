@@ -2,6 +2,7 @@ import { AccessDenied } from "@/components/dashboard/AccessDenied";
 import { EmailsSettingsClient } from "@/components/dashboard/emails/EmailsSettingsClient";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
@@ -17,6 +18,9 @@ export default async function EmailsPageContent() {
   if (!can(permissions, MODULE_SLUGS.emails, "read")) {
     return <AccessDenied message="You do not have access to email settings." />;
   }
+
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  const isSuperAdmin = isSuperAdminUser(roleNames);
 
   const canEdit = can(permissions, MODULE_SLUGS.emails, "update");
 
@@ -36,6 +40,7 @@ export default async function EmailsPageContent() {
 
   return (
     <EmailsSettingsClient
+      isSuperAdmin={isSuperAdmin}
       initialBranding={
         branding ?? {
           logo_url: null,

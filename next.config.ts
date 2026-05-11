@@ -33,8 +33,9 @@ const nextConfig: NextConfig = {
   },
   /**
    * Do not disable webpack cache in dev: turning it off was forcing full rebuilds
-   * (~2000 modules / 10–50s per route). If you hit OOM, run `npm run clean` and try
-   * `npm run dev:webpack` instead of `dev`.
+   * (~2000 modules / 10–50s per route). Default `npm run dev` uses webpack (stable on Windows).
+   * If you need Turbopack, use `npm run dev:turbo` — on some Windows setups it can OOM at startup;
+   * in that case stay on `npm run dev` or run `npm run clean` first.
    */
 };
 

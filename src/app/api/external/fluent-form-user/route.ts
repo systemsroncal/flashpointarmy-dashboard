@@ -1,3 +1,4 @@
+import { DEFAULT_EXTERNAL_USER_PASSWORD } from "@/lib/auth/default-external-user-password";
 import { NextResponse } from "next/server";
 import {
   extractFormIdFromPayload,
@@ -56,6 +57,9 @@ async function readBodyAsRecord(req: Request): Promise<Record<string, unknown>> 
  * Auth: `Authorization: Bearer <FLUENT_FORM_WEBHOOK_SECRET>` or `X-Fluent-Form-Secret`.
  * Env: `FLUENT_FORM_WEBHOOK_SECRET`; optional `FLUENT_FORM_SYSTEM_USER_ID` (UUID of a dashboard user
  * used as `created_by` when auto-creating chapters — use a dedicated admin/service account).
+ *
+ * Password: optional in the payload. If missing or shorter than 8 characters, the server uses
+ * the default external user password (same as import / Fluent sync).
  */
 export async function POST(req: Request) {
   const expected = process.env.FLUENT_FORM_WEBHOOK_SECRET?.trim();
@@ -104,9 +108,8 @@ export async function POST(req: Request) {
   const firstName = identity.firstName;
   const lastName = identity.lastName;
 
-  if (password.length < 8) {
-    return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
-  }
+  const effectivePassword =
+    password.trim().length >= 8 ? password.trim() : DEFAULT_EXTERNAL_USER_PASSWORD;
 
   const admin = createAdminClient();
 
@@ -168,7 +171,7 @@ export async function POST(req: Request) {
       phone,
       chapterId,
       leaderRoleId: roleRow.id as string,
-      passwordOverride: password,
+      passwordOverride: effectivePassword,
       mailing,
     });
 
@@ -228,7 +231,7 @@ export async function POST(req: Request) {
 
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
-    password,
+    password: effectivePassword,
     email_confirm: true,
     user_metadata: {
       first_name: firstName,
