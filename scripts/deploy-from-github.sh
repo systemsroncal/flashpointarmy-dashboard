@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 # Run on the VPS from the repo root (or any cwd; script cd's to project root).
 # Usage: bash scripts/deploy-from-github.sh
-# Env: GIT_BRANCH (default main), PM2_APP_NAME (default app-fparmychapters),
-#      APP_PORT (default 3000), SKIP_PM2=1 to skip restart
+# Env:
+#   GIT_BRANCH      — default main
+#   PM2_APP_NAME    — default app-fparmychapters (use another name for dev, e.g. dev-fparmychapters)
+#   APP_PORT        — default 3000 (Next.js reads PORT; dev on same host should use e.g. 3001)
+#   SKIP_PM2=1      — skip stop/restart (only pull + build)
+#
+# Examples (Hestia: run as the shell user that owns the site, from the clone directory):
+#   Producción:  bash scripts/deploy-from-github.sh
+#   Dev:         GIT_BRANCH=main PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
 
 set -euo pipefail
 
@@ -12,8 +19,9 @@ cd "$ROOT"
 BRANCH="${GIT_BRANCH:-main}"
 PM2_NAME="${PM2_APP_NAME:-app-fparmychapters}"
 APP_PORT="${APP_PORT:-3000}"
+export PORT="${APP_PORT}"
 
-echo "[deploy] $(pwd) branch=$BRANCH"
+echo "[deploy] $(pwd) branch=$BRANCH PORT=$PORT pm2=$PM2_NAME"
 
 port_holders() {
   ss -ltnp 2>/dev/null | awk -v p=":${APP_PORT}" '$4 ~ p { print $0 }'
@@ -44,7 +52,7 @@ if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
   fi
 
   if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
-    pm2 restart "$PM2_NAME"
+    pm2 restart "$PM2_NAME" --update-env
     echo "[deploy] PM2 restarted: $PM2_NAME"
   else
     pm2 start npm --name "$PM2_NAME" -- start
