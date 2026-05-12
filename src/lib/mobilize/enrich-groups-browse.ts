@@ -26,14 +26,15 @@ type DuRow = {
   last_name: string | null;
   display_name: string | null;
   email: string | null;
-  profiles: { avatar_url: string | null } | { avatar_url: string | null }[] | null;
 };
 
-function avatarFromProfiles(p: DuRow["profiles"]): string | null {
-  if (!p) return null;
-  const o = Array.isArray(p) ? p[0] : p;
-  return o?.avatar_url ?? null;
-}
+type ProfileRow = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+};
 
 function fullNameFromRow(u: {
   first_name?: string | null;
@@ -129,21 +130,39 @@ export async function enrichMobilizeGroupsBrowse(
   const briefByUser = new Map<string, MobilizeGroupLeaderBrief>();
 
   if (leaderIdList.length) {
-    const { data: du } = await admin
-      .from("dashboard_users")
-      .select("id, first_name, last_name, display_name, email, profiles(avatar_url)")
-      .in("id", leaderIdList);
-    for (const raw of du ?? []) {
-      const u = raw as DuRow;
-      const id = u.id as string;
-      briefByUser.set(id, {
-        user_id: id,
-        first_name: u.first_name ?? null,
-        last_name: u.last_name ?? null,
-        display_name: u.display_name ?? null,
-        email: u.email ?? null,
-        avatar_url: avatarFromProfiles(u.profiles),
-        full_name: fullNameFromRow(u),
+    const [{ data: duRows }, { data: profRows }] = await Promise.all([
+      admin.from("dashboard_users").select("id, first_name, last_name, display_name, email").in("id", leaderIdList),
+      admin
+        .from("profiles")
+        .select("id, first_name, last_name, display_name, avatar_url")
+        .in("id", leaderIdList),
+    ]);
+
+    const duById = new Map((duRows ?? []).map((r) => [(r as DuRow).id, r as DuRow]));
+    const prById = new Map((profRows ?? []).map((r) => [(r as ProfileRow).id, r as ProfileRow]));
+
+    for (const uid of leaderIdList) {
+      const du = duById.get(uid);
+      const pr = prById.get(uid);
+      const first_name = (du?.first_name ?? pr?.first_name ?? null) as string | null;
+      const last_name = (du?.last_name ?? pr?.last_name ?? null) as string | null;
+      const display_name = (du?.display_name ?? pr?.display_name ?? null) as string | null;
+      const email = (du?.email ?? null) as string | null;
+      const avatar_url = (pr?.avatar_url ?? null) as string | null;
+      briefByUser.set(uid, {
+        user_id: uid,
+        first_name,
+        last_name,
+        display_name,
+        email,
+        avatar_url,
+        full_name: fullNameFromRow({
+          first_name,
+          last_name,
+          display_name,
+          email,
+          id: uid,
+        }),
       });
     }
   }

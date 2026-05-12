@@ -98,8 +98,30 @@ export default function MobilizeGroupsBrowseTable({
 }: Props) {
   const toast = useMobilizeToast();
   const mapStacked = layoutVariant === "mapStacked";
-  const thumbBase = mapStacked ? 72 : 56;
+  const thumbBase = mapStacked ? 48 : 56;
   const thumbSize = Math.max(28, Math.round(thumbBase * thumbnailScale));
+  /** Default list + My Groups: 4/3.5 aspect cover. Map tab left column: compact square thumbnail. */
+  const listHeroCover = !mapStacked;
+  const coverImgSx = listHeroCover
+    ? ({
+        width: thumbSize,
+        maxWidth: "100%",
+        height: "auto",
+        aspectRatio: "4 / 3.5 !important",
+        objectFit: "cover",
+        borderRadius: 1,
+        display: "block",
+        flexShrink: 0,
+        alignSelf: "flex-start",
+      } as const)
+    : ({
+        width: thumbSize,
+        height: thumbSize,
+        objectFit: "cover",
+        borderRadius: 1,
+        display: "block",
+        flexShrink: 0,
+      } as const);
 
   async function joinGroup(groupId: string) {
     try {
@@ -242,19 +264,7 @@ export default function MobilizeGroupsBrowseTable({
             const groupInfo = (
               <Stack spacing={0.75} sx={{ minWidth: 0 }}>
                 <Stack direction="row" spacing={1.25} alignItems="flex-start">
-                  <Box
-                    component="img"
-                    src={cover}
-                    alt=""
-                    sx={{
-                      width: thumbSize,
-                      height: thumbSize,
-                      objectFit: "cover",
-                      borderRadius: 1,
-                      display: "block",
-                      flexShrink: 0,
-                    }}
-                  />
+                  <Box component="img" src={cover} alt="" sx={coverImgSx} />
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Typography
                       component={Link}
@@ -291,18 +301,7 @@ export default function MobilizeGroupsBrowseTable({
                 ) : (
                   <>
                     <TableCell sx={{ py: 1 }}>
-                      <Box
-                        component="img"
-                        src={cover}
-                        alt=""
-                        sx={{
-                          width: thumbSize,
-                          height: thumbSize,
-                          objectFit: "cover",
-                          borderRadius: 1,
-                          display: "block",
-                        }}
-                      />
+                      <Box component="img" src={cover} alt="" sx={coverImgSx} />
                     </TableCell>
                     <TableCell sx={{ minWidth: 0 }}>
                       <Typography

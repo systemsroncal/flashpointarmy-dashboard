@@ -43,13 +43,13 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!event) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   if (!(await isApprovedMember(auth.admin, event.group_id, auth.userId))) {
-    return NextResponse.json({ error: "Only group members may RSVP." }, { status: 403 });
+    return NextResponse.json({ error: "Only approved group members may set attendance." }, { status: 403 });
   }
 
   const body = (await req.json()) as { rsvp_status?: string };
   const rsvp_status = body.rsvp_status;
   if (rsvp_status !== "yes" && rsvp_status !== "maybe" && rsvp_status !== "no") {
-    return NextResponse.json({ error: "rsvp_status must be yes, maybe, or no." }, { status: 400 });
+    return NextResponse.json({ error: "Attendance status must be yes, maybe, or no." }, { status: 400 });
   }
 
   const { data, error } = await auth.admin

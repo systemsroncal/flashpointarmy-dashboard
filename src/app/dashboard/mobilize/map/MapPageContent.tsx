@@ -515,7 +515,7 @@ export default function MobilizeMapPageContent() {
               emptyMessage="No groups match your filters."
               onJoined={() => void load()}
               layoutVariant="mapStacked"
-              thumbnailScale={3.5}
+              thumbnailScale={1}
             />
           </Box>
           <Box sx={{ minWidth: 0, position: "relative" }}>

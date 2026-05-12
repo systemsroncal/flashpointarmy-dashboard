@@ -323,11 +323,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         body: JSON.stringify({ rsvp_status }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "RSVP failed.");
+      if (!res.ok) throw new Error(json.error || "Attendance update failed.");
       setEvents((prev) => prev.map((ev) => (ev.id === eventId ? { ...ev, my_rsvp: rsvp_status } : ev)));
-      toast("Respuesta guardada.", "success");
+      toast("Attendance saved.", "success");
     } catch (e) {
-      toast(e instanceof Error ? e.message : "RSVP failed.", "error");
+      toast(e instanceof Error ? e.message : "Attendance update failed.", "error");
     }
   }
 
@@ -738,12 +738,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             <>
               <Alert severity="info" sx={{ mb: 2 }} variant="outlined">
                 <Typography variant="body2" fontWeight={600} gutterBottom>
-                  RSVP (répondez s&apos;il vous plaît)
+                  Attendance
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Es decir: confirma si piensas asistir. No es un compromiso legal; ayuda al grupo a planificar espacio
-                  y materiales. <strong>Sí</strong> = planeo ir; <strong>Tal vez</strong> = aún no estoy seguro;{" "}
-                  <strong>No</strong> = no podré ir.
+                  Tell the group whether you plan to show up. It isn&apos;t a commitment—it helps leaders plan space
+                  and materials. <strong>Going</strong> = you expect to attend; <strong>Maybe</strong> = not sure yet;{" "}
+                  <strong>Can&apos;t go</strong> = you won&apos;t be there.
                 </Typography>
               </Alert>
               {events.map((e) => (
@@ -762,15 +762,15 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                     {e.my_rsvp ? (
                       <Chip
                         size="small"
-                        label={`Tu respuesta: ${
-                          e.my_rsvp === "yes" ? "Sí" : e.my_rsvp === "maybe" ? "Tal vez" : "No"
+                        label={`Your response: ${
+                          e.my_rsvp === "yes" ? "Going" : e.my_rsvp === "maybe" ? "Maybe" : "Can't go"
                         }`}
                         sx={{ mt: 1 }}
                         variant="outlined"
                       />
                     ) : null}
                     <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                      Tu asistencia (RSVP)
+                      Your attendance
                     </Typography>
                     <Box sx={{ mt: 0.5, display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
                       <Button
@@ -778,21 +778,21 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                         variant={e.my_rsvp === "yes" ? "contained" : "outlined"}
                         onClick={() => void setRsvp(e.id, "yes")}
                       >
-                        Sí
+                        Going
                       </Button>
                       <Button
                         size="small"
                         variant={e.my_rsvp === "maybe" ? "contained" : "outlined"}
                         onClick={() => void setRsvp(e.id, "maybe")}
                       >
-                        Tal vez
+                        Maybe
                       </Button>
                       <Button
                         size="small"
                         variant={e.my_rsvp === "no" ? "contained" : "outlined"}
                         onClick={() => void setRsvp(e.id, "no")}
                       >
-                        No
+                        Can&apos;t go
                       </Button>
                     </Box>
                     {canManageEvent(e) ? (
@@ -1101,18 +1101,18 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       </Dialog>
 
       <Dialog open={!!deleteDialog} onClose={() => !eventSaving && setDeleteDialog(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Eliminar evento</DialogTitle>
+        <DialogTitle>Delete event</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            ¿Seguro que quieres eliminar «{deleteDialog?.title}»? Esta acción no se puede deshacer.
+            Delete &quot;{deleteDialog?.title}&quot;? This cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialog(null)} disabled={eventSaving}>
-            Cancelar
+            Cancel
           </Button>
           <Button color="error" variant="contained" onClick={() => void confirmDeleteEvent()} disabled={eventSaving}>
-            Eliminar
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
