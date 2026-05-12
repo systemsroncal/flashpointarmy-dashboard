@@ -140,6 +140,7 @@ function LeadersMultiAutocomplete({
       renderInput={(params) => (
         <TextField {...params} label={label} placeholder="Search name or email…" />
       )}
+      noOptionsText="No local leaders found. Users must have the Local leader role or be linked as a chapter leader."
     />
   );
 }

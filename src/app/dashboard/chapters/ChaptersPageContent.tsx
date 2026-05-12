@@ -45,25 +45,32 @@ export default async function ChaptersPageContent() {
 
   try {
     const admin = createAdminClient();
+    /** Anyone with the local_leader role OR already linked in chapter_leaders (covers legacy / partial role sync). */
+    const leaderIdSet = new Set<string>();
+
     const { data: leaderRole } = await admin.from("roles").select("id").eq("name", "local_leader").maybeSingle();
     if (leaderRole?.id) {
       const { data: urRows } = await admin
         .from("user_roles")
         .select("user_id")
         .eq("role_id", leaderRole.id as string);
-      const leaderIds = [...new Set((urRows ?? []).map((r: { user_id: string }) => r.user_id))];
-      if (leaderIds.length > 0) {
-        const { data: du } = await admin
-          .from("dashboard_users")
-          .select("id, email, display_name")
-          .in("id", leaderIds)
-          .order("email");
-        leaderOptions =
-          du?.map((r) => ({
-            id: r.id,
-            label: r.display_name ? `${r.display_name} (${r.email})` : r.email,
-          })) ?? [];
-      }
+      for (const r of urRows ?? []) leaderIdSet.add((r as { user_id: string }).user_id);
+    }
+
+    const { data: clUsers } = await admin.from("chapter_leaders").select("user_id");
+    for (const r of clUsers ?? []) leaderIdSet.add((r as { user_id: string }).user_id);
+
+    if (leaderIdSet.size > 0) {
+      const { data: du } = await admin
+        .from("dashboard_users")
+        .select("id, email, display_name")
+        .in("id", [...leaderIdSet])
+        .order("email");
+      leaderOptions =
+        du?.map((r) => ({
+          id: r.id,
+          label: r.display_name ? `${r.display_name} (${r.email})` : r.email,
+        })) ?? [];
     }
 
     if (rows.length > 0) {

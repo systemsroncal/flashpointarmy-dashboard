@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import { canCreateMobilizeGroup } from "@/lib/mobilize/mobilize-roles";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
+import { createClient } from "@/utils/supabase/server";
 
 export async function GET(req: Request) {
   const auth = await requireMobilizeRead();
@@ -40,6 +43,15 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await requireMobilizeRead();
   if (auth instanceof NextResponse) return auth;
+
+  const supabase = await createClient();
+  const roleNames = await loadUserRoleNames(supabase, auth.userId);
+  if (!canCreateMobilizeGroup(roleNames)) {
+    return NextResponse.json(
+      { error: "Only administrators, super administrators, and local leaders can create a group." },
+      { status: 403 }
+    );
+  }
 
   const body = (await req.json()) as {
     name?: string;

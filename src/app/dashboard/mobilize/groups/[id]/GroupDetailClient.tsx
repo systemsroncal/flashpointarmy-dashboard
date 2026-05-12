@@ -16,13 +16,16 @@ import {
   MenuItem,
   Select,
   Skeleton,
+  Stack,
   Tab,
   Tabs,
   TextField,
   Typography,
 } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
 import Link from "next/link";
-import { MOBILIZE_EVENT_TYPES } from "@/lib/mobilize/constants";
+import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
+import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
 type Group = {
@@ -56,6 +59,7 @@ type MemberRow = { user_id: string; member_role: string; membership_status: stri
 
 export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const toast = useMobilizeToast();
+  const me = useDashboardUser();
   const [tab, setTab] = useState(0);
   const [group, setGroup] = useState<Group | null>(null);
   const [membership, setMembership] = useState<Membership>(null);
@@ -71,6 +75,18 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     date_time: "",
     event_type: "meeting",
     is_public: false,
+  });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    group_type: "reading",
+    description: "",
+    address: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
+    visibility: "public",
+    event_create_policy: "any_member" as "any_member" | "leader_only",
   });
 
   const loadGroup = useCallback(async () => {
@@ -221,6 +237,85 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     }
   }
 
+  function openEditGroup() {
+    if (!group) return;
+    setEditForm({
+      name: group.name,
+      group_type: group.group_type,
+      description: group.description ?? "",
+      address: group.address ?? "",
+      latitude: group.latitude,
+      longitude: group.longitude,
+      visibility: group.visibility,
+      event_create_policy: group.event_create_policy === "leader_only" ? "leader_only" : "any_member",
+    });
+    setEditOpen(true);
+  }
+
+  async function geocodeEditAddress() {
+    const q = editForm.address.trim();
+    if (q.length < 3) {
+      toast("Enter a longer address to geocode.", "info");
+      return;
+    }
+    try {
+      const res = await fetch("/api/mobilize/geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Geocode failed.");
+      const hit = json.results?.[0];
+      if (!hit) {
+        toast("No geocode results.", "info");
+        return;
+      }
+      setEditForm((f) => ({
+        ...f,
+        address: hit.display_name,
+        latitude: hit.lat,
+        longitude: hit.lon,
+      }));
+      toast("Address geocoded.", "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Geocode error.", "error");
+    }
+  }
+
+  async function saveGroupEdit() {
+    if (!editForm.name.trim()) {
+      toast("Name is required.", "error");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/mobilize/groups/${groupId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editForm.name.trim(),
+          group_type: editForm.group_type,
+          description: editForm.description.trim() || null,
+          address: editForm.address.trim() || null,
+          latitude: editForm.latitude,
+          longitude: editForm.longitude,
+          visibility: editForm.visibility,
+          event_create_policy: editForm.event_create_policy,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Update failed.");
+      toast("Group updated.", "success");
+      setEditOpen(false);
+      await loadGroup();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Update failed.", "error");
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   const showJoin =
     group?.visibility === "public" &&
     (!membership || membership.membership_status === "rejected");
@@ -266,11 +361,20 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     return <Skeleton height={320} />;
   }
 
+  const isOwner = group.created_by === me.id;
+
   return (
     <Box>
-      <Button component={Link} href="/dashboard/mobilize/map" size="small" sx={{ mb: 1 }}>
-        Back to map
-      </Button>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+        <Button component={Link} href="/dashboard/mobilize/map" size="small">
+          Back to map
+        </Button>
+        {isOwner ? (
+          <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => openEditGroup()}>
+            Edit group
+          </Button>
+        ) : null}
+      </Stack>
       {header}
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
@@ -430,6 +534,90 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           <Button onClick={() => setEventOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={() => void createEvent()}>
             Create
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={editOpen} onClose={() => !editSaving && setEditOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit group</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+            <TextField
+              label="Name"
+              required
+              fullWidth
+              value={editForm.name}
+              onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+            />
+            <FormControl fullWidth>
+              <InputLabel id="egt">Type</InputLabel>
+              <Select
+                labelId="egt"
+                label="Type"
+                value={editForm.group_type}
+                onChange={(e) => setEditForm((f) => ({ ...f, group_type: String(e.target.value) }))}
+              >
+                {MOBILIZE_GROUP_TYPES.map((t) => (
+                  <MenuItem key={t} value={t}>
+                    {t}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              minRows={2}
+              value={editForm.description}
+              onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+            />
+            <TextField
+              label="Address"
+              fullWidth
+              value={editForm.address}
+              onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
+            />
+            <Button variant="outlined" onClick={() => void geocodeEditAddress()}>
+              Geocode address
+            </Button>
+            <FormControl fullWidth>
+              <InputLabel id="ev">Visibility</InputLabel>
+              <Select
+                labelId="ev"
+                label="Visibility"
+                value={editForm.visibility}
+                onChange={(e) => setEditForm((f) => ({ ...f, visibility: String(e.target.value) }))}
+              >
+                <MenuItem value="public">Public</MenuItem>
+                <MenuItem value="private">Private</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel id="ecp">Who can create events</InputLabel>
+              <Select
+                labelId="ecp"
+                label="Who can create events"
+                value={editForm.event_create_policy}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    event_create_policy: e.target.value as "any_member" | "leader_only",
+                  }))
+                }
+              >
+                <MenuItem value="any_member">Any approved member</MenuItem>
+                <MenuItem value="leader_only">Leaders only</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)} disabled={editSaving}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={() => void saveGroupEdit()} disabled={editSaving}>
+            Save
           </Button>
         </DialogActions>
       </Dialog>

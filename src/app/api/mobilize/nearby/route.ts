@@ -12,6 +12,7 @@ type GroupRow = {
   longitude: number | null;
   visibility: string;
   created_at: string;
+  created_by?: string;
 };
 
 export async function GET(req: Request) {
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, created_at"
+      "id, name, group_type, description, address, latitude, longitude, visibility, created_at, created_by"
     )
     .eq("visibility", "public")
     .not("latitude", "is", null)
@@ -64,8 +65,31 @@ export async function GET(req: Request) {
       ...r,
       distance_km: haversineKm(lat, lng, r.latitude as number, r.longitude as number),
     }))
-    .filter((r) => r.distance_km <= radiusKm)
-    .sort((a, b) => a.distance_km - b.distance_km);
+    .filter((r) => r.distance_km <= radiusKm);
 
-  return NextResponse.json({ groups: withDistance });
+  const byId = new Map<string, GroupRow & { distance_km: number }>();
+  for (const r of withDistance) byId.set(r.id, r);
+
+  const { data: owned, error: ownErr } = await auth.admin
+    .from("mobilize_groups")
+    .select(
+      "id, name, group_type, description, address, latitude, longitude, visibility, created_at, created_by"
+    )
+    .eq("created_by", auth.userId)
+    .not("latitude", "is", null)
+    .not("longitude", "is", null);
+
+  if (!ownErr && owned?.length) {
+    for (const r of owned as GroupRow[]) {
+      if (byId.has(r.id)) continue;
+      if (types.length && !types.includes(r.group_type)) continue;
+      if (q && !r.name.toLowerCase().includes(q)) continue;
+      const distance_km = haversineKm(lat, lng, r.latitude as number, r.longitude as number);
+      byId.set(r.id, { ...r, distance_km });
+    }
+  }
+
+  const merged = [...byId.values()].sort((a, b) => a.distance_km - b.distance_km);
+
+  return NextResponse.json({ groups: merged });
 }

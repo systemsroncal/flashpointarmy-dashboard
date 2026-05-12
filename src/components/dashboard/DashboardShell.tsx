@@ -10,7 +10,6 @@ import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import GroupsIcon from "@mui/icons-material/Groups";
 import ListAltIcon from "@mui/icons-material/ListAlt";
@@ -384,35 +383,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <List sx={{ flex: 1, py: 1, overflowY: "auto" }}>
         {isMobilize ? (
           <>
-            <ListItem disablePadding>
-              <ListItemButton
-                component={Link}
-                href="/dashboard"
-                onClick={() => {
-                  if (!desktop) setMobileDrawerOpen(false);
-                }}
-                sx={{
-                  py: 0.75,
-                  "&.Mui-selected": {
-                    borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                    bgcolor: "rgba(195, 32, 32, 0.1)",
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
-                  <HomeOutlinedIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Main dashboard"
-                  primaryTypographyProps={{
-                    variant: "body2",
-                    fontWeight: 600,
-                    fontSize: "calc(0.82rem + 3px)",
-                    color: "rgba(255,255,255,0.88)",
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
             {MOBILIZE_DRAWER_NAV.map((item) => {
               const selected = isNavItemSelected(item, pathname);
               return (
@@ -654,8 +624,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </Box>
         </Box>
         <ListItemButton
+          {...(isMobilize
+            ? ({ component: Link, href: "/dashboard" } as const)
+            : ({ component: "button", type: "button" } as const))}
           onClick={(e) => {
             e.stopPropagation();
+            if (isMobilize) {
+              if (!desktop) setMobileDrawerOpen(false);
+              return;
+            }
             void handleSignOut();
           }}
           sx={{ mt: 0.5, borderRadius: 1 }}
@@ -664,7 +641,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <ExitToAppIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText
-            primary="Sign out"
+            primary={isMobilize ? "Dashboard" : "Sign out"}
             primaryTypographyProps={{ variant: "body2", fontSize: "calc(0.875rem + 3px)" }}
           />
         </ListItemButton>

@@ -26,6 +26,8 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import Link from "next/link";
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
+import { canCreateMobilizeGroup } from "@/lib/mobilize/mobilize-roles";
+import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
 const MobilizeMapView = dynamic(() => import("@/components/mobilize/MobilizeMapView"), {
@@ -47,6 +49,8 @@ type GroupRow = {
 
 export default function MobilizeMapPageContent() {
   const toast = useMobilizeToast();
+  const dashboardUser = useDashboardUser();
+  const canCreateGroup = canCreateMobilizeGroup(dashboardUser.role_names);
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -54,6 +58,8 @@ export default function MobilizeMapPageContent() {
   const [types, setTypes] = useState<string[]>([]);
   const [radiusKm, setRadiusKm] = useState(25);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [manualSearchAddress, setManualSearchAddress] = useState("");
+  const [manualPos, setManualPos] = useState<{ lat: number; lng: number } | null>(null);
   const [sort, setSort] = useState<"name" | "distance">("name");
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -86,13 +92,15 @@ export default function MobilizeMapPageContent() {
     );
   }, []);
 
+  const searchOrigin = useMemo(() => userPos ?? manualPos, [userPos, manualPos]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      if (userPos) {
+      if (searchOrigin) {
         const params = new URLSearchParams({
-          lat: String(userPos.lat),
-          lng: String(userPos.lng),
+          lat: String(searchOrigin.lat),
+          lng: String(searchOrigin.lng),
           radiusKm: String(radiusKm),
         });
         if (types.length) params.set("types", types.join(","));
@@ -108,9 +116,19 @@ export default function MobilizeMapPageContent() {
         const res = await fetch(`/api/mobilize/groups?${params.toString()}`);
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Failed to load groups.");
-        const rows = (json.groups ?? []).filter(
+        let rows = (json.groups ?? []).filter(
           (g: GroupRow) => g.latitude != null && g.longitude != null
         ) as GroupRow[];
+        const resMine = await fetch("/api/mobilize/my-groups");
+        const jsonMine = await resMine.json();
+        if (resMine.ok && Array.isArray(jsonMine.groups)) {
+          const byId = new Map(rows.map((g) => [g.id, g]));
+          for (const raw of jsonMine.groups as GroupRow[]) {
+            if (raw.latitude == null || raw.longitude == null) continue;
+            if (!byId.has(raw.id)) byId.set(raw.id, raw);
+          }
+          rows = [...byId.values()];
+        }
         setGroups(rows);
       }
     } catch (e) {
@@ -118,11 +136,38 @@ export default function MobilizeMapPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [userPos, radiusKm, types, debouncedSearch, toast]);
+  }, [searchOrigin, radiusKm, types, debouncedSearch, toast]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function geocodeManualSearchAddress() {
+    const q = manualSearchAddress.trim();
+    if (q.length < 3) {
+      toast("Enter at least 3 characters to search your address.", "info");
+      return;
+    }
+    try {
+      const res = await fetch("/api/mobilize/geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Geocode failed.");
+      const hit = json.results?.[0];
+      if (!hit) {
+        toast("No results for that address.", "info");
+        return;
+      }
+      setManualPos({ lat: hit.lat, lng: hit.lon });
+      setManualSearchAddress(hit.display_name);
+      toast("Address located. Nearby search will use this point (no GPS).", "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Geocode error.", "error");
+    }
+  }
 
   const sorted = useMemo(() => {
     const copy = [...groups];
@@ -147,10 +192,10 @@ export default function MobilizeMapPageContent() {
   );
 
   const mapCenter = useMemo(() => {
-    if (userPos) return [userPos.lat, userPos.lng] as [number, number];
+    if (searchOrigin) return [searchOrigin.lat, searchOrigin.lng] as [number, number];
     if (markers[0]) return [markers[0].lat, markers[0].lng] as [number, number];
     return undefined;
-  }, [userPos, markers]);
+  }, [searchOrigin, markers]);
 
   async function runGeocodeForForm() {
     const q = form.address.trim();
@@ -232,12 +277,35 @@ export default function MobilizeMapPageContent() {
             Map & Groups
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Public groups with coordinates. Enable location for distance filters (Haversine on the server).
+            Public groups and your own groups with coordinates. Use GPS or type an address and geocode it to search
+            nearby (server-side Haversine). Only admins, super admins, and local leaders can create a group.
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
-          New group
+        {canCreateGroup ? (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
+            New group
+          </Button>
+        ) : null}
+      </Stack>
+
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }} alignItems={{ sm: "flex-start" }}>
+        <TextField
+          label="My address (search without GPS)"
+          size="small"
+          fullWidth
+          sx={{ flex: 1, minWidth: 220 }}
+          value={manualSearchAddress}
+          onChange={(e) => setManualSearchAddress(e.target.value)}
+          placeholder="Street, city, state…"
+        />
+        <Button variant="outlined" onClick={() => void geocodeManualSearchAddress()}>
+          Use this point
         </Button>
+        {manualPos ? (
+          <Button size="small" color="warning" onClick={() => { setManualPos(null); setManualSearchAddress(""); }}>
+            Clear point
+          </Button>
+        ) : null}
       </Stack>
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2 }} flexWrap="wrap">
@@ -255,7 +323,7 @@ export default function MobilizeMapPageContent() {
             label="Radius (km)"
             value={radiusKm}
             onChange={(e) => setRadiusKm(Number(e.target.value))}
-            disabled={!userPos}
+            disabled={!searchOrigin}
           >
             {[5, 10, 25, 50, 100].map((n) => (
               <MenuItem key={n} value={n}>
@@ -273,7 +341,7 @@ export default function MobilizeMapPageContent() {
             onChange={(e) => setSort(e.target.value as "name" | "distance")}
           >
             <MenuItem value="name">Name</MenuItem>
-            <MenuItem value="distance" disabled={!userPos}>
+            <MenuItem value="distance" disabled={!searchOrigin}>
               Distance
             </MenuItem>
           </Select>
@@ -300,15 +368,15 @@ export default function MobilizeMapPageContent() {
         </Box>
       </Stack>
 
-      {!userPos ? (
+      {!searchOrigin ? (
         <Typography variant="caption" color="warning.main" display="block" sx={{ mb: 1 }}>
-          Location disabled — showing all public groups with coordinates (no distance filter).
+          No reference point — allow location or geocode an address to filter by distance and see the closest groups.
         </Typography>
       ) : null}
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2} alignItems="stretch">
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <MobilizeMapView markers={markers} height={440} center={mapCenter} zoom={userPos ? 9 : 4} />
+          <MobilizeMapView markers={markers} height={440} center={mapCenter} zoom={searchOrigin ? 9 : 4} />
         </Box>
         <Box sx={{ width: { xs: "100%", lg: 360 }, flexShrink: 0 }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
