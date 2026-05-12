@@ -12,11 +12,14 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
+  FormLabel,
   InputLabel,
   List,
   ListItemButton,
   ListItemText,
   MenuItem,
+  Radio,
+  RadioGroup,
   Select,
   Skeleton,
   Stack,
@@ -47,10 +50,13 @@ type GroupRow = {
   distance_km?: number;
 };
 
+type OriginMode = "gps" | "address";
+
 export default function MobilizeMapPageContent() {
   const toast = useMobilizeToast();
   const dashboardUser = useDashboardUser();
   const canCreateGroup = canCreateMobilizeGroup(dashboardUser.role_names);
+  const [originMode, setOriginMode] = useState<OriginMode>("address");
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -92,7 +98,10 @@ export default function MobilizeMapPageContent() {
     );
   }, []);
 
-  const searchOrigin = useMemo(() => userPos ?? manualPos, [userPos, manualPos]);
+  const searchOrigin = useMemo(() => {
+    if (originMode === "gps") return userPos ?? null;
+    return manualPos ?? null;
+  }, [originMode, userPos, manualPos]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -163,7 +172,7 @@ export default function MobilizeMapPageContent() {
       }
       setManualPos({ lat: hit.lat, lng: hit.lon });
       setManualSearchAddress(hit.display_name);
-      toast("Address located. Nearby search will use this point (no GPS).", "success");
+      toast("Dirección localizada. El mapa usará este punto mientras tengas «Usar dirección» seleccionado.", "success");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Geocode error.", "error");
     }
@@ -200,9 +209,11 @@ export default function MobilizeMapPageContent() {
   const mapSearchOrigin = useMemo(() => {
     if (!searchOrigin) return null;
     const label =
-      userPos != null ? "Tu ubicación (GPS)" : (manualSearchAddress.trim() || "Punto por dirección");
+      originMode === "gps"
+        ? "Tu ubicación (GPS)"
+        : (manualSearchAddress.trim() || "Punto por dirección");
     return { lat: searchOrigin.lat, lng: searchOrigin.lng, radiusKm, label };
-  }, [searchOrigin, radiusKm, userPos, manualSearchAddress]);
+  }, [searchOrigin, radiusKm, originMode, manualSearchAddress]);
 
   async function runGeocodeForForm() {
     const q = form.address.trim();
@@ -295,22 +306,59 @@ export default function MobilizeMapPageContent() {
         ) : null}
       </Stack>
 
+      <FormControl component="fieldset" variant="standard" sx={{ mb: 2 }}>
+        <FormLabel component="legend" sx={{ color: "text.secondary", fontSize: "0.875rem", mb: 0.5 }}>
+          Punto de búsqueda (mapa y radio)
+        </FormLabel>
+        <RadioGroup
+          row
+          value={originMode}
+          onChange={(_, v) => setOriginMode(v as OriginMode)}
+          sx={{ flexWrap: "wrap", gap: 0.5 }}
+        >
+          <FormControlLabel value="gps" control={<Radio size="small" color="warning" />} label="Usar GPS" />
+          <FormControlLabel
+            value="address"
+            control={<Radio size="small" color="warning" />}
+            label="Usar dirección (teclear y geocodificar)"
+          />
+        </RadioGroup>
+        {originMode === "gps" && !userPos ? (
+          <Typography variant="caption" color="warning.main" display="block" sx={{ mt: 0.5 }}>
+            Sin GPS aún: permite la ubicación en el navegador o elige «Usar dirección» y pulsa «Usar este punto».
+          </Typography>
+        ) : null}
+        {originMode === "address" && !manualPos ? (
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+            Escribe una dirección y pulsa «Usar este punto» para fijar el muñequito y el círculo de radio ahí.
+          </Typography>
+        ) : null}
+      </FormControl>
+
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }} alignItems={{ sm: "flex-start" }}>
         <TextField
-          label="My address (search without GPS)"
+          label="Mi dirección"
           size="small"
           fullWidth
           sx={{ flex: 1, minWidth: 220 }}
           value={manualSearchAddress}
           onChange={(e) => setManualSearchAddress(e.target.value)}
-          placeholder="Street, city, state…"
+          placeholder="Calle, ciudad, estado…"
+          disabled={originMode === "gps"}
         />
-        <Button variant="outlined" onClick={() => void geocodeManualSearchAddress()}>
-          Use this point
+        <Button variant="outlined" onClick={() => void geocodeManualSearchAddress()} disabled={originMode === "gps"}>
+          Usar este punto
         </Button>
-        {manualPos ? (
-          <Button size="small" color="warning" onClick={() => { setManualPos(null); setManualSearchAddress(""); }}>
-            Clear point
+        {manualPos && originMode === "address" ? (
+          <Button
+            size="small"
+            color="warning"
+            onClick={() => {
+              setManualPos(null);
+              setManualSearchAddress("");
+            }}
+          >
+            Quitar punto
           </Button>
         ) : null}
       </Stack>
@@ -377,7 +425,9 @@ export default function MobilizeMapPageContent() {
 
       {!searchOrigin ? (
         <Typography variant="caption" color="warning.main" display="block" sx={{ mb: 1 }}>
-          No reference point — allow location or geocode an address to filter by distance and see the closest groups.
+          {originMode === "gps"
+            ? "Sin punto GPS: permite la ubicación o cambia a «Usar dirección» y geocodifica."
+            : "Sin punto por dirección: geocodifica con «Usar este punto» o cambia a «Usar GPS»."}
         </Typography>
       ) : null}
 
