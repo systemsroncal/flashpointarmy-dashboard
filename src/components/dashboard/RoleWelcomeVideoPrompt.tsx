@@ -17,10 +17,8 @@ import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { useEffect, useMemo, useState } from "react";
 
-const MEMBER_VIDEO: string =
-  "https://www.dropbox.com/scl/fi/ukn9k3w8411udqzrspxq9/FP_CHAPTERS_CMD_CTR_WELCOME_VID_260427.MOV?rlkey=zysmm8ybsp5ka42o9getsb83k&e=1&st=39x1fovk&raw=1";
-const LEADER_VIDEO: string =
-  "https://www.dropbox.com/scl/fi/jjs8mip51zft7hs5l0j6a/FP_CHAPTERS_CMD_CTR_WELCOME_VID_260427.MP4?rlkey=wca9wzja1fqc08js8czdlqeya&e=1&st=h3t5cjj9&raw=1";
+const MEMBER_VIDEO: string = "https://youtu.be/XBjT8Vc2kis";
+const LEADER_VIDEO: string = "https://youtu.be/HMWn-Ikrim0";
 const HIDE_DAYS = 7;
 
 function roleVideoUrl(roleNames: string[]): string | null {
