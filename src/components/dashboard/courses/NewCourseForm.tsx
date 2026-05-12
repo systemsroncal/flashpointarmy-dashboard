@@ -2,11 +2,13 @@
 
 import { slugify } from "@/lib/slug";
 import {
-  Autocomplete,
   Button,
-  Checkbox,
-  FormControlLabel,
+  FormControl,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
+  Stack,
   TextField,
   Typography,
 } from "@mui/material";
@@ -97,26 +99,70 @@ export function NewCourseForm({ authorOptions }: { authorOptions: AuthorOption[]
         sx={{ mb: 2 }}
       />
       <TextField label="Subtitle" fullWidth value={subtitle} onChange={(e) => setSubtitle(e.target.value)} sx={{ mb: 2 }} />
-      <Autocomplete
-        options={authorOptions}
-        value={author}
-        onChange={(_, v) => setAuthor(v)}
-        getOptionLabel={(o) => o.label}
-        isOptionEqualToValue={(a, b) => a.id === b.id}
-        renderInput={(params) => (
-          <TextField {...params} label="Author" placeholder="Search name or email…" sx={{ mb: 2 }} />
-        )}
-      />
-      <FormControlLabel
-        control={<Checkbox checked={published} onChange={(e) => setPublished(e.target.checked)} />}
-        label="Published (visible to learners with Training access)"
-        sx={{ display: "block", mb: 1 }}
-      />
-      <FormControlLabel
-        control={<Checkbox checked={appliesGrades} onChange={(e) => setAppliesGrades(e.target.checked)} />}
-        label="Course uses grades (quiz scores contribute)"
-        sx={{ display: "block", mb: 2 }}
-      />
+
+      <FormControl fullWidth sx={{ mb: 2 }}>
+        <InputLabel id="new-course-author-lbl" shrink={Boolean(author?.id)}>
+          Author
+        </InputLabel>
+        <Select
+          labelId="new-course-author-lbl"
+          label="Author"
+          notched={Boolean(author?.id)}
+          value={author?.id ?? ""}
+          displayEmpty
+          onChange={(e) => {
+            const id = String(e.target.value);
+            setAuthor(id ? authorOptions.find((a) => a.id === id) ?? null : null);
+          }}
+          renderValue={(selected) => {
+            if (!selected) {
+              return (
+                <Typography variant="body2" component="span" color="text.disabled" sx={{ fontStyle: "italic" }}>
+                  Select author (optional)…
+                </Typography>
+              );
+            }
+            return authorOptions.find((a) => a.id === selected)?.label ?? "";
+          }}
+        >
+          <MenuItem value="">
+            <em>Default display (FlashPoint Team)</em>
+          </MenuItem>
+          {authorOptions.map((a) => (
+            <MenuItem key={a.id} value={a.id}>
+              {a.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
+        <FormControl size="small" fullWidth sx={{ maxWidth: { sm: 220 } }}>
+          <InputLabel id="new-course-status-lbl">Status</InputLabel>
+          <Select
+            labelId="new-course-status-lbl"
+            label="Status"
+            value={published ? "published" : "draft"}
+            onChange={(e) => setPublished(e.target.value === "published")}
+          >
+            <MenuItem value="draft">Draft</MenuItem>
+            <MenuItem value="published">Published</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl size="small" fullWidth sx={{ maxWidth: { sm: 240 } }}>
+          <InputLabel id="new-course-grades-lbl">Grades</InputLabel>
+          <Select
+            labelId="new-course-grades-lbl"
+            label="Grades"
+            value={appliesGrades ? "on" : "off"}
+            onChange={(e) => setAppliesGrades(e.target.value === "on")}
+          >
+            <MenuItem value="off">Grades disabled</MenuItem>
+            <MenuItem value="on">Grades enabled</MenuItem>
+          </Select>
+        </FormControl>
+      </Stack>
+
       <Button type="submit" variant="contained" disabled={saving}>
         {saving ? "Creating…" : "Create and open builder"}
       </Button>

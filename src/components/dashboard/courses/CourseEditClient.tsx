@@ -16,6 +16,11 @@ import {
   AccordionSummary,
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   IconButton,
   InputLabel,
@@ -65,17 +70,17 @@ const DEFAULT_QUIZ_PAYLOAD = coerceQuizPayload({
     {
       id: "q1",
       type: "tf",
-      promptHtml: "<p>Ejemplo: verdadero o falso.</p>",
+      promptHtml: "<p>Example: true or false.</p>",
       points: 10,
       correctTrue: true,
-      trueLabelHtml: "<span>Verdadero</span>",
-      falseLabelHtml: "<span>Falso</span>",
+      trueLabelHtml: "<span>True</span>",
+      falseLabelHtml: "<span>False</span>",
     },
   ],
 });
 
-const RICH_EDITOR_HELPER_ES =
-  "TinyMCE autohospedado (GPL). El formato se guarda como HTML. Para imágenes, usa enlaces HTTPS.";
+const RICH_EDITOR_HELPER =
+  "Self-hosted TinyMCE (GPL). Content is stored as HTML. For images, use HTTPS URLs.";
 
 function SortableShell({
   id,
@@ -128,6 +133,8 @@ export function CourseEditClient({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [deleteCourseOpen, setDeleteCourseOpen] = useState(false);
+  const [deleteBlockTarget, setDeleteBlockTarget] = useState<{ sessionId: string; elementId: string } | null>(null);
   const dragBlockIdxRef = useRef<number | null>(null);
   const dragBlockSessionRef = useRef<string | null>(null);
   /** dnd-kit aria-describedby IDs must match SSR vs client; stable context ids avoid global counter drift. */
@@ -177,7 +184,7 @@ export function CourseEditClient({
     try {
       const nextSlug = slugify(slug || title);
       if (!nextSlug) {
-        setErr("El slug es obligatorio.");
+        setErr("Slug is required.");
         return;
       }
       const { error: cErr } = await supabase
@@ -221,17 +228,17 @@ export function CourseEditClient({
         }
       }
 
-      setMsg("Guardado.");
+      setMsg("Saved.");
       router.refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "No se pudo guardar.");
+      setErr(e instanceof Error ? e.message : "Could not save.");
     } finally {
       setBusy(false);
     }
   }
 
   async function addSession() {
-    const t = window.prompt("Título de la nueva sesión:");
+    const t = window.prompt("New session title:");
     if (!t?.trim()) return;
     const sl = slugify(t);
     const max = sessions.reduce((m, s) => Math.max(m, s.sort_order), -1);
@@ -246,7 +253,7 @@ export function CourseEditClient({
       .select("id, slug, title, subtitle, cover_image_url, sort_order")
       .single();
     if (error || !data) {
-      setErr(error?.message ?? "No se pudo añadir la sesión.");
+      setErr(error?.message ?? "Could not add session.");
       return;
     }
     setSessions((prev) => [
@@ -288,7 +295,7 @@ export function CourseEditClient({
       .select("id, element_type, title_html, description_html, payload, sort_order")
       .single();
     if (error || !data) {
-      setErr(error?.message ?? "No se pudo añadir el bloque.");
+      setErr(error?.message ?? "Could not add block.");
       return;
     }
     const row: ElementRow = {
@@ -304,26 +311,53 @@ export function CourseEditClient({
     );
   }
 
-  async function removeElement(sessionId: string, elementId: string) {
-    if (!window.confirm("¿Eliminar este bloque?")) return;
-    const { error } = await supabase.from("course_elements").delete().eq("id", elementId);
-    if (error) {
-      setErr(error.message);
-      return;
+  function requestRemoveElement(sessionId: string, elementId: string) {
+    setDeleteBlockTarget({ sessionId, elementId });
+  }
+
+  async function confirmRemoveElement() {
+    if (!deleteBlockTarget) return;
+    const { sessionId, elementId } = deleteBlockTarget;
+    setBusy(true);
+    setErr(null);
+    try {
+      const { error } = await supabase.from("course_elements").delete().eq("id", elementId);
+      if (error) throw new Error(error.message);
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId
+            ? { ...s, elements: s.elements.filter((e) => e.id !== elementId).map((e, i) => ({ ...e, sort_order: i })) }
+            : s
+        )
+      );
+      setDeleteBlockTarget(null);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not delete block.");
+    } finally {
+      setBusy(false);
     }
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === sessionId
-          ? { ...s, elements: s.elements.filter((e) => e.id !== elementId).map((e, i) => ({ ...e, sort_order: i })) }
-          : s
-      )
-    );
+  }
+
+  async function confirmDeleteCourse() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const { error } = await supabase.from("courses").delete().eq("id", courseId);
+      if (error) throw new Error(error.message);
+      setDeleteCourseOpen(false);
+      router.push("/dashboard/courses");
+      router.refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not delete course.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <Box>
       <Typography variant="h6" sx={{ color: "primary.main", mb: 2 }}>
-        Editar curso
+        Edit course
       </Typography>
       {err ? (
         <Typography color="error" sx={{ mb: 1 }}>
@@ -337,45 +371,78 @@ export function CourseEditClient({
       ) : null}
 
       <Stack spacing={2} sx={{ maxWidth: 900, mb: 2 }}>
-        <TextField label="Título" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth />
+        <TextField label="Title" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth />
         <TextField label="Slug" value={slug} onChange={(e) => setSlug(e.target.value)} fullWidth />
-        <TextField label="Subtítulo" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} fullWidth />
-        <TextField
-          select
-          label="Autor"
-          value={author?.id ?? ""}
-          onChange={(e) => {
-            const id = e.target.value;
-            setAuthor(authorOptions.find((a) => a.id === id) ?? null);
-          }}
-          SelectProps={{ displayEmpty: true }}
-          fullWidth
-        >
-          <MenuItem value="">
-            <em>Etiqueta predeterminada (equipo FlashPoint)</em>
-          </MenuItem>
-          {authorOptions.map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.label}
+        <TextField label="Subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} fullWidth />
+        <FormControl fullWidth>
+          <InputLabel id="course-edit-author-lbl" shrink={Boolean(author?.id)}>
+            Author
+          </InputLabel>
+          <Select
+            labelId="course-edit-author-lbl"
+            label="Author"
+            notched={Boolean(author?.id)}
+            value={author?.id ?? ""}
+            displayEmpty
+            onChange={(e) => {
+              const id = String(e.target.value);
+              setAuthor(id ? authorOptions.find((a) => a.id === id) ?? null : null);
+            }}
+            renderValue={(selected) => {
+              if (!selected) {
+                return (
+                  <Typography variant="body2" component="span" color="text.disabled" sx={{ fontStyle: "italic" }}>
+                    Select author (optional)…
+                  </Typography>
+                );
+              }
+              return authorOptions.find((a) => a.id === selected)?.label ?? "";
+            }}
+          >
+            <MenuItem value="">
+              <em>Default display (FlashPoint Team)</em>
             </MenuItem>
-          ))}
-        </TextField>
-        <Stack direction="row" spacing={2}>
-          <Button variant={published ? "contained" : "outlined"} onClick={() => setPublished((p) => !p)}>
-            {published ? "Publicado" : "Borrador"}
-          </Button>
-          <Button variant={appliesGrades ? "contained" : "outlined"} onClick={() => setAppliesGrades((p) => !p)}>
-            {appliesGrades ? "Calificaciones activadas" : "Calificaciones desactivadas"}
-          </Button>
+            {authorOptions.map((a) => (
+              <MenuItem key={a.id} value={a.id}>
+                {a.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel id="course-status-lbl">Status</InputLabel>
+            <Select
+              labelId="course-status-lbl"
+              label="Status"
+              value={published ? "published" : "draft"}
+              onChange={(e) => setPublished(e.target.value === "published")}
+            >
+              <MenuItem value="draft">Draft</MenuItem>
+              <MenuItem value="published">Published</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <InputLabel id="course-grades-lbl">Grades</InputLabel>
+            <Select
+              labelId="course-grades-lbl"
+              label="Grades"
+              value={appliesGrades ? "on" : "off"}
+              onChange={(e) => setAppliesGrades(e.target.value === "on")}
+            >
+              <MenuItem value="off">Grades disabled</MenuItem>
+              <MenuItem value="on">Grades enabled</MenuItem>
+            </Select>
+          </FormControl>
         </Stack>
       </Stack>
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
         <Typography variant="subtitle1" fontWeight={800}>
-          Sesiones (arrastra para reordenar)
+          Sessions (drag to reorder)
         </Typography>
         <Button startIcon={<AddIcon />} onClick={() => void addSession()}>
-          Añadir sesión
+          Add session
         </Button>
       </Box>
 
@@ -395,18 +462,18 @@ export function CourseEditClient({
               {(handle) => (
                 <Accordion defaultExpanded>
                   <AccordionSummary>
-                    <Typography fontWeight={700}>{s.title || "(sesión sin título)"}</Typography>
+                    <Typography fontWeight={700}>{s.title || "(untitled session)"}</Typography>
                   </AccordionSummary>
                   <AccordionDetails>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                       <DragIndicatorIcon sx={{ cursor: "grab", color: "text.secondary" }} {...handle} />
                       <Typography variant="caption" color="text.secondary">
-                        Arrastra el icono para reordenar las sesiones
+                        Drag the handle to reorder sessions
                       </Typography>
                     </Box>
                     <Stack spacing={1.5} sx={{ mb: 2 }}>
                       <TextField
-                        label="Título de la sesión"
+                        label="Session title"
                         value={s.title}
                         onChange={(e) =>
                           setSessions((prev) =>
@@ -416,7 +483,7 @@ export function CourseEditClient({
                         fullWidth
                       />
                       <TextField
-                        label="Slug de la sesión"
+                        label="Session slug"
                         value={s.slug}
                         onChange={(e) =>
                           setSessions((prev) =>
@@ -426,7 +493,7 @@ export function CourseEditClient({
                         fullWidth
                       />
                       <TextField
-                        label="Subtítulo"
+                        label="Subtitle"
                         value={s.subtitle}
                         onChange={(e) =>
                           setSessions((prev) =>
@@ -436,7 +503,7 @@ export function CourseEditClient({
                         fullWidth
                       />
                       <TextField
-                        label="URL de imagen de portada"
+                        label="Cover image URL"
                         value={s.cover_image_url}
                         onChange={(e) =>
                           setSessions((prev) =>
@@ -448,7 +515,7 @@ export function CourseEditClient({
                     </Stack>
 
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                      Bloques de contenido (arrastra el bloque o usa ↑ ↓)
+                      Content blocks (drag the block or use ↑ ↓)
                     </Typography>
                     {s.elements.map((el, elIdx) => (
                       <Paper
@@ -486,7 +553,7 @@ export function CourseEditClient({
                                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1, flexWrap: "wrap" }}>
                                   <IconButton
                                     size="small"
-                                    aria-label="Subir bloque"
+                                    aria-label="Move block up"
                                     disabled={elIdx === 0}
                                     onClick={() => moveElement(s.id, el.id, -1)}
                                   >
@@ -494,16 +561,16 @@ export function CourseEditClient({
                                   </IconButton>
                                   <IconButton
                                     size="small"
-                                    aria-label="Bajar bloque"
+                                    aria-label="Move block down"
                                     disabled={elIdx === s.elements.length - 1}
                                     onClick={() => moveElement(s.id, el.id, 1)}
                                   >
                                     <KeyboardArrowDownIcon />
                                   </IconButton>
                                   <FormControl size="small" sx={{ minWidth: 160 }}>
-                                    <InputLabel>Tipo de bloque</InputLabel>
+                                    <InputLabel>Block type</InputLabel>
                                     <Select
-                                      label="Tipo de bloque"
+                                      label="Block type"
                                       value={el.element_type}
                                       onChange={(e) => {
                                         const v = e.target.value;
@@ -537,15 +604,15 @@ export function CourseEditClient({
                                         );
                                       }}
                                     >
-                                      <MenuItem value="plain_text">Texto plano</MenuItem>
-                                      <MenuItem value="rich_text">Texto enriquecido</MenuItem>
-                                      <MenuItem value="video">Vídeo</MenuItem>
+                                      <MenuItem value="plain_text">Plain text</MenuItem>
+                                      <MenuItem value="rich_text">Rich text</MenuItem>
+                                      <MenuItem value="video">Video</MenuItem>
                                       <MenuItem value="pdf">PDF</MenuItem>
-                                      <MenuItem value="image">Imagen</MenuItem>
-                                      <MenuItem value="quiz">Cuestionario</MenuItem>
+                                      <MenuItem value="image">Image</MenuItem>
+                                      <MenuItem value="quiz">Quiz</MenuItem>
                                     </Select>
                                   </FormControl>
-                                  <Button color="error" size="small" onClick={() => void removeElement(s.id, el.id)}>
+                                  <Button color="error" size="small" onClick={() => requestRemoveElement(s.id, el.id)}>
                                     <DeleteOutlineIcon fontSize="small" />
                                   </Button>
                                 </Box>
@@ -553,7 +620,7 @@ export function CourseEditClient({
                                   key={`${el.id}-block-title`}
                                   compact
                                   showHelper={false}
-                                  label="Título del bloque (opcional)"
+                                  label="Block title (optional)"
                                   value={el.title_html}
                                   onChange={(html) =>
                                     setSessions((prev) =>
@@ -575,8 +642,8 @@ export function CourseEditClient({
                                     key={`${el.id}-quiz-intro`}
                                     compact
                                     showHelper
-                                    helperText={`Lo verán antes del cuestionario. ${RICH_EDITOR_HELPER_ES}`}
-                                    label="Texto introductorio (opcional)"
+                                    helperText={`Shown before the quiz. ${RICH_EDITOR_HELPER}`}
+                                    label="Intro text (optional)"
                                     value={el.description_html}
                                     onChange={(html) =>
                                       setSessions((prev) =>
@@ -596,9 +663,9 @@ export function CourseEditClient({
                                 ) : (
                                   <GatheringDescriptionEditor
                                     key={`${el.id}-block-desc`}
-                                    label="Descripción (opcional)"
+                                    label="Description (optional)"
                                     showHelper
-                                    helperText={RICH_EDITOR_HELPER_ES}
+                                    helperText={RICH_EDITOR_HELPER}
                                     value={el.description_html}
                                     onChange={(html) =>
                                       setSessions((prev) =>
@@ -618,7 +685,7 @@ export function CourseEditClient({
                                 )}
                                 {el.element_type === "video" ? (
                                   <TextField
-                                    label="URL del vídeo"
+                                    label="Video URL"
                                     fullWidth
                                     sx={{ mt: 1 }}
                                     value={(el.payload as { url?: string }).url ?? ""}
@@ -643,7 +710,7 @@ export function CourseEditClient({
                                 {el.element_type === "pdf" ? (
                                   <Stack spacing={1} sx={{ mt: 1 }}>
                                     <TextField
-                                      label="URL del PDF"
+                                      label="PDF URL"
                                       fullWidth
                                       value={(el.payload as { url?: string }).url ?? ""}
                                       onChange={(e) =>
@@ -670,7 +737,7 @@ export function CourseEditClient({
                                       }
                                     />
                                     <TextField
-                                      label="Nombre del archivo (visible)"
+                                      label="File name (display)"
                                       fullWidth
                                       value={(el.payload as { fileName?: string }).fileName ?? ""}
                                       onChange={(e) =>
@@ -700,7 +767,7 @@ export function CourseEditClient({
                                 ) : null}
                                 {el.element_type === "image" ? (
                                   <TextField
-                                    label="URL de la imagen"
+                                    label="Image URL"
                                     fullWidth
                                     sx={{ mt: 1 }}
                                     value={(el.payload as { url?: string }).url ?? ""}
@@ -725,8 +792,8 @@ export function CourseEditClient({
                                 {el.element_type === "rich_text" ? (
                                   <Box sx={{ mt: 1 }}>
                                     <GatheringDescriptionEditor
-                                      label="Contenido del bloque"
-                                      helperText={RICH_EDITOR_HELPER_ES}
+                                      label="Block content"
+                                      helperText={RICH_EDITOR_HELPER}
                                       value={(el.payload as { html?: string }).html ?? ""}
                                       onChange={(html) =>
                                         setSessions((prev) =>
@@ -747,7 +814,7 @@ export function CourseEditClient({
                                 ) : null}
                                 {el.element_type === "plain_text" ? (
                                   <TextField
-                                    label="Texto"
+                                    label="Text"
                                     fullWidth
                                     multiline
                                     minRows={3}
@@ -793,22 +860,22 @@ export function CourseEditClient({
 
                     <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
                       <Button size="small" onClick={() => void addElement(s.id, "video")}>
-                        + Vídeo
+                        + Video
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "rich_text")}>
-                        + Texto enriquecido
+                        + Rich text
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "plain_text")}>
-                        + Texto plano
+                        + Plain text
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "pdf")}>
                         + PDF
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "image")}>
-                        + Imagen
+                        + Image
                       </Button>
                       <Button size="small" onClick={() => void addElement(s.id, "quiz")}>
-                        + Cuestionario
+                        + Quiz
                       </Button>
                     </Stack>
                   </AccordionDetails>
@@ -819,9 +886,50 @@ export function CourseEditClient({
         </SortableContext>
       </DndContext>
 
-      <Button variant="contained" sx={{ mt: 2 }} disabled={busy} onClick={() => void saveAll()}>
-        {busy ? "Guardando…" : "Guardar curso"}
-      </Button>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 2 }} alignItems={{ sm: "center" }}>
+        <Button variant="contained" disabled={busy} onClick={() => void saveAll()}>
+          {busy ? "Saving…" : "Save course"}
+        </Button>
+        <Button variant="outlined" color="error" disabled={busy} onClick={() => setDeleteCourseOpen(true)}>
+          Delete course
+        </Button>
+      </Stack>
+
+      <Dialog open={Boolean(deleteBlockTarget)} onClose={() => !busy && setDeleteBlockTarget(null)}>
+        <DialogTitle>Delete content block?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This removes the block from the session. Learner progress tied to this block may be affected. This cannot
+            be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteBlockTarget(null)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button color="error" variant="contained" disabled={busy} onClick={() => void confirmRemoveElement()}>
+            Delete block
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteCourseOpen} onClose={() => !busy && setDeleteCourseOpen(false)}>
+        <DialogTitle>Delete this course?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            All sessions and content blocks will be removed (cascade). Learner quiz results and progress linked to this
+            course may be deleted. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteCourseOpen(false)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button color="error" variant="contained" disabled={busy} onClick={() => void confirmDeleteCourse()}>
+            Delete course
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

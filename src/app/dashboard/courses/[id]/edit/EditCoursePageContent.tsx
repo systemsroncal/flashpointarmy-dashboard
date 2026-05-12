@@ -24,7 +24,7 @@ export default async function EditCoursePageContent({ courseId }: { courseId: st
   if (!can(permissions, MODULE_SLUGS.courses, "update")) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
-        <Typography color="error">No tienes permiso para editar cursos.</Typography>
+        <Typography color="error">You do not have permission to edit courses.</Typography>
       </Paper>
     );
   }
