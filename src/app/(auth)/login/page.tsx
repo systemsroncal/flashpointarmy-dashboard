@@ -40,7 +40,7 @@ function LoginForm() {
       } = await supabase.auth.getSession();
       if (!session) {
         setError(
-          "El inicio de sesión no dejó sesión en el navegador. Prueba sin bloqueo de cookies, otra ventana privada, o revisa que la URL del sitio coincida con la configuración de Supabase (Auth → URL)."
+          "Sign-in did not leave a session in the browser. Try disabling cookie blockers, another window or private mode, and confirm the site URL matches your Supabase project (Authentication → URL configuration)."
         );
         return;
       }
@@ -50,7 +50,7 @@ function LoginForm() {
       setError(
         unknownErr instanceof Error
           ? unknownErr.message
-          : "No se pudo iniciar sesión."
+          : "Could not sign in."
       );
     } finally {
       setLoading(false);

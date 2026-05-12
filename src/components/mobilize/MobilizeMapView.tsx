@@ -18,12 +18,12 @@ export type MapMarkerPoint = {
   href: string;
 };
 
-/** Punto de búsqueda (GPS o dirección geocodificada) + radio en km para el halo y el zoom. */
+/** Search origin (GPS or geocoded address) + radius in km for halo and zoom. */
 export type MapSearchOrigin = {
   lat: number;
   lng: number;
   radiusKm: number;
-  /** Texto corto para popup (ej. "GPS" o dirección). */
+  /** Short label for popup (e.g. GPS or address). */
   label: string;
 };
 
@@ -71,11 +71,11 @@ function safeFitSearchCircle(map: L.Map, origin: MapSearchOrigin) {
     if (size.x < 2 || size.y < 2) return;
     map.fitBounds(b, { padding: [56, 56], maxZoom: 15, animate: true });
   } catch {
-    /* contenedor sin tamaño o bounds inválidos */
+    /* container has no size or invalid bounds */
   }
 }
 
-/** Ajusta el mapa al círculo del radio de búsqueda; sin origen, centra con zoom por defecto. */
+/** Fit map to search-radius circle; without origin, use fallback center/zoom. */
 function FitSearchRadiusView({
   searchOrigin,
   fallbackCenter,
@@ -108,6 +108,22 @@ function FitSearchRadiusView({
     return () => clearTimeout(t);
   }, [map, searchOrigin, fallbackCenter, fallbackZoom]);
 
+  return null;
+}
+
+function RecenterOnCue({
+  searchOrigin,
+  recenterNonce,
+}: {
+  searchOrigin: MapSearchOrigin | null | undefined;
+  recenterNonce?: number;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!searchOrigin || !recenterNonce) return;
+    const t = window.setTimeout(() => safeFitSearchCircle(map, searchOrigin), 40);
+    return () => clearTimeout(t);
+  }, [map, recenterNonce, searchOrigin?.lat, searchOrigin?.lng, searchOrigin?.radiusKm, searchOrigin]);
   return null;
 }
 
@@ -156,7 +172,7 @@ function ClusterLayer({ markers }: { markers: MapMarkerPoint[] }) {
 const personDivIcon = () =>
   L.divIcon({
     className: "mobilize-person-marker-wrap",
-    html: `<div class="mobilize-person-marker-inner" role="img" aria-label="Tu posición de búsqueda">
+    html: `<div class="mobilize-person-marker-inner" role="img" aria-label="Your search location">
       <span class="mobilize-person-emoji">🧍</span>
     </div>`,
     iconSize: [48, 52],
@@ -205,9 +221,9 @@ function SearchPersonMarker({ origin }: { origin: MapSearchOrigin }) {
   const km = Math.max(Number(origin.radiusKm) || 1, 1);
   const safeLabel = escapeHtml(origin.label || "");
   const popupHtml = `<div style="min-width:180px;font-family:system-ui,sans-serif">
-    <strong>Tu búsqueda</strong>
+    <strong>Search origin</strong>
     <div style="margin-top:6px;font-size:14px">${safeLabel}</div>
-    <div style="margin-top:10px;font-size:12px;opacity:0.75">Radio aproximado: ${km} km</div>
+    <div style="margin-top:10px;font-size:12px;opacity:0.75">Approx. radius: ${km} km</div>
   </div>`;
   return (
     <Marker position={center} icon={icon} zIndexOffset={2500}>
@@ -223,15 +239,24 @@ type Props = {
   height?: string | number;
   center?: [number, number];
   zoom?: number;
-  /** Si existe, se dibuja el “muñequito”, círculos de radio y el mapa encuadra el área. */
+  /** When set, draws the person marker, radius circles, and fits the map to the search area. */
   searchOrigin?: MapSearchOrigin | null;
+  /** Increment (e.g. from a "recenter" control) to re-fit the map to the search origin circle. */
+  recenterNonce?: number;
 };
 
 /**
- * Mobilize map: Leaflet + MarkerClusterGroup. Con `searchOrigin`, muestra marcador de persona,
- * halo/circunferencia del radio y zoom acorde al radio de búsqueda.
+ * Mobilize map: Leaflet + MarkerClusterGroup. With `searchOrigin`, shows a person marker,
+ * radius circles, and fits the map to the search area.
  */
-export default function MobilizeMapView({ markers, height = 420, center, zoom = 4, searchOrigin }: Props) {
+export default function MobilizeMapView({
+  markers,
+  height = 420,
+  center,
+  zoom = 4,
+  searchOrigin,
+  recenterNonce = 0,
+}: Props) {
   const defaultCenter = useMemo<[number, number]>(() => {
     if (center) return center;
     if (markers.length) return [markers[0].lat, markers[0].lng];
@@ -256,6 +281,7 @@ export default function MobilizeMapView({ markers, height = 420, center, zoom = 
           fallbackCenter={defaultCenter}
           fallbackZoom={zoom}
         />
+        {searchOrigin ? <RecenterOnCue searchOrigin={searchOrigin} recenterNonce={recenterNonce} /> : null}
         <ClusterLayer markers={markers} />
         {searchOrigin ? <SearchPersonMarker origin={searchOrigin} /> : null}
       </MapContainer>
@@ -263,7 +289,7 @@ export default function MobilizeMapView({ markers, height = 420, center, zoom = 
         <Box sx={{ mt: -6, textAlign: "center", pointerEvents: "none" }}>
           <Typography variant="caption" color="text.secondary">
             {searchOrigin
-              ? "No hay grupos en este radio. Prueba otro radio (km) o otro punto de búsqueda."
+              ? "No groups in this radius. Try a larger radius (km) or a different search origin."
               : "No markers in the current filter."}
           </Typography>
         </Box>

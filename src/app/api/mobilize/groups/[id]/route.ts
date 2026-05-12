@@ -75,9 +75,20 @@ export async function PATCH(req: Request, ctx: Ctx) {
     "longitude",
     "visibility",
     "event_create_policy",
+    "cover_image_url",
+    "wall_post_policy",
   ] as const;
   for (const k of allowed) {
     if (k in body) patch[k] = body[k];
+  }
+  if ("wall_post_policy" in patch) {
+    patch.wall_post_policy =
+      patch.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved";
+  }
+  if ("cover_image_url" in patch) {
+    const u = patch.cover_image_url;
+    patch.cover_image_url =
+      u == null || String(u).trim() === "" ? null : String(u).trim();
   }
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "No valid fields." }, { status: 400 });

@@ -14,8 +14,8 @@ export const createClient = () => {
   const key = getPublicSupabaseAnonKey();
   if (!url || !key) {
     throw new Error(
-      "Falta configuración de Supabase: define NEXT_PUBLIC_SUPABASE_URL y " +
-        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY (o NEXT_PUBLIC_SUPABASE_ANON_KEY) en .env.local y reinicia el servidor de desarrollo."
+      "Missing Supabase configuration: set NEXT_PUBLIC_SUPABASE_URL and " +
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY) in .env.local, then restart the dev server."
     );
   }
   try {
@@ -23,7 +23,7 @@ export const createClient = () => {
     new URL(url);
   } catch {
     throw new Error(
-      `NEXT_PUBLIC_SUPABASE_URL no es una URL válida (valor actual: "${url.slice(0, 40)}…").`
+      `NEXT_PUBLIC_SUPABASE_URL is not a valid URL (current value: "${url.slice(0, 40)}…").`
     );
   }
   const isDev = process.env.NODE_ENV === "development";
@@ -36,7 +36,7 @@ export const createClient = () => {
                 return await fetch(input, init);
               } catch (err) {
                 console.error(
-                  "[Supabase] Fallo de red hacia Auth/API. Revisa URL y anon key en .env.local, VPN/firewall, y que el proyecto no esté pausado.",
+                  "[Supabase] Network failure to Auth/API. Check URL and anon key in .env.local, VPN/firewall, and that the project is not paused.",
                   { url: String(input), error: err }
                 );
                 throw err;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enrichMobilizeGroupsBrowse } from "@/lib/mobilize/enrich-groups-browse";
 import { boundingBoxForRadiusKm, haversineKm } from "@/lib/mobilize/haversine";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
@@ -11,6 +12,8 @@ type GroupRow = {
   latitude: number | null;
   longitude: number | null;
   visibility: string;
+  cover_image_url?: string | null;
+  wall_post_policy?: string;
   created_at: string;
   created_by?: string;
 };
@@ -36,7 +39,7 @@ export async function GET(req: Request) {
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, created_at, created_by"
+      "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, wall_post_policy, created_at, created_by"
     )
     .eq("visibility", "public")
     .not("latitude", "is", null)
@@ -73,7 +76,7 @@ export async function GET(req: Request) {
   const { data: owned, error: ownErr } = await auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, created_at, created_by"
+      "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, wall_post_policy, created_at, created_by"
     )
     .eq("created_by", auth.userId)
     .not("latitude", "is", null)
@@ -91,5 +94,20 @@ export async function GET(req: Request) {
 
   const merged = [...byId.values()].sort((a, b) => a.distance_km - b.distance_km);
 
-  return NextResponse.json({ groups: merged });
+  const extras = await enrichMobilizeGroupsBrowse(
+    auth.admin,
+    merged.map((g) => ({ id: g.id })),
+    auth.userId
+  );
+  const groups = merged.map((g) => {
+    const e = extras.get(g.id);
+    return {
+      ...g,
+      member_count: e?.member_count ?? 0,
+      leader_names: e?.leader_names ?? [],
+      my_membership_status: e?.my_membership_status ?? null,
+    };
+  });
+
+  return NextResponse.json({ groups });
 }

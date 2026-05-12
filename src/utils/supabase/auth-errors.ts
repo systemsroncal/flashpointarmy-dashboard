@@ -5,17 +5,17 @@ export function formatAuthSignInError(err: AuthError): string {
   const msg = (err.message || "").trim();
   if (msg) {
     if (/failed to fetch|network|load failed|fetch failed/i.test(msg)) {
-      return `${msg}. Comprueba NEXT_PUBLIC_SUPABASE_URL y la clave anon, que el proyecto esté activo y que extensiones o la red no bloqueen *.supabase.co.`;
+      return `${msg}. Check NEXT_PUBLIC_SUPABASE_URL and the anon key, that the project is active, and that extensions or the network are not blocking *.supabase.co.`;
     }
     return msg;
   }
   const name = String((err as { name?: string }).name || "");
   if (/AuthRetryableFetchError|retryable/i.test(name)) {
-    return "No se pudo contactar con Supabase Auth (red, timeout o servidor). Revisa URL y clave en .env, VPN/firewall y el estado del proyecto en dashboard.supabase.com.";
+    return "Could not reach Supabase Auth (network, timeout, or server). Check the URL and key in .env, VPN/firewall, and project status on dashboard.supabase.com.";
   }
   const code = String((err as { code?: string }).code || "");
-  if (code) return `Error de autenticación (${code}). Vuelve a intentarlo.`;
-  return "Error de autenticación sin mensaje. Abre la consola del navegador (F12) y revisa la pestaña Red para /auth/v1/token.";
+  if (code) return `Authentication error (${code}). Please try again.`;
+  return "Authentication error with no message. Open the browser console (F12) and check the Network tab for /auth/v1/token.";
 }
 
 /** Supabase Auth errors where stored refresh token must be discarded. */

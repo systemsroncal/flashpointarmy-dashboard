@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import { enrichMobilizeGroupsBrowse } from "@/lib/mobilize/enrich-groups-browse";
 import { canCreateMobilizeGroup } from "@/lib/mobilize/mobilize-roles";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { createClient } from "@/utils/supabase/server";
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, created_by, created_at"
+      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, cover_image_url, created_by, created_at"
     )
     .order("created_at", { ascending: false });
 
@@ -37,7 +38,22 @@ export async function GET(req: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ groups: data ?? [] });
+  const rows = data ?? [];
+  const extras = await enrichMobilizeGroupsBrowse(
+    auth.admin,
+    rows.map((g: { id: string }) => ({ id: g.id })),
+    auth.userId
+  );
+  const groups = rows.map((g: { id: string }) => {
+    const e = extras.get(g.id);
+    return {
+      ...g,
+      member_count: e?.member_count ?? 0,
+      leader_names: e?.leader_names ?? [],
+      my_membership_status: e?.my_membership_status ?? null,
+    };
+  });
+  return NextResponse.json({ groups });
 }
 
 export async function POST(req: Request) {
@@ -62,6 +78,8 @@ export async function POST(req: Request) {
     longitude?: number | null;
     visibility?: string;
     event_create_policy?: string;
+    cover_image_url?: string | null;
+    wall_post_policy?: string;
   };
 
   const name = String(body.name ?? "").trim();
@@ -74,6 +92,12 @@ export async function POST(req: Request) {
     body.visibility === "private" ? "private" : "public";
   const event_create_policy =
     body.event_create_policy === "leader_only" ? "leader_only" : "any_member";
+  const wall_post_policy =
+    body.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved";
+  const cover =
+    body.cover_image_url != null && String(body.cover_image_url).trim()
+      ? String(body.cover_image_url).trim()
+      : null;
 
   const row = {
     name,
@@ -84,6 +108,8 @@ export async function POST(req: Request) {
     longitude: body.longitude ?? null,
     visibility,
     event_create_policy,
+    wall_post_policy,
+    cover_image_url: cover,
     created_by: auth.userId,
   };
 

@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Card, CardContent, Skeleton, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Skeleton,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Link from "next/link";
@@ -22,6 +31,7 @@ export default function MobilizeCalendarPage() {
   const [cursor, setCursor] = useState(() => new Date());
   const [events, setEvents] = useState<Ev[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scope, setScope] = useState<"all" | "my">("all");
 
   const range = useMemo(() => {
     const from = startOfMonth(cursor).toISOString();
@@ -33,7 +43,7 @@ export default function MobilizeCalendarPage() {
     (async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams({ from: range.from, to: range.to });
+        const params = new URLSearchParams({ from: range.from, to: range.to, scope });
         const res = await fetch(`/api/mobilize/calendar?${params}`);
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Failed to load.");
@@ -44,7 +54,7 @@ export default function MobilizeCalendarPage() {
         setLoading(false);
       }
     })();
-  }, [range.from, range.to, toast]);
+  }, [range.from, range.to, scope, toast]);
 
   const label = cursor.toLocaleString(undefined, { month: "long", year: "numeric" });
 
@@ -80,9 +90,21 @@ export default function MobilizeCalendarPage() {
       <Typography variant="h4" fontWeight={700} gutterBottom>
         Calendar
       </Typography>
+      <ToggleButtonGroup
+        size="small"
+        value={scope}
+        exclusive
+        onChange={(_, v) => v && setScope(v)}
+        sx={{ mb: 2 }}
+      >
+        <ToggleButton value="my">My groups</ToggleButton>
+        <ToggleButton value="all">All</ToggleButton>
+      </ToggleButtonGroup>
       <StackRow label={label} cursor={cursor} setCursor={setCursor} />
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Mobilize events you can see: public events plus events in groups you belong to.
+        {scope === "my"
+          ? "Events in groups you belong to (approved membership)."
+          : "Public Mobilize events plus events in groups you belong to."}
       </Typography>
       {loading ? (
         <Skeleton height={420} />

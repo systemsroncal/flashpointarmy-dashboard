@@ -141,7 +141,7 @@ export function NationalOverview({
       setLastUpdatedAt(Date.now());
     } catch (err) {
       if (process.env.NODE_ENV === "development") {
-        console.warn("[NationalOverview] refresh falló (red/Supabase)", err);
+        console.warn("[NationalOverview] refresh failed (network/Supabase)", err);
       }
     }
   }, []);

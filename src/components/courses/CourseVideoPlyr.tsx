@@ -221,7 +221,7 @@ export function CourseVideoPlyr({
       className="course-video-plyr-mount"
       sx={{
         width: "100%",
-        /* 16:9 que cabe en 72vh de alto: si no limitamos el ancho, aspect-ratio + maxHeight recortaban el vídeo */
+        /* 16:9 within 72vh height: without maxWidth, aspect-ratio + maxHeight clipped the video */
         maxWidth: "min(100%, calc(72vh * 16 / 9))",
         mx: "auto",
         position: "relative",

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enrichMobilizeGroupsBrowse } from "@/lib/mobilize/enrich-groups-browse";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 export async function GET() {
@@ -30,10 +31,27 @@ export async function GET() {
   }
 
   const byId = new Map((groupRows ?? []).map((g: { id: string }) => [g.id, g]));
-  const groups = (memberships ?? []).map((m: Record<string, unknown>) => {
-    const g = byId.get(String(m.group_id));
-    return g ? { ...g, membership: m } : null;
-  }).filter(Boolean);
+
+  const extras = await enrichMobilizeGroupsBrowse(
+    auth.admin,
+    (groupRows ?? []).map((g: { id: string }) => ({ id: g.id })),
+    auth.userId
+  );
+
+  const groups = (memberships ?? [])
+    .map((m: Record<string, unknown>) => {
+      const g = byId.get(String(m.group_id)) as Record<string, unknown> & { id: string } | undefined;
+      if (!g) return null;
+      const e = extras.get(g.id);
+      return {
+        ...g,
+        membership: m,
+        member_count: e?.member_count ?? 0,
+        leader_names: e?.leader_names ?? [],
+        my_membership_status: e?.my_membership_status ?? null,
+      };
+    })
+    .filter(Boolean);
 
   return NextResponse.json({ groups });
 }

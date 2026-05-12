@@ -33,9 +33,9 @@ type Props = {
   label?: string;
   /** TinyMCE helper line under the editor (default: true). */
   showHelper?: boolean;
-  /** Shorter toolbar and height (e.g. quiz fields). Sin botón «código fuente» en la barra. */
+  /** Shorter toolbar and height (e.g. quiz fields). Omits the “source code” button from the toolbar. */
   compact?: boolean;
-  /** Texto de ayuda bajo el editor si `showHelper` es true (sustituye el texto por defecto en inglés). */
+  /** Helper line under the editor when `showHelper` is true (replaces the default English hint). */
   helperText?: string;
 };
 
