@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
-import { Box, Typography } from "@mui/material";
+import { Box, GlobalStyles, Typography } from "@mui/material";
 
 export type MapMarkerPoint = {
   id: string;
@@ -18,8 +18,20 @@ export type MapMarkerPoint = {
   href: string;
 };
 
+/** Punto de búsqueda (GPS o dirección geocodificada) + radio en km para el halo y el zoom. */
+export type MapSearchOrigin = {
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  /** Texto corto para popup (ej. "GPS" o dirección). */
+  label: string;
+};
+
 const TILE = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+const GOLD = "#FFD700";
+const GOLD_STROKE = "rgba(255, 236, 179, 0.85)";
 
 function fixDefaultIcons() {
   const icon = L.Icon.Default.prototype as unknown as { _getIconUrl?: () => string };
@@ -46,6 +58,34 @@ function escapeHtml(s: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/** Ajusta el mapa al círculo del radio de búsqueda; sin origen, centra con zoom por defecto. */
+function FitSearchRadiusView({
+  searchOrigin,
+  fallbackCenter,
+  fallbackZoom,
+}: {
+  searchOrigin: MapSearchOrigin | null | undefined;
+  fallbackCenter: [number, number];
+  fallbackZoom: number;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!searchOrigin) return;
+    const radiusM = searchOrigin.radiusKm * 1000;
+    const circle = L.circle([searchOrigin.lat, searchOrigin.lng], { radius: radiusM });
+    const b = circle.getBounds().pad(0.12);
+    map.fitBounds(b, { padding: [56, 56], maxZoom: 15, animate: true });
+  }, [map, searchOrigin?.lat, searchOrigin?.lng, searchOrigin?.radiusKm, searchOrigin]);
+
+  useEffect(() => {
+    if (searchOrigin) return;
+    map.setView(fallbackCenter, fallbackZoom, { animate: true });
+  }, [map, searchOrigin, fallbackCenter, fallbackZoom]);
+
+  return null;
 }
 
 function ClusterLayer({ markers }: { markers: MapMarkerPoint[] }) {
@@ -90,40 +130,143 @@ function ClusterLayer({ markers }: { markers: MapMarkerPoint[] }) {
   return null;
 }
 
+const personDivIcon = () =>
+  L.divIcon({
+    className: "mobilize-person-marker-wrap",
+    html: `<div class="mobilize-person-marker-inner" role="img" aria-label="Tu posición de búsqueda">
+      <span class="mobilize-person-emoji">🧍</span>
+    </div>`,
+    iconSize: [48, 52],
+    iconAnchor: [24, 52],
+  });
+
+function SearchRadiusHalos({ origin }: { origin: MapSearchOrigin }) {
+  const center: [number, number] = [origin.lat, origin.lng];
+  const radiusM = origin.radiusKm * 1000;
+  return (
+    <>
+      <Circle
+        center={center}
+        radius={radiusM * 1.14}
+        pathOptions={{
+          color: GOLD_STROKE,
+          weight: 1.5,
+          opacity: 0.55,
+          dashArray: "10 14",
+          lineCap: "round",
+          fillColor: GOLD,
+          fillOpacity: 0.04,
+        }}
+      />
+      <Circle
+        center={center}
+        radius={radiusM}
+        pathOptions={{
+          color: GOLD,
+          weight: 2,
+          opacity: 0.9,
+          fillColor: GOLD,
+          fillOpacity: 0.1,
+        }}
+      />
+    </>
+  );
+}
+
+function SearchPersonMarker({ origin }: { origin: MapSearchOrigin }) {
+  const center: [number, number] = [origin.lat, origin.lng];
+  const icon = useMemo(() => personDivIcon(), []);
+  return (
+    <Marker position={center} icon={icon} zIndexOffset={2500}>
+      <Popup>
+        <Box sx={{ minWidth: 180 }}>
+          <Typography variant="subtitle2" fontWeight={700}>
+            Tu búsqueda
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5 }}>
+            {origin.label}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+            Radio aproximado: {origin.radiusKm} km
+          </Typography>
+        </Box>
+      </Popup>
+    </Marker>
+  );
+}
+
 type Props = {
   markers: MapMarkerPoint[];
   height?: string | number;
   center?: [number, number];
   zoom?: number;
+  /** Si existe, se dibuja el “muñequito”, círculos de radio y el mapa encuadra el área. */
+  searchOrigin?: MapSearchOrigin | null;
 };
 
 /**
- * Mobilize map: Leaflet + MarkerClusterGroup. Horizon UI Map is a commercial template component
- * not shipped in this repo; this matches the same UX (markers, popups, clustering, OSM tiles).
+ * Mobilize map: Leaflet + MarkerClusterGroup. Con `searchOrigin`, muestra marcador de persona,
+ * halo/circunferencia del radio y zoom acorde al radio de búsqueda.
  */
-export default function MobilizeMapView({ markers, height = 420, center, zoom = 4 }: Props) {
+export default function MobilizeMapView({ markers, height = 420, center, zoom = 4, searchOrigin }: Props) {
   const defaultCenter = useMemo<[number, number]>(() => {
     if (center) return center;
     if (markers.length) return [markers[0].lat, markers[0].lng];
     return [39.8283, -98.5795];
   }, [center, markers]);
 
+  const initialZoom = searchOrigin ? 11 : zoom;
+
   return (
     <Box sx={{ width: "100%", height, borderRadius: 2, overflow: "hidden", border: "1px solid rgba(255,215,0,0.15)" }}>
+      <GlobalStyles
+        styles={{
+          ".mobilize-person-marker-wrap": {
+            background: "transparent !important",
+            border: "none !important",
+          },
+          ".mobilize-person-marker-inner": {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 48,
+            height: 52,
+            filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))",
+            animation: "mobilize-person-bob 2.2s ease-in-out infinite",
+          },
+          ".mobilize-person-emoji": {
+            fontSize: 30,
+            lineHeight: 1,
+          },
+          "@keyframes mobilize-person-bob": {
+            "0%, 100%": { transform: "translateY(0)" },
+            "50%": { transform: "translateY(-4px)" },
+          },
+        }}
+      />
       <MapContainer
         center={defaultCenter}
-        zoom={zoom}
+        zoom={initialZoom}
         style={{ width: "100%", height: "100%" }}
         scrollWheelZoom
       >
         <TileLayer attribution={ATTR} url={TILE} />
         <InvalidateSize />
+        {searchOrigin ? <SearchRadiusHalos origin={searchOrigin} /> : null}
+        <FitSearchRadiusView
+          searchOrigin={searchOrigin}
+          fallbackCenter={defaultCenter}
+          fallbackZoom={zoom}
+        />
         <ClusterLayer markers={markers} />
+        {searchOrigin ? <SearchPersonMarker origin={searchOrigin} /> : null}
       </MapContainer>
       {markers.length === 0 ? (
         <Box sx={{ mt: -6, textAlign: "center", pointerEvents: "none" }}>
           <Typography variant="caption" color="text.secondary">
-            No markers in the current filter.
+            {searchOrigin
+              ? "No hay grupos en este radio. Prueba otro radio (km) o otro punto de búsqueda."
+              : "No markers in the current filter."}
           </Typography>
         </Box>
       ) : null}

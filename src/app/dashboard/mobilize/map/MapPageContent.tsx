@@ -197,6 +197,13 @@ export default function MobilizeMapPageContent() {
     return undefined;
   }, [searchOrigin, markers]);
 
+  const mapSearchOrigin = useMemo(() => {
+    if (!searchOrigin) return null;
+    const label =
+      userPos != null ? "Tu ubicación (GPS)" : (manualSearchAddress.trim() || "Punto por dirección");
+    return { lat: searchOrigin.lat, lng: searchOrigin.lng, radiusKm, label };
+  }, [searchOrigin, radiusKm, userPos, manualSearchAddress]);
+
   async function runGeocodeForForm() {
     const q = form.address.trim();
     if (q.length < 3) {
@@ -376,7 +383,13 @@ export default function MobilizeMapPageContent() {
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2} alignItems="stretch">
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <MobilizeMapView markers={markers} height={440} center={mapCenter} zoom={searchOrigin ? 9 : 4} />
+          <MobilizeMapView
+            markers={markers}
+            height={440}
+            center={mapCenter}
+            zoom={searchOrigin ? 9 : 4}
+            searchOrigin={mapSearchOrigin}
+          />
         </Box>
         <Box sx={{ width: { xs: "100%", lg: 360 }, flexShrink: 0 }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
