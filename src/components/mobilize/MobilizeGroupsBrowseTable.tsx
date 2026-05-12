@@ -56,6 +56,7 @@ const leaderPillSx = {
   bgcolor: "rgba(130, 130, 130, 0.12)",
   width: "fit-content",
   maxWidth: "100%",
+  minWidth: 0,
 };
 
 type Props = {
@@ -74,13 +75,33 @@ type Props = {
   thumbnailScale?: number;
 };
 
-function LeaderPill({ L }: { L: MobilizeGroupLeaderBrief }) {
+function LeaderPill({ L, compact = false }: { L: MobilizeGroupLeaderBrief; compact?: boolean }) {
+  const av = compact ? 20 : 24;
   return (
-    <Stack sx={leaderPillSx}>
-      <Avatar src={L.avatar_url ?? undefined} sx={{ width: 24, height: 24, fontSize: "0.65rem" }}>
+    <Stack
+      sx={{
+        ...leaderPillSx,
+        ...(compact ? { maxWidth: 108, py: 0.3, px: 0.65, gap: 0.5 } : {}),
+      }}
+    >
+      <Avatar src={L.avatar_url ?? undefined} sx={{ width: av, height: av, fontSize: compact ? "0.6rem" : "0.65rem", flexShrink: 0 }}>
         {(L.full_name || "?").trim().slice(0, 1).toUpperCase()}
       </Avatar>
-      <Typography variant="body2" noWrap title={L.full_name} sx={{ color: "grey.400", fontWeight: 500 }}>
+      <Typography
+        variant={compact ? "caption" : "body2"}
+        title={L.full_name}
+        sx={{
+          color: "grey.400",
+          fontWeight: 500,
+          minWidth: 0,
+          flex: 1,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          lineHeight: 1.25,
+          ...(compact ? { fontSize: "0.7rem" } : {}),
+        }}
+      >
         {L.full_name}
       </Typography>
     </Stack>
@@ -98,6 +119,7 @@ export default function MobilizeGroupsBrowseTable({
 }: Props) {
   const toast = useMobilizeToast();
   const mapStacked = layoutVariant === "mapStacked";
+  const showActivitiesColumn = !mapStacked;
   const thumbBase = mapStacked ? 48 : 56;
   const thumbSize = Math.max(28, Math.round(thumbBase * thumbnailScale));
   /** Default list + My Groups: 4/3.5 aspect cover. Map tab left column: compact square thumbnail. */
@@ -231,13 +253,15 @@ export default function MobilizeGroupsBrowseTable({
                 <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Name</TableCell>
               </>
             )}
-            <TableCell sx={{ fontWeight: 700, color: "text.secondary", minWidth: 140 }}>Leaders</TableCell>
-            <TableCell align="right" sx={{ width: 88, fontWeight: 700, color: "text.secondary" }}>
+            <TableCell sx={{ fontWeight: 700, color: "text.secondary", minWidth: mapStacked ? 96 : 140 }}>Leaders</TableCell>
+            <TableCell align="right" sx={{ width: mapStacked ? 64 : 88, fontWeight: 700, color: "text.secondary" }}>
               Members
             </TableCell>
-            <TableCell align="center" sx={{ width: 96, fontWeight: 700, color: "text.secondary" }}>
-              Activities
-            </TableCell>
+            {showActivitiesColumn ? (
+              <TableCell align="center" sx={{ width: 96, fontWeight: 700, color: "text.secondary" }}>
+                Activities
+              </TableCell>
+            ) : null}
             {!mapStacked ? (
               <TableCell align="right" sx={{ width: 150, fontWeight: 700, color: "text.secondary" }}>
                 Actions
@@ -294,10 +318,16 @@ export default function MobilizeGroupsBrowseTable({
               <TableRow
                 key={g.id}
                 hover
-                sx={{ "& td": { verticalAlign: "middle", borderColor: "rgba(255,215,0,0.08)" } }}
+                sx={{
+                  "& td": {
+                    verticalAlign: "middle",
+                    borderColor: "rgba(255,215,0,0.08)",
+                    ...(mapStacked ? { py: 0.75 } : {}),
+                  },
+                }}
               >
                 {mapStacked ? (
-                  <TableCell sx={{ py: 1.25, verticalAlign: "top" }}>{groupInfo}</TableCell>
+                  <TableCell sx={{ py: 0.85, verticalAlign: "top" }}>{groupInfo}</TableCell>
                 ) : (
                   <>
                     <TableCell sx={{ py: 1 }}>
@@ -325,15 +355,15 @@ export default function MobilizeGroupsBrowseTable({
                     </TableCell>
                   </>
                 )}
-                <TableCell sx={{ verticalAlign: "top" }}>
+                <TableCell sx={{ verticalAlign: "top", maxWidth: mapStacked ? 120 : undefined }}>
                   {leaders.length ? (
-                    <Stack spacing={0.65} sx={{ maxWidth: 280 }}>
-                      {leaders.slice(0, 4).map((L) => (
-                        <LeaderPill key={L.user_id} L={L} />
+                    <Stack spacing={mapStacked ? 0.45 : 0.65} sx={{ maxWidth: mapStacked ? 115 : 280 }}>
+                      {leaders.slice(0, mapStacked ? 3 : 4).map((L) => (
+                        <LeaderPill key={L.user_id} L={L} compact={mapStacked} />
                       ))}
-                      {leaders.length > 4 ? (
+                      {leaders.length > (mapStacked ? 3 : 4) ? (
                         <Typography variant="caption" color="text.secondary">
-                          +{leaders.length - 4} more
+                          +{leaders.length - (mapStacked ? 3 : 4)} more
                         </Typography>
                       ) : null}
                     </Stack>
@@ -344,13 +374,15 @@ export default function MobilizeGroupsBrowseTable({
                   )}
                 </TableCell>
                 <TableCell align="right">{count}</TableCell>
-                <TableCell align="center">
-                  <Tooltip title="Upcoming Mobilize events (from now)">
-                    <Typography variant="body2" fontWeight={600} component="span" sx={{ cursor: "default" }}>
-                      {activities}
-                    </Typography>
-                  </Tooltip>
-                </TableCell>
+                {showActivitiesColumn ? (
+                  <TableCell align="center">
+                    <Tooltip title="Upcoming Mobilize events (from now)">
+                      <Typography variant="body2" fontWeight={600} component="span" sx={{ cursor: "default" }}>
+                        {activities}
+                      </Typography>
+                    </Tooltip>
+                  </TableCell>
+                ) : null}
                 {!mapStacked ? <TableCell align="right">{renderJoinActions(g)}</TableCell> : null}
               </TableRow>
             );

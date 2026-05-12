@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Avatar,
   Box,
   Button,
@@ -736,16 +735,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
           {eventsView === "list" ? (
             <>
-              <Alert severity="info" sx={{ mb: 2 }} variant="outlined">
-                <Typography variant="body2" fontWeight={600} gutterBottom>
-                  Attendance
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Tell the group whether you plan to show up. It isn&apos;t a commitment—it helps leaders plan space
-                  and materials. <strong>Going</strong> = you expect to attend; <strong>Maybe</strong> = not sure yet;{" "}
-                  <strong>Can&apos;t go</strong> = you won&apos;t be there.
-                </Typography>
-              </Alert>
               {events.map((e) => (
                 <Card key={e.id} variant="outlined" sx={{ mb: 1, bgcolor: "rgba(0,0,0,0.2)" }}>
                   <CardContent>
@@ -759,26 +748,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                       {new Date(e.date_time).toLocaleString()} · {e.event_type}
                       {e.is_public ? " · public" : ""}
                     </Typography>
-                    {e.my_rsvp ? (
-                      <Chip
-                        size="small"
-                        label={`Your response: ${
-                          e.my_rsvp === "yes" ? "Going" : e.my_rsvp === "maybe" ? "Maybe" : "Can't go"
-                        }`}
-                        sx={{ mt: 1 }}
-                        variant="outlined"
-                      />
-                    ) : null}
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                      Your attendance
-                    </Typography>
-                    <Box sx={{ mt: 0.5, display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+                    <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
                       <Button
                         size="small"
                         variant={e.my_rsvp === "yes" ? "contained" : "outlined"}
                         onClick={() => void setRsvp(e.id, "yes")}
                       >
-                        Going
+                        Yes
                       </Button>
                       <Button
                         size="small"
@@ -792,7 +768,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                         variant={e.my_rsvp === "no" ? "contained" : "outlined"}
                         onClick={() => void setRsvp(e.id, "no")}
                       >
-                        Can&apos;t go
+                        No
                       </Button>
                     </Box>
                     {canManageEvent(e) ? (
