@@ -1,68 +1,68 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Box, Card, CardContent, Chip, List, ListItemButton, ListItemText, Skeleton, Typography } from "@mui/material";
-import Link from "next/link";
+import { Box, Typography } from "@mui/material";
+import MobilizeGroupsBrowseTable, {
+  type MobilizeBrowseGroupRow,
+} from "@/components/mobilize/MobilizeGroupsBrowseTable";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
-
-type Row = { id: string; name: string; group_type: string; visibility: string; membership?: { membership_status?: string; member_role?: string } };
 
 export default function MyGroupsPage() {
   const toast = useMobilizeToast();
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<MobilizeBrowseGroupRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/mobilize/my-groups");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to load.");
+      const list = (json.groups ?? []) as Record<string, unknown>[];
+      setRows(
+        list.map((g) => ({
+          id: String(g.id),
+          name: String(g.name ?? ""),
+          group_type: String(g.group_type ?? ""),
+          visibility: String(g.visibility ?? "public"),
+          address: (g.address as string | null) ?? null,
+          latitude: (g.latitude as number | null) ?? null,
+          longitude: (g.longitude as number | null) ?? null,
+          cover_image_url: (g.cover_image_url as string | null) ?? null,
+          member_count: typeof g.member_count === "number" ? g.member_count : Number(g.member_count) || 0,
+          leader_names: Array.isArray(g.leader_names) ? (g.leader_names as string[]) : [],
+          my_membership_status:
+            (g.my_membership_status as string | null) ??
+            (g.membership as { membership_status?: string } | undefined)?.membership_status ??
+            null,
+        }))
+      );
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Error", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/mobilize/my-groups");
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Failed to load.");
-        setRows(json.groups ?? []);
-      } catch (e) {
-        toast(e instanceof Error ? e.message : "Error", "error");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [toast]);
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial fetch only
+  }, []);
 
   return (
     <Box>
       <Typography variant="h4" fontWeight={700} gutterBottom>
         My Groups
       </Typography>
-      {loading ? (
-        <Skeleton height={200} />
-      ) : (
-        <List dense>
-          {rows.map((g) => (
-            <Card key={g.id} variant="outlined" sx={{ mb: 1, bgcolor: "rgba(0,0,0,0.2)" }}>
-              <ListItemButton component={Link} href={`/dashboard/mobilize/groups/${g.id}`}>
-                <ListItemText
-                  primary={g.name}
-                  secondary={
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 0.5 }}>
-                      <Chip size="small" label={g.group_type} />
-                      <Chip size="small" label={g.visibility} />
-                      {g.membership?.membership_status ? (
-                        <Chip size="small" label={g.membership.membership_status} color="primary" variant="outlined" />
-                      ) : null}
-                    </Box>
-                  }
-                />
-              </ListItemButton>
-            </Card>
-          ))}
-          {!rows.length ? (
-            <Card variant="outlined">
-              <CardContent>
-                <Typography color="text.secondary">You are not in any Mobilize group yet.</Typography>
-              </CardContent>
-            </Card>
-          ) : null}
-        </List>
-      )}
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Groups you belong to or lead. Join or open a group from the table.
+      </Typography>
+      <MobilizeGroupsBrowseTable
+        groups={rows}
+        loading={loading}
+        emptyMessage="You are not in any Mobilize group yet."
+        onJoined={() => void load()}
+      />
     </Box>
   );
 }

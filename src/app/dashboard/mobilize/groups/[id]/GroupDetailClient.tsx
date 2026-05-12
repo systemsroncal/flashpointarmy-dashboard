@@ -26,15 +26,19 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
   Tabs,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import EditIcon from "@mui/icons-material/Edit";
+import ViewListIcon from "@mui/icons-material/ViewList";
 import Link from "next/link";
 import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -616,9 +620,18 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               value={eventsView}
               exclusive
               onChange={(_, v) => v && setEventsView(v)}
+              aria-label="Events view"
             >
-              <ToggleButton value="list">List</ToggleButton>
-              <ToggleButton value="calendar">Calendar</ToggleButton>
+              <ToggleButton value="list" aria-label="List" sx={{ px: 1.25 }}>
+                <Tooltip title="List">
+                  <ViewListIcon fontSize="small" />
+                </Tooltip>
+              </ToggleButton>
+              <ToggleButton value="calendar" aria-label="Calendar" sx={{ px: 1.25 }}>
+                <Tooltip title="Calendar">
+                  <CalendarMonthIcon fontSize="small" />
+                </Tooltip>
+              </ToggleButton>
             </ToggleButtonGroup>
           </Stack>
 
@@ -746,37 +759,48 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
             Members
           </Typography>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Member</TableCell>
-                <TableCell>State</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Status</TableCell>
-                {isLeader ? <TableCell align="right">Actions</TableCell> : null}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {members.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Avatar src={m.avatar_url ?? undefined} sx={{ width: 36, height: 36 }}>
-                        {(m.display_name ?? "?").slice(0, 1)}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2">{m.display_name ?? m.user_id.slice(0, 8)}</Typography>
-                        {m.email ? (
-                          <Typography variant="caption" color="text.secondary">
-                            {m.email}
-                          </Typography>
-                        ) : null}
-                      </Box>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>{m.state ?? "—"}</TableCell>
-                  <TableCell>{m.member_role}</TableCell>
-                  <TableCell>{m.membership_status}</TableCell>
+          <TableContainer
+            sx={{
+              borderRadius: 1,
+              border: "1px solid rgba(255,215,0,0.12)",
+              bgcolor: "rgba(0,0,0,0.15)",
+            }}
+          >
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Member</TableCell>
+                  <TableCell sx={{ width: 72 }}>State</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Status</TableCell>
+                  {isLeader ? <TableCell align="right">Actions</TableCell> : null}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {members.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Avatar src={m.avatar_url ?? undefined} sx={{ width: 36, height: 36 }}>
+                          {(m.display_name ?? "?").slice(0, 1)}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2">{m.display_name ?? m.user_id.slice(0, 8)}</Typography>
+                          {m.email ? (
+                            <Typography variant="caption" color="text.secondary">
+                              {m.email}
+                            </Typography>
+                          ) : null}
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600} color="text.primary">
+                        {m.state && String(m.state).trim() ? String(m.state).trim() : "—"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{m.member_role}</TableCell>
+                    <TableCell>{m.membership_status}</TableCell>
                   {isLeader ? (
                     <TableCell align="right">
                       {m.membership_status === "approved" && m.user_id !== me.id ? (
@@ -794,10 +818,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                       ) : null}
                     </TableCell>
                   ) : null}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
           {!members.length ? <Typography color="text.secondary">No members loaded.</Typography> : null}
         </Box>
       ) : null}

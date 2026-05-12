@@ -3,6 +3,13 @@ import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+function normalizeStateCode(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return null;
+  if (/^[A-Za-z]{2}$/.test(t)) return t.toUpperCase();
+  return t;
+}
+
 export async function GET(_req: Request, ctx: Ctx) {
   const auth = await requireMobilizeRead();
   if (auth instanceof NextResponse) return auth;
@@ -30,20 +37,26 @@ export async function GET(_req: Request, ctx: Ctx) {
   const userIds = [...new Set((rows ?? []).map((r: { user_id: string }) => r.user_id))];
   const duById = new Map<
     string,
-    { display_name: string | null; email: string | null; state: string | null }
+    {
+      display_name: string | null;
+      email: string | null;
+      state: string | null;
+      primary_chapter_id: string | null;
+    }
   >();
   const prById = new Map<string, { avatar_url: string | null; state: string | null }>();
 
   if (userIds.length) {
     const { data: du } = await auth.admin
       .from("dashboard_users")
-      .select("id, display_name, email, state")
+      .select("id, display_name, email, state, primary_chapter_id")
       .in("id", userIds);
     for (const u of du ?? []) {
       duById.set(u.id as string, {
         display_name: (u as { display_name?: string | null }).display_name ?? null,
         email: (u as { email?: string | null }).email ?? null,
         state: (u as { state?: string | null }).state ?? null,
+        primary_chapter_id: (u as { primary_chapter_id?: string | null }).primary_chapter_id ?? null,
       });
     }
     const { data: pr } = await auth.admin
@@ -58,10 +71,31 @@ export async function GET(_req: Request, ctx: Ctx) {
     }
   }
 
+  const chapterIds = [
+    ...new Set(
+      [...duById.values()]
+        .map((d) => d.primary_chapter_id)
+        .filter((cid): cid is string => typeof cid === "string" && cid.length > 0)
+    ),
+  ];
+  const chapterStateById = new Map<string, string | null>();
+  if (chapterIds.length) {
+    const { data: chapters } = await auth.admin.from("chapters").select("id, state").in("id", chapterIds);
+    for (const c of chapters ?? []) {
+      const st = (c as { state?: string | null }).state;
+      chapterStateById.set(c.id as string, st != null ? String(st).trim() || null : null);
+    }
+  }
+
   const members = (rows ?? []).map((m: { user_id: string; id: string; member_role: string; membership_status: string; created_at: string }) => {
     const du = duById.get(m.user_id);
     const pr = prById.get(m.user_id);
-    const st = (pr?.state ?? du?.state ?? "").trim() || null;
+    const fromProfile = normalizeStateCode(pr?.state ?? "") ?? "";
+    const fromUser = normalizeStateCode(du?.state ?? "") ?? "";
+    const chapId = du?.primary_chapter_id;
+    const fromChapter =
+      chapId != null ? normalizeStateCode(chapterStateById.get(chapId) ?? "") ?? "" : "";
+    const st = (fromProfile || fromUser || fromChapter || "").trim() || null;
     const dn = (du?.display_name ?? "").trim();
     const em = (du?.email ?? "").trim();
     return {

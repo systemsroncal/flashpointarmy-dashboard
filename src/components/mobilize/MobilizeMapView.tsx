@@ -46,7 +46,13 @@ function fixDefaultIcons() {
 function InvalidateSize() {
   const map = useMap();
   useEffect(() => {
-    const t = setTimeout(() => map.invalidateSize(), 200);
+    const t = setTimeout(() => {
+      try {
+        map.invalidateSize(false);
+      } catch {
+        /* ignore */
+      }
+    }, 200);
     return () => clearTimeout(t);
   }, [map]);
   return null;
@@ -64,12 +70,14 @@ function safeFitSearchCircle(map: L.Map, origin: MapSearchOrigin) {
   if (!Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) return;
   const km = Math.max(Number(origin.radiusKm) || 1, 1);
   const radiusM = km * 1000;
+  /** Tighter radius → allow closer max zoom so the search circle fills the pane. */
+  const maxZoom = km <= 10 ? 16 : km <= 25 ? 15 : km <= 50 ? 14 : 13;
   try {
     const circle = L.circle([origin.lat, origin.lng], { radius: radiusM });
-    const b = circle.getBounds().pad(0.12);
+    const b = circle.getBounds().pad(0.1);
     const size = map.getSize();
     if (size.x < 2 || size.y < 2) return;
-    map.fitBounds(b, { padding: [56, 56], maxZoom: 15, animate: true });
+    map.fitBounds(b, { padding: [40, 40], maxZoom, animate: true });
   } catch {
     /* container has no size or invalid bounds */
   }
@@ -89,8 +97,17 @@ function FitSearchRadiusView({
 
   useEffect(() => {
     if (!searchOrigin) return;
-    const t = window.setTimeout(() => safeFitSearchCircle(map, searchOrigin), 80);
-    return () => clearTimeout(t);
+    /** Leaflet often has 0×0 or stale size right after mount / flex layout; invalidate and refit several times. */
+    const run = () => {
+      try {
+        map.invalidateSize(false);
+      } catch {
+        /* ignore */
+      }
+      safeFitSearchCircle(map, searchOrigin);
+    };
+    const timers = [0, 160, 360, 700, 1100].map((ms) => window.setTimeout(run, ms));
+    return () => timers.forEach((id) => clearTimeout(id));
   }, [map, searchOrigin?.lat, searchOrigin?.lng, searchOrigin?.radiusKm, searchOrigin]);
 
   useEffect(() => {
@@ -121,8 +138,17 @@ function RecenterOnCue({
   const map = useMap();
   useEffect(() => {
     if (!searchOrigin || !recenterNonce) return;
-    const t = window.setTimeout(() => safeFitSearchCircle(map, searchOrigin), 40);
-    return () => clearTimeout(t);
+    const run = () => {
+      try {
+        map.invalidateSize(false);
+      } catch {
+        /* ignore */
+      }
+      safeFitSearchCircle(map, searchOrigin);
+    };
+    /** Same pattern as initial fit: map size may be stale until after layout. */
+    const timers = [0, 40, 120, 280, 520, 900].map((ms) => window.setTimeout(run, ms));
+    return () => timers.forEach((id) => clearTimeout(id));
   }, [map, recenterNonce, searchOrigin?.lat, searchOrigin?.lng, searchOrigin?.radiusKm, searchOrigin]);
   return null;
 }
@@ -227,7 +253,7 @@ function SearchPersonMarker({ origin }: { origin: MapSearchOrigin }) {
   </div>`;
   return (
     <Marker position={center} icon={icon} zIndexOffset={2500}>
-      <Popup>{/* HTML plano: evita MUI dentro del portal de Leaflet (errores en cliente / React 19). */}
+      <Popup>{/* Plain HTML: avoids MUI inside Leaflet popup portal (client / React 19 issues). */}
         <div dangerouslySetInnerHTML={{ __html: popupHtml }} />
       </Popup>
     </Marker>

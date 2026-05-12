@@ -5,10 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
-  Card,
-  CardMedia,
   Checkbox,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -18,9 +15,6 @@ import {
   FormLabel,
   IconButton,
   InputLabel,
-  List,
-  ListItemButton,
-  ListItemText,
   MenuItem,
   Radio,
   RadioGroup,
@@ -34,13 +28,10 @@ import {
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import MapIcon from "@mui/icons-material/Map";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import ViewListIcon from "@mui/icons-material/ViewList";
-import Link from "next/link";
+import MobilizeGroupsBrowseTable from "@/components/mobilize/MobilizeGroupsBrowseTable";
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import { canCreateMobilizeGroup } from "@/lib/mobilize/mobilize-roles";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -48,7 +39,7 @@ import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
 const MobilizeMapView = dynamic(() => import("@/components/mobilize/MobilizeMapView"), {
   ssr: false,
-  loading: () => <Skeleton variant="rectangular" height={440} sx={{ borderRadius: 2 }} />,
+  loading: () => <Skeleton variant="rectangular" height={480} sx={{ borderRadius: 2 }} />,
 });
 
 type GroupRow = {
@@ -173,6 +164,13 @@ export default function MobilizeMapPageContent() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /** After GPS / address point or radius changes, nudge Leaflet to refit the search circle once layout has settled. */
+  useEffect(() => {
+    if (!searchOrigin) return;
+    const t = window.setTimeout(() => setRecenterNonce((n) => n + 1), 900);
+    return () => clearTimeout(t);
+  }, [searchOrigin?.lat, searchOrigin?.lng, radiusKm]);
 
   async function geocodeManualSearchAddress() {
     const q = manualSearchAddress.trim();
@@ -315,137 +313,6 @@ export default function MobilizeMapPageContent() {
       setSaving(false);
     }
   }
-
-  async function joinGroup(groupId: string) {
-    try {
-      const res = await fetch(`/api/mobilize/groups/${groupId}/join`, { method: "POST" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Join failed.");
-      toast("Join request sent.", "success");
-      await load();
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Join failed.", "error");
-    }
-  }
-
-  function renderJoinActions(g: GroupRow) {
-    const st = g.my_membership_status;
-    const href = `/dashboard/mobilize/groups/${g.id}`;
-    if (g.visibility !== "public") {
-      return (
-        <Typography variant="caption" color="text.secondary">
-          Private
-        </Typography>
-      );
-    }
-    if (st === "approved") {
-      return (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <Chip size="small" icon={<CheckCircleIcon />} label="Joined" color="success" variant="outlined" />
-          <Tooltip title="Open group">
-            <IconButton component={Link} href={href} target="_blank" rel="noopener noreferrer" size="small" color="primary">
-              <OpenInNewIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      );
-    }
-    if (st === "pending") {
-      return <Chip size="small" label="Pending" color="warning" variant="outlined" />;
-    }
-    return (
-      <Stack direction="row" alignItems="center" spacing={0.5}>
-        <Button size="small" variant="outlined" startIcon={<PersonAddIcon />} onClick={() => void joinGroup(g.id)}>
-          Join
-        </Button>
-        <Tooltip title="Open group">
-          <IconButton component={Link} href={href} target="_blank" rel="noopener noreferrer" size="small" color="primary">
-            <OpenInNewIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Stack>
-    );
-  }
-
-  const listCards = (
-    <Stack spacing={1.5} sx={{ maxHeight: browseMode === "map" ? 440 : "none", overflow: browseMode === "map" ? "auto" : "visible" }}>
-      {sorted.map((g) => {
-        const leaders = (g.leader_names ?? []).join(", ") || "—";
-        const count = g.member_count ?? 0;
-        const cover =
-          g.cover_image_url?.trim() ||
-          "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80";
-        return (
-          <Card key={g.id} variant="outlined" sx={{ display: "flex", flexDirection: "row", bgcolor: "rgba(0,0,0,0.2)" }}>
-            <CardMedia
-              component="img"
-              sx={{ width: 120, minHeight: 88, objectFit: "cover" }}
-              image={cover}
-              alt=""
-            />
-            <Box sx={{ flex: 1, p: 1.5, display: "flex", flexDirection: "column", gap: 0.5, minWidth: 0 }}>
-              <Typography fontWeight={700} noWrap>
-                {g.name}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" noWrap>
-                Leaders: {leaders}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {count} member{count === 1 ? "" : "s"}
-                {g.distance_km != null ? ` · ${g.distance_km.toFixed(1)} km` : ""}
-              </Typography>
-              <Box sx={{ mt: "auto", pt: 0.5 }}>{renderJoinActions(g)}</Box>
-            </Box>
-          </Card>
-        );
-      })}
-      {!sorted.length ? (
-        <Box sx={{ p: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            No groups match your filters.
-          </Typography>
-        </Box>
-      ) : null}
-    </Stack>
-  );
-
-  const sidebarList = (
-    <>
-      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        Groups ({sorted.length})
-      </Typography>
-      {loading ? (
-        <Skeleton variant="rectangular" height={360} />
-      ) : browseMode === "list" ? (
-        listCards
-      ) : (
-        <List dense sx={{ bgcolor: "rgba(0,0,0,0.2)", borderRadius: 1, maxHeight: 440, overflow: "auto" }}>
-          {sorted.map((g) => (
-            <ListItemButton key={g.id} component={Link} href={`/dashboard/mobilize/groups/${g.id}`}>
-              <ListItemText
-                primary={g.name}
-                secondary={
-                  <>
-                    {g.group_type}
-                    {g.distance_km != null ? ` · ${g.distance_km.toFixed(1)} km` : null}
-                    <br />
-                    {g.address ?? "—"}
-                  </>
-                }
-              />
-            </ListItemButton>
-          ))}
-          {!sorted.length ? (
-            <Box sx={{ p: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                No groups match your filters.
-              </Typography>
-            </Box>
-          ) : null}
-        </List>
-      )}
-    </>
-  );
 
   return (
     <Box>
@@ -612,10 +479,27 @@ export default function MobilizeMapPageContent() {
       ) : null}
 
       {browseMode === "list" ? (
-        <Box>{loading ? <Skeleton variant="rectangular" height={360} /> : listCards}</Box>
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Groups ({sorted.length})
+          </Typography>
+          <MobilizeGroupsBrowseTable
+            groups={sorted}
+            loading={loading}
+            emptyMessage="No groups match your filters."
+            onJoined={() => void load()}
+          />
+        </Box>
       ) : (
-        <Stack direction={{ xs: "column", lg: "row" }} spacing={2} alignItems="stretch">
-          <Box sx={{ flex: "1 1 60%", minWidth: 0, position: "relative" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+            gap: 2,
+            alignItems: "stretch",
+          }}
+        >
+          <Box sx={{ minWidth: 0, position: "relative" }}>
             {searchOrigin ? (
               <Tooltip title="Zoom to search origin (GPS or address)">
                 <IconButton
@@ -638,15 +522,26 @@ export default function MobilizeMapPageContent() {
             ) : null}
             <MobilizeMapView
               markers={markers}
-              height={440}
+              height={480}
               center={mapCenter}
               zoom={searchOrigin ? 9 : 4}
               searchOrigin={mapSearchOrigin}
               recenterNonce={recenterNonce}
             />
           </Box>
-          <Box sx={{ flex: "0 0 40%", width: { lg: "40%" }, minWidth: 0 }}>{sidebarList}</Box>
-        </Stack>
+          <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Groups ({sorted.length})
+            </Typography>
+            <MobilizeGroupsBrowseTable
+              groups={sorted}
+              loading={loading}
+              maxHeight={480}
+              emptyMessage="No groups match your filters."
+              onJoined={() => void load()}
+            />
+          </Box>
+        </Box>
       )}
 
       <Dialog open={createOpen} onClose={() => !saving && setCreateOpen(false)} fullWidth maxWidth="sm">
