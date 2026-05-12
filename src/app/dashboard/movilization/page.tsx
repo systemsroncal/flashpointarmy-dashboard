@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Accent toggle lives in the sidebar; this URL only exists for bookmarks / old links. */
+/** Legacy route: Mobilize lives under `/dashboard/mobilize/*`. */
 export default function MovilizationPage() {
-  redirect("/dashboard");
+  redirect("/dashboard/mobilize/map");
 }

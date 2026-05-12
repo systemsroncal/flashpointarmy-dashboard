@@ -20,6 +20,11 @@ import SecurityIcon from "@mui/icons-material/Security";
 import EmailIcon from "@mui/icons-material/Email";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import SettingsIcon from "@mui/icons-material/Settings";
+import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
+import Diversity3Icon from "@mui/icons-material/Diversity3";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
   AppBar,
   Avatar,
@@ -67,6 +72,9 @@ type NavItem = {
 
 const COURSE_LEARNER_PREFIX = "/dashboard/course";
 
+const MOBILIZE_PREFIX = "/dashboard/mobilize";
+const MOBILIZE_MAP_HREF = "/dashboard/mobilize/map";
+
 type NavAccentMode = "gold" | "movilization";
 
 function isNavItemSelected(item: NavItem, pathname: string): boolean {
@@ -84,14 +92,32 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
   if (item.module === MODULE_SLUGS.courses) {
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
+  if (item.module === MODULE_SLUGS.movilization) {
+    return pathname.startsWith(MOBILIZE_PREFIX);
+  }
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-const MOVILIZATION_HREF = "/dashboard/movilization";
+type MobilizeNavItem = { label: string; href: string; icon: React.ReactNode };
+
+const MOBILIZE_NAV: MobilizeNavItem[] = [
+  { label: "Map & Groups", href: "/dashboard/mobilize/map", icon: <MapOutlinedIcon /> },
+  { label: "My Groups", href: "/dashboard/mobilize/my-groups", icon: <Diversity3Icon /> },
+  { label: "Upcoming Activities", href: "/dashboard/mobilize/activities", icon: <EventIcon /> },
+  { label: "Calendar", href: "/dashboard/mobilize/calendar", icon: <CalendarMonthIcon /> },
+  { label: "Notifications", href: "/dashboard/mobilize/notifications", icon: <NotificationsNoneIcon /> },
+];
+
+function isMobilizeDrawerItemSelected(item: MobilizeNavItem, pathname: string): boolean {
+  if (item.href.endsWith("/map")) {
+    return pathname.startsWith("/dashboard/mobilize/map") || pathname.startsWith("/dashboard/mobilize/groups");
+  }
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 const MOVILIZATION_RED = "#c32020";
 
-/** Persisted accent for sidebar selection colors (toggle via Movilization nav). */
+/** Persisted accent for sidebar selection colors (Mobilize module uses red accent). */
 const NAV_ACCENT_STORAGE_KEY = "fp-dashboard-nav-accent";
 const SETTINGS_MODULES = new Set<string>([
   MODULE_SLUGS.emails,
@@ -134,8 +160,8 @@ const NAV: NavItem[] = [
     icon: <EventIcon />,
   },
   {
-    label: "Movilization",
-    href: MOVILIZATION_HREF,
+    label: "Mobilize",
+    href: MOBILIZE_MAP_HREF,
     module: MODULE_SLUGS.movilization,
     icon: <FlagOutlined />,
   },
@@ -243,7 +269,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const allVisibleNav = NAV.filter((item) => {
     if (item.module === MODULE_SLUGS.movilization) {
-      return true;
+      return (
+        isNavModuleAllowedForRoles(item.module, user.role_names) &&
+        can(permissions, MODULE_SLUGS.movilization, "read")
+      );
     }
     if (!isNavModuleAllowedForRoles(item.module, user.role_names)) {
       return false;
@@ -263,6 +292,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     : [];
   const visibleNav = allVisibleNav.filter((item) => !SETTINGS_MODULES.has(item.module));
   const settingsHasActive = settingsNav.some((item) => isNavItemSelected(item, pathname));
+
+  const isMobilizeShell = pathname.startsWith(MOBILIZE_PREFIX);
+  const mobilizeNavAllowed = can(permissions, MODULE_SLUGS.movilization, "read");
+
+  useEffect(() => {
+    if (pathname.startsWith(MOBILIZE_PREFIX)) {
+      setNavAccent("movilization");
+      try {
+        localStorage.setItem(NAV_ACCENT_STORAGE_KEY, "movilization");
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (settingsHasActive) setSettingsOpen(true);
@@ -325,27 +368,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </Box>
       <Divider sx={{ borderColor: redNavAccent ? "rgba(195,32,32,0.22)" : "rgba(255,215,0,0.2)" }} />
       <List sx={{ flex: 1, py: 1, overflowY: "auto" }}>
-        {visibleNav.map((item) => {
-          const selected = isNavItemSelected(item, pathname);
-          const isMovilization = item.module === MODULE_SLUGS.movilization;
-          return (
-            <ListItem key={item.href} disablePadding>
+        {isMobilizeShell && mobilizeNavAllowed ? (
+          <>
+            <ListItem disablePadding>
               <ListItemButton
-                {...(isMovilization
-                  ? ({ component: "button", type: "button" } as const)
-                  : { component: Link, href: item.href })}
-                selected={selected}
+                component={Link}
+                href="/dashboard"
+                selected={pathname === "/dashboard"}
                 onClick={() => {
-                  if (isMovilization) {
-                    setNavAccent((prev) => {
-                      const next: NavAccentMode = prev === "gold" ? "movilization" : "gold";
-                      try {
-                        localStorage.setItem(NAV_ACCENT_STORAGE_KEY, next);
-                      } catch {
-                        /* ignore */
-                      }
-                      return next;
-                    });
+                  setNavAccent("gold");
+                  try {
+                    localStorage.setItem(NAV_ACCENT_STORAGE_KEY, "gold");
+                  } catch {
+                    /* ignore */
                   }
                   if (!desktop) setMobileDrawerOpen(false);
                 }}
@@ -363,144 +398,229 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       },
                 }}
               >
-                <ListItemIcon
-                  sx={{
-                    color: selected
-                      ? redNavAccent
-                        ? MOVILIZATION_RED
-                        : "primary.main"
-                      : "rgba(255,255,255,0.92)",
-                    minWidth: 38,
-                  }}
-                >
-                  {item.icon}
+                <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
+                  <ArrowBackIcon />
                 </ListItemIcon>
                 <ListItemText
-                  primary={item.label}
+                  primary="Exit Mobilize"
                   primaryTypographyProps={{
                     variant: "body2",
                     fontWeight: 600,
                     fontSize: "calc(0.82rem + 3px)",
-                    color: selected
-                      ? redNavAccent
-                        ? MOVILIZATION_RED
-                        : "primary.main"
-                      : "rgba(255,255,255,0.88)",
+                    color: "rgba(255,255,255,0.88)",
                   }}
                 />
               </ListItemButton>
             </ListItem>
-          );
-        })}
-        {settingsNav.length > 0 ? (
-          <>
-            <ListItem disablePadding>
-              <ListItemButton
-                onClick={() => setSettingsOpen((prev) => !prev)}
-                selected={settingsHasActive}
-                sx={{
-                  py: 0.75,
-                  "&.Mui-selected": redNavAccent
-                    ? {
+            <Divider sx={{ borderColor: "rgba(195,32,32,0.22)", my: 0.5 }} />
+            {MOBILIZE_NAV.map((item) => {
+              const selected = isMobilizeDrawerItemSelected(item, pathname);
+              return (
+                <ListItem key={item.href} disablePadding>
+                  <ListItemButton
+                    component={Link}
+                    href={item.href}
+                    selected={selected}
+                    onClick={() => {
+                      if (!desktop) setMobileDrawerOpen(false);
+                    }}
+                    sx={{
+                      py: 0.75,
+                      "&.Mui-selected": {
                         borderLeft: `3px solid ${MOVILIZATION_RED}`,
                         bgcolor: "rgba(195, 32, 32, 0.1)",
-                      }
-                    : {
-                        borderLeft: "3px solid",
-                        borderColor: "primary.main",
-                        bgcolor: "rgba(255,215,0,0.08)",
                       },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    color: settingsHasActive
-                      ? redNavAccent
-                        ? MOVILIZATION_RED
-                        : "primary.main"
-                      : "rgba(255,255,255,0.92)",
-                    minWidth: 38,
-                  }}
-                >
-                  <SettingsIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Settings"
-                  primaryTypographyProps={{
-                    variant: "body2",
-                    fontWeight: 600,
-                    fontSize: "calc(0.82rem + 3px)",
-                    color: settingsHasActive
-                      ? redNavAccent
-                        ? MOVILIZATION_RED
-                        : "primary.main"
-                      : "rgba(255,255,255,0.88)",
-                  }}
-                />
-                {settingsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-              </ListItemButton>
-            </ListItem>
-            <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
-              <List disablePadding>
-                {settingsNav.map((item) => {
-                  const selected = isNavItemSelected(item, pathname);
-                  return (
-                    <ListItem key={item.href} disablePadding>
-                      <ListItemButton
-                        component={Link}
-                        href={item.href}
-                        selected={selected}
-                        onClick={() => {
-                          if (!desktop) setMobileDrawerOpen(false);
-                        }}
-                        sx={{
-                          py: 0.65,
-                          pl: 4.5,
-                          "&.Mui-selected": redNavAccent
-                            ? {
-                                borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                                bgcolor: "rgba(195, 32, 32, 0.1)",
-                              }
-                            : {
-                                borderLeft: "3px solid",
-                                borderColor: "primary.main",
-                                bgcolor: "rgba(255,215,0,0.08)",
-                              },
-                        }}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            color: selected
-                              ? redNavAccent
-                                ? MOVILIZATION_RED
-                                : "primary.main"
-                              : "rgba(255,255,255,0.92)",
-                            minWidth: 36,
-                          }}
-                        >
-                          {item.icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={item.label}
-                          primaryTypographyProps={{
-                            variant: "body2",
-                            fontWeight: 500,
-                            fontSize: "calc(0.8rem + 3px)",
-                            color: selected
-                              ? redNavAccent
-                                ? MOVILIZATION_RED
-                                : "primary.main"
-                              : "rgba(255,255,255,0.88)",
-                          }}
-                        />
-                      </ListItemButton>
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </Collapse>
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.92)",
+                        minWidth: 38,
+                      }}
+                    >
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 600,
+                        fontSize: "calc(0.82rem + 3px)",
+                        color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.88)",
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
           </>
-        ) : null}
+        ) : (
+          <>
+            {visibleNav.map((item) => {
+              const selected = isNavItemSelected(item, pathname);
+              return (
+                <ListItem key={item.href} disablePadding>
+                  <ListItemButton
+                    component={Link}
+                    href={item.href}
+                    selected={selected}
+                    onClick={() => {
+                      if (!desktop) setMobileDrawerOpen(false);
+                    }}
+                    sx={{
+                      py: 0.75,
+                      "&.Mui-selected": redNavAccent
+                        ? {
+                            borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                            bgcolor: "rgba(195, 32, 32, 0.1)",
+                          }
+                        : {
+                            borderLeft: "3px solid",
+                            borderColor: "primary.main",
+                            bgcolor: "rgba(255,215,0,0.08)",
+                          },
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: selected
+                          ? redNavAccent
+                            ? MOVILIZATION_RED
+                            : "primary.main"
+                          : "rgba(255,255,255,0.92)",
+                        minWidth: 38,
+                      }}
+                    >
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 600,
+                        fontSize: "calc(0.82rem + 3px)",
+                        color: selected
+                          ? redNavAccent
+                            ? MOVILIZATION_RED
+                            : "primary.main"
+                          : "rgba(255,255,255,0.88)",
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
+            {settingsNav.length > 0 ? (
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => setSettingsOpen((prev) => !prev)}
+                    selected={settingsHasActive}
+                    sx={{
+                      py: 0.75,
+                      "&.Mui-selected": redNavAccent
+                        ? {
+                            borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                            bgcolor: "rgba(195, 32, 32, 0.1)",
+                          }
+                        : {
+                            borderLeft: "3px solid",
+                            borderColor: "primary.main",
+                            bgcolor: "rgba(255,215,0,0.08)",
+                          },
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: settingsHasActive
+                          ? redNavAccent
+                            ? MOVILIZATION_RED
+                            : "primary.main"
+                          : "rgba(255,255,255,0.92)",
+                        minWidth: 38,
+                      }}
+                    >
+                      <SettingsIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Settings"
+                      primaryTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 600,
+                        fontSize: "calc(0.82rem + 3px)",
+                        color: settingsHasActive
+                          ? redNavAccent
+                            ? MOVILIZATION_RED
+                            : "primary.main"
+                          : "rgba(255,255,255,0.88)",
+                      }}
+                    />
+                    {settingsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                  </ListItemButton>
+                </ListItem>
+                <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
+                  <List disablePadding>
+                    {settingsNav.map((item) => {
+                      const selected = isNavItemSelected(item, pathname);
+                      return (
+                        <ListItem key={item.href} disablePadding>
+                          <ListItemButton
+                            component={Link}
+                            href={item.href}
+                            selected={selected}
+                            onClick={() => {
+                              if (!desktop) setMobileDrawerOpen(false);
+                            }}
+                            sx={{
+                              py: 0.65,
+                              pl: 4.5,
+                              "&.Mui-selected": redNavAccent
+                                ? {
+                                    borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                                    bgcolor: "rgba(195, 32, 32, 0.1)",
+                                  }
+                                : {
+                                    borderLeft: "3px solid",
+                                    borderColor: "primary.main",
+                                    bgcolor: "rgba(255,215,0,0.08)",
+                                  },
+                            }}
+                          >
+                            <ListItemIcon
+                              sx={{
+                                color: selected
+                                  ? redNavAccent
+                                    ? MOVILIZATION_RED
+                                    : "primary.main"
+                                  : "rgba(255,255,255,0.92)",
+                                minWidth: 36,
+                              }}
+                            >
+                              {item.icon}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={item.label}
+                              primaryTypographyProps={{
+                                variant: "body2",
+                                fontWeight: 500,
+                                fontSize: "calc(0.8rem + 3px)",
+                                color: selected
+                                  ? redNavAccent
+                                    ? MOVILIZATION_RED
+                                    : "primary.main"
+                                  : "rgba(255,255,255,0.88)",
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              </>
+            ) : null}
+          </>
+        )}
       </List>
       <Divider />
       <Box
