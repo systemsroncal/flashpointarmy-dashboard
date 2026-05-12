@@ -58,3 +58,34 @@ body {
 .course-video-plyr-mount .plyr__video-embed {
   max-width: 100%;
 }
+
+/* Mobilize map: marcador “persona” (evita GlobalStyles + Leaflet popup con MUI en cliente). */
+.mobilize-person-marker-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.mobilize-person-marker-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 52px;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55));
+  animation: mobilize-person-bob 2.2s ease-in-out infinite;
+}
+
+.mobilize-person-emoji {
+  font-size: 30px;
+  line-height: 1;
+}
+
+@keyframes mobilize-person-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}

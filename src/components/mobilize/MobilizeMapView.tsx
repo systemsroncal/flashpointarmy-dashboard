@@ -7,7 +7,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
-import { Box, GlobalStyles, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 export type MapMarkerPoint = {
   id: string;
@@ -60,6 +60,21 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
+function safeFitSearchCircle(map: L.Map, origin: MapSearchOrigin) {
+  if (!Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) return;
+  const km = Math.max(Number(origin.radiusKm) || 1, 1);
+  const radiusM = km * 1000;
+  try {
+    const circle = L.circle([origin.lat, origin.lng], { radius: radiusM });
+    const b = circle.getBounds().pad(0.12);
+    const size = map.getSize();
+    if (size.x < 2 || size.y < 2) return;
+    map.fitBounds(b, { padding: [56, 56], maxZoom: 15, animate: true });
+  } catch {
+    /* contenedor sin tamaño o bounds inválidos */
+  }
+}
+
 /** Ajusta el mapa al círculo del radio de búsqueda; sin origen, centra con zoom por defecto. */
 function FitSearchRadiusView({
   searchOrigin,
@@ -74,15 +89,23 @@ function FitSearchRadiusView({
 
   useEffect(() => {
     if (!searchOrigin) return;
-    const radiusM = searchOrigin.radiusKm * 1000;
-    const circle = L.circle([searchOrigin.lat, searchOrigin.lng], { radius: radiusM });
-    const b = circle.getBounds().pad(0.12);
-    map.fitBounds(b, { padding: [56, 56], maxZoom: 15, animate: true });
+    const t = window.setTimeout(() => safeFitSearchCircle(map, searchOrigin), 80);
+    return () => clearTimeout(t);
   }, [map, searchOrigin?.lat, searchOrigin?.lng, searchOrigin?.radiusKm, searchOrigin]);
 
   useEffect(() => {
     if (searchOrigin) return;
-    map.setView(fallbackCenter, fallbackZoom, { animate: true });
+    const t = window.setTimeout(() => {
+      try {
+        const size = map.getSize();
+        if (size.x < 2 || size.y < 2) return;
+        if (!Number.isFinite(fallbackCenter[0]) || !Number.isFinite(fallbackCenter[1])) return;
+        map.setView(fallbackCenter, fallbackZoom, { animate: true });
+      } catch {
+        /* ignore */
+      }
+    }, 80);
+    return () => clearTimeout(t);
   }, [map, searchOrigin, fallbackCenter, fallbackZoom]);
 
   return null;
@@ -141,8 +164,10 @@ const personDivIcon = () =>
   });
 
 function SearchRadiusHalos({ origin }: { origin: MapSearchOrigin }) {
+  const km = Math.max(Number(origin.radiusKm) || 1, 1);
+  const radiusM = km * 1000;
+  if (!Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) return null;
   const center: [number, number] = [origin.lat, origin.lng];
-  const radiusM = origin.radiusKm * 1000;
   return (
     <>
       <Circle
@@ -174,22 +199,20 @@ function SearchRadiusHalos({ origin }: { origin: MapSearchOrigin }) {
 }
 
 function SearchPersonMarker({ origin }: { origin: MapSearchOrigin }) {
+  if (!Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) return null;
   const center: [number, number] = [origin.lat, origin.lng];
   const icon = useMemo(() => personDivIcon(), []);
+  const km = Math.max(Number(origin.radiusKm) || 1, 1);
+  const safeLabel = escapeHtml(origin.label || "");
+  const popupHtml = `<div style="min-width:180px;font-family:system-ui,sans-serif">
+    <strong>Tu búsqueda</strong>
+    <div style="margin-top:6px;font-size:14px">${safeLabel}</div>
+    <div style="margin-top:10px;font-size:12px;opacity:0.75">Radio aproximado: ${km} km</div>
+  </div>`;
   return (
     <Marker position={center} icon={icon} zIndexOffset={2500}>
-      <Popup>
-        <Box sx={{ minWidth: 180 }}>
-          <Typography variant="subtitle2" fontWeight={700}>
-            Tu búsqueda
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 0.5 }}>
-            {origin.label}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-            Radio aproximado: {origin.radiusKm} km
-          </Typography>
-        </Box>
+      <Popup>{/* HTML plano: evita MUI dentro del portal de Leaflet (errores en cliente / React 19). */}
+        <div dangerouslySetInnerHTML={{ __html: popupHtml }} />
       </Popup>
     </Marker>
   );
@@ -219,31 +242,6 @@ export default function MobilizeMapView({ markers, height = 420, center, zoom = 
 
   return (
     <Box sx={{ width: "100%", height, borderRadius: 2, overflow: "hidden", border: "1px solid rgba(255,215,0,0.15)" }}>
-      <GlobalStyles
-        styles={{
-          ".mobilize-person-marker-wrap": {
-            background: "transparent !important",
-            border: "none !important",
-          },
-          ".mobilize-person-marker-inner": {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 48,
-            height: 52,
-            filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))",
-            animation: "mobilize-person-bob 2.2s ease-in-out infinite",
-          },
-          ".mobilize-person-emoji": {
-            fontSize: 30,
-            lineHeight: 1,
-          },
-          "@keyframes mobilize-person-bob": {
-            "0%, 100%": { transform: "translateY(0)" },
-            "50%": { transform: "translateY(-4px)" },
-          },
-        }}
-      />
       <MapContainer
         center={defaultCenter}
         zoom={initialZoom}
