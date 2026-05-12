@@ -40,7 +40,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id } = await ctx.params;
 
-  const { data: event } = await auth.admin.from("mobilize_events").select("group_id").eq("id", id).maybeSingle();
+  const { data: event } = await auth.admin
+    .from("mobilize_events")
+    .select("group_id, created_by")
+    .eq("id", id)
+    .maybeSingle();
   if (!event) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   const { data: m } = await auth.admin
@@ -50,7 +54,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
     .eq("user_id", auth.userId)
     .maybeSingle();
 
-  if (!m || m.membership_status !== "approved" || m.member_role !== "leader") {
+  const approved = m?.membership_status === "approved";
+  const isLeaderUser = approved && m.member_role === "leader";
+  const isCreator = approved && event.created_by === auth.userId;
+  if (!approved || (!isLeaderUser && !isCreator)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -82,7 +89,11 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id } = await ctx.params;
 
-  const { data: event } = await auth.admin.from("mobilize_events").select("group_id").eq("id", id).maybeSingle();
+  const { data: event } = await auth.admin
+    .from("mobilize_events")
+    .select("group_id, created_by")
+    .eq("id", id)
+    .maybeSingle();
   if (!event) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   const { data: m } = await auth.admin
@@ -92,7 +103,10 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     .eq("user_id", auth.userId)
     .maybeSingle();
 
-  if (!m || m.membership_status !== "approved" || m.member_role !== "leader") {
+  const approved = m?.membership_status === "approved";
+  const isLeaderUser = approved && m.member_role === "leader";
+  const isCreator = approved && event.created_by === auth.userId;
+  if (!approved || (!isLeaderUser && !isCreator)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

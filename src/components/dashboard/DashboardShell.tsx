@@ -8,7 +8,6 @@ import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import MapIcon from "@mui/icons-material/Map";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -95,12 +94,6 @@ const MOBILIZE_DRAWER_NAV: NavItem[] = [
     href: `${MOBILIZE_PREFIX}/activities`,
     module: MODULE_SLUGS.movilization,
     icon: <EventAvailableOutlinedIcon />,
-  },
-  {
-    label: "Calendar",
-    href: `${MOBILIZE_PREFIX}/calendar`,
-    module: MODULE_SLUGS.movilization,
-    icon: <CalendarMonthOutlinedIcon />,
   },
   {
     label: "Notifications",

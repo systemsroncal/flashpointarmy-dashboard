@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Avatar,
   Box,
   Button,
   Card,
   CardContent,
-  CardMedia,
   Chip,
   Dialog,
   DialogActions,
@@ -37,10 +37,14 @@ import {
   Typography,
 } from "@mui/material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import Link from "next/link";
 import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
+import { labelEventCreatePolicy, labelWallPostPolicy } from "@/lib/mobilize/group-ui-labels";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -76,9 +80,12 @@ type MessageRow = {
 type EventRow = {
   id: string;
   title: string;
+  description?: string | null;
   date_time: string;
   event_type: string;
   is_public: boolean;
+  created_by: string;
+  my_rsvp?: "yes" | "maybe" | "no" | null;
 };
 
 type MemberRow = {
@@ -99,6 +106,12 @@ function startOfMonth(d: Date) {
 
 function endOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+function dateTimeLocalFromIso(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export default function GroupDetailClient({ groupId }: { groupId: string }) {
@@ -123,6 +136,17 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     event_type: "meeting",
     is_public: false,
   });
+  const [editEventOpen, setEditEventOpen] = useState(false);
+  const [editEventId, setEditEventId] = useState<string | null>(null);
+  const [editEventForm, setEditEventForm] = useState({
+    title: "",
+    description: "",
+    date_time: "",
+    event_type: "meeting",
+    is_public: false,
+  });
+  const [deleteDialog, setDeleteDialog] = useState<{ id: string; title: string } | null>(null);
+  const [eventSaving, setEventSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -191,6 +215,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   const isApproved = membership?.membership_status === "approved";
   const isLeader = membership?.member_role === "leader" && isApproved;
+
+  function canManageEvent(e: EventRow) {
+    return isLeader || e.created_by === me.id;
+  }
 
   useEffect(() => {
     if (!isApproved) return;
@@ -296,9 +324,71 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "RSVP failed.");
-      toast("RSVP saved.", "success");
+      setEvents((prev) => prev.map((ev) => (ev.id === eventId ? { ...ev, my_rsvp: rsvp_status } : ev)));
+      toast("Respuesta guardada.", "success");
     } catch (e) {
       toast(e instanceof Error ? e.message : "RSVP failed.", "error");
+    }
+  }
+
+  function openEditEvent(e: EventRow) {
+    setEditEventId(e.id);
+    setEditEventForm({
+      title: e.title,
+      description: e.description ?? "",
+      date_time: dateTimeLocalFromIso(e.date_time),
+      event_type: e.event_type,
+      is_public: e.is_public,
+    });
+    setEditEventOpen(true);
+  }
+
+  async function saveEditedEvent() {
+    if (!editEventId) return;
+    if (!editEventForm.title.trim() || !editEventForm.date_time) {
+      toast("Title and date/time are required.", "error");
+      return;
+    }
+    setEventSaving(true);
+    try {
+      const res = await fetch(`/api/mobilize/events/${editEventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editEventForm.title.trim(),
+          description: editEventForm.description.trim() || null,
+          date_time: new Date(editEventForm.date_time).toISOString(),
+          event_type: editEventForm.event_type,
+          is_public: editEventForm.is_public,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Update failed.");
+      toast("Event updated.", "success");
+      setEditEventOpen(false);
+      setEditEventId(null);
+      await loadEvents();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Update failed.", "error");
+    } finally {
+      setEventSaving(false);
+    }
+  }
+
+  async function confirmDeleteEvent() {
+    if (!deleteDialog) return;
+    setEventSaving(true);
+    try {
+      const res = await fetch(`/api/mobilize/events/${deleteDialog.id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Delete failed.");
+      toast("Event deleted.", "success");
+      setDeleteDialog(null);
+      await loadEvents();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Delete failed.", "error");
+    } finally {
+      setEventSaving(false);
     }
   }
 
@@ -448,24 +538,33 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     const cover =
       group.cover_image_url?.trim() ||
       "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=80";
+    const coverSrc = publicAssetSrc(cover);
     return (
       <Box sx={{ mb: 2 }}>
-        <CardMedia
+        <Box
           component="img"
-          height={160}
-          image={cover}
+          src={coverSrc}
           alt=""
-          sx={{ borderRadius: 2, objectFit: "cover", mb: 1.5 }}
+          sx={{
+            width: "100%",
+            minHeight: 280,
+            maxHeight: 400,
+            objectFit: "cover",
+            borderRadius: 2,
+            mb: 1.5,
+            display: "block",
+            bgcolor: "rgba(0,0,0,0.25)",
+          }}
         />
         <Typography variant="h4" fontWeight={700}>
           {group.name}
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
           <Chip label={group.group_type} />
-          <Chip label={group.visibility} />
-          <Chip label={`Events: ${group.event_create_policy}`} variant="outlined" />
+          <Chip label={group.visibility === "private" ? "Private" : "Public"} />
+          <Chip label={labelEventCreatePolicy(group.event_create_policy)} variant="outlined" />
           <Chip
-            label={wallPolicy === "leaders_only" ? "Wall: leaders only" : "Wall: all members"}
+            label={labelWallPostPolicy(group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved")}
             variant="outlined"
           />
           {membership ? <Chip label={`You: ${membership.membership_status}`} color="primary" /> : null}
@@ -492,7 +591,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         ) : null}
       </Box>
     );
-  }, [group, membership, showJoin, wallPolicy]);
+  }, [group, membership, showJoin]);
 
   if (loading || !group) {
     return <Skeleton height={320} />;
@@ -637,25 +736,81 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
           {eventsView === "list" ? (
             <>
+              <Alert severity="info" sx={{ mb: 2 }} variant="outlined">
+                <Typography variant="body2" fontWeight={600} gutterBottom>
+                  RSVP (répondez s&apos;il vous plaît)
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Es decir: confirma si piensas asistir. No es un compromiso legal; ayuda al grupo a planificar espacio
+                  y materiales. <strong>Sí</strong> = planeo ir; <strong>Tal vez</strong> = aún no estoy seguro;{" "}
+                  <strong>No</strong> = no podré ir.
+                </Typography>
+              </Alert>
               {events.map((e) => (
                 <Card key={e.id} variant="outlined" sx={{ mb: 1, bgcolor: "rgba(0,0,0,0.2)" }}>
                   <CardContent>
                     <Typography fontWeight={600}>{e.title}</Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    {e.description ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, whiteSpace: "pre-wrap" }}>
+                        {e.description}
+                      </Typography>
+                    ) : null}
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                       {new Date(e.date_time).toLocaleString()} · {e.event_type}
                       {e.is_public ? " · public" : ""}
                     </Typography>
-                    <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
-                      <Button size="small" onClick={() => void setRsvp(e.id, "yes")}>
-                        RSVP yes
+                    {e.my_rsvp ? (
+                      <Chip
+                        size="small"
+                        label={`Tu respuesta: ${
+                          e.my_rsvp === "yes" ? "Sí" : e.my_rsvp === "maybe" ? "Tal vez" : "No"
+                        }`}
+                        sx={{ mt: 1 }}
+                        variant="outlined"
+                      />
+                    ) : null}
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                      Tu asistencia (RSVP)
+                    </Typography>
+                    <Box sx={{ mt: 0.5, display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+                      <Button
+                        size="small"
+                        variant={e.my_rsvp === "yes" ? "contained" : "outlined"}
+                        onClick={() => void setRsvp(e.id, "yes")}
+                      >
+                        Sí
                       </Button>
-                      <Button size="small" onClick={() => void setRsvp(e.id, "maybe")}>
-                        Maybe
+                      <Button
+                        size="small"
+                        variant={e.my_rsvp === "maybe" ? "contained" : "outlined"}
+                        onClick={() => void setRsvp(e.id, "maybe")}
+                      >
+                        Tal vez
                       </Button>
-                      <Button size="small" onClick={() => void setRsvp(e.id, "no")}>
+                      <Button
+                        size="small"
+                        variant={e.my_rsvp === "no" ? "contained" : "outlined"}
+                        onClick={() => void setRsvp(e.id, "no")}
+                      >
                         No
                       </Button>
                     </Box>
+                    {canManageEvent(e) ? (
+                      <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap">
+                        <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => openEditEvent(e)}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                          startIcon={<DeleteOutlineIcon />}
+                          onClick={() => setDeleteDialog({ id: e.id, title: e.title })}
+                        >
+                          Delete
+                        </Button>
+                      </Stack>
+                    ) : null}
                   </CardContent>
                 </Card>
               ))}
@@ -885,6 +1040,83 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </DialogActions>
       </Dialog>
 
+      <Dialog open={editEventOpen} onClose={() => !eventSaving && setEditEventOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit Mobilize event</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+            <TextField
+              label="Title"
+              required
+              fullWidth
+              value={editEventForm.title}
+              onChange={(e) => setEditEventForm((f) => ({ ...f, title: e.target.value }))}
+            />
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              minRows={2}
+              value={editEventForm.description}
+              onChange={(e) => setEditEventForm((f) => ({ ...f, description: e.target.value }))}
+            />
+            <TextField
+              label="Date & time (local)"
+              type="datetime-local"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={editEventForm.date_time}
+              onChange={(e) => setEditEventForm((f) => ({ ...f, date_time: e.target.value }))}
+            />
+            <FormControl fullWidth>
+              <InputLabel id="et-edit">Type</InputLabel>
+              <Select
+                labelId="et-edit"
+                label="Type"
+                value={editEventForm.event_type}
+                onChange={(e) => setEditEventForm((f) => ({ ...f, event_type: String(e.target.value) }))}
+              >
+                {MOBILIZE_EVENT_TYPES.map((t) => (
+                  <MenuItem key={t} value={t}>
+                    {t}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant={editEventForm.is_public ? "contained" : "outlined"}
+              onClick={() => setEditEventForm((f) => ({ ...f, is_public: !f.is_public }))}
+            >
+              {editEventForm.is_public ? "Public listing: on" : "Public listing: off"}
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => !eventSaving && setEditEventOpen(false)} disabled={eventSaving}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={() => void saveEditedEvent()} disabled={eventSaving}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!deleteDialog} onClose={() => !eventSaving && setDeleteDialog(null)} fullWidth maxWidth="xs">
+        <DialogTitle>Eliminar evento</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            ¿Seguro que quieres eliminar «{deleteDialog?.title}»? Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog(null)} disabled={eventSaving}>
+            Cancelar
+          </Button>
+          <Button color="error" variant="contained" onClick={() => void confirmDeleteEvent()} disabled={eventSaving}>
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={editOpen} onClose={() => !editSaving && setEditOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit group</DialogTitle>
         <DialogContent>
@@ -919,12 +1151,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               value={editForm.description}
               onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
             />
-            <TextField
-              label="Cover image URL"
-              fullWidth
+            <MobilizeGroupCoverDropzone
               value={editForm.cover_image_url}
-              onChange={(e) => setEditForm((f) => ({ ...f, cover_image_url: e.target.value }))}
-              placeholder="https://…"
+              onChange={(url) => setEditForm((f) => ({ ...f, cover_image_url: url }))}
+              disabled={editSaving}
             />
             <TextField
               label="Address"

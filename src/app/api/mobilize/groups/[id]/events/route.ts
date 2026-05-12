@@ -55,7 +55,28 @@ export async function GET(_req: Request, ctx: Ctx) {
     .order("date_time", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ events: data ?? [] });
+  const events = data ?? [];
+  const eventIds = events.map((e: { id: string }) => e.id);
+  if (!eventIds.length) {
+    return NextResponse.json({ events: [] });
+  }
+
+  const { data: rsvpRows } = await auth.admin
+    .from("mobilize_event_rsvp")
+    .select("event_id, rsvp_status")
+    .eq("user_id", auth.userId)
+    .in("event_id", eventIds);
+
+  const rsvpByEvent = new Map(
+    (rsvpRows ?? []).map((r: { event_id: string; rsvp_status: string }) => [r.event_id, r.rsvp_status])
+  );
+
+  return NextResponse.json({
+    events: events.map((e: { id: string }) => ({
+      ...e,
+      my_rsvp: rsvpByEvent.get(e.id) ?? null,
+    })),
+  });
 }
 
 export async function POST(req: Request, ctx: Ctx) {

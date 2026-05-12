@@ -48,3 +48,12 @@ export async function writeCourseAsset(
   await writeFile(path.join(absDir, fileName), buffer);
   return toWebPath("courses", userId, fileName);
 }
+
+/** Mobilize group cover images under `public/uploads/mobilize-groups/{userId}/{uuid}.{ext}`. */
+export async function writeMobilizeGroupCoverImage(userId: string, buffer: Buffer, ext: string): Promise<string> {
+  const absDir = path.join(uploadsRoot(), "mobilize-groups", userId);
+  await mkdir(absDir, { recursive: true });
+  const fileName = `${randomUUID()}.${ext}`;
+  await writeFile(path.join(absDir, fileName), buffer);
+  return toWebPath("mobilize-groups", userId, fileName);
+}

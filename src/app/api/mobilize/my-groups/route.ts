@@ -48,6 +48,8 @@ export async function GET() {
         membership: m,
         member_count: e?.member_count ?? 0,
         leader_names: e?.leader_names ?? [],
+        leaders: e?.leaders ?? [],
+        upcoming_activity_count: e?.upcoming_activity_count ?? 0,
         my_membership_status: e?.my_membership_status ?? null,
       };
     })

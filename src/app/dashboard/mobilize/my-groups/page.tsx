@@ -5,6 +5,7 @@ import { Box, Typography } from "@mui/material";
 import MobilizeGroupsBrowseTable, {
   type MobilizeBrowseGroupRow,
 } from "@/components/mobilize/MobilizeGroupsBrowseTable";
+import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
 export default function MyGroupsPage() {
@@ -31,6 +32,11 @@ export default function MyGroupsPage() {
           cover_image_url: (g.cover_image_url as string | null) ?? null,
           member_count: typeof g.member_count === "number" ? g.member_count : Number(g.member_count) || 0,
           leader_names: Array.isArray(g.leader_names) ? (g.leader_names as string[]) : [],
+          leaders: Array.isArray(g.leaders) ? (g.leaders as MobilizeGroupLeaderBrief[]) : [],
+          upcoming_activity_count:
+            typeof g.upcoming_activity_count === "number"
+              ? g.upcoming_activity_count
+              : Number(g.upcoming_activity_count) || 0,
           my_membership_status:
             (g.my_membership_status as string | null) ??
             (g.membership as { membership_status?: string } | undefined)?.membership_status ??
@@ -62,6 +68,7 @@ export default function MyGroupsPage() {
         loading={loading}
         emptyMessage="You are not in any Mobilize group yet."
         onJoined={() => void load()}
+        thumbnailScale={3.5}
       />
     </Box>
   );

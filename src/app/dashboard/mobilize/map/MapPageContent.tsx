@@ -31,7 +31,9 @@ import AddIcon from "@mui/icons-material/Add";
 import MapIcon from "@mui/icons-material/Map";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import ViewListIcon from "@mui/icons-material/ViewList";
+import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import MobilizeGroupsBrowseTable from "@/components/mobilize/MobilizeGroupsBrowseTable";
+import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import { canCreateMobilizeGroup } from "@/lib/mobilize/mobilize-roles";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -55,6 +57,8 @@ type GroupRow = {
   cover_image_url?: string | null;
   member_count?: number;
   leader_names?: string[];
+  leaders?: MobilizeGroupLeaderBrief[];
+  upcoming_activity_count?: number;
   my_membership_status?: string | null;
 };
 
@@ -66,7 +70,7 @@ export default function MobilizeMapPageContent() {
   const dashboardUser = useDashboardUser();
   const canCreateGroup = canCreateMobilizeGroup(dashboardUser.role_names);
   const [originMode, setOriginMode] = useState<OriginMode>("address");
-  const [browseMode, setBrowseMode] = useState<BrowseMode>("map");
+  const [browseMode, setBrowseMode] = useState<BrowseMode>("list");
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -488,6 +492,7 @@ export default function MobilizeMapPageContent() {
             loading={loading}
             emptyMessage="No groups match your filters."
             onJoined={() => void load()}
+            thumbnailScale={3.5}
           />
         </Box>
       ) : (
@@ -499,6 +504,20 @@ export default function MobilizeMapPageContent() {
             alignItems: "stretch",
           }}
         >
+          <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Groups ({sorted.length})
+            </Typography>
+            <MobilizeGroupsBrowseTable
+              groups={sorted}
+              loading={loading}
+              maxHeight={480}
+              emptyMessage="No groups match your filters."
+              onJoined={() => void load()}
+              layoutVariant="mapStacked"
+              thumbnailScale={3.5}
+            />
+          </Box>
           <Box sx={{ minWidth: 0, position: "relative" }}>
             {searchOrigin ? (
               <Tooltip title="Zoom to search origin (GPS or address)">
@@ -527,18 +546,6 @@ export default function MobilizeMapPageContent() {
               zoom={searchOrigin ? 9 : 4}
               searchOrigin={mapSearchOrigin}
               recenterNonce={recenterNonce}
-            />
-          </Box>
-          <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Groups ({sorted.length})
-            </Typography>
-            <MobilizeGroupsBrowseTable
-              groups={sorted}
-              loading={loading}
-              maxHeight={480}
-              emptyMessage="No groups match your filters."
-              onJoined={() => void load()}
             />
           </Box>
         </Box>
@@ -578,12 +585,10 @@ export default function MobilizeMapPageContent() {
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
-            <TextField
-              label="Cover image URL"
-              fullWidth
+            <MobilizeGroupCoverDropzone
               value={form.cover_image_url}
-              onChange={(e) => setForm((f) => ({ ...f, cover_image_url: e.target.value }))}
-              placeholder="https://…"
+              onChange={(url) => setForm((f) => ({ ...f, cover_image_url: url }))}
+              disabled={saving}
             />
             <TextField
               label="Address (free text)"
