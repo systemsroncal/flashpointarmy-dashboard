@@ -198,6 +198,9 @@ export function EmailDeliverySettingsPanel({
 
   const encryptionReady =
     Boolean(summary?.has_encryption_passphrase) || Boolean(encryptionPassphrase.trim());
+  /** Si el usuario escribió un secreto nuevo, el servidor debe poder cifrarlo (BD, campo o EMAIL_SECRETS_KEY). */
+  const needsEncryptionForNewSecret = Boolean(clientSecret.trim());
+  const canSaveGoogleWithSecret = !needsEncryptionForNewSecret || encryptionReady;
 
   if (loading && !summary) {
     return (
@@ -353,7 +356,7 @@ export function EmailDeliverySettingsPanel({
                   gmail_sender_email: senderEmail.trim() || undefined,
                 })
               }
-              disabled={saving}
+              disabled={saving || !canSaveGoogleWithSecret}
             >
               {saving ? "Guardando…" : "Guardar ajustes de Google"}
             </Button>
@@ -380,9 +383,11 @@ export function EmailDeliverySettingsPanel({
             </Button>
           </Stack>
           {!encryptionReady ? (
-            <Typography variant="caption" color="warning.main">
-              Indica la clave de cifrado arriba (o configura EMAIL_SECRETS_KEY en el servidor) antes de usar «Conectar
-              con Google».
+            <Typography variant="caption" color="warning.main" component="div">
+              Indica la clave de cifrado en «Variables del servidor» (o configura{" "}
+              <code>EMAIL_SECRETS_KEY</code> en el servidor) antes de{" "}
+              {needsEncryptionForNewSecret ? "guardar un Client Secret nuevo o de " : ""}
+              usar «Conectar con Google».
             </Typography>
           ) : null}
 

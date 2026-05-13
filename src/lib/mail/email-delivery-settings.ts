@@ -102,7 +102,7 @@ export async function upsertEmailDeliverySettings(
       process.env.EMAIL_SECRETS_KEY?.trim();
     if (!phraseForCrypto) {
       throw new Error(
-        "Para guardar el Client Secret hace falta una clave de cifrado: complétala en «Variables del servidor» o define EMAIL_SECRETS_KEY en el servidor."
+        "No se puede cifrar el Client Secret sin una clave. Escríbela en «Clave para cifrar secretos Gmail» (arriba, en Variables del servidor) y guarda, o inclúyela en el mismo envío junto al secreto; en alternativa, define EMAIL_SECRETS_KEY en el entorno del servidor."
       );
     }
     clientSecretEnc = encryptEmailSecret(secretPlain, phraseForCrypto);
