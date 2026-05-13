@@ -55,6 +55,7 @@ import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/client";
+import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
@@ -121,6 +122,14 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
   }
   if (item.module === MODULE_SLUGS.courses) {
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
+  if (item.href === "/dashboard/notifications") {
+    return (
+      pathname === item.href ||
+      pathname.startsWith(`${item.href}/`) ||
+      pathname === "/dashboard/communications" ||
+      pathname.startsWith("/dashboard/communications/")
+    );
   }
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
@@ -192,8 +201,8 @@ const NAV: NavItem[] = [
     icon: <MenuBookIcon />,
   },
   {
-    label: "Communications",
-    href: "/dashboard/communications",
+    label: "Notifications",
+    href: "/dashboard/notifications",
     module: MODULE_SLUGS.communications,
     icon: <CampaignIcon />,
   },
@@ -300,6 +309,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     : [];
   const visibleNav = allVisibleNav.filter((item) => !SETTINGS_MODULES.has(item.module));
   const settingsHasActive = settingsNav.some((item) => isNavItemSelected(item, pathname));
+  const showSystemNotificationBell =
+    user.role_names.includes("admin") || user.role_names.includes("super_admin");
 
   useEffect(() => {
     if (settingsHasActive) setSettingsOpen(true);
@@ -674,7 +685,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           ) : null}
           <Box sx={{ flexGrow: 1 }} />
           <RoleWelcomeVideoPrompt />
-          <NotificationMenu userId={user.id} />
+          {showSystemNotificationBell ? (
+            <NotificationMenu userId={user.id} />
+          ) : (
+            <AnnouncementsNavBadge />
+          )}
         </Toolbar>
       </AppBar>
 
