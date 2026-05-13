@@ -153,6 +153,7 @@ export function ChaptersSection({
   canCreate,
   canUpdate,
   canDelete,
+  showRowActions = true,
 }: {
   initialRows: ChapterRow[];
   leaderOptions: LeaderOption[];
@@ -162,6 +163,8 @@ export function ChaptersSection({
   canCreate: boolean;
   canUpdate: boolean;
   canDelete: boolean;
+  /** Local leaders: read-only table (no view/edit/delete column). */
+  showRowActions?: boolean;
 }) {
   const router = useRouter();
   const [rows, setRows] = useSyncedState(initialRows);
@@ -531,9 +534,11 @@ export function ChaptersSection({
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Leaders</TableCell>
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>State</TableCell>
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Status</TableCell>
-              <TableCell sx={{ color: "primary.main", fontWeight: 700 }} align="right">
-                Actions
-              </TableCell>
+              {showRowActions ? (
+                <TableCell sx={{ color: "primary.main", fontWeight: 700 }} align="right">
+                  Actions
+                </TableCell>
+              ) : null}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -557,6 +562,7 @@ export function ChaptersSection({
                     color={statusColor(row.status) as "success" | "info" | "warning"}
                   />
                 </TableCell>
+                {showRowActions ? (
                 <TableCell align="right">
                   <IconButton size="small" color="inherit" onClick={() => setViewRow(row)} aria-label="View">
                     <Visibility fontSize="small" />
@@ -572,6 +578,7 @@ export function ChaptersSection({
                     </IconButton>
                   ) : null}
                 </TableCell>
+                ) : null}
               </TableRow>
             );
             })}

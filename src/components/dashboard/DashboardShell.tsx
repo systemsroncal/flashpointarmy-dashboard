@@ -46,7 +46,7 @@ import type { Theme } from "@mui/material/styles";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
@@ -71,12 +71,10 @@ type NavItem = {
 
 const COURSE_LEARNER_PREFIX = "/dashboard/course";
 
-type NavAccentMode = "gold" | "movilization";
-
 const MOBILIZE_PREFIX = "/dashboard/mobilize";
 const MOBILIZE_HOME = MOBILIZE_PREFIX;
 
-const MOBILIZE_DRAWER_NAV: NavItem[] = [
+const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
   {
     label: "Map & Groups",
     href: `${MOBILIZE_PREFIX}/map`,
@@ -129,8 +127,6 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
 
 const MOVILIZATION_RED = "#c32020";
 
-/** Persisted accent for sidebar selection colors (toggle via Movilization nav). */
-const NAV_ACCENT_STORAGE_KEY = "fp-dashboard-nav-accent";
 const SETTINGS_MODULES = new Set<string>([
   MODULE_SLUGS.emails,
   MODULE_SLUGS.logs,
@@ -263,19 +259,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const user = useDashboardUser();
   const isMobilize = pathname.startsWith(MOBILIZE_PREFIX);
 
-  const [navAccent, setNavAccent] = useState<NavAccentMode>("gold");
+  /** Red Mobilize chrome only while inside `/dashboard/mobilize/*` (not persisted). */
+  const redNavAccent = isMobilize;
 
-  useLayoutEffect(() => {
-    try {
-      if (localStorage.getItem(NAV_ACCENT_STORAGE_KEY) === "movilization") {
-        setNavAccent("movilization");
-      }
-    } catch {
-      /* private mode / SSR */
+  const mobilizeDrawerNav = useMemo(() => {
+    const items = [...MOBILIZE_DRAWER_NAV_BASE];
+    if (user.role_names.includes("super_admin")) {
+      items.push({
+        label: "Mobilize settings",
+        href: `${MOBILIZE_PREFIX}/settings`,
+        module: MODULE_SLUGS.movilization,
+        icon: <SettingsIcon />,
+      });
     }
-  }, []);
-
-  const redNavAccent = navAccent === "movilization" || isMobilize;
+    return items;
+  }, [user.role_names]);
 
   const sidebarOpen = desktop ? desktopDrawerOpen : mobileDrawerOpen;
   const setSidebarOpen = desktop ? setDesktopDrawerOpen : setMobileDrawerOpen;
@@ -306,16 +304,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (settingsHasActive) setSettingsOpen(true);
   }, [settingsHasActive]);
-
-  useEffect(() => {
-    if (!isMobilize) return;
-    setNavAccent("movilization");
-    try {
-      localStorage.setItem(NAV_ACCENT_STORAGE_KEY, "movilization");
-    } catch {
-      /* private mode */
-    }
-  }, [isMobilize]);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -376,7 +364,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <List sx={{ flex: 1, py: 1, overflowY: "auto" }}>
         {isMobilize ? (
           <>
-            {MOBILIZE_DRAWER_NAV.map((item) => {
+            {mobilizeDrawerNav.map((item) => {
               const selected = isNavItemSelected(item, pathname);
               return (
                 <ListItem key={item.href} disablePadding>

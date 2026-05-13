@@ -7,7 +7,15 @@ import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-export default async function EmailsPageContent() {
+export default async function EmailsPageContent({
+  initialTab,
+  gmailConnected,
+  gmailError,
+}: {
+  initialTab?: string;
+  gmailConnected?: boolean;
+  gmailError?: string;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -53,6 +61,9 @@ export default async function EmailsPageContent() {
       initialLogs={initialLogs}
       defaultTestEmail={user.email ?? ""}
       canEdit={canEdit}
+      initialTab={initialTab}
+      gmailConnected={gmailConnected}
+      gmailError={gmailError}
     />
   );
 }

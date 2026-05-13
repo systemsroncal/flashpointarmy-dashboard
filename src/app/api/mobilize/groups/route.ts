@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { enrichMobilizeGroupsBrowse } from "@/lib/mobilize/enrich-groups-browse";
-import { canCreateMobilizeGroup } from "@/lib/mobilize/mobilize-roles";
+import { canCreateMobilizeGroup, loadMobilizeGroupCreatorPolicy } from "@/lib/mobilize/mobilize-roles";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { createClient } from "@/utils/supabase/server";
 
@@ -64,9 +64,13 @@ export async function POST(req: Request) {
 
   const supabase = await createClient();
   const roleNames = await loadUserRoleNames(supabase, auth.userId);
-  if (!canCreateMobilizeGroup(roleNames)) {
+  const policy = await loadMobilizeGroupCreatorPolicy(auth.admin);
+  if (!canCreateMobilizeGroup(roleNames, policy)) {
     return NextResponse.json(
-      { error: "Only administrators, super administrators, and local leaders can create a group." },
+      {
+        error:
+          "You are not allowed to create a Mobilize group. Ask a super admin to enable your role in Mobilize settings.",
+      },
       { status: 403 }
     );
   }

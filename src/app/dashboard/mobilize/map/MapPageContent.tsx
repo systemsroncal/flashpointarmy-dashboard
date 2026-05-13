@@ -35,7 +35,6 @@ import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCover
 import MobilizeGroupsBrowseTable from "@/components/mobilize/MobilizeGroupsBrowseTable";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
-import { canCreateMobilizeGroup } from "@/lib/mobilize/mobilize-roles";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -68,7 +67,7 @@ type BrowseMode = "list" | "map";
 export default function MobilizeMapPageContent() {
   const toast = useMobilizeToast();
   const dashboardUser = useDashboardUser();
-  const canCreateGroup = canCreateMobilizeGroup(dashboardUser.role_names);
+  const [canCreateGroup, setCanCreateGroup] = useState(false);
   const [originMode, setOriginMode] = useState<OriginMode>("address");
   const [browseMode, setBrowseMode] = useState<BrowseMode>("list");
   const [groups, setGroups] = useState<GroupRow[]>([]);
@@ -96,6 +95,22 @@ export default function MobilizeMapPageContent() {
     cover_image_url: "",
     wall_post_policy: "all_approved" as "all_approved" | "leaders_only",
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/mobilize/can-create-group");
+        const j = (await res.json()) as { canCreate?: boolean };
+        if (!cancelled && res.ok) setCanCreateGroup(Boolean(j.canCreate));
+      } catch {
+        if (!cancelled) setCanCreateGroup(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboardUser.id]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -327,7 +342,8 @@ export default function MobilizeMapPageContent() {
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Public groups and your own groups with coordinates. Use GPS or geocode an address to search nearby
-            (server-side Haversine). Only admins, super admins, and local leaders can create a group.
+            (server-side Haversine). Whether you can create a new group depends on your role and Mobilize settings;
+            dashboard admins and super admins always can.
           </Typography>
         </Box>
         {canCreateGroup ? (

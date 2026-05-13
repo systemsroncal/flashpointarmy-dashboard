@@ -73,6 +73,10 @@ export default async function LeadersPageContent() {
     leaderUserIds = leaderUserIds.filter((id) => allowed.has(id));
   }
 
+  if (!elevated && isLocalLeader && !leaderUserIds.includes(user.id)) {
+    leaderUserIds = [...leaderUserIds, user.id];
+  }
+
   type UserRow = {
     id: string;
     email: string;

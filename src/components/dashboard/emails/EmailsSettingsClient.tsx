@@ -35,6 +35,7 @@ import {
   Typography,
 } from "@mui/material";
 import { LaunchDefaultPasswordPanel } from "@/components/dashboard/emails/LaunchDefaultPasswordPanel";
+import { EmailDeliverySettingsPanel } from "@/components/dashboard/emails/EmailDeliverySettingsPanel";
 import { Fragment, useEffect, useMemo, useState } from "react";
 
 type Branding = {
@@ -106,6 +107,12 @@ const TEMPLATE_SHORTCODE_HINTS: Record<string, string> = {
     "{otp}, {user_email}, {user_fullname}, {app_name}, {current_year} (link shortcodes unused)",
 };
 
+function initialTabIndex(isSuperAdmin: boolean, initialTab?: string): number {
+  if (!isSuperAdmin) return 0;
+  if (initialTab === "sending") return 2;
+  return 0;
+}
+
 export function EmailsSettingsClient({
   isSuperAdmin,
   initialBranding,
@@ -113,6 +120,9 @@ export function EmailsSettingsClient({
   initialLogs,
   defaultTestEmail,
   canEdit,
+  initialTab,
+  gmailConnected,
+  gmailError,
 }: {
   isSuperAdmin: boolean;
   initialBranding: Branding;
@@ -120,6 +130,9 @@ export function EmailsSettingsClient({
   initialLogs: EmailSendLogRow[];
   defaultTestEmail: string;
   canEdit: boolean;
+  initialTab?: string;
+  gmailConnected?: boolean;
+  gmailError?: string;
 }) {
   const [branding, setBranding] = useState<Branding>(initialBranding);
   const [templates, setTemplates] = useState<TemplateRow[]>(initialTemplates);
@@ -135,7 +148,7 @@ export function EmailsSettingsClient({
   const [savingTpl, setSavingTpl] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(() => initialTabIndex(isSuperAdmin, initialTab));
   const [logs, setLogs] = useState<EmailSendLogRow[]>(initialLogs);
   const [testEmail, setTestEmail] = useState(defaultTestEmail);
   const [testSending, setTestSending] = useState(false);
@@ -152,6 +165,7 @@ export function EmailsSettingsClient({
   useEffect(() => {
     setHydrationSafe(true);
   }, []);
+
 
   useEffect(() => {
     setLogs(initialLogs);
@@ -386,6 +400,7 @@ export function EmailsSettingsClient({
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tab label="Templates &amp; branding" />
         <Tab label="Email send log" />
+        {isSuperAdmin ? <Tab label="Sending (Gmail / SMTP)" /> : null}
         {isSuperAdmin ? <Tab label="Launch passwords" /> : null}
       </Tabs>
 
@@ -395,7 +410,7 @@ export function EmailsSettingsClient({
       {tab === 1 ? (
         <Paper sx={{ p: 2, overflow: "auto" }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1">Recent sends (SMTP)</Typography>
+            <Typography variant="subtitle1">Recent sends</Typography>
             <Button size="small" variant="outlined" onClick={() => void refreshLogs()} disabled={logsLoading}>
               {logsLoading ? "Loading…" : "Refresh"}
             </Button>
@@ -578,6 +593,15 @@ export function EmailsSettingsClient({
       ) : null}
 
       {isSuperAdmin && tab === 2 ? (
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Sending — Google Workspace (OAuth) or server SMTP
+          </Typography>
+          <EmailDeliverySettingsPanel gmailConnected={gmailConnected} gmailError={gmailError} />
+        </Paper>
+      ) : null}
+
+      {isSuperAdmin && tab === 3 ? (
         <Paper sx={{ p: 2 }}>
           <Typography variant="subtitle1" gutterBottom>
             Launch — default password
@@ -820,7 +844,7 @@ export function EmailsSettingsClient({
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  From (SMTP)
+                  From
                 </Typography>
                 <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
                   {detailLog.from_address ?? "—"}

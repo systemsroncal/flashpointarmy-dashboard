@@ -1,0 +1,101 @@
+import { NextResponse } from "next/server";
+import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import { fetchEmailDeliverySettings, upsertEmailDeliverySettings } from "@/lib/mail/email-delivery-settings";
+import { getGmailOAuthRedirectUri } from "@/lib/mail/app-base-url";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient } from "@/utils/supabase/server";
+
+async function requireSuperAdmin() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: NextResponse.json({ error: "Unauthorized." }, { status: 401 }) };
+  }
+  const roles = await loadUserRoleNames(supabase, user.id);
+  if (!roles.includes("super_admin")) {
+    return { error: NextResponse.json({ error: "Forbidden." }, { status: 403 }) };
+  }
+  return { userId: user.id };
+}
+
+export async function GET() {
+  const auth = await requireSuperAdmin();
+  if ("error" in auth) return auth.error;
+
+  const admin = createAdminClient();
+  const row = await fetchEmailDeliverySettings(admin);
+  return NextResponse.json({
+    provider: row?.provider ?? "env_smtp",
+    gmail_client_id: row?.gmail_client_id ?? "",
+    has_client_secret: Boolean(row?.gmail_client_secret_enc?.trim()),
+    has_refresh_token: Boolean(row?.gmail_refresh_token_enc?.trim()),
+    gmail_sender_email: row?.gmail_sender_email ?? "",
+    app_base_url: row?.app_base_url ?? "",
+    has_encryption_passphrase: Boolean(
+      row?.credentials_encryption_passphrase?.trim() || process.env.EMAIL_SECRETS_KEY?.trim()
+    ),
+    oauth_redirect_uri: await getGmailOAuthRedirectUri(admin),
+  });
+}
+
+export async function PATCH(req: Request) {
+  const auth = await requireSuperAdmin();
+  if ("error" in auth) return auth.error;
+
+  const body = (await req.json()) as {
+    provider?: string;
+    gmail_client_id?: string;
+    gmail_client_secret?: string;
+    gmail_sender_email?: string;
+    clear_gmail_refresh?: boolean;
+    app_base_url?: string;
+    credentials_encryption_passphrase?: string;
+    clear_encryption_passphrase?: boolean;
+  };
+
+  const admin = createAdminClient();
+  const existingRow = await fetchEmailDeliverySettings(admin);
+  const nextProvider =
+    body.provider === "gmail_workspace_oauth"
+      ? "gmail_workspace_oauth"
+      : body.provider === "env_smtp"
+        ? "env_smtp"
+        : ((existingRow?.provider as "env_smtp" | "gmail_workspace_oauth") ?? "env_smtp");
+
+  try {
+    await upsertEmailDeliverySettings(
+      admin,
+      {
+        provider: nextProvider,
+        gmail_client_id: body.gmail_client_id,
+        gmail_client_secret: body.gmail_client_secret,
+        gmail_sender_email: body.gmail_sender_email,
+        clear_gmail_refresh: body.clear_gmail_refresh === true,
+        app_base_url: body.app_base_url,
+        credentials_encryption_passphrase: body.credentials_encryption_passphrase,
+        clear_encryption_passphrase: body.clear_encryption_passphrase === true,
+      },
+      auth.userId
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Save failed.";
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
+
+  const row = await fetchEmailDeliverySettings(admin);
+  return NextResponse.json({
+    ok: true,
+    provider: row?.provider ?? "env_smtp",
+    gmail_client_id: row?.gmail_client_id ?? "",
+    has_client_secret: Boolean(row?.gmail_client_secret_enc?.trim()),
+    has_refresh_token: Boolean(row?.gmail_refresh_token_enc?.trim()),
+    gmail_sender_email: row?.gmail_sender_email ?? "",
+    app_base_url: row?.app_base_url ?? "",
+    has_encryption_passphrase: Boolean(
+      row?.credentials_encryption_passphrase?.trim() || process.env.EMAIL_SECRETS_KEY?.trim()
+    ),
+    oauth_redirect_uri: await getGmailOAuthRedirectUri(admin),
+  });
+}

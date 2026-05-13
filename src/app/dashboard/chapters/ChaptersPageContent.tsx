@@ -1,6 +1,7 @@
 import { ChaptersSection } from "@/components/dashboard/chapters/ChaptersSection";
 import { MODULE_SLUGS } from "@/config/modules";
 import { can } from "@/types/permissions";
+import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -18,6 +19,10 @@ export default async function ChaptersPageContent() {
   const create = can(permissions, MODULE_SLUGS.chapters, "create");
   const update = can(permissions, MODULE_SLUGS.chapters, "update");
   const del = can(permissions, MODULE_SLUGS.chapters, "delete");
+
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  const elevated = isElevatedRole(roleNames);
+  const showChapterRowActions = elevated || !roleNames.includes("local_leader");
 
   let rows: {
     id: string;
@@ -118,6 +123,7 @@ export default async function ChaptersPageContent() {
       canCreate={create}
       canUpdate={update}
       canDelete={del}
+      showRowActions={showChapterRowActions}
     />
   );
 }

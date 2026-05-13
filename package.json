@@ -32,6 +32,7 @@
     "@supabase/supabase-js": "^2.47.10",
     "@tinymce/tinymce-react": "^6.3.0",
     "apexcharts": "^5.11.0",
+    "google-auth-library": "^9.15.1",
     "isomorphic-dompurify": "^3.9.0",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
