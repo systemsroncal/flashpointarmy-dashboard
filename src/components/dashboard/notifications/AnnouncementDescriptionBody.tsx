@@ -5,55 +5,22 @@ import { resolveVideoForPlyr } from "@/lib/media/resolve-plyr-video";
 import DOMPurify from "isomorphic-dompurify";
 import { Box, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
+import { findAllVideoMarkers } from "./announcement-video-markers";
 
-/** Must match the class inserted by GatheringDescriptionEditor (video embed button). */
-export const ANNOUNCEMENT_PLYR_BLOCK_CLASS = "fpa-announcement-plyr";
-
-/** Plain text for “read more” previews (strips tags). */
-export function announcementPlainTextPreview(html: string): string {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
+export { ANNOUNCEMENT_PLYR_BLOCK_CLASS, announcementPlainTextPreview } from "./announcement-video-markers";
 
 type Part = { kind: "html"; html: string } | { kind: "video"; url: string };
-
-/** Match Plyr marker div whether TinyMCE puts `class` or `data-video-url` first. */
-function findVideoBlocks(html: string): { start: number; end: number; encUrl: string }[] {
-  const classFirst =
-    /<div\s[^>]*\bclass="[^"]*\bfpa-announcement-plyr\b[^"]*"[^>]*\bdata-video-url="([^"]+)"[^>]*>\s*<\/div>/gi;
-  const dataFirst =
-    /<div\s[^>]*\bdata-video-url="([^"]+)"[^>]*\bclass="[^"]*\bfpa-announcement-plyr\b[^"]*"[^>]*>\s*<\/div>/gi;
-  const seen = new Set<string>();
-  const out: { start: number; end: number; encUrl: string }[] = [];
-  for (const re of [classFirst, dataFirst]) {
-    let m: RegExpExecArray | null;
-    const r = new RegExp(re.source, re.flags);
-    while ((m = r.exec(html)) !== null) {
-      const key = `${m.index}:${m.index + m[0].length}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({ start: m.index, end: m.index + m[0].length, encUrl: m[1] });
-    }
-  }
-  out.sort((a, b) => a.start - b.start);
-  return out;
-}
 
 function splitParts(html: string): Part[] {
   const s = typeof html === "string" ? html : "";
   if (!s.trim()) return [];
-  const markers = findVideoBlocks(s);
+  const markers = findAllVideoMarkers(s);
   if (!markers.length) return [{ kind: "html", html: s }];
   const parts: Part[] = [];
   let last = 0;
   for (const mk of markers) {
     if (mk.start > last) parts.push({ kind: "html", html: s.slice(last, mk.start) });
-    let url = mk.encUrl;
-    try {
-      url = decodeURIComponent(url);
-    } catch {
-      /* keep raw */
-    }
-    parts.push({ kind: "video", url });
+    parts.push({ kind: "video", url: mk.url });
     last = mk.end;
   }
   if (last < s.length) parts.push({ kind: "html", html: s.slice(last) });

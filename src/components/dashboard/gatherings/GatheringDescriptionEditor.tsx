@@ -53,6 +53,15 @@ export function GatheringDescriptionEditor({
 }: Props) {
   const init = useMemo(() => {
     const videoToolbar = videoEmbedButton ? " | fplyrvideo" : "";
+    const videoSchema = videoEmbedButton
+      ? {
+          extended_valid_elements:
+            "div[class|data-video-url|data-mce-bogus|contenteditable|id|style],span[class|style|data-mce-bogus]",
+          verify_html: false,
+          code_dialog_width: 900,
+          code_dialog_height: 560,
+        }
+      : {};
     const registerVideo = (ed: {
       insertContent: (html: string) => void;
       ui: { registry: { addButton: (id: string, spec: { text: string; tooltip: string; onAction: () => void }) => void } };
@@ -60,12 +69,12 @@ export function GatheringDescriptionEditor({
       if (!videoEmbedButton) return;
       ed.ui.registry.addButton("fplyrvideo", {
         text: "Video",
-        tooltip: "Embed video (YouTube, Vimeo, MP4…)",
+        tooltip: "Insert [fpa_video]…[/fpa_video] shortcode (Plyr: YouTube, Vimeo, MP4…)",
         onAction: () => {
           const raw = typeof window !== "undefined" ? window.prompt("Paste video URL (YouTube, Vimeo, or direct MP4):") : null;
           if (!raw?.trim()) return;
-          const enc = encodeURIComponent(raw.trim());
-          ed.insertContent(`<div class="fpa-announcement-plyr" data-video-url="${enc}"></div><p><br></p>`);
+          const safe = raw.trim().replace(/\]/g, "%5D");
+          ed.insertContent(`<p>[fpa_video]${safe}[/fpa_video]</p><p><br></p>`);
         },
       });
     };
@@ -89,6 +98,7 @@ export function GatheringDescriptionEditor({
         content_style:
           'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.45; margin: 6px; } p { margin: 0 0 0.5em 0; } p:last-child { margin-bottom: 0; }',
         setup: registerVideo,
+        ...videoSchema,
       };
     }
     return {
@@ -125,6 +135,7 @@ export function GatheringDescriptionEditor({
       content_style:
         'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.5; }',
       setup: registerVideo,
+      ...videoSchema,
     };
   }, [compact, videoEmbedButton]);
 

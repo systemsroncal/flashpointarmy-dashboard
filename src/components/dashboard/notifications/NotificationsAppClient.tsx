@@ -447,7 +447,14 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         </Stack>
       )}
 
-      <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="lg">
+      <Dialog
+        open={dialogOpen}
+        onClose={closeDialog}
+        fullWidth
+        maxWidth="lg"
+        disableEnforceFocus
+        disableRestoreFocus
+      >
         <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 1 }}>
           {editingId ? "Edit notification" : "New notification"}
           <IconButton aria-label="Close" onClick={closeDialog} size="small">
@@ -463,7 +470,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
               value={description}
               onChange={setDescription}
               videoEmbedButton
-              helperText="Same rich text editor as Courses (TinyMCE). Use the Video toolbar button for YouTube, Vimeo, or direct MP4 URLs — they play with Plyr. For images, use HTTPS URLs."
+              helperText='Rich text (TinyMCE, same as Courses). Video: toolbar “Video” inserts [fpa_video]URL[/fpa_video]; you may also type [fpa_video url="https://…"] or [video url=https://… ]. Source code: use Code — editing works inside this dialog. Plyr plays YouTube, Vimeo, and direct MP4. Images: HTTPS URLs.'
             />
             {canManage ? (
               <FormControl fullWidth>
