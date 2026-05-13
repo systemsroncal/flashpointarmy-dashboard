@@ -71,8 +71,12 @@ export async function getMailTransportAndFrom(): Promise<MailFromConfig> {
     return { transporter, from: formatMailFrom(row.smtp_from_name, fromEmail) };
   }
 
+  /** Gmail OAuth only when selected in DB, or legacy fallback if provider is neither env nor dashboard nor oauth but OAuth is complete — never override explicit `env_smtp`. */
   const useGmailOAuth =
-    row?.provider === "gmail_workspace_oauth" || isGmailOAuthDeliveryReady(row);
+    row?.provider === "gmail_workspace_oauth" ||
+    (row?.provider !== "env_smtp" &&
+      row?.provider !== "dashboard_smtp" &&
+      isGmailOAuthDeliveryReady(row));
 
   if (useGmailOAuth) {
     if (!row || !isGmailOAuthDeliveryReady(row)) {
@@ -117,15 +121,16 @@ export async function getMailTransportAndFrom(): Promise<MailFromConfig> {
     return { transporter, from: sender };
   }
 
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const host = process.env.SMTP_HOST?.trim();
+  const user = process.env.SMTP_USER?.trim();
+  /** Gmail app passwords are shown as 4×4 with spaces; SMTP auth must use 16 chars without spaces. */
+  const pass = (process.env.SMTP_PASS ?? "").trim().replace(/\s+/g, "");
   if (!host || !user || !pass) {
     throw new Error(
       "SMTP is not configured. Connect Gmail (OAuth) under Emails → Sending, save dashboard SMTP, or set SMTP_HOST, SMTP_USER, and SMTP_PASS in the environment."
     );
   }
-  const fromEnv = process.env.SMTP_FROM;
+  const fromEnv = process.env.SMTP_FROM?.trim();
   if (!fromEnv) throw new Error("Missing SMTP_FROM.");
   const transporter = nodemailer.createTransport({
     host,

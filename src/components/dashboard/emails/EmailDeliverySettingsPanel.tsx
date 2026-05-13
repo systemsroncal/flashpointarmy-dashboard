@@ -724,8 +724,9 @@ export function EmailDeliverySettingsPanel({
           <code>SMTP_FROM</code> (can include a display name like <code>&quot;Name&quot; &lt;email@domain.com&gt;</code>
           ), and optionally <code>SMTP_PORT</code> / <code>SMTP_SECURE</code> in your deployment.{" "}
           <strong>
-            If Gmail OAuth is fully connected in this dashboard (refresh token saved), the server sends through OAuth
-            instead and does not use these SMTP variables.
+            When this option is saved as the delivery method, the server always uses these environment variables for
+            sending—even if Gmail OAuth was connected before. Choose Google Workspace OAuth in the list above if you
+            want to send through OAuth instead.
           </strong>{" "}
           For Gmail SMTP via env only, <code>SMTP_USER</code> must match the account and you need an App Password if
           2FA is on. Click <strong>Save delivery method</strong> below to persist this choice.
