@@ -37,6 +37,8 @@ type Props = {
   compact?: boolean;
   /** Helper line under the editor when `showHelper` is true (replaces the default English hint). */
   helperText?: string;
+  /** Adds a “Video” toolbar control that inserts a Plyr-ready embed block (YouTube, Vimeo, MP4, etc.). */
+  videoEmbedButton?: boolean;
 };
 
 export function GatheringDescriptionEditor({
@@ -47,8 +49,26 @@ export function GatheringDescriptionEditor({
   showHelper = true,
   compact = false,
   helperText,
+  videoEmbedButton = false,
 }: Props) {
   const init = useMemo(() => {
+    const videoToolbar = videoEmbedButton ? " | fplyrvideo" : "";
+    const registerVideo = (ed: {
+      insertContent: (html: string) => void;
+      ui: { registry: { addButton: (id: string, spec: { text: string; tooltip: string; onAction: () => void }) => void } };
+    }) => {
+      if (!videoEmbedButton) return;
+      ed.ui.registry.addButton("fplyrvideo", {
+        text: "Video",
+        tooltip: "Embed video (YouTube, Vimeo, MP4…)",
+        onAction: () => {
+          const raw = typeof window !== "undefined" ? window.prompt("Paste video URL (YouTube, Vimeo, or direct MP4):") : null;
+          if (!raw?.trim()) return;
+          const enc = encodeURIComponent(raw.trim());
+          ed.insertContent(`<div class="fpa-announcement-plyr" data-video-url="${enc}"></div><p><br></p>`);
+        },
+      });
+    };
     if (compact) {
       return {
         height: 140,
@@ -59,7 +79,7 @@ export function GatheringDescriptionEditor({
         promotion: false,
         statusbar: false,
         plugins: ["lists", "link", "autoresize"].join(" "),
-        toolbar: "undo redo | bold italic underline | bullist numlist | link | removeformat",
+        toolbar: `undo redo | bold italic underline | bullist numlist | link | removeformat${videoToolbar}`,
         autoresize_bottom_margin: 8,
         autoresize_max_height: 280,
         min_height: 88,
@@ -68,6 +88,7 @@ export function GatheringDescriptionEditor({
         convert_urls: true,
         content_style:
           'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.45; margin: 6px; } p { margin: 0 0 0.5em 0; } p:last-child { margin-bottom: 0; }',
+        setup: registerVideo,
       };
     }
     return {
@@ -95,7 +116,7 @@ export function GatheringDescriptionEditor({
         "autoresize",
       ].join(" "),
       toolbar:
-        "undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright | bullist numlist outdent indent | link table | removeformat | code",
+        `undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright | bullist numlist outdent indent | link table | removeformat | code${videoToolbar}`,
       autoresize_bottom_margin: 16,
       min_height: 320,
       paste_data_images: false,
@@ -103,8 +124,9 @@ export function GatheringDescriptionEditor({
       convert_urls: true,
       content_style:
         'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.5; }',
+      setup: registerVideo,
     };
-  }, [compact]);
+  }, [compact, videoEmbedButton]);
 
   const defaultHelper =
     "Self-hosted TinyMCE (GPL). HTML is saved to the database. For images, prefer HTTPS URLs.";

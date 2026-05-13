@@ -7,6 +7,11 @@ import {
   type AnnouncementCta,
   type AnnouncementListItem,
 } from "@/lib/dashboard/announcements-types";
+import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
+import {
+  AnnouncementDescriptionBody,
+  announcementPlainTextPreview,
+} from "@/components/dashboard/notifications/AnnouncementDescriptionBody";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -297,9 +302,10 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
           {items.map((row) => {
             const unread = !row.read_at;
             const expanded = expandedDesc[row.id];
-            const useCollapse = row.read_more_collapsed && row.description.length > PREVIEW_CHARS;
-            const shownText =
-              useCollapse && !expanded ? `${row.description.slice(0, PREVIEW_CHARS).trim()}…` : row.description;
+            const plainPreview = announcementPlainTextPreview(row.description);
+            const useCollapse = row.read_more_collapsed && plainPreview.length > PREVIEW_CHARS;
+            const previewSnippet =
+              useCollapse && !expanded ? `${plainPreview.slice(0, PREVIEW_CHARS).trim()}…` : null;
 
             return (
               <Paper
@@ -353,12 +359,18 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                         />
                       )}
                     </Stack>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: "grey.300", whiteSpace: "pre-wrap", lineHeight: 1.65, mb: row.ctas?.length ? 2 : 0 }}
-                    >
-                      {shownText}
-                    </Typography>
+                    {previewSnippet ? (
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "grey.300", whiteSpace: "pre-wrap", lineHeight: 1.65, mb: row.ctas?.length ? 2 : 0 }}
+                      >
+                        {previewSnippet}
+                      </Typography>
+                    ) : (
+                      <Box sx={{ mb: row.ctas?.length ? 2 : 0 }}>
+                        <AnnouncementDescriptionBody html={row.description} />
+                      </Box>
+                    )}
                     {useCollapse ? (
                       <Button
                         size="small"
@@ -435,23 +447,23 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         </Stack>
       )}
 
-      <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
+      <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="lg">
         <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 1 }}>
           {editingId ? "Edit notification" : "New notification"}
           <IconButton aria-label="Close" onClick={closeDialog} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ maxHeight: "min(88vh, 900px)", overflow: "auto" }}>
           <Stack spacing={2.25}>
             <TextField label="Notification title" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth required />
-            <TextField
+            <GatheringDescriptionEditor
+              key={editingId ?? "new-notification"}
               label="Description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              fullWidth
-              multiline
-              minRows={4}
+              onChange={setDescription}
+              videoEmbedButton
+              helperText="Same rich text editor as Courses (TinyMCE). Use the Video toolbar button for YouTube, Vimeo, or direct MP4 URLs — they play with Plyr. For images, use HTTPS URLs."
             />
             {canManage ? (
               <FormControl fullWidth>
