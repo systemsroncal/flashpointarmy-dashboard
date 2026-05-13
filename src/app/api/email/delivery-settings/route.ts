@@ -37,6 +37,13 @@ export async function GET() {
       row?.credentials_encryption_passphrase?.trim() || process.env.EMAIL_SECRETS_KEY?.trim()
     ),
     oauth_redirect_uri: await getGmailOAuthRedirectUri(admin),
+    smtp_host: row?.smtp_host ?? "",
+    smtp_port: row?.smtp_port ?? null,
+    smtp_secure: row?.smtp_secure === true,
+    smtp_auth_user: row?.smtp_auth_user ?? "",
+    smtp_from_email: row?.smtp_from_email ?? "",
+    smtp_from_name: row?.smtp_from_name ?? "",
+    has_smtp_password: Boolean(row?.smtp_auth_pass_enc?.trim()),
   });
 }
 
@@ -53,6 +60,14 @@ export async function PATCH(req: Request) {
     app_base_url?: string;
     credentials_encryption_passphrase?: string;
     clear_encryption_passphrase?: boolean;
+    smtp_host?: string | null;
+    smtp_port?: number | null;
+    smtp_secure?: boolean;
+    smtp_auth_user?: string | null;
+    smtp_auth_pass?: string | null;
+    smtp_from_email?: string | null;
+    smtp_from_name?: string | null;
+    clear_smtp_auth_pass?: boolean;
   };
 
   const admin = createAdminClient();
@@ -60,9 +75,11 @@ export async function PATCH(req: Request) {
   const nextProvider =
     body.provider === "gmail_workspace_oauth"
       ? "gmail_workspace_oauth"
-      : body.provider === "env_smtp"
-        ? "env_smtp"
-        : ((existingRow?.provider as "env_smtp" | "gmail_workspace_oauth") ?? "env_smtp");
+      : body.provider === "dashboard_smtp"
+        ? "dashboard_smtp"
+        : body.provider === "env_smtp"
+          ? "env_smtp"
+          : ((existingRow?.provider as "env_smtp" | "gmail_workspace_oauth" | "dashboard_smtp") ?? "env_smtp");
 
   try {
     await upsertEmailDeliverySettings(
@@ -76,6 +93,14 @@ export async function PATCH(req: Request) {
         app_base_url: body.app_base_url,
         credentials_encryption_passphrase: body.credentials_encryption_passphrase,
         clear_encryption_passphrase: body.clear_encryption_passphrase === true,
+        smtp_host: body.smtp_host,
+        smtp_port: body.smtp_port,
+        smtp_secure: body.smtp_secure,
+        smtp_auth_user: body.smtp_auth_user,
+        smtp_auth_pass: body.smtp_auth_pass,
+        smtp_from_email: body.smtp_from_email,
+        smtp_from_name: body.smtp_from_name,
+        clear_smtp_auth_pass: body.clear_smtp_auth_pass === true,
       },
       auth.userId
     );
@@ -97,5 +122,12 @@ export async function PATCH(req: Request) {
       row?.credentials_encryption_passphrase?.trim() || process.env.EMAIL_SECRETS_KEY?.trim()
     ),
     oauth_redirect_uri: await getGmailOAuthRedirectUri(admin),
+    smtp_host: row?.smtp_host ?? "",
+    smtp_port: row?.smtp_port ?? null,
+    smtp_secure: row?.smtp_secure === true,
+    smtp_auth_user: row?.smtp_auth_user ?? "",
+    smtp_from_email: row?.smtp_from_email ?? "",
+    smtp_from_name: row?.smtp_from_name ?? "",
+    has_smtp_password: Boolean(row?.smtp_auth_pass_enc?.trim()),
   });
 }

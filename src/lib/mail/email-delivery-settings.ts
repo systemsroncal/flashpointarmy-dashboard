@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decryptEmailSecret, encryptEmailSecret } from "@/lib/mail/email-secrets-crypto";
 
-export type EmailDeliveryProvider = "env_smtp" | "gmail_workspace_oauth";
+export type EmailDeliveryProvider = "env_smtp" | "gmail_workspace_oauth" | "dashboard_smtp";
 
 export type EmailDeliveryRow = {
   id: boolean;
@@ -12,6 +12,13 @@ export type EmailDeliveryRow = {
   gmail_sender_email: string | null;
   app_base_url: string | null;
   credentials_encryption_passphrase: string | null;
+  smtp_host: string | null;
+  smtp_port: number | null;
+  smtp_secure: boolean | null;
+  smtp_auth_user: string | null;
+  smtp_auth_pass_enc: string | null;
+  smtp_from_email: string | null;
+  smtp_from_name: string | null;
   updated_at: string;
 };
 
@@ -62,6 +69,15 @@ export type DeliverySettingsPatch = {
   credentials_encryption_passphrase?: string | null;
   /** When true, remove stored passphrase (fall back to EMAIL_SECRETS_KEY only). */
   clear_encryption_passphrase?: boolean;
+  smtp_host?: string | null;
+  smtp_port?: number | null;
+  smtp_secure?: boolean | null;
+  smtp_auth_user?: string | null;
+  /** Plain SMTP password; encrypted before storage. Omit or empty to leave unchanged. */
+  smtp_auth_pass?: string | null;
+  smtp_from_email?: string | null;
+  smtp_from_name?: string | null;
+  clear_smtp_auth_pass?: boolean;
 };
 
 export async function upsertEmailDeliverySettings(
@@ -108,6 +124,38 @@ export async function upsertEmailDeliverySettings(
     clientSecretEnc = encryptEmailSecret(secretPlain, phraseForCrypto);
   }
 
+  let smtpHost = patch.smtp_host !== undefined ? patch.smtp_host?.trim() || null : existing?.smtp_host ?? null;
+  let smtpPort = patch.smtp_port !== undefined ? patch.smtp_port : existing?.smtp_port ?? null;
+  let smtpSecure =
+    patch.smtp_secure !== undefined && patch.smtp_secure !== null
+      ? Boolean(patch.smtp_secure)
+      : existing?.smtp_secure ?? false;
+  let smtpAuthUser =
+    patch.smtp_auth_user !== undefined ? patch.smtp_auth_user?.trim() || null : existing?.smtp_auth_user ?? null;
+  let smtpFromEmail =
+    patch.smtp_from_email !== undefined ? patch.smtp_from_email?.trim() || null : existing?.smtp_from_email ?? null;
+  let smtpFromName =
+    patch.smtp_from_name !== undefined ? patch.smtp_from_name?.trim() || null : existing?.smtp_from_name ?? null;
+  let smtpPassEnc = existing?.smtp_auth_pass_enc ?? null;
+
+  if (patch.clear_smtp_auth_pass) {
+    smtpPassEnc = null;
+  }
+
+  const smtpPassPlain = patch.smtp_auth_pass?.trim();
+  if (smtpPassPlain) {
+    const phraseForSmtp =
+      encPass?.trim() ||
+      existing?.credentials_encryption_passphrase?.trim() ||
+      process.env.EMAIL_SECRETS_KEY?.trim();
+    if (!phraseForSmtp) {
+      throw new Error(
+        "Cannot encrypt the SMTP password without a key. Set the encryption passphrase under Server variables or EMAIL_SECRETS_KEY on the server."
+      );
+    }
+    smtpPassEnc = encryptEmailSecret(smtpPassPlain, phraseForSmtp);
+  }
+
   const row = {
     id: true,
     provider: patch.provider,
@@ -117,6 +165,13 @@ export async function upsertEmailDeliverySettings(
     gmail_sender_email: sender,
     app_base_url: appBase,
     credentials_encryption_passphrase: encPass,
+    smtp_host: smtpHost,
+    smtp_port: smtpPort,
+    smtp_secure: smtpSecure,
+    smtp_auth_user: smtpAuthUser,
+    smtp_auth_pass_enc: smtpPassEnc,
+    smtp_from_email: smtpFromEmail,
+    smtp_from_name: smtpFromName,
     updated_at: new Date().toISOString(),
     updated_by: userId,
   };
@@ -145,6 +200,13 @@ export async function saveGmailOAuthResult(
         gmail_sender_email: opts.senderEmail.trim(),
         app_base_url: existing?.app_base_url ?? null,
         credentials_encryption_passphrase: existing?.credentials_encryption_passphrase ?? null,
+        smtp_host: existing?.smtp_host ?? null,
+        smtp_port: existing?.smtp_port ?? null,
+        smtp_secure: existing?.smtp_secure ?? false,
+        smtp_auth_user: existing?.smtp_auth_user ?? null,
+        smtp_auth_pass_enc: existing?.smtp_auth_pass_enc ?? null,
+        smtp_from_email: existing?.smtp_from_email ?? null,
+        smtp_from_name: existing?.smtp_from_name ?? null,
         updated_at: new Date().toISOString(),
         updated_by: userId,
       },

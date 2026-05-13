@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Divider,
   FormControl,
   FormControlLabel,
@@ -17,6 +18,9 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 
+/** Shown when a secret exists in the database (value is never sent to the browser). */
+const STORED_SECRET_MASK = "******";
+
 type DeliverySummary = {
   provider: string;
   gmail_client_id: string;
@@ -26,6 +30,13 @@ type DeliverySummary = {
   app_base_url: string;
   has_encryption_passphrase: boolean;
   oauth_redirect_uri: string;
+  smtp_host: string;
+  smtp_port: number | null;
+  smtp_secure: boolean;
+  smtp_auth_user: string;
+  smtp_from_email: string;
+  smtp_from_name: string;
+  has_smtp_password: boolean;
 };
 
 export function EmailDeliverySettingsPanel({
@@ -38,12 +49,19 @@ export function EmailDeliverySettingsPanel({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [summary, setSummary] = useState<DeliverySummary | null>(null);
-  const [provider, setProvider] = useState<"env_smtp" | "gmail_workspace_oauth">("env_smtp");
+  const [provider, setProvider] = useState<"env_smtp" | "gmail_workspace_oauth" | "dashboard_smtp">("env_smtp");
   const [appBaseUrl, setAppBaseUrl] = useState("");
   const [encryptionPassphrase, setEncryptionPassphrase] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [senderEmail, setSenderEmail] = useState("");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState("587");
+  const [smtpSecure, setSmtpSecure] = useState(false);
+  const [smtpAuthUser, setSmtpAuthUser] = useState("");
+  const [smtpAuthPass, setSmtpAuthPass] = useState("");
+  const [smtpFromEmail, setSmtpFromEmail] = useState("");
+  const [smtpFromName, setSmtpFromName] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
@@ -55,11 +73,24 @@ export function EmailDeliverySettingsPanel({
       const j = (await res.json()) as DeliverySummary & { error?: string };
       if (!res.ok) throw new Error(j.error || "Failed to load.");
       setSummary(j);
-      setProvider(j.provider === "gmail_workspace_oauth" ? "gmail_workspace_oauth" : "env_smtp");
+      setProvider(
+        j.provider === "gmail_workspace_oauth"
+          ? "gmail_workspace_oauth"
+          : j.provider === "dashboard_smtp"
+            ? "dashboard_smtp"
+            : "env_smtp"
+      );
       setAppBaseUrl(j.app_base_url ?? "");
       setClientId(j.gmail_client_id ?? "");
       setSenderEmail(j.gmail_sender_email ?? "");
+      setSmtpHost(j.smtp_host ?? "");
+      setSmtpPort(j.smtp_port != null && j.smtp_port > 0 ? String(j.smtp_port) : "587");
+      setSmtpSecure(Boolean(j.smtp_secure));
+      setSmtpAuthUser(j.smtp_auth_user ?? "");
+      setSmtpFromEmail(j.smtp_from_email ?? "");
+      setSmtpFromName(j.smtp_from_name ?? "");
       setClientSecret("");
+      setSmtpAuthPass("");
       setEncryptionPassphrase("");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Load failed.");
@@ -197,6 +228,89 @@ export function EmailDeliverySettingsPanel({
     }
   }
 
+  async function saveDashboardSmtp() {
+    setSaving(true);
+    setErr(null);
+    setOk(null);
+    if (!smtpHost.trim() || !smtpAuthUser.trim() || !smtpFromEmail.trim()) {
+      setErr("SMTP host, SMTP login (username), and sender email are required.");
+      setSaving(false);
+      return;
+    }
+    const portParsed = smtpPort.trim() ? Number.parseInt(smtpPort.trim(), 10) : 587;
+    if (!Number.isFinite(portParsed) || portParsed < 1 || portParsed > 65535) {
+      setErr("SMTP port must be a number between 1 and 65535.");
+      setSaving(false);
+      return;
+    }
+    const hasStored = Boolean(summary?.has_smtp_password);
+    if (!hasStored && !smtpAuthPass.trim()) {
+      setErr("Enter the SMTP password once so it can be stored encrypted (or use Environment SMTP / Gmail OAuth).");
+      setSaving(false);
+      return;
+    }
+    if (smtpAuthPass.trim() && !encryptionReady) {
+      setErr("Set an encryption passphrase (or EMAIL_SECRETS_KEY on the server) before saving a new SMTP password.");
+      setSaving(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/email/delivery-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "dashboard_smtp",
+          app_base_url: appBaseUrl.trim() || null,
+          ...(encryptionPassphrase.trim()
+            ? { credentials_encryption_passphrase: encryptionPassphrase.trim() }
+            : {}),
+          smtp_host: smtpHost.trim(),
+          smtp_port: portParsed,
+          smtp_secure: smtpSecure,
+          smtp_auth_user: smtpAuthUser.trim(),
+          smtp_from_email: smtpFromEmail.trim(),
+          smtp_from_name: smtpFromName.trim() || null,
+          ...(smtpAuthPass.trim() ? { smtp_auth_pass: smtpAuthPass.trim() } : {}),
+        }),
+      });
+      const j = (await res.json()) as DeliverySummary & { error?: string };
+      if (!res.ok) throw new Error(j.error || "Save failed.");
+      setSummary(j);
+      setSmtpAuthPass("");
+      setEncryptionPassphrase("");
+      setOk("Dashboard SMTP settings saved. Sender name and email are used for the From header.");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function clearStoredSmtpPassword() {
+    setSaving(true);
+    setErr(null);
+    setOk(null);
+    try {
+      const res = await fetch("/api/email/delivery-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "dashboard_smtp",
+          clear_smtp_auth_pass: true,
+        }),
+      });
+      const j = (await res.json()) as DeliverySummary & { error?: string };
+      if (!res.ok) throw new Error(j.error || "Update failed.");
+      setSummary(j);
+      setSmtpAuthPass("");
+      setOk("Stored SMTP password removed. Enter a new password and save before sending mail.");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Update failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const encryptionReady =
     Boolean(summary?.has_encryption_passphrase) || Boolean(encryptionPassphrase.trim());
   const needsEncryptionForNewSecret = Boolean(clientSecret.trim());
@@ -244,7 +358,7 @@ export function EmailDeliverySettingsPanel({
             helperText="No trailing slash. Public dashboard root used to build the OAuth redirect URL."
           />
           <TextField
-            label="Passphrase to encrypt Gmail secrets"
+            label="Passphrase to encrypt Gmail & SMTP secrets"
             type="password"
             value={encryptionPassphrase}
             onChange={(e) => setEncryptionPassphrase(e.target.value)}
@@ -252,16 +366,21 @@ export function EmailDeliverySettingsPanel({
             disabled={saving}
             placeholder={
               summary?.has_encryption_passphrase
-                ? "•••••••• (leave blank to keep current)"
+                ? `${STORED_SECRET_MASK} (leave blank to keep current)`
                 : "Required if EMAIL_SECRETS_KEY is not set on the server"
             }
             autoComplete="new-password"
             helperText={
               summary?.has_encryption_passphrase
-                ? "A passphrase is already stored. Enter a new one only to rotate it (you will need to save the Client Secret again and reconnect Google)."
+                ? `A passphrase is already stored (${STORED_SECRET_MASK}). Enter a new one only to rotate it (you will need to save the Client Secret again and reconnect Google).`
                 : "If EMAIL_SECRETS_KEY is set in the environment, you can leave this blank and the server value will be used."
             }
           />
+          {summary?.has_encryption_passphrase ? (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
+              Encryption passphrase on file: <Box component="code">{STORED_SECRET_MASK}</Box>
+            </Typography>
+          ) : null}
           <Stack direction="row" flexWrap="wrap" gap={1}>
             <Button variant="contained" color="secondary" onClick={() => void saveServerVarsOnly()} disabled={saving}>
               {saving ? "Saving…" : "Save server variables"}
@@ -286,12 +405,17 @@ export function EmailDeliverySettingsPanel({
         </Typography>
         <RadioGroup
           value={provider}
-          onChange={(_, v) => setProvider(v as "env_smtp" | "gmail_workspace_oauth")}
+          onChange={(_, v) => setProvider(v as "env_smtp" | "gmail_workspace_oauth" | "dashboard_smtp")}
         >
           <FormControlLabel
             value="env_smtp"
             control={<Radio />}
             label="Server SMTP (environment variables: SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM)"
+          />
+          <FormControlLabel
+            value="dashboard_smtp"
+            control={<Radio />}
+            label="Server SMTP (saved here: host, login, password, sender email & name)"
           />
           <FormControlLabel
             value="gmail_workspace_oauth"
@@ -303,6 +427,13 @@ export function EmailDeliverySettingsPanel({
 
       {provider === "gmail_workspace_oauth" ? (
         <Stack spacing={2}>
+          <Alert severity="info">
+            <Typography variant="body2" component="div" gutterBottom>
+              <strong>No SMTP user or password.</strong> After you save the OAuth client and click <em>Connect with
+              Google</em>, the server sends mail through Gmail using <strong>OAuth2 only</strong> (FluentSMTP-style).
+              The passphrase above encrypts stored tokens in the database; it is not your Gmail password.
+            </Typography>
+          </Alert>
           <Alert severity="info">
             <Typography variant="body2" component="span" display="block" gutterBottom>
               <strong>Authorized redirect URI</strong> (Google Cloud → APIs & Services → Credentials → OAuth web
@@ -332,9 +463,21 @@ export function EmailDeliverySettingsPanel({
             onChange={(e) => setClientSecret(e.target.value)}
             fullWidth
             disabled={saving}
-            placeholder={summary?.has_client_secret ? "•••••••• (leave blank to keep current)" : ""}
+            placeholder={
+              summary?.has_client_secret ? `${STORED_SECRET_MASK} (leave blank to keep current)` : ""
+            }
+            helperText={
+              summary?.has_client_secret
+                ? `A client secret is stored (${STORED_SECRET_MASK}). Enter a new value only to replace it.`
+                : undefined
+            }
             autoComplete="new-password"
           />
+          {summary?.has_client_secret ? (
+            <Typography variant="caption" color="text.secondary">
+              OAuth client secret on file: <Box component="code">{STORED_SECRET_MASK}</Box>
+            </Typography>
+          ) : null}
           <TextField
             label="From sender (optional before connect)"
             value={senderEmail}
@@ -399,14 +542,123 @@ export function EmailDeliverySettingsPanel({
             . Tokens are encrypted with this module&apos;s passphrase or <code>EMAIL_SECRETS_KEY</code>.
           </Typography>
         </Stack>
-      ) : (
+      ) : null}
+
+      {provider === "dashboard_smtp" ? (
+        <Stack spacing={2}>
+          <Alert severity="warning">
+            <Typography variant="body2" component="div" gutterBottom>
+              <strong>Error 535 / “Username and Password not accepted” (Gmail):</strong> use an{" "}
+              <Link href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer">
+                App Password
+              </Link>{" "}
+              (not your normal password if 2-Step Verification is on). The <strong>SMTP login</strong> should match the
+              Google account, and the <strong>sender email</strong> should be that account or an allowed “Send mail as”
+              alias.
+            </Typography>
+          </Alert>
+          <TextField
+            label="SMTP host"
+            value={smtpHost}
+            onChange={(e) => setSmtpHost(e.target.value)}
+            fullWidth
+            disabled={saving}
+            placeholder="smtp.gmail.com"
+          />
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              label="Port"
+              value={smtpPort}
+              onChange={(e) => setSmtpPort(e.target.value)}
+              fullWidth
+              disabled={saving}
+              helperText="587 with TLS is typical; 465 often uses SSL (toggle below)."
+            />
+            <FormControlLabel
+              sx={{ mt: { sm: 1 }, alignSelf: "center" }}
+              control={
+                <Checkbox checked={smtpSecure} onChange={(_, c) => setSmtpSecure(c)} disabled={saving} />
+              }
+              label="SSL / secure (nodemailer secure: true)"
+            />
+          </Stack>
+          <TextField
+            label="SMTP login (username)"
+            value={smtpAuthUser}
+            onChange={(e) => setSmtpAuthUser(e.target.value)}
+            fullWidth
+            disabled={saving}
+            autoComplete="off"
+            helperText="Usually the full email address for Gmail."
+          />
+          <TextField
+            label="SMTP password"
+            type="password"
+            value={smtpAuthPass}
+            onChange={(e) => setSmtpAuthPass(e.target.value)}
+            fullWidth
+            disabled={saving}
+            placeholder={
+              summary?.has_smtp_password ? `${STORED_SECRET_MASK} (leave blank to keep current)` : ""
+            }
+            autoComplete="new-password"
+            helperText={
+              summary?.has_smtp_password
+                ? `Password stored encrypted (${STORED_SECRET_MASK}). For Gmail use an App Password when 2FA is enabled.`
+                : "Enter once to store encrypted. For Gmail use an App Password when 2FA is enabled."
+            }
+          />
+          {summary?.has_smtp_password ? (
+            <Typography variant="caption" color="text.secondary">
+              SMTP password on file: <Box component="code">{STORED_SECRET_MASK}</Box>
+            </Typography>
+          ) : null}
+          <TextField
+            label="Sender email (From)"
+            value={smtpFromEmail}
+            onChange={(e) => setSmtpFromEmail(e.target.value)}
+            fullWidth
+            disabled={saving}
+            autoComplete="off"
+          />
+          <TextField
+            label="Sender display name (optional)"
+            value={smtpFromName}
+            onChange={(e) => setSmtpFromName(e.target.value)}
+            fullWidth
+            disabled={saving}
+            placeholder="Flash Point Army"
+            helperText="Shown as the friendly From name; must align with your provider’s rules."
+          />
+          <Stack direction="row" flexWrap="wrap" gap={1}>
+            <Button variant="contained" onClick={() => void saveDashboardSmtp()} disabled={saving}>
+              {saving ? "Saving…" : "Save SMTP settings"}
+            </Button>
+            <Button
+              variant="outlined"
+              color="warning"
+              onClick={() => void clearStoredSmtpPassword()}
+              disabled={saving || !summary?.has_smtp_password}
+            >
+              Clear stored SMTP password
+            </Button>
+          </Stack>
+        </Stack>
+      ) : null}
+
+      {provider === "env_smtp" ? (
         <Typography variant="body2" color="text.secondary">
-          With server SMTP, set <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>,{" "}
-          <code>SMTP_FROM</code>, and optionally <code>SMTP_PORT</code> / <code>SMTP_SECURE</code> in your deployment
-          environment. Click Save server variables if you changed the base URL above; then Save delivery method below
-          to confirm.
+          With environment SMTP, set <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>,{" "}
+          <code>SMTP_FROM</code> (can include a display name like <code>&quot;Name&quot; &lt;email@domain.com&gt;</code>
+          ), and optionally <code>SMTP_PORT</code> / <code>SMTP_SECURE</code> in your deployment.{" "}
+          <strong>
+            If Gmail OAuth is fully connected in this dashboard (refresh token saved), the server sends through OAuth
+            instead and does not use these SMTP variables.
+          </strong>{" "}
+          For Gmail SMTP via env only, <code>SMTP_USER</code> must match the account and you need an App Password if
+          2FA is on. Click <strong>Save delivery method</strong> below to persist this choice.
         </Typography>
-      )}
+      ) : null}
 
       {provider === "env_smtp" ? (
         <Button variant="contained" onClick={() => void saveServerVarsOnly()} disabled={saving}>
@@ -414,9 +666,18 @@ export function EmailDeliverySettingsPanel({
         </Button>
       ) : null}
 
+      {provider === "dashboard_smtp" ? (
+        <Button variant="outlined" onClick={() => void saveServerVarsOnly()} disabled={saving}>
+          {saving ? "Saving…" : "Save delivery method only (no SMTP field changes)"}
+        </Button>
+      ) : null}
+
       {summary?.has_refresh_token ? (
         <Alert severity="success">
-          Gmail OAuth active. Sender: <strong>{summary.gmail_sender_email || "—"}</strong>
+          Gmail OAuth active. Sender: <strong>{summary.gmail_sender_email || "—"}</strong>. Refresh token on file:{" "}
+          <Box component="code" sx={{ fontWeight: 700 }}>
+            {STORED_SECRET_MASK}
+          </Box>
         </Alert>
       ) : null}
     </Stack>
