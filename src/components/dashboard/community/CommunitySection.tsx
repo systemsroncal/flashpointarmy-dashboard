@@ -42,6 +42,7 @@ import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutoc
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { parseUploadFile } from "@/lib/import/parse-upload";
 import { usStateByCode } from "@/data/usStates";
+import { isAdminButNotSuper } from "@/lib/auth/user-roles";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -244,6 +245,8 @@ export function CommunitySection({
 
   const [promoteError, setPromoteError] = useState<string | null>(null);
   const [promoteSubmitting, setPromoteSubmitting] = useState(false);
+  const [superPromoteError, setSuperPromoteError] = useState<string | null>(null);
+  const [superPromoteSubmitting, setSuperPromoteSubmitting] = useState(false);
 
   const [orderBy, setOrderBy] = useState<CommunitySortKey>("joined");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
@@ -282,6 +285,12 @@ export function CommunitySection({
     const names = u.role_names ?? [];
     if (names.includes("admin") || names.includes("super_admin")) return false;
     return names.some((n) => n === "member" || n === "local_leader");
+  }
+
+  /** Lista de administradores: un super admin puede ascender a otro admin a super admin. */
+  function eligibleForSuperAdminPromotionFromAdminsList(u: CommunityUserRow): boolean {
+    if (!isAdmins || !isSuperAdmin) return false;
+    return isAdminButNotSuper(u.role_names ?? []);
   }
 
   function eligibleForSuperAdminRoleSwitch(u: CommunityUserRow): boolean {
@@ -407,6 +416,38 @@ export function CommunitySection({
       router.refresh();
     } finally {
       setPromoteSubmitting(false);
+    }
+  }
+
+  async function runPromoteSuperAdmin(u: CommunityUserRow) {
+    if (
+      !window.confirm(
+        "¿Ascender a esta persona a super administrador? Tendrá acceso total a la plataforma (igual que tú)."
+      )
+    ) {
+      return;
+    }
+    setSuperPromoteSubmitting(true);
+    setSuperPromoteError(null);
+    try {
+      const res = await fetch(`/api/community/members/${u.id}/promote-super-admin`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as { error?: string; role_names?: string[] };
+      if (!res.ok) {
+        setSuperPromoteError(data.error || "No se pudo asignar super administrador.");
+        return;
+      }
+      const nextRoles = data.role_names ?? ["super_admin"];
+      setUsers((prev) =>
+        prev.map((row) => (row.id === u.id ? { ...row, role_names: nextRoles } : row))
+      );
+      setInviteFlash("Usuario ascendido a super administrador.");
+      window.setTimeout(() => setInviteFlash(null), 12000);
+      setViewUser(null);
+      router.refresh();
+    } finally {
+      setSuperPromoteSubmitting(false);
     }
   }
 
@@ -1544,6 +1585,7 @@ export function CommunitySection({
         open={!!viewUser}
         onClose={() => {
           setPromoteError(null);
+          setSuperPromoteError(null);
           setRoleChangeError(null);
           setViewUser(null);
         }}
@@ -1628,6 +1670,19 @@ export function CommunitySection({
                   </Typography>
                 </>
               ) : null}
+              {viewUser && isAdmins && eligibleForSuperAdminPromotionFromAdminsList(viewUser) ? (
+                <>
+                  {superPromoteError ? (
+                    <Alert severity="error" sx={{ mt: 2 }}>
+                      {superPromoteError}
+                    </Alert>
+                  ) : null}
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    Esta persona es <strong>administrador</strong> (no super). Puedes ascenderla a{" "}
+                    <strong>super administrador</strong> para igualar tu nivel de acceso.
+                  </Typography>
+                </>
+              ) : null}
               {viewUser && eligibleForSuperAdminRoleSwitch(viewUser) ? (
                 <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
                   {roleChangeError ? (
@@ -1678,6 +1733,16 @@ export function CommunitySection({
               onClick={() => void runPromoteAdmin(viewUser)}
             >
               {promoteSubmitting ? "Saving…" : "Make administrator"}
+            </Button>
+          ) : null}
+          {viewUser && isAdmins && eligibleForSuperAdminPromotionFromAdminsList(viewUser) ? (
+            <Button
+              color="warning"
+              variant="contained"
+              disabled={superPromoteSubmitting}
+              onClick={() => void runPromoteSuperAdmin(viewUser)}
+            >
+              {superPromoteSubmitting ? "Guardando…" : "Ascender a super administrador"}
             </Button>
           ) : null}
           <Button onClick={() => setViewUser(null)}>Close</Button>

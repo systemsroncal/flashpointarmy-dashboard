@@ -53,7 +53,7 @@ export function EmailDeliverySettingsPanel({
     try {
       const res = await fetch("/api/email/delivery-settings");
       const j = (await res.json()) as DeliverySummary & { error?: string };
-      if (!res.ok) throw new Error(j.error || "Failed to load.");
+      if (!res.ok) throw new Error(j.error || "No se pudieron cargar los datos.");
       setSummary(j);
       setProvider(j.provider === "gmail_workspace_oauth" ? "gmail_workspace_oauth" : "env_smtp");
       setAppBaseUrl(j.app_base_url ?? "");
@@ -62,7 +62,7 @@ export function EmailDeliverySettingsPanel({
       setClientSecret("");
       setEncryptionPassphrase("");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Load failed.");
+      setErr(e instanceof Error ? e.message : "Error al cargar.");
     } finally {
       setLoading(false);
     }
@@ -73,16 +73,17 @@ export function EmailDeliverySettingsPanel({
   }, [load]);
 
   useEffect(() => {
-    if (gmailConnected) setOk("Google account connected. You can send a test email from the Templates tab.");
+    if (gmailConnected)
+      setOk("Cuenta de Google conectada. Puedes enviar un correo de prueba desde la pestaña Plantillas.");
     if (gmailError) {
       const labels: Record<string, string> = {
         no_refresh_token:
-          "Google did not return a refresh token. Remove the app in Google Account permissions and try again, or ensure prompt=consent is used.",
-        no_sender_email: "Could not read your Google account email after sign-in.",
-        bad_state: "OAuth session expired. Try Connect again.",
-        token_exchange: "Google rejected the authorization code.",
+          "Google no devolvió un token de actualización. Quita la app en los permisos de tu cuenta Google y vuelve a intentar, o asegúrate de usar prompt=consent.",
+        no_sender_email: "No se pudo leer el correo de tu cuenta de Google tras iniciar sesión.",
+        bad_state: "La sesión OAuth caducó. Vuelve a pulsar «Conectar con Google».",
+        token_exchange: "Google rechazó el código de autorización.",
       };
-      setErr(labels[gmailError] ?? `Google OAuth error: ${gmailError}`);
+      setErr(labels[gmailError] ?? `Error OAuth de Google: ${gmailError}`);
     }
   }, [gmailConnected, gmailError]);
 
@@ -103,12 +104,12 @@ export function EmailDeliverySettingsPanel({
         }),
       });
       const j = (await res.json()) as DeliverySummary & { error?: string; ok?: boolean };
-      if (!res.ok) throw new Error(j.error || "Save failed.");
+      if (!res.ok) throw new Error(j.error || "Error al guardar.");
       setSummary(j);
       setEncryptionPassphrase("");
       setOk("Variables del servidor guardadas.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Save failed.");
+      setErr(e instanceof Error ? e.message : "Error al guardar.");
     } finally {
       setSaving(false);
     }
@@ -134,13 +135,13 @@ export function EmailDeliverySettingsPanel({
         }),
       });
       const j = (await res.json()) as DeliverySummary & { error?: string; ok?: boolean };
-      if (!res.ok) throw new Error(j.error || "Save failed.");
+      if (!res.ok) throw new Error(j.error || "Error al guardar.");
       setSummary(j);
       setClientSecret("");
       setEncryptionPassphrase("");
       setOk("Guardado.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Save failed.");
+      setErr(e instanceof Error ? e.message : "Error al guardar.");
     } finally {
       setSaving(false);
     }
@@ -161,11 +162,11 @@ export function EmailDeliverySettingsPanel({
         }),
       });
       const j = (await res.json()) as DeliverySummary & { error?: string };
-      if (!res.ok) throw new Error(j.error || "Update failed.");
+      if (!res.ok) throw new Error(j.error || "Error al actualizar.");
       setSummary(j);
       setOk("Clave de cifrado eliminada de la base de datos (se usará EMAIL_SECRETS_KEY en el servidor si existe).");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Update failed.");
+      setErr(e instanceof Error ? e.message : "Error al actualizar.");
     } finally {
       setSaving(false);
     }
@@ -186,11 +187,11 @@ export function EmailDeliverySettingsPanel({
         }),
       });
       const j = (await res.json()) as DeliverySummary & { error?: string };
-      if (!res.ok) throw new Error(j.error || "Update failed.");
+      if (!res.ok) throw new Error(j.error || "Error al actualizar.");
       setSummary(j);
-      setOk("Disconnected Gmail refresh token. You can reconnect anytime.");
+      setOk("Se eliminó el token de actualización de Gmail. Puedes volver a conectar cuando quieras.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Update failed.");
+      setErr(e instanceof Error ? e.message : "Error al actualizar.");
     } finally {
       setSaving(false);
     }
@@ -204,9 +205,7 @@ export function EmailDeliverySettingsPanel({
 
   if (loading && !summary) {
     return (
-      <Typography color="text.secondary">
-        Loading delivery settings…
-      </Typography>
+      <Typography color="text.secondary">Cargando configuración de envío…</Typography>
     );
   }
 

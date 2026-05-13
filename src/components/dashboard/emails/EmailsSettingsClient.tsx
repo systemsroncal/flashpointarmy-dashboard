@@ -53,23 +53,23 @@ type TemplateRow = {
 };
 
 const PREVIEW_SHORTCODES: Record<string, string> = {
-  user_fullname: "Jane Doe",
-  user_email: "jane@example.com",
-  validateemail_url: "https://example.com/auth/verify?token=demo",
-  resetpassword_url: "https://example.com/auth/reset-password?token=demo",
-  gathering_title: "Sunday gathering",
-  gathering_url: "https://example.com/dashboard/gatherings/demo",
+  user_fullname: "María García",
+  user_email: "maria@ejemplo.com",
+  validateemail_url: "https://ejemplo.com/auth/verify?token=demo",
+  resetpassword_url: "https://ejemplo.com/auth/reset-password?token=demo",
+  gathering_title: "Reunión dominical",
+  gathering_url: "https://ejemplo.com/dashboard/gatherings/demo",
   app_name: "Flashpoint Dashboard",
   current_year: String(new Date().getFullYear()),
   otp: "123456",
 };
 
 const TEMPLATE_LABELS: Record<string, string> = {
-  verify_email: "Verify email",
-  password_reset: "Password reset",
-  local_leader_assigned: "Local leader assigned",
-  gathering_created: "New gathering",
-  register_otp: "Registration OTP (sign-up)",
+  verify_email: "Verificar correo",
+  password_reset: "Restablecer contraseña",
+  local_leader_assigned: "Líder local asignado",
+  gathering_created: "Nuevo encuentro",
+  register_otp: "OTP de registro (alta)",
 };
 
 type EmailLogSortKey =
@@ -104,7 +104,7 @@ const TEMPLATE_SHORTCODE_HINTS: Record<string, string> = {
   gathering_created:
     "{user_fullname}, {user_email}, {gathering_title}, {gathering_url}, {current_year}, {app_name}",
   register_otp:
-    "{otp}, {user_email}, {user_fullname}, {app_name}, {current_year} (link shortcodes unused)",
+    "{otp}, {user_email}, {user_fullname}, {app_name}, {current_year} (códigos de enlace no usados)",
 };
 
 function initialTabIndex(isSuperAdmin: boolean, initialTab?: string): number {
@@ -259,7 +259,7 @@ export function EmailsSettingsClient({
   async function sendTestEmail() {
     const to = testEmail.trim();
     if (!to || !to.includes("@")) {
-      setErr("Enter a valid email for the test send.");
+      setErr("Introduce un correo válido para el envío de prueba.");
       return;
     }
     setTestSending(true);
@@ -272,11 +272,13 @@ export function EmailsSettingsClient({
         body: JSON.stringify({ template_key: selectedKey, to_email: to }),
       });
       const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Test send failed");
-      setMsg(`Test email sent to ${to} using template “${TEMPLATE_LABELS[selectedKey] ?? selectedKey}”.`);
+      if (!res.ok) throw new Error(data.error || "Falló el envío de prueba.");
+      setMsg(
+        `Correo de prueba enviado a ${to} con la plantilla «${TEMPLATE_LABELS[selectedKey] ?? selectedKey}».`
+      );
       void refreshLogs();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Test send failed");
+      setErr(e instanceof Error ? e.message : "Falló el envío de prueba.");
     } finally {
       setTestSending(false);
     }
@@ -293,9 +295,9 @@ export function EmailsSettingsClient({
     return renderTemplatedEmail(
       branding,
       {
-        subject: "Preview subject",
+        subject: "Asunto de vista previa",
         body_html:
-          "<p>This is sample <strong>body</strong> content for branding preview.</p>",
+          "<p>Este es un <strong>cuerpo</strong> de ejemplo para la vista previa de marca.</p>",
       },
       PREVIEW_SHORTCODES
     );
@@ -312,8 +314,8 @@ export function EmailsSettingsClient({
   if (initialTemplates.length === 0) {
     return (
       <Alert severity="warning">
-        No email templates were found. Apply migration 012 (email module) in Supabase and refresh
-        this page.
+        No se encontraron plantillas de correo. Aplica la migración 012 (módulo de correo) en Supabase y recarga esta
+        página.
       </Alert>
     );
   }
@@ -334,10 +336,10 @@ export function EmailsSettingsClient({
         }),
       });
       const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Save failed");
-      setMsg("Branding saved.");
+      if (!res.ok) throw new Error(data.error || "Error al guardar.");
+      setMsg("Marca guardada.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Save failed");
+      setErr(e instanceof Error ? e.message : "Error al guardar.");
     } finally {
       setSavingBrand(false);
     }
@@ -358,15 +360,15 @@ export function EmailsSettingsClient({
         }),
       });
       const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Save failed");
+      if (!res.ok) throw new Error(data.error || "Error al guardar.");
       setTemplates((prev) =>
         prev.map((t) =>
           t.template_key === selectedKey ? { ...t, subject, body_html: bodyHtml } : t
         )
       );
-      setMsg("Template saved.");
+      setMsg("Plantilla guardada.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Save failed");
+      setErr(e instanceof Error ? e.message : "Error al guardar.");
     } finally {
       setSavingTpl(false);
     }
@@ -382,7 +384,7 @@ export function EmailsSettingsClient({
           justifyContent: "center",
         }}
         aria-busy="true"
-        aria-label="Loading email settings"
+        aria-label="Cargando configuración de correo"
       >
         <CircularProgress size={28} />
       </Box>
@@ -391,17 +393,17 @@ export function EmailsSettingsClient({
 
   return (
     <Stack spacing={3}>
-      <Typography variant="h5">Email configuration</Typography>
+      <Typography variant="h5">Configuración de correo</Typography>
       <Typography variant="body2" color="text.secondary">
-        Global layout (logo area, colors, footer) wraps every transactional email. Each
-        template only stores the inner HTML body and subject line.
+        El diseño global (zona del logo, colores, pie) envuelve cada correo transaccional. Cada plantilla solo guarda el
+        asunto y el HTML interior del mensaje.
       </Typography>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: "divider" }}>
-        <Tab label="Templates &amp; branding" />
-        <Tab label="Email send log" />
-        {isSuperAdmin ? <Tab label="Sending (Gmail / SMTP)" /> : null}
-        {isSuperAdmin ? <Tab label="Launch passwords" /> : null}
+        <Tab label="Plantillas y marca" />
+        <Tab label="Registro de envíos" />
+        {isSuperAdmin ? <Tab label="Envío (Gmail / SMTP)" /> : null}
+        {isSuperAdmin ? <Tab label="Contraseñas de lanzamiento" /> : null}
       </Tabs>
 
       {msg && <Alert severity="success">{msg}</Alert>}
@@ -410,20 +412,22 @@ export function EmailsSettingsClient({
       {tab === 1 ? (
         <Paper sx={{ p: 2, overflow: "auto" }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="subtitle1">Recent sends</Typography>
+            <Typography variant="subtitle1">Envíos recientes</Typography>
             <Button size="small" variant="outlined" onClick={() => void refreshLogs()} disabled={logsLoading}>
-              {logsLoading ? "Loading…" : "Refresh"}
+              {logsLoading ? "Cargando…" : "Actualizar"}
             </Button>
           </Stack>
           {logs.length === 0 ? (
-            <Typography color="text.secondary">No log entries yet. Apply migration 015 if this table is missing.</Typography>
+            <Typography color="text.secondary">
+              Aún no hay entradas en el registro. Aplica la migración 015 si falta esta tabla.
+            </Typography>
           ) : (
             <>
               <TextField
                 size="small"
                 fullWidth
-                label="Search log"
-                placeholder="Time, status, template, addresses, subject…"
+                label="Buscar en el registro"
+                placeholder="Hora, estado, plantilla, direcciones, asunto…"
                 value={logSearch}
                 onChange={(e) => setLogSearch(e.target.value)}
                 sx={{ mb: 2, maxWidth: 480 }}
@@ -437,7 +441,7 @@ export function EmailsSettingsClient({
                       direction={logOrderBy === "created_at" ? logOrder : "asc"}
                       onClick={() => handleLogSort("created_at")}
                     >
-                      Time
+                      Fecha y hora
                     </TableSortLabel>
                   </TableCell>
                   <TableCell>
@@ -446,7 +450,7 @@ export function EmailsSettingsClient({
                       direction={logOrderBy === "status" ? logOrder : "asc"}
                       onClick={() => handleLogSort("status")}
                     >
-                      Status
+                      Estado
                     </TableSortLabel>
                   </TableCell>
                   <TableCell>
@@ -455,7 +459,7 @@ export function EmailsSettingsClient({
                       direction={logOrderBy === "template" ? logOrder : "asc"}
                       onClick={() => handleLogSort("template")}
                     >
-                      Template
+                      Plantilla
                     </TableSortLabel>
                   </TableCell>
                   <TableCell>
@@ -464,7 +468,7 @@ export function EmailsSettingsClient({
                       direction={logOrderBy === "from_address" ? logOrder : "asc"}
                       onClick={() => handleLogSort("from_address")}
                     >
-                      From
+                      De
                     </TableSortLabel>
                   </TableCell>
                   <TableCell>
@@ -473,7 +477,7 @@ export function EmailsSettingsClient({
                       direction={logOrderBy === "to_address" ? logOrder : "asc"}
                       onClick={() => handleLogSort("to_address")}
                     >
-                      To
+                      Para
                     </TableSortLabel>
                   </TableCell>
                   <TableCell>
@@ -482,7 +486,7 @@ export function EmailsSettingsClient({
                       direction={logOrderBy === "subject" ? logOrder : "asc"}
                       onClick={() => handleLogSort("subject")}
                     >
-                      Subject
+                      Asunto
                     </TableSortLabel>
                   </TableCell>
                   <TableCell sx={{ minWidth: 160 }}>
@@ -495,7 +499,7 @@ export function EmailsSettingsClient({
                     </TableSortLabel>
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-                    Actions
+                    Acciones
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -537,20 +541,20 @@ export function EmailsSettingsClient({
                       )}
                     </TableCell>
                     <TableCell align="right">
-                      <Tooltip title="All details">
+                      <Tooltip title="Todos los detalles">
                         <IconButton
                           size="small"
-                          aria-label="View full log details"
+                          aria-label="Ver detalle completo del registro"
                           onClick={() => setDetailLog(row)}
                         >
                           <InfoOutlinedIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Email preview (rendered)">
+                      <Tooltip title="Vista previa del correo (renderizado)">
                         <span>
                           <IconButton
                             size="small"
-                            aria-label="Preview email as sent"
+                            aria-label="Vista previa del correo enviado"
                             onClick={() => setPreviewLog(row)}
                             disabled={!row.body_preview?.trim()}
                           >
@@ -565,7 +569,7 @@ export function EmailsSettingsClient({
                   <TableRow>
                     <TableCell colSpan={8}>
                       <Typography variant="body2" color="text.secondary">
-                        No log entries match this search.
+                        No hay entradas que coincidan con la búsqueda.
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -584,7 +588,11 @@ export function EmailsSettingsClient({
                   setLogsRowsPerPage(v);
                   setLogPage(0);
                 }}
-                rowsPerPageOptions={[10, 20, 25, 50, 100, { label: "All", value: -1 }]}
+                rowsPerPageOptions={[10, 20, 25, 50, 100, { label: "Todas", value: -1 }]}
+                labelRowsPerPage="Filas por página"
+                labelDisplayedRows={({ from, to, count }) =>
+                  `${from}–${to} de ${count !== -1 ? count : to}`
+                }
               />
             ) : null}
             </>
@@ -595,7 +603,7 @@ export function EmailsSettingsClient({
       {isSuperAdmin && tab === 2 ? (
         <Paper sx={{ p: 2 }}>
           <Typography variant="subtitle1" gutterBottom>
-            Sending — Google Workspace (OAuth) or server SMTP
+            Envío — Google Workspace (OAuth) o SMTP del servidor
           </Typography>
           <EmailDeliverySettingsPanel gmailConnected={gmailConnected} gmailError={gmailError} />
         </Paper>
@@ -604,7 +612,7 @@ export function EmailsSettingsClient({
       {isSuperAdmin && tab === 3 ? (
         <Paper sx={{ p: 2 }}>
           <Typography variant="subtitle1" gutterBottom>
-            Launch — default password
+            Lanzamiento — contraseña por defecto
           </Typography>
           <LaunchDefaultPasswordPanel />
         </Paper>
@@ -614,7 +622,7 @@ export function EmailsSettingsClient({
       <Fragment>
       <Paper sx={{ p: 2 }}>
         <Typography variant="subtitle1" gutterBottom>
-          Branding &amp; layout
+          Marca y diseño
         </Typography>
         <Stack
           direction={{ xs: "column", lg: "row" }}
@@ -623,18 +631,18 @@ export function EmailsSettingsClient({
         >
           <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }} useFlexGap>
             <TextField
-              label="Logo image URL"
+              label="URL de la imagen del logo"
               fullWidth
               value={branding.logo_url ?? ""}
               onChange={(e) =>
                 setBranding((b) => ({ ...b, logo_url: e.target.value || null }))
               }
               disabled={!canEdit}
-              helperText="Public HTTPS URL. If empty, a text title is shown."
+              helperText="URL HTTPS pública. Si está vacío, se muestra un título en texto."
             />
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
-                label="Logo strip background"
+                label="Fondo de la franja del logo"
                 fullWidth
                 value={branding.logo_bg_color}
                 onChange={(e) =>
@@ -643,7 +651,7 @@ export function EmailsSettingsClient({
                 disabled={!canEdit}
               />
               <TextField
-                label="Outer container background"
+                label="Fondo del contenedor exterior"
                 fullWidth
                 value={branding.container_bg_color}
                 onChange={(e) =>
@@ -653,7 +661,7 @@ export function EmailsSettingsClient({
               />
             </Stack>
             <TextField
-              label="Footer HTML"
+              label="HTML del pie"
               fullWidth
               multiline
               minRows={4}
@@ -662,19 +670,19 @@ export function EmailsSettingsClient({
                 setBranding((b) => ({ ...b, footer_html: e.target.value }))
               }
               disabled={!canEdit}
-              helperText={`Shortcodes: {current_year}, {app_name}. Example: <p>© {current_year}</p>`}
+              helperText={`Códigos: {current_year}, {app_name}. Ejemplo: <p>© {current_year}</p>`}
             />
             <Button
               variant="contained"
               onClick={saveBranding}
               disabled={!canEdit || savingBrand}
             >
-              {savingBrand ? "Saving…" : "Save branding"}
+              {savingBrand ? "Guardando…" : "Guardar marca"}
             </Button>
           </Stack>
           <Box sx={{ flex: 1, minWidth: 0, width: "100%" }}>
             <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-              Live preview (sample body)
+              Vista previa en vivo (cuerpo de ejemplo)
             </Typography>
             <Box
               sx={{
@@ -699,13 +707,13 @@ export function EmailsSettingsClient({
 
       <Paper sx={{ p: 2 }}>
         <Typography variant="subtitle1" gutterBottom>
-          Message templates
+          Plantillas de mensaje
         </Typography>
         <FormControl fullWidth sx={{ maxWidth: 400, mb: 2 }}>
-          <InputLabel id="tpl-select">Template</InputLabel>
+          <InputLabel id="tpl-select">Plantilla</InputLabel>
           <Select
             labelId="tpl-select"
-            label="Template"
+            label="Plantilla"
             value={selectedKey}
             onChange={(e) => handleSelectTemplate(e.target.value)}
           >
@@ -717,7 +725,7 @@ export function EmailsSettingsClient({
           </Select>
         </FormControl>
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-          Shortcodes for this template: {TEMPLATE_SHORTCODE_HINTS[selectedKey] ?? "—"}
+          Shortcodes para esta plantilla: {TEMPLATE_SHORTCODE_HINTS[selectedKey] ?? "—"}
         </Typography>
 
         <Stack
@@ -727,14 +735,14 @@ export function EmailsSettingsClient({
         >
           <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }} useFlexGap>
             <TextField
-              label="Subject"
+              label="Asunto"
               fullWidth
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               disabled={!canEdit}
             />
             <TextField
-              label="Body HTML"
+              label="Cuerpo HTML"
               fullWidth
               multiline
               minRows={12}
@@ -748,18 +756,18 @@ export function EmailsSettingsClient({
               onClick={saveTemplate}
               disabled={!canEdit || savingTpl}
             >
-              {savingTpl ? "Saving…" : "Save template"}
+              {savingTpl ? "Guardando…" : "Guardar plantilla"}
             </Button>
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" gutterBottom>
-              Test send (current template)
+              Envío de prueba (plantilla actual)
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-              Uses sample shortcodes (Jane D., demo links). Saves appear in the Email send log tab.
+              Usa shortcodes de ejemplo (María G., enlaces demo). Los envíos aparecen en la pestaña Registro de envíos.
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
               <TextField
-                label="Send test to"
+                label="Enviar prueba a"
                 type="email"
                 size="small"
                 value={testEmail}
@@ -772,13 +780,13 @@ export function EmailsSettingsClient({
                 onClick={() => void sendTestEmail()}
                 disabled={!canEdit || testSending}
               >
-                {testSending ? "Sending…" : "Send test email"}
+                {testSending ? "Enviando…" : "Enviar correo de prueba"}
               </Button>
             </Stack>
           </Stack>
           <Box sx={{ flex: 1, minWidth: 0, width: "100%" }}>
             <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-              Live preview (subject: {templatePreview.subject})
+              Vista previa en vivo (asunto: {templatePreview.subject})
             </Typography>
             <Box
               sx={{
@@ -808,13 +816,13 @@ export function EmailsSettingsClient({
         fullWidth
         scroll="paper"
       >
-        <DialogTitle>Email send log — full details</DialogTitle>
+        <DialogTitle>Registro de envío — detalle completo</DialogTitle>
         <DialogContent dividers>
           {detailLog ? (
             <Stack spacing={2} sx={{ pt: 0.5 }}>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Log ID
+                  ID del registro
                 </Typography>
                 <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem", wordBreak: "break-all" }}>
                   {detailLog.id}
@@ -822,19 +830,19 @@ export function EmailsSettingsClient({
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Created at
+                  Creado el
                 </Typography>
                 <Typography variant="body2">{new Date(detailLog.created_at).toLocaleString()}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Status
+                  Estado
                 </Typography>
                 <Typography variant="body2">{detailLog.status}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Template key
+                  Clave de plantilla
                 </Typography>
                 <Typography variant="body2">
                   {detailLog.template_key
@@ -844,7 +852,7 @@ export function EmailsSettingsClient({
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  From
+                  Remitente
                 </Typography>
                 <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
                   {detailLog.from_address ?? "—"}
@@ -852,7 +860,7 @@ export function EmailsSettingsClient({
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  To
+                  Destinatario
                 </Typography>
                 <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
                   {detailLog.to_address}
@@ -860,7 +868,7 @@ export function EmailsSettingsClient({
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Subject
+                  Asunto
                 </Typography>
                 <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
                   {detailLog.subject ?? "—"}
@@ -868,19 +876,19 @@ export function EmailsSettingsClient({
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Error description
+                  Descripción del error
                 </Typography>
                 <Typography
                   variant="body2"
                   color={detailLog.error_message ? "error" : "text.secondary"}
                   sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
                 >
-                  {detailLog.error_message ?? "— (no error — send succeeded or error not recorded)"}
+                  {detailLog.error_message ?? "— (sin error — envío correcto o error no registrado)"}
                 </Typography>
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Triggered by user ID
+                  Usuario que disparó el envío (ID)
                 </Typography>
                 <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem", wordBreak: "break-all" }}>
                   {detailLog.triggered_by_user_id ?? "—"}
@@ -889,7 +897,7 @@ export function EmailsSettingsClient({
               <Divider />
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Body HTML (full, as logged)
+                  Cuerpo HTML (completo, según registro)
                 </Typography>
                 <TextField
                   value={detailLog.body_preview ?? ""}
@@ -898,14 +906,14 @@ export function EmailsSettingsClient({
                   minRows={8}
                   maxRows={20}
                   InputProps={{ readOnly: true, sx: { fontFamily: "monospace", fontSize: 12 } }}
-                  placeholder="No body was stored for this row."
+                  placeholder="No se guardó cuerpo para esta fila."
                 />
               </Box>
             </Stack>
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailLog(null)}>Close</Button>
+          <Button onClick={() => setDetailLog(null)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
 
@@ -915,19 +923,19 @@ export function EmailsSettingsClient({
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>Email preview</DialogTitle>
+        <DialogTitle>Vista previa del correo</DialogTitle>
         <DialogContent>
           {previewLog ? (
             <Stack spacing={1.5}>
               <Typography variant="body2" color="text.secondary">
-                <strong>Subject:</strong> {previewLog.subject ?? "—"}
+                <strong>Asunto:</strong> {previewLog.subject ?? "—"}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                <strong>To:</strong> {previewLog.to_address}
+                <strong>Para:</strong> {previewLog.to_address}
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block">
-                Rendered HTML in an isolated frame (no scripts). This approximates how the message looks in a mail
-                client.
+                HTML renderizado en un marco aislado (sin scripts). Aproxima cómo se ve el mensaje en un cliente de
+                correo.
               </Typography>
               {previewLog.body_preview?.trim() ? (
                 <Box
@@ -940,7 +948,7 @@ export function EmailsSettingsClient({
                   }}
                 >
                   <iframe
-                    title="Email HTML preview"
+                    title="Vista previa HTML del correo"
                     srcDoc={previewLog.body_preview}
                     sandbox=""
                     style={{
@@ -953,13 +961,13 @@ export function EmailsSettingsClient({
                   />
                 </Box>
               ) : (
-                <Typography color="text.secondary">No HTML body was logged for this entry.</Typography>
+                <Typography color="text.secondary">No se registró HTML de cuerpo para esta entrada.</Typography>
               )}
             </Stack>
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPreviewLog(null)}>Close</Button>
+          <Button onClick={() => setPreviewLog(null)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Stack>

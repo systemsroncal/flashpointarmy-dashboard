@@ -9,7 +9,7 @@ export default async function EmailsPage({
 }) {
   const sp = await searchParams;
   return (
-    <Suspense fallback={<DataPaneFallback label="Loading emails" />}>
+    <Suspense fallback={<DataPaneFallback label="Cargando correo…" />}>
       <EmailsPageContent
         initialTab={typeof sp.tab === "string" ? sp.tab : undefined}
         gmailConnected={sp.gmail_connected === "1"}
