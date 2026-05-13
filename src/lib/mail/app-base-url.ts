@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchEmailDeliverySettings } from "@/lib/mail/email-delivery-settings";
 
-/** URL pública del dashboard (OAuth redirect). BD primero, luego env, luego Vercel/local. */
+/** Public dashboard URL (OAuth redirect). Database first, then env, then Vercel/local. */
 export async function getAppBaseUrl(admin?: SupabaseClient): Promise<string> {
   if (admin) {
     const row = await fetchEmailDeliverySettings(admin);

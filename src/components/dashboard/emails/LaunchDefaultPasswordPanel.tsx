@@ -24,15 +24,15 @@ export function LaunchDefaultPasswordPanel() {
     setErr(null);
     setMsg(null);
     if (password.length < 8) {
-      setErr("La contraseña debe tener al menos 8 caracteres.");
+      setErr("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirmPassword) {
-      setErr("La contraseña y la confirmación no coinciden.");
+      setErr("Password and confirmation do not match.");
       return;
     }
     if (confirmPhrase.trim() !== BULK_DEFAULT_PASSWORD_CONFIRM_PHRASE) {
-      setErr(`La frase de confirmación debe coincidir exactamente: ${BULK_DEFAULT_PASSWORD_CONFIRM_PHRASE}`);
+      setErr(`Confirmation phrase must match exactly: ${BULK_DEFAULT_PASSWORD_CONFIRM_PHRASE}`);
       return;
     }
     setBusy(true);
@@ -49,11 +49,11 @@ export function LaunchDefaultPasswordPanel() {
         failed?: number;
       };
       if (!res.ok) {
-        setErr(data.error || "La solicitud falló.");
+        setErr(data.error || "Request failed.");
         return;
       }
       setMsg(
-        `Listo. Contraseñas actualizadas: ${data.updated ?? 0}. Omitidos (admin / super admin): ${data.skippedAdmin ?? 0}. Fallidos: ${data.failed ?? 0}.`
+        `Done. Passwords updated: ${data.updated ?? 0}. Skipped (admin / super admin): ${data.skippedAdmin ?? 0}. Failed: ${data.failed ?? 0}.`
       );
       setPassword("");
       setConfirmPassword("");
@@ -66,17 +66,17 @@ export function LaunchDefaultPasswordPanel() {
   return (
     <Stack spacing={2}>
       <Typography variant="body2" color="text.secondary">
-        Establece la <strong>misma contraseña de acceso</strong> para todos los usuarios que{" "}
-        <strong>no</strong> tienen rol de administrador ni super administrador. A cada usuario afectado se le marca{" "}
-        <strong>cambiar la contraseña en el primer inicio de sesión</strong>. Úsalo en lanzamientos cuando las
-        cuentas ya existen pero aún no han entrado. Los administradores y super administradores nunca se modifican.
+        Sets the <strong>same login password</strong> for every user who does <strong>not</strong> have the
+        Administrator or Super administrator role. Each affected user is flagged to{" "}
+        <strong>change their password on first sign-in</strong>. Use this for launch when accounts were created but
+        users have not logged in yet. Administrators and super administrators are never modified.
       </Typography>
       <Alert severity="warning">
-        Desde esta interfaz no hay vuelta atrás: debes comunicar la contraseña temporal por un canal seguro (por
-        ejemplo tu boletín). Cualquiera con esa contraseña puede iniciar sesión hasta que la cambien.
+        This is irreversible from the UI: you must communicate the temporary password securely (for example via your
+        newsletter). Anyone with that password can sign in until they change it.
       </Alert>
       <TextField
-        label="Nueva contraseña por defecto"
+        label="New default password"
         type="password"
         autoComplete="new-password"
         fullWidth
@@ -85,7 +85,7 @@ export function LaunchDefaultPasswordPanel() {
         onChange={(e) => setPassword(e.target.value)}
       />
       <TextField
-        label="Confirmar contraseña"
+        label="Confirm password"
         type="password"
         autoComplete="new-password"
         fullWidth
@@ -95,13 +95,13 @@ export function LaunchDefaultPasswordPanel() {
       />
       <Box>
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-          Escribe esta frase para confirmar (puedes copiarla):
+          Type this phrase to confirm (copy allowed):
         </Typography>
         <Typography variant="body2" sx={{ fontFamily: "monospace", mb: 1 }}>
           {BULK_DEFAULT_PASSWORD_CONFIRM_PHRASE}
         </Typography>
         <TextField
-          label="Frase de confirmación"
+          label="Confirmation phrase"
           fullWidth
           value={confirmPhrase}
           onChange={(e) => setConfirmPhrase(e.target.value)}
@@ -111,7 +111,7 @@ export function LaunchDefaultPasswordPanel() {
       {err ? <Alert severity="error">{err}</Alert> : null}
       {msg ? <Alert severity="success">{msg}</Alert> : null}
       <Button variant="contained" color="warning" disabled={busy} onClick={() => void submit()}>
-        {busy ? "Aplicando…" : "Aplicar contraseña por defecto a todos los no administradores"}
+        {busy ? "Applying…" : "Apply default password to all non-admin users"}
       </Button>
     </Stack>
   );

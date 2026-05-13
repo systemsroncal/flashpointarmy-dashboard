@@ -5,7 +5,7 @@ const KDF_SALT = "fp-email-delivery-v1";
 function deriveKeyFromPassphrase(passphrase: string): Buffer {
   const pw = passphrase.trim();
   if (!pw) {
-    throw new Error("La clave de cifrado no puede estar vacía.");
+    throw new Error("Encryption passphrase cannot be empty.");
   }
   return scryptSync(pw, KDF_SALT, 32);
 }

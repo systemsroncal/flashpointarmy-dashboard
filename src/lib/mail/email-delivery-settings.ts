@@ -21,7 +21,7 @@ export async function fetchEmailDeliverySettings(admin: SupabaseClient): Promise
   return data as EmailDeliveryRow;
 }
 
-/** Frase de cifrado: primero BD (módulo visual), luego `EMAIL_SECRETS_KEY` en el servidor. */
+/** Passphrase: DB (visual settings) first, then `EMAIL_SECRETS_KEY` on the server. */
 export async function loadEncryptionPassphrase(admin: SupabaseClient): Promise<string> {
   const row = await fetchEmailDeliverySettings(admin);
   const fromDb = row?.credentials_encryption_passphrase?.trim();
@@ -29,7 +29,7 @@ export async function loadEncryptionPassphrase(admin: SupabaseClient): Promise<s
   const v = fromDb || fromEnv;
   if (!v) {
     throw new Error(
-      "Falta la clave de cifrado: configúrala en Emails → Sending (sección «Variables del servidor») o define EMAIL_SECRETS_KEY en el entorno del servidor."
+      "Missing encryption passphrase: set it under Emails → Sending (Server variables) or define EMAIL_SECRETS_KEY in the server environment."
     );
   }
   return v;
@@ -102,7 +102,7 @@ export async function upsertEmailDeliverySettings(
       process.env.EMAIL_SECRETS_KEY?.trim();
     if (!phraseForCrypto) {
       throw new Error(
-        "No se puede cifrar el Client Secret sin una clave. Escríbela en «Clave para cifrar secretos Gmail» (arriba, en Variables del servidor) y guarda, o inclúyela en el mismo envío junto al secreto; en alternativa, define EMAIL_SECRETS_KEY en el entorno del servidor."
+        "Cannot encrypt the Client Secret without a key. Enter it under Server variables (Gmail encryption passphrase) and save, or include it in the same request as the secret; alternatively set EMAIL_SECRETS_KEY in the server environment."
       );
     }
     clientSecretEnc = encryptEmailSecret(secretPlain, phraseForCrypto);

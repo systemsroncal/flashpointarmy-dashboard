@@ -10,7 +10,7 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
-import { Paper, Typography } from "@mui/material";
+import { Alert, Paper, Typography } from "@mui/material";
 import { redirect } from "next/navigation";
 
 export default async function AdminsPageContent() {
@@ -171,19 +171,28 @@ export default async function AdminsPageContent() {
     "Dashboard users with the Administrator or Super administrator role.";
 
   return (
-    <CommunitySection
-      variant="admins"
-      initialUsers={merged}
-      chapterOptions={chapterOptions}
-      canCreate={create}
-      canUpdate={updatePerm}
-      canDelete={deletePerm}
-      currentUserId={user.id}
-      elevated={elevated}
-      isLocalLeader={isLocalLeader}
-      localChapterId={localChapterId}
-      subtitle={subtitle}
-      isSuperAdmin={isSuperAdmin}
-    />
+    <>
+      {isSuperAdmin ? (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          As super administrator you can promote another <strong>Administrator</strong> to{" "}
+          <strong>super administrator</strong>: use the upgrade icon on their row, or open details and choose{" "}
+          <strong>Make super administrator</strong>.
+        </Alert>
+      ) : null}
+      <CommunitySection
+        variant="admins"
+        initialUsers={merged}
+        chapterOptions={chapterOptions}
+        canCreate={create}
+        canUpdate={updatePerm}
+        canDelete={deletePerm}
+        currentUserId={user.id}
+        elevated={elevated}
+        isLocalLeader={isLocalLeader}
+        localChapterId={localChapterId}
+        subtitle={subtitle}
+        isSuperAdmin={isSuperAdmin}
+      />
+    </>
   );
 }

@@ -12,7 +12,7 @@ export async function POST(
 ) {
   const { userId } = await context.params;
   if (!UUID_RE.test(userId)) {
-    return NextResponse.json({ error: "Identificador de usuario no válido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid user id." }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -20,20 +20,20 @@ export async function POST(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
   const callerRoles = await loadUserRoleNames(supabase, user.id);
   if (!isSuperAdminUser(callerRoles)) {
     return NextResponse.json(
-      { error: "Solo un super administrador puede asignar el rol de super administrador." },
+      { error: "Only a super administrator can assign the super administrator role." },
       { status: 403 }
     );
   }
 
   if (user.id === userId) {
     return NextResponse.json(
-      { error: "No puedes modificar tu propio rol desde esta acción." },
+      { error: "You cannot change your own role with this action." },
       { status: 400 }
     );
   }
@@ -43,16 +43,13 @@ export async function POST(
     const targetRoles = await loadUserRoleNames(admin, userId);
 
     if (targetRoles.includes("super_admin")) {
-      return NextResponse.json(
-        { error: "Esta cuenta ya es super administradora." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "This account is already a super administrator." }, { status: 400 });
     }
     if (!isAdminButNotSuper(targetRoles)) {
       return NextResponse.json(
         {
           error:
-            "Solo se puede ascender a super administrador a un usuario que ya sea administrador (sin rol super).",
+            "Only a user who is already an Administrator (without super admin) can be promoted to super administrator.",
         },
         { status: 400 }
       );
@@ -64,17 +61,14 @@ export async function POST(
       .in("name", ["admin", "super_admin"]);
 
     if (rolesErr || !roleRows?.length) {
-      return NextResponse.json(
-        { error: rolesErr?.message || "No se pudieron cargar los roles." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: rolesErr?.message || "Could not load roles." }, { status: 500 });
     }
 
     const byName = new Map(roleRows.map((r) => [r.name, r.id] as const));
     const adminRoleId = byName.get("admin");
     const superRoleId = byName.get("super_admin");
     if (!adminRoleId || !superRoleId) {
-      return NextResponse.json({ error: "Roles admin o super_admin no encontrados." }, { status: 500 });
+      return NextResponse.json({ error: "admin or super_admin role not found." }, { status: 500 });
     }
 
     await admin.from("user_roles").delete().eq("user_id", userId).eq("role_id", adminRoleId);
@@ -85,7 +79,7 @@ export async function POST(
 
     if (insErr) {
       return NextResponse.json(
-        { error: insErr.message || "No se pudo asignar el rol de super administrador." },
+        { error: insErr.message || "Could not assign super administrator role." },
         { status: 500 }
       );
     }
@@ -94,10 +88,10 @@ export async function POST(
 
     return NextResponse.json({ ok: true, role_names: nextRoles });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Error del servidor.";
+    const msg = e instanceof Error ? e.message : "Server error.";
     if (msg.includes("SUPABASE_SERVICE_ROLE_KEY")) {
       return NextResponse.json(
-        { error: "El servidor no está configurado para actualizar roles (falta service role key)." },
+        { error: "Server is not configured for role updates (missing service role key)." },
         { status: 503 }
       );
     }

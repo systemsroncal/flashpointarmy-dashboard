@@ -204,7 +204,7 @@ const NAV: NavItem[] = [
     icon: <ListAltIcon />,
   },
   {
-    label: "Correo",
+    label: "Emails",
     href: "/dashboard/emails",
     module: MODULE_SLUGS.emails,
     icon: <EmailIcon />,

@@ -3,6 +3,7 @@
 import DeleteOutline from "@mui/icons-material/DeleteOutline";
 import Edit from "@mui/icons-material/Edit";
 import Search from "@mui/icons-material/Search";
+import Upgrade from "@mui/icons-material/Upgrade";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import {
@@ -36,6 +37,7 @@ import {
   TableRow,
   TableSortLabel,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
@@ -245,7 +247,6 @@ export function CommunitySection({
 
   const [promoteError, setPromoteError] = useState<string | null>(null);
   const [promoteSubmitting, setPromoteSubmitting] = useState(false);
-  const [superPromoteError, setSuperPromoteError] = useState<string | null>(null);
   const [superPromoteSubmitting, setSuperPromoteSubmitting] = useState(false);
 
   const [orderBy, setOrderBy] = useState<CommunitySortKey>("joined");
@@ -422,27 +423,27 @@ export function CommunitySection({
   async function runPromoteSuperAdmin(u: CommunityUserRow) {
     if (
       !window.confirm(
-        "¿Ascender a esta persona a super administrador? Tendrá acceso total a la plataforma (igual que tú)."
+        "Promote this user to super administrator? They will have full platform access (same level as you)."
       )
     ) {
       return;
     }
     setSuperPromoteSubmitting(true);
-    setSuperPromoteError(null);
     try {
       const res = await fetch(`/api/community/members/${u.id}/promote-super-admin`, {
         method: "POST",
       });
       const data = (await res.json()) as { error?: string; role_names?: string[] };
       if (!res.ok) {
-        setSuperPromoteError(data.error || "No se pudo asignar super administrador.");
+        setInviteFlash(`ERROR:${data.error || "Could not assign super administrator."}`);
+        window.setTimeout(() => setInviteFlash(null), 14000);
         return;
       }
       const nextRoles = data.role_names ?? ["super_admin"];
       setUsers((prev) =>
         prev.map((row) => (row.id === u.id ? { ...row, role_names: nextRoles } : row))
       );
-      setInviteFlash("Usuario ascendido a super administrador.");
+      setInviteFlash("User promoted to super administrator.");
       window.setTimeout(() => setInviteFlash(null), 12000);
       setViewUser(null);
       router.refresh();
@@ -1014,11 +1015,17 @@ export function CommunitySection({
       </Typography>
       {inviteFlash ? (
         <Alert
-          severity={inviteFlash.startsWith("User created, but email") ? "warning" : "success"}
+          severity={
+            inviteFlash.startsWith("ERROR:")
+              ? "error"
+              : inviteFlash.startsWith("User created, but email")
+                ? "warning"
+                : "success"
+          }
           sx={{ mb: 2 }}
           onClose={() => setInviteFlash(null)}
         >
-          {inviteFlash}
+          {inviteFlash.startsWith("ERROR:") ? inviteFlash.slice(6) : inviteFlash}
         </Alert>
       ) : null}
       {tableFetchError ? (
@@ -1305,6 +1312,21 @@ export function CommunitySection({
                   >
                     <Visibility fontSize="small" />
                   </IconButton>
+                  {isAdmins && isSuperAdmin && eligibleForSuperAdminPromotionFromAdminsList(u) ? (
+                    <Tooltip title="Make super administrator">
+                      <span>
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          aria-label="Make super administrator"
+                          disabled={superPromoteSubmitting}
+                          onClick={() => void runPromoteSuperAdmin(u)}
+                        >
+                          <Upgrade fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  ) : null}
                   {canUpdate && rowCanBeEdited(u) ? (
                     <IconButton
                       size="small"
@@ -1585,7 +1607,6 @@ export function CommunitySection({
         open={!!viewUser}
         onClose={() => {
           setPromoteError(null);
-          setSuperPromoteError(null);
           setRoleChangeError(null);
           setViewUser(null);
         }}
@@ -1671,17 +1692,10 @@ export function CommunitySection({
                 </>
               ) : null}
               {viewUser && isAdmins && eligibleForSuperAdminPromotionFromAdminsList(viewUser) ? (
-                <>
-                  {superPromoteError ? (
-                    <Alert severity="error" sx={{ mt: 2 }}>
-                      {superPromoteError}
-                    </Alert>
-                  ) : null}
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                    Esta persona es <strong>administrador</strong> (no super). Puedes ascenderla a{" "}
-                    <strong>super administrador</strong> para igualar tu nivel de acceso.
-                  </Typography>
-                </>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                  This person is an <strong>Administrator</strong> (not super admin). You can promote them to{" "}
+                  <strong>super administrator</strong> for the same access level as you.
+                </Typography>
               ) : null}
               {viewUser && eligibleForSuperAdminRoleSwitch(viewUser) ? (
                 <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
@@ -1742,7 +1756,7 @@ export function CommunitySection({
               disabled={superPromoteSubmitting}
               onClick={() => void runPromoteSuperAdmin(viewUser)}
             >
-              {superPromoteSubmitting ? "Guardando…" : "Ascender a super administrador"}
+              {superPromoteSubmitting ? "Saving…" : "Make super administrator"}
             </Button>
           ) : null}
           <Button onClick={() => setViewUser(null)}>Close</Button>

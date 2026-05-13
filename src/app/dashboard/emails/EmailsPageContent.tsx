@@ -24,7 +24,7 @@ export default async function EmailsPageContent({
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.emails, "read")) {
-    return <AccessDenied message="No tienes acceso a la configuración de correo." />;
+    return <AccessDenied message="You do not have access to email settings." />;
   }
 
   const roleNames = await loadUserRoleNames(supabase, user.id);

@@ -53,7 +53,7 @@ export function EmailDeliverySettingsPanel({
     try {
       const res = await fetch("/api/email/delivery-settings");
       const j = (await res.json()) as DeliverySummary & { error?: string };
-      if (!res.ok) throw new Error(j.error || "No se pudieron cargar los datos.");
+      if (!res.ok) throw new Error(j.error || "Failed to load.");
       setSummary(j);
       setProvider(j.provider === "gmail_workspace_oauth" ? "gmail_workspace_oauth" : "env_smtp");
       setAppBaseUrl(j.app_base_url ?? "");
@@ -62,7 +62,7 @@ export function EmailDeliverySettingsPanel({
       setClientSecret("");
       setEncryptionPassphrase("");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Error al cargar.");
+      setErr(e instanceof Error ? e.message : "Load failed.");
     } finally {
       setLoading(false);
     }
@@ -74,16 +74,16 @@ export function EmailDeliverySettingsPanel({
 
   useEffect(() => {
     if (gmailConnected)
-      setOk("Cuenta de Google conectada. Puedes enviar un correo de prueba desde la pestaña Plantillas.");
+      setOk("Google account connected. You can send a test email from the Templates tab.");
     if (gmailError) {
       const labels: Record<string, string> = {
         no_refresh_token:
-          "Google no devolvió un token de actualización. Quita la app en los permisos de tu cuenta Google y vuelve a intentar, o asegúrate de usar prompt=consent.",
-        no_sender_email: "No se pudo leer el correo de tu cuenta de Google tras iniciar sesión.",
-        bad_state: "La sesión OAuth caducó. Vuelve a pulsar «Conectar con Google».",
-        token_exchange: "Google rechazó el código de autorización.",
+          "Google did not return a refresh token. Remove the app in Google Account permissions and try again, or ensure prompt=consent is used.",
+        no_sender_email: "Could not read your Google account email after sign-in.",
+        bad_state: "OAuth session expired. Try Connect again.",
+        token_exchange: "Google rejected the authorization code.",
       };
-      setErr(labels[gmailError] ?? `Error OAuth de Google: ${gmailError}`);
+      setErr(labels[gmailError] ?? `Google OAuth error: ${gmailError}`);
     }
   }, [gmailConnected, gmailError]);
 
@@ -104,12 +104,12 @@ export function EmailDeliverySettingsPanel({
         }),
       });
       const j = (await res.json()) as DeliverySummary & { error?: string; ok?: boolean };
-      if (!res.ok) throw new Error(j.error || "Error al guardar.");
+      if (!res.ok) throw new Error(j.error || "Save failed.");
       setSummary(j);
       setEncryptionPassphrase("");
-      setOk("Variables del servidor guardadas.");
+      setOk("Server variables saved.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Error al guardar.");
+      setErr(e instanceof Error ? e.message : "Save failed.");
     } finally {
       setSaving(false);
     }
@@ -135,13 +135,13 @@ export function EmailDeliverySettingsPanel({
         }),
       });
       const j = (await res.json()) as DeliverySummary & { error?: string; ok?: boolean };
-      if (!res.ok) throw new Error(j.error || "Error al guardar.");
+      if (!res.ok) throw new Error(j.error || "Save failed.");
       setSummary(j);
       setClientSecret("");
       setEncryptionPassphrase("");
-      setOk("Guardado.");
+      setOk("Saved.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Error al guardar.");
+      setErr(e instanceof Error ? e.message : "Save failed.");
     } finally {
       setSaving(false);
     }
@@ -162,11 +162,11 @@ export function EmailDeliverySettingsPanel({
         }),
       });
       const j = (await res.json()) as DeliverySummary & { error?: string };
-      if (!res.ok) throw new Error(j.error || "Error al actualizar.");
+      if (!res.ok) throw new Error(j.error || "Update failed.");
       setSummary(j);
-      setOk("Clave de cifrado eliminada de la base de datos (se usará EMAIL_SECRETS_KEY en el servidor si existe).");
+      setOk("Encryption passphrase removed from the database (EMAIL_SECRETS_KEY on the server will be used if set).");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Error al actualizar.");
+      setErr(e instanceof Error ? e.message : "Update failed.");
     } finally {
       setSaving(false);
     }
@@ -187,11 +187,11 @@ export function EmailDeliverySettingsPanel({
         }),
       });
       const j = (await res.json()) as DeliverySummary & { error?: string };
-      if (!res.ok) throw new Error(j.error || "Error al actualizar.");
+      if (!res.ok) throw new Error(j.error || "Update failed.");
       setSummary(j);
-      setOk("Se eliminó el token de actualización de Gmail. Puedes volver a conectar cuando quieras.");
+      setOk("Disconnected Gmail refresh token. You can reconnect anytime.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Error al actualizar.");
+      setErr(e instanceof Error ? e.message : "Update failed.");
     } finally {
       setSaving(false);
     }
@@ -199,22 +199,19 @@ export function EmailDeliverySettingsPanel({
 
   const encryptionReady =
     Boolean(summary?.has_encryption_passphrase) || Boolean(encryptionPassphrase.trim());
-  /** Si el usuario escribió un secreto nuevo, el servidor debe poder cifrarlo (BD, campo o EMAIL_SECRETS_KEY). */
   const needsEncryptionForNewSecret = Boolean(clientSecret.trim());
   const canSaveGoogleWithSecret = !needsEncryptionForNewSecret || encryptionReady;
 
   if (loading && !summary) {
-    return (
-      <Typography color="text.secondary">Cargando configuración de envío…</Typography>
-    );
+    return <Typography color="text.secondary">Loading delivery settings…</Typography>;
   }
 
   return (
     <Stack spacing={2}>
       <Typography variant="body2" color="text.secondary">
-        Solo super admin. Elige cómo el servidor envía el correo transaccional. Las variables que antes iban solo en
-        entorno (URL pública y clave de cifrado) puedes definirlas aquí; siguen existiendo los fallbacks por variables
-        de entorno si lo prefieres.
+        Super admin only. Choose how the server sends transactional email. Values that used to live only in
+        environment variables (public URL and encryption passphrase) can be set here; environment fallbacks still
+        apply if you prefer them.
       </Typography>
 
       {err ? (
@@ -230,24 +227,24 @@ export function EmailDeliverySettingsPanel({
 
       <Paper variant="outlined" sx={{ p: 2, bgcolor: "rgba(0,0,0,0.2)" }}>
         <Typography variant="subtitle1" gutterBottom>
-          Variables del servidor (visual)
+          Server variables (visual)
         </Typography>
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-          Sustituyen a <code>NEXT_PUBLIC_APP_URL</code> y a la clave de <code>EMAIL_SECRETS_KEY</code> cuando las
-          rellenas. Se guardan en base de datos (solo el backend con service role las lee).
+          When set, these replace <code>NEXT_PUBLIC_APP_URL</code> and <code>EMAIL_SECRETS_KEY</code> for this
+          feature. They are stored in the database (only the backend with the service role can read them).
         </Typography>
         <Stack spacing={2}>
           <TextField
-            label="URL base de la aplicación"
+            label="Application base URL"
             value={appBaseUrl}
             onChange={(e) => setAppBaseUrl(e.target.value)}
             fullWidth
             disabled={saving}
-            placeholder="https://tu-dominio.com"
-            helperText="Sin barra final. Define la raíz pública del dashboard para construir la URL de redirección OAuth."
+            placeholder="https://your-domain.com"
+            helperText="No trailing slash. Public dashboard root used to build the OAuth redirect URL."
           />
           <TextField
-            label="Clave para cifrar secretos Gmail (passphrase)"
+            label="Passphrase to encrypt Gmail secrets"
             type="password"
             value={encryptionPassphrase}
             onChange={(e) => setEncryptionPassphrase(e.target.value)}
@@ -255,19 +252,19 @@ export function EmailDeliverySettingsPanel({
             disabled={saving}
             placeholder={
               summary?.has_encryption_passphrase
-                ? "•••••••• (dejar vacío para no cambiar)"
-                : "Obligatoria si no usas EMAIL_SECRETS_KEY en el servidor"
+                ? "•••••••• (leave blank to keep current)"
+                : "Required if EMAIL_SECRETS_KEY is not set on the server"
             }
             autoComplete="new-password"
             helperText={
               summary?.has_encryption_passphrase
-                ? "Ya hay una clave guardada. Escribe una nueva solo si quieres cambiarla (luego tendrás que volver a guardar el Client Secret y reconectar Google)."
-                : "Si también tienes EMAIL_SECRETS_KEY en el entorno, puedes dejar esto vacío y se usará la del servidor."
+                ? "A passphrase is already stored. Enter a new one only to rotate it (you will need to save the Client Secret again and reconnect Google)."
+                : "If EMAIL_SECRETS_KEY is set in the environment, you can leave this blank and the server value will be used."
             }
           />
           <Stack direction="row" flexWrap="wrap" gap={1}>
             <Button variant="contained" color="secondary" onClick={() => void saveServerVarsOnly()} disabled={saving}>
-              {saving ? "Guardando…" : "Guardar variables del servidor"}
+              {saving ? "Saving…" : "Save server variables"}
             </Button>
             <Button
               variant="outlined"
@@ -275,7 +272,7 @@ export function EmailDeliverySettingsPanel({
               onClick={() => void clearStoredPassphrase()}
               disabled={saving || !summary?.has_encryption_passphrase}
             >
-              Quitar clave guardada en BD
+              Remove passphrase from database
             </Button>
           </Stack>
         </Stack>
@@ -285,7 +282,7 @@ export function EmailDeliverySettingsPanel({
 
       <FormControl disabled={saving}>
         <Typography variant="subtitle2" gutterBottom>
-          Método de envío
+          Delivery method
         </Typography>
         <RadioGroup
           value={provider}
@@ -294,12 +291,12 @@ export function EmailDeliverySettingsPanel({
           <FormControlLabel
             value="env_smtp"
             control={<Radio />}
-            label="SMTP del servidor (variables de entorno: SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM)"
+            label="Server SMTP (environment variables: SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM)"
           />
           <FormControlLabel
             value="gmail_workspace_oauth"
             control={<Radio />}
-            label="Google Workspace / Gmail (OAuth, estilo FluentSMTP)"
+            label="Google Workspace / Gmail (OAuth, FluentSMTP-style)"
           />
         </RadioGroup>
       </FormControl>
@@ -308,14 +305,15 @@ export function EmailDeliverySettingsPanel({
         <Stack spacing={2}>
           <Alert severity="info">
             <Typography variant="body2" component="span" display="block" gutterBottom>
-              <strong>URI de redirección autorizada</strong> (Google Cloud → Credenciales → OAuth cliente Web):
+              <strong>Authorized redirect URI</strong> (Google Cloud → APIs & Services → Credentials → OAuth web
+              client):
             </Typography>
             <Box component="code" sx={{ wordBreak: "break-all", fontSize: "0.8rem" }}>
               {summary?.oauth_redirect_uri ?? "—"}
             </Box>
             <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-              Debe coincidir exactamente con la URL base configurada arriba (o con <code>NEXT_PUBLIC_APP_URL</code> /
-              Vercel si no rellenas el campo).
+              Must match exactly the base URL configured above (or <code>NEXT_PUBLIC_APP_URL</code> / Vercel if you
+              leave the field empty).
             </Typography>
           </Alert>
 
@@ -334,16 +332,16 @@ export function EmailDeliverySettingsPanel({
             onChange={(e) => setClientSecret(e.target.value)}
             fullWidth
             disabled={saving}
-            placeholder={summary?.has_client_secret ? "•••••••• (dejar vacío para no cambiar)" : ""}
+            placeholder={summary?.has_client_secret ? "•••••••• (leave blank to keep current)" : ""}
             autoComplete="new-password"
           />
           <TextField
-            label="Remitente From (opcional antes de conectar)"
+            label="From sender (optional before connect)"
             value={senderEmail}
             onChange={(e) => setSenderEmail(e.target.value)}
             fullWidth
             disabled={saving}
-            helperText="Tras conectar con Google se guarda el correo de la cuenta con la que iniciaste sesión."
+            helperText="After connecting with Google, the signed-in account email is stored."
           />
 
           <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
@@ -357,7 +355,7 @@ export function EmailDeliverySettingsPanel({
               }
               disabled={saving || !canSaveGoogleWithSecret}
             >
-              {saving ? "Guardando…" : "Guardar ajustes de Google"}
+              {saving ? "Saving…" : "Save Google settings"}
             </Button>
             <Button
               variant="outlined"
@@ -370,7 +368,7 @@ export function EmailDeliverySettingsPanel({
                 !encryptionReady
               }
             >
-              Conectar con Google
+              Connect with Google
             </Button>
             <Button
               variant="text"
@@ -378,44 +376,47 @@ export function EmailDeliverySettingsPanel({
               onClick={() => void disconnectGmail()}
               disabled={saving || !summary?.has_refresh_token}
             >
-              Desconectar token Gmail
+              Disconnect Gmail token
             </Button>
           </Stack>
           {!encryptionReady ? (
             <Typography variant="caption" color="warning.main" component="div">
-              Indica la clave de cifrado en «Variables del servidor» (o configura{" "}
-              <code>EMAIL_SECRETS_KEY</code> en el servidor) antes de{" "}
-              {needsEncryptionForNewSecret ? "guardar un Client Secret nuevo o de " : ""}
-              usar «Conectar con Google».
+              Set an encryption passphrase under Server variables (or configure <code>EMAIL_SECRETS_KEY</code> on the
+              server) before {needsEncryptionForNewSecret ? "saving a new Client Secret or " : ""}
+              using Connect with Google.
             </Typography>
           ) : null}
 
           <Typography variant="caption" color="text.secondary">
-            Guía similar:{" "}
-            <Link href="https://fluentsmtp.com/docs/connect-gmail-or-google-workspace-emails-with-fluentsmtp/" target="_blank" rel="noopener noreferrer">
+            Guide:{" "}
+            <Link
+              href="https://fluentsmtp.com/docs/connect-gmail-or-google-workspace-emails-with-fluentsmtp/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               FluentSMTP — Gmail / Google Workspace
             </Link>
-            . Los tokens se cifran con la passphrase de este módulo o con <code>EMAIL_SECRETS_KEY</code>.
+            . Tokens are encrypted with this module&apos;s passphrase or <code>EMAIL_SECRETS_KEY</code>.
           </Typography>
         </Stack>
       ) : (
         <Typography variant="body2" color="text.secondary">
-          Con SMTP del servidor, configura <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>,{" "}
-          <code>SMTP_FROM</code> y opcionalmente <code>SMTP_PORT</code> / <code>SMTP_SECURE</code> en el entorno de
-          despliegue. Pulsa «Guardar variables del servidor» si cambiaste la URL base arriba, luego «Guardar» aquí solo
-          confirma el método.
+          With server SMTP, set <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>,{" "}
+          <code>SMTP_FROM</code>, and optionally <code>SMTP_PORT</code> / <code>SMTP_SECURE</code> in your deployment
+          environment. Click Save server variables if you changed the base URL above; then Save delivery method below
+          to confirm.
         </Typography>
       )}
 
       {provider === "env_smtp" ? (
         <Button variant="contained" onClick={() => void saveServerVarsOnly()} disabled={saving}>
-          {saving ? "Guardando…" : "Guardar método de envío"}
+          {saving ? "Saving…" : "Save delivery method"}
         </Button>
       ) : null}
 
       {summary?.has_refresh_token ? (
         <Alert severity="success">
-          Gmail OAuth activo. Remitente: <strong>{summary.gmail_sender_email || "—"}</strong>
+          Gmail OAuth active. Sender: <strong>{summary.gmail_sender_email || "—"}</strong>
         </Alert>
       ) : null}
     </Stack>
