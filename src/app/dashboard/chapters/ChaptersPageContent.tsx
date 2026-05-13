@@ -1,11 +1,16 @@
 import { ChaptersSection } from "@/components/dashboard/chapters/ChaptersSection";
 import { MODULE_SLUGS } from "@/config/modules";
+import { listDashboardUsersByIdsWithAuthFallback } from "@/lib/admin/dashboard-user-queries";
 import { can } from "@/types/permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+
+function leaderLabel(r: { display_name: string | null; email: string }): string {
+  return r.display_name ? `${r.display_name} (${r.email})` : r.email;
+}
 
 export default async function ChaptersPageContent() {
   const supabase = await createClient();
@@ -65,49 +70,77 @@ export default async function ChaptersPageContent() {
     const { data: clUsers } = await admin.from("chapter_leaders").select("user_id");
     for (const r of clUsers ?? []) leaderIdSet.add((r as { user_id: string }).user_id);
 
-    if (leaderIdSet.size > 0) {
-      const { data: du } = await admin
-        .from("dashboard_users")
-        .select("id, email, display_name")
-        .in("id", [...leaderIdSet])
-        .order("email");
-      leaderOptions =
-        du?.map((r) => ({
-          id: r.id,
-          label: r.display_name ? `${r.display_name} (${r.email})` : r.email,
-        })) ?? [];
-    }
+    const chapterIds = rows.map((r) => r.id);
+    const chapterIdSet = new Set(chapterIds);
 
-    if (rows.length > 0) {
-      const chapterIds = rows.map((r) => r.id);
+    let clRowsForPage: { chapter_id: string; user_id: string }[] = [];
+    if (chapterIds.length > 0) {
       const { data: cl } = await admin
         .from("chapter_leaders")
         .select("chapter_id, user_id")
         .in("chapter_id", chapterIds);
-      const userIds = [...new Set((cl ?? []).map((r: { user_id: string }) => r.user_id))];
-      const displayById = new Map<string, string>();
-      if (userIds.length > 0) {
-        const { data: duCl } = await admin
-          .from("dashboard_users")
-          .select("id, email, display_name")
-          .in("id", userIds);
-        for (const r of duCl ?? []) {
-          displayById.set(
-            r.id,
-            r.display_name ? `${r.display_name} (${r.email})` : r.email
-          );
+      clRowsForPage = (cl ?? []) as { chapter_id: string; user_id: string }[];
+    }
+
+    const clUserIdsForPage = [...new Set(clRowsForPage.map((r) => r.user_id))];
+    const allLabelIds = [...new Set([...leaderIdSet, ...clUserIdsForPage])];
+    const labelRows =
+      allLabelIds.length > 0 ? await listDashboardUsersByIdsWithAuthFallback(admin, allLabelIds) : [];
+    const labelByUserId = new Map<string, string>();
+    for (const r of labelRows) {
+      labelByUserId.set(r.id, leaderLabel(r));
+    }
+
+    if (leaderIdSet.size > 0) {
+      leaderOptions = [...leaderIdSet]
+        .map((id) => {
+          const row = labelRows.find((u) => u.id === id);
+          if (!row) return { id, label: id };
+          return { id, label: leaderLabel(row) };
+        })
+        .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+    }
+
+    const labelsByChapter = new Map<string, Set<string>>();
+    const addLabel = (chapterId: string | null | undefined, userId: string) => {
+      if (!chapterId || !chapterIdSet.has(chapterId)) return;
+      const lab = labelByUserId.get(userId) ?? userId;
+      let set = labelsByChapter.get(chapterId);
+      if (!set) {
+        set = new Set();
+        labelsByChapter.set(chapterId, set);
+      }
+      set.add(lab);
+    };
+
+    for (const row of clRowsForPage) {
+      addLabel(row.chapter_id, row.user_id);
+    }
+
+    /** Leaders assigned via primary chapter (same as Leaders page) may have no chapter_leaders row yet. */
+    const leaderIdsArr = [...leaderIdSet];
+    if (leaderRole?.id && leaderIdsArr.length > 0 && chapterIds.length > 0) {
+      const { data: profRows } = await admin
+        .from("profiles")
+        .select("id, primary_chapter_id")
+        .in("id", leaderIdsArr)
+        .in("primary_chapter_id", chapterIds);
+      for (const p of profRows ?? []) {
+        const row = p as { id: string; primary_chapter_id: string | null };
+        if (row.primary_chapter_id && leaderIdSet.has(row.id)) {
+          addLabel(row.primary_chapter_id, row.id);
         }
       }
-      const acc = new Map<string, string[]>();
-      for (const row of cl ?? []) {
-        const lab = displayById.get(row.user_id) ?? row.user_id;
-        const arr = acc.get(row.chapter_id) ?? [];
-        arr.push(lab);
-        acc.set(row.chapter_id, arr);
+
+      for (const r of labelRows) {
+        if (r.primary_chapter_id && chapterIdSet.has(r.primary_chapter_id) && leaderIdSet.has(r.id)) {
+          addLabel(r.primary_chapter_id, r.id);
+        }
       }
-      for (const [cid, labs] of acc) {
-        leadersByChapter[cid] = labs.join(", ");
-      }
+    }
+
+    for (const [cid, set] of labelsByChapter) {
+      leadersByChapter[cid] = [...set].join(", ");
     }
   } catch {
     leaderOptions = [];
