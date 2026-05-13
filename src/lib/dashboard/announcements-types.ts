@@ -7,12 +7,29 @@ export type AnnouncementCta = {
   text_color: string;
 };
 
+/** Who can see the notification (RLS + app). */
+export const ANNOUNCEMENT_AUDIENCES = ["everyone", "leaders", "members"] as const;
+export type AnnouncementAudience = (typeof ANNOUNCEMENT_AUDIENCES)[number];
+
+export function normalizeAnnouncementAudience(raw: unknown): AnnouncementAudience {
+  const s = String(raw ?? "everyone").trim().toLowerCase();
+  if (s === "leaders" || s === "members" || s === "everyone") return s;
+  return "everyone";
+}
+
+export const AUDIENCE_LABELS: Record<AnnouncementAudience, string> = {
+  everyone: "Everyone",
+  leaders: "Leaders",
+  members: "Members",
+};
+
 export type DashboardAnnouncementRow = {
   id: string;
   title: string;
   description: string;
   expires_at: string | null;
   read_more_collapsed: boolean;
+  audience: AnnouncementAudience;
   ctas: AnnouncementCta[];
   created_at: string;
   updated_at: string;

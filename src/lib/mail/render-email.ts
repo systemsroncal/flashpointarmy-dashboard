@@ -1,3 +1,15 @@
+/** Turn stored paths like `/logos/x.svg` into absolute URLs so email clients (Gmail) can load images. */
+export function toAbsolutePublicUrl(siteBase: string, href: string | null | undefined): string | null {
+  if (href == null) return null;
+  const t = String(href).trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  const b = siteBase.replace(/\/+$/, "");
+  if (t.startsWith("//")) return `https:${t}`;
+  if (t.startsWith("/")) return `${b}${t}`;
+  return `${b}/${t}`;
+}
+
 type Branding = {
   logo_url: string | null;
   logo_bg_color: string;

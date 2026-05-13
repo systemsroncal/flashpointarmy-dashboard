@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { insertEmailSendLog } from "@/lib/mail/email-send-log";
-import { renderTemplatedEmail, type EmailShortcodes } from "./render-email";
+import { getAppBaseUrl } from "@/lib/mail/app-base-url";
+import { renderTemplatedEmail, toAbsolutePublicUrl, type EmailShortcodes } from "./render-email";
 import { getMailTransportAndFrom } from "@/lib/mail/get-mail-transport";
 
 export type TemplateKey =
@@ -47,7 +48,12 @@ export async function sendTemplatedEmail(
     throw new Error(err);
   }
 
-  const rendered = renderTemplatedEmail(branding, template, shortcodes);
+  const siteBase = await getAppBaseUrl(supabase);
+  const brandingResolved = {
+    ...branding,
+    logo_url: toAbsolutePublicUrl(siteBase, branding.logo_url as string | null),
+  };
+  const rendered = renderTemplatedEmail(brandingResolved, template, shortcodes);
   let transporter: Awaited<ReturnType<typeof getMailTransportAndFrom>>["transporter"];
   let from: string;
   try {

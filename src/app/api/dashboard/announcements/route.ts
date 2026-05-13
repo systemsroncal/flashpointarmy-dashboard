@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { normalizeCtas } from "@/lib/dashboard/announcements-types";
+import { normalizeAnnouncementAudience, normalizeCtas } from "@/lib/dashboard/announcements-types";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createClient } from "@/utils/supabase/server";
 
@@ -19,7 +19,9 @@ export async function GET() {
   const nowIso = new Date().toISOString();
   const { data: rows, error } = await supabase
     .from("dashboard_announcements")
-    .select("id, title, description, expires_at, read_more_collapsed, ctas, created_at, updated_at, created_by")
+    .select(
+      "id, title, description, expires_at, read_more_collapsed, audience, ctas, created_at, updated_at, created_by"
+    )
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order("created_at", { ascending: false });
 
@@ -27,6 +29,7 @@ export async function GET() {
 
   const announcements = (rows ?? []).map((r) => ({
     ...r,
+    audience: normalizeAnnouncementAudience((r as { audience?: unknown }).audience),
     ctas: normalizeCtas((r as { ctas?: unknown }).ctas),
   }));
 
@@ -90,6 +93,7 @@ export async function POST(req: Request) {
 
   const read_more_collapsed = Boolean(body.read_more_collapsed);
   const ctas = normalizeCtas(body.ctas);
+  const audience = normalizeAnnouncementAudience(body.audience);
 
   const { data: row, error } = await supabase
     .from("dashboard_announcements")
@@ -98,13 +102,22 @@ export async function POST(req: Request) {
       description,
       expires_at,
       read_more_collapsed,
+      audience,
       ctas,
       created_by: user.id,
       updated_at: new Date().toISOString(),
     })
-    .select("id, title, description, expires_at, read_more_collapsed, ctas, created_at, updated_at, created_by")
+    .select(
+      "id, title, description, expires_at, read_more_collapsed, audience, ctas, created_at, updated_at, created_by"
+    )
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ announcement: { ...row, ctas: normalizeCtas(row.ctas) } });
+  return NextResponse.json({
+    announcement: {
+      ...row,
+      audience: normalizeAnnouncementAudience((row as { audience?: unknown }).audience),
+      ctas: normalizeCtas(row.ctas),
+    },
+  });
 }

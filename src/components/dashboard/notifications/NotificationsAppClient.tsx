@@ -1,6 +1,12 @@
 "use client";
 
-import type { AnnouncementCta, AnnouncementListItem } from "@/lib/dashboard/announcements-types";
+import {
+  AUDIENCE_LABELS,
+  normalizeAnnouncementAudience,
+  type AnnouncementAudience,
+  type AnnouncementCta,
+  type AnnouncementListItem,
+} from "@/lib/dashboard/announcements-types";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -19,9 +25,14 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   FormControlLabel,
+  FormHelperText,
   IconButton,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Snackbar,
   Stack,
   Switch,
@@ -70,6 +81,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [readMoreCollapsed, setReadMoreCollapsed] = useState(false);
+  const [audience, setAudience] = useState<AnnouncementAudience>("everyone");
   const [useExpiry, setUseExpiry] = useState(false);
   const [expiresLocal, setExpiresLocal] = useState("");
   const [ctas, setCtas] = useState<AnnouncementCta[]>([]);
@@ -101,6 +113,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setTitle("");
     setDescription("");
     setReadMoreCollapsed(false);
+    setAudience("everyone");
     setUseExpiry(false);
     setExpiresLocal("");
     setCtas([]);
@@ -112,6 +125,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setTitle(row.title);
     setDescription(row.description);
     setReadMoreCollapsed(row.read_more_collapsed);
+    setAudience(normalizeAnnouncementAudience(row.audience));
     const ex = row.expires_at;
     if (ex) {
       setUseExpiry(true);
@@ -134,6 +148,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
       title: title.trim(),
       description: description.trim(),
       read_more_collapsed: readMoreCollapsed,
+      audience,
       expires_at: useExpiry ? fromLocalDatetimeValue(expiresLocal) : null,
       ctas: ctas
         .filter((c) => c.label.trim() && c.url.trim())
@@ -146,7 +161,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
           text_color: c.text_color || "#ffffff",
         })),
     }),
-    [title, description, readMoreCollapsed, useExpiry, expiresLocal, ctas]
+    [title, description, readMoreCollapsed, audience, useExpiry, expiresLocal, ctas]
   );
 
   const performSave = async () => {
@@ -255,7 +270,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {canManage
-                ? "Create announcements for leaders and members. Expired items are hidden automatically."
+                ? "Create announcements and choose who can see them. Expired items are hidden automatically."
                 : "Stay up to date with announcements from your organization."}
             </Typography>
           </Box>
@@ -316,6 +331,12 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                         {row.title}
                       </Typography>
                       {unread ? <Chip size="small" label="Unread" color="primary" variant="outlined" /> : null}
+                      <Chip
+                        size="small"
+                        label={`Visible to: ${AUDIENCE_LABELS[normalizeAnnouncementAudience(row.audience)]}`}
+                        variant="outlined"
+                        sx={{ borderColor: "rgba(129,140,248,0.45)", color: "primary.light" }}
+                      />
                       {row.expires_at ? (
                         <Chip
                           size="small"
@@ -432,6 +453,25 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
               multiline
               minRows={4}
             />
+            {canManage ? (
+              <FormControl fullWidth>
+                <InputLabel id="announcement-audience-label">Visible to</InputLabel>
+                <Select
+                  labelId="announcement-audience-label"
+                  label="Visible to"
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value as AnnouncementAudience)}
+                >
+                  <MenuItem value="everyone">Everyone</MenuItem>
+                  <MenuItem value="leaders">Leaders</MenuItem>
+                  <MenuItem value="members">Members</MenuItem>
+                </Select>
+                <FormHelperText>
+                  Everyone: all signed-in users. Leaders: users with the Local leader role. Members: users with the
+                  Member role who are not Local leaders.
+                </FormHelperText>
+              </FormControl>
+            ) : null}
             <FormControlLabel
               control={<Switch checked={readMoreCollapsed} onChange={(_, v) => setReadMoreCollapsed(v)} />}
               label="Read more / Read less (long descriptions collapse)"

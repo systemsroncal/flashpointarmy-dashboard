@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { normalizeCtas } from "@/lib/dashboard/announcements-types";
+import { normalizeAnnouncementAudience, normalizeCtas } from "@/lib/dashboard/announcements-types";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createClient } from "@/utils/supabase/server";
 
@@ -35,6 +35,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   if (body.description !== undefined) patch.description = String(body.description ?? "").trim();
   if (body.read_more_collapsed !== undefined) patch.read_more_collapsed = Boolean(body.read_more_collapsed);
   if (body.ctas !== undefined) patch.ctas = normalizeCtas(body.ctas);
+  if (body.audience !== undefined) patch.audience = normalizeAnnouncementAudience(body.audience);
   if (body.expires_at !== undefined) {
     const v = body.expires_at;
     patch.expires_at =
@@ -49,12 +50,20 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     .from("dashboard_announcements")
     .update(patch)
     .eq("id", id)
-    .select("id, title, description, expires_at, read_more_collapsed, ctas, created_at, updated_at, created_by")
+    .select(
+      "id, title, description, expires_at, read_more_collapsed, audience, ctas, created_at, updated_at, created_by"
+    )
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   if (!row) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  return NextResponse.json({ announcement: { ...row, ctas: normalizeCtas(row.ctas) } });
+  return NextResponse.json({
+    announcement: {
+      ...row,
+      audience: normalizeAnnouncementAudience((row as { audience?: unknown }).audience),
+      ctas: normalizeCtas(row.ctas),
+    },
+  });
 }
 
 export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {

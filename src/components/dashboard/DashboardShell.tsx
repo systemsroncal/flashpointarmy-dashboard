@@ -289,7 +289,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const allVisibleNav = NAV.filter((item) => {
     if (item.module === MODULE_SLUGS.movilization) {
-      return true;
+      return user.role_names.includes("super_admin");
     }
     if (!isNavModuleAllowedForRoles(item.module, user.role_names)) {
       return false;
