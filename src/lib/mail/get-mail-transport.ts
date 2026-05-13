@@ -3,11 +3,9 @@ import type { Transporter } from "nodemailer";
 import { OAuth2Client } from "google-auth-library";
 import { createAdminClient } from "@/utils/supabase/admin";
 import type { EmailDeliveryRow } from "@/lib/mail/email-delivery-settings";
-import {
-  decryptDeliverySecrets,
-  fetchEmailDeliverySettings,
-  loadEncryptionPassphrase,
-} from "@/lib/mail/email-delivery-settings";
+import { fetchEmailDeliverySettings, loadEncryptionPassphrase } from "@/lib/mail/email-delivery-settings";
+import { hasGmailOAuthClientSecretInEnv } from "@/lib/mail/gmail-oauth-client-secret-env";
+import { resolveGmailOAuthClientSecret } from "@/lib/mail/gmail-oauth-env";
 import { getGmailOAuthRedirectUri } from "@/lib/mail/app-base-url";
 import { decryptEmailSecret } from "@/lib/mail/email-secrets-crypto";
 
@@ -29,9 +27,11 @@ export type MailFromConfig = {
 /** OAuth can send mail when encrypted secrets + refresh token + sender exist in DB. */
 function isGmailOAuthDeliveryReady(row: EmailDeliveryRow | null): boolean {
   if (!row) return false;
+  const hasClientSecret =
+    hasGmailOAuthClientSecretInEnv() || Boolean(row.gmail_client_secret_enc?.trim());
   return Boolean(
     row.gmail_client_id?.trim() &&
-      row.gmail_client_secret_enc?.trim() &&
+      hasClientSecret &&
       row.gmail_refresh_token_enc?.trim() &&
       row.gmail_sender_email?.trim()
   );
@@ -82,7 +82,10 @@ export async function getMailTransportAndFrom(): Promise<MailFromConfig> {
     }
     const oauthRow = row;
     const phrase = await loadEncryptionPassphrase(admin);
-    const { clientSecret, refreshToken } = decryptDeliverySecrets(oauthRow, phrase);
+    const clientSecret = await resolveGmailOAuthClientSecret(admin, oauthRow);
+    const refreshToken = oauthRow.gmail_refresh_token_enc?.trim()
+      ? decryptEmailSecret(oauthRow.gmail_refresh_token_enc, phrase)
+      : null;
     const clientId = oauthRow.gmail_client_id?.trim() ?? "";
     const sender = oauthRow.gmail_sender_email?.trim() ?? "";
     if (!clientId || !clientSecret || !refreshToken || !sender) {

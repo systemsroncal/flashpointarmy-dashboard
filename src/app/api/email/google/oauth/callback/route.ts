@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { OAuth2Client } from "google-auth-library";
 import { verifyGmailOAuthState } from "@/lib/mail/email-oauth-state";
-import { decryptDeliverySecrets, fetchEmailDeliverySettings, loadEncryptionPassphrase, saveGmailOAuthResult } from "@/lib/mail/email-delivery-settings";
+import { fetchEmailDeliverySettings, saveGmailOAuthResult } from "@/lib/mail/email-delivery-settings";
 import { getAppBaseUrl, getGmailOAuthRedirectUri } from "@/lib/mail/app-base-url";
+import { resolveGmailOAuthClientSecret } from "@/lib/mail/gmail-oauth-env";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function GET(req: Request) {
@@ -31,8 +32,7 @@ export async function GET(req: Request) {
   if (!row?.gmail_client_id?.trim()) {
     return fail("no_client");
   }
-  const phrase = await loadEncryptionPassphrase(admin);
-  const { clientSecret } = decryptDeliverySecrets(row, phrase);
+  const clientSecret = await resolveGmailOAuthClientSecret(admin, row);
   if (!clientSecret?.trim()) {
     return fail("no_secret");
   }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { fetchEmailDeliverySettings, upsertEmailDeliverySettings } from "@/lib/mail/email-delivery-settings";
 import { getGmailOAuthRedirectUri } from "@/lib/mail/app-base-url";
+import { hasGmailOAuthClientSecretInEnv } from "@/lib/mail/gmail-oauth-client-secret-env";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -29,7 +30,10 @@ export async function GET() {
   return NextResponse.json({
     provider: row?.provider ?? "env_smtp",
     gmail_client_id: row?.gmail_client_id ?? "",
-    has_client_secret: Boolean(row?.gmail_client_secret_enc?.trim()),
+    gmail_client_secret_from_env: hasGmailOAuthClientSecretInEnv(),
+    has_client_secret:
+      hasGmailOAuthClientSecretInEnv() || Boolean(row?.gmail_client_secret_enc?.trim()),
+    has_stored_db_client_secret: Boolean(row?.gmail_client_secret_enc?.trim()),
     has_refresh_token: Boolean(row?.gmail_refresh_token_enc?.trim()),
     gmail_sender_email: row?.gmail_sender_email ?? "",
     app_base_url: row?.app_base_url ?? "",
@@ -57,6 +61,7 @@ export async function PATCH(req: Request) {
     gmail_client_secret?: string;
     gmail_sender_email?: string;
     clear_gmail_refresh?: boolean;
+    clear_gmail_client_secret?: boolean;
     app_base_url?: string;
     credentials_encryption_passphrase?: string;
     clear_encryption_passphrase?: boolean;
@@ -90,6 +95,7 @@ export async function PATCH(req: Request) {
         gmail_client_secret: body.gmail_client_secret,
         gmail_sender_email: body.gmail_sender_email,
         clear_gmail_refresh: body.clear_gmail_refresh === true,
+        clear_gmail_client_secret: body.clear_gmail_client_secret === true,
         app_base_url: body.app_base_url,
         credentials_encryption_passphrase: body.credentials_encryption_passphrase,
         clear_encryption_passphrase: body.clear_encryption_passphrase === true,
@@ -114,7 +120,10 @@ export async function PATCH(req: Request) {
     ok: true,
     provider: row?.provider ?? "env_smtp",
     gmail_client_id: row?.gmail_client_id ?? "",
-    has_client_secret: Boolean(row?.gmail_client_secret_enc?.trim()),
+    gmail_client_secret_from_env: hasGmailOAuthClientSecretInEnv(),
+    has_client_secret:
+      hasGmailOAuthClientSecretInEnv() || Boolean(row?.gmail_client_secret_enc?.trim()),
+    has_stored_db_client_secret: Boolean(row?.gmail_client_secret_enc?.trim()),
     has_refresh_token: Boolean(row?.gmail_refresh_token_enc?.trim()),
     gmail_sender_email: row?.gmail_sender_email ?? "",
     app_base_url: row?.app_base_url ?? "",

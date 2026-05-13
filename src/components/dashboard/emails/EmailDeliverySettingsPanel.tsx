@@ -24,7 +24,10 @@ const STORED_SECRET_MASK = "******";
 type DeliverySummary = {
   provider: string;
   gmail_client_id: string;
+  /** Server env: `GMAIL_OAUTH_CLIENT_SECRET` or `GOOGLE_OAUTH_CLIENT_SECRET` (never sent to the browser). */
+  gmail_client_secret_from_env: boolean;
   has_client_secret: boolean;
+  has_stored_db_client_secret: boolean;
   has_refresh_token: boolean;
   gmail_sender_email: string;
   app_base_url: string;
@@ -112,8 +115,9 @@ export function EmailDeliverySettingsPanel({
         no_encryption:
           "Missing encryption key: set the passphrase under Server variables or define EMAIL_SECRETS_KEY on the server.",
         decrypt_client_secret:
-          "Could not decrypt the Client Secret. Use the same passphrase / EMAIL_SECRETS_KEY as when you saved it, or paste the Client Secret again and save.",
-        no_client_secret: "Save the Google OAuth Client Secret in Emails → Sending first.",
+          "Could not decrypt the Client Secret (wrong passphrase vs when it was saved, or different EMAIL_SECRETS_KEY in production). Use “Remove stored Client Secret”, paste the secret again, save, then Connect.",
+        no_client_secret:
+          "No OAuth Client Secret: set GMAIL_OAUTH_CLIENT_SECRET or GOOGLE_OAUTH_CLIENT_SECRET in the server environment (.env.production / Vercel), or paste the secret here and save (legacy).",
         oauth_state_secret:
           "Server is missing a signing key for OAuth. Set SUPABASE_SERVICE_ROLE_KEY (recommended) or EMAIL_OAUTH_STATE_SECRET in the deployment environment.",
         start_failed: "Could not start Google sign-in. Check server logs or try again.",
@@ -237,6 +241,34 @@ export function EmailDeliverySettingsPanel({
     }
   }
 
+  async function clearStoredGoogleClientSecret() {
+    setSaving(true);
+    setErr(null);
+    setOk(null);
+    try {
+      const res = await fetch("/api/email/delivery-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider,
+          gmail_client_id: clientId.trim(),
+          clear_gmail_client_secret: true,
+        }),
+      });
+      const j = (await res.json()) as DeliverySummary & { error?: string };
+      if (!res.ok) throw new Error(j.error || "Update failed.");
+      setSummary(j);
+      setClientSecret("");
+      setOk(
+        "Stored OAuth Client Secret removed. Paste the Client Secret from Google Cloud again, click Save Google settings, then Connect with Google."
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Update failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveDashboardSmtp() {
     setSaving(true);
     setErr(null);
@@ -322,7 +354,8 @@ export function EmailDeliverySettingsPanel({
 
   const encryptionReady =
     Boolean(summary?.has_encryption_passphrase) || Boolean(encryptionPassphrase.trim());
-  const needsEncryptionForNewSecret = Boolean(clientSecret.trim());
+  const needsEncryptionForNewSecret =
+    Boolean(clientSecret.trim()) && summary?.gmail_client_secret_from_env !== true;
   const canSaveGoogleWithSecret = !needsEncryptionForNewSecret || encryptionReady;
 
   if (loading && !summary) {
@@ -440,9 +473,19 @@ export function EmailDeliverySettingsPanel({
             <Typography variant="body2" component="div" gutterBottom>
               <strong>No SMTP user or password.</strong> After you save the OAuth client and click <em>Connect with
               Google</em>, the server sends mail through Gmail using <strong>OAuth2 only</strong> (FluentSMTP-style).
-              The passphrase above encrypts stored tokens in the database; it is not your Gmail password.
+              The passphrase above encrypts the <strong>refresh token</strong> stored in the database; it is not your
+              Gmail password.
             </Typography>
           </Alert>
+          {summary?.gmail_client_secret_from_env ? (
+            <Alert severity="success">
+              <Typography variant="body2" component="div">
+                OAuth <strong>Client Secret</strong> is read only from the server environment:{" "}
+                <code>GMAIL_OAUTH_CLIENT_SECRET</code> or <code>GOOGLE_OAUTH_CLIENT_SECRET</code>. Do not paste it in
+                this page—set it in <code>.env.production</code> / your host (e.g. Vercel) and redeploy.
+              </Typography>
+            </Alert>
+          ) : null}
           <Alert severity="info">
             <Typography variant="body2" component="span" display="block" gutterBottom>
               <strong>Authorized redirect URI</strong> (Google Cloud → APIs & Services → Credentials → OAuth web
@@ -465,27 +508,45 @@ export function EmailDeliverySettingsPanel({
             disabled={saving}
             autoComplete="off"
           />
-          <TextField
-            label="Google OAuth Client Secret"
-            type="password"
-            value={clientSecret}
-            onChange={(e) => setClientSecret(e.target.value)}
-            fullWidth
-            disabled={saving}
-            placeholder={
-              summary?.has_client_secret ? `${STORED_SECRET_MASK} (leave blank to keep current)` : ""
-            }
-            helperText={
-              summary?.has_client_secret
-                ? `A client secret is stored (${STORED_SECRET_MASK}). Enter a new value only to replace it.`
-                : undefined
-            }
-            autoComplete="new-password"
-          />
-          {summary?.has_client_secret ? (
-            <Typography variant="caption" color="text.secondary">
-              OAuth client secret on file: <Box component="code">{STORED_SECRET_MASK}</Box>
-            </Typography>
+          {summary?.gmail_client_secret_from_env !== true ? (
+            <>
+              <TextField
+                label="Google OAuth Client Secret (legacy — prefer env)"
+                type="password"
+                value={clientSecret}
+                onChange={(e) => setClientSecret(e.target.value)}
+                fullWidth
+                disabled={saving}
+                placeholder={
+                  summary?.has_stored_db_client_secret
+                    ? `${STORED_SECRET_MASK} (leave blank to keep current)`
+                    : ""
+                }
+                helperText={
+                  summary?.has_stored_db_client_secret
+                    ? `A client secret is stored encrypted in the database (${STORED_SECRET_MASK}). Enter a new value only to replace it, or set GMAIL_OAUTH_CLIENT_SECRET in the server env and redeploy.`
+                    : "Prefer setting GMAIL_OAUTH_CLIENT_SECRET on the server so the secret never transits the browser."
+                }
+                autoComplete="new-password"
+              />
+              {summary?.has_stored_db_client_secret ? (
+                <Typography variant="caption" color="text.secondary">
+                  OAuth client secret on file (database): <Box component="code">{STORED_SECRET_MASK}</Box>
+                </Typography>
+              ) : null}
+              {summary?.has_stored_db_client_secret ? (
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  size="small"
+                  sx={{ alignSelf: "flex-start" }}
+                  onClick={() => void clearStoredGoogleClientSecret()}
+                  disabled={saving}
+                >
+                  Remove stored Client Secret
+                </Button>
+              ) : null}
+            </>
           ) : null}
           <TextField
             label="From sender (optional before connect)"
@@ -501,7 +562,9 @@ export function EmailDeliverySettingsPanel({
               variant="contained"
               onClick={() =>
                 void saveServerAndDelivery({
-                  gmail_client_secret: clientSecret.trim() || undefined,
+                  ...(summary?.gmail_client_secret_from_env !== true && clientSecret.trim()
+                    ? { gmail_client_secret: clientSecret.trim() }
+                    : {}),
                   gmail_sender_email: senderEmail.trim() || undefined,
                 })
               }

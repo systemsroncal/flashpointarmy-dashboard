@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { hasGmailOAuthClientSecretInEnv } from "@/lib/mail/gmail-oauth-client-secret-env";
 import { decryptEmailSecret, encryptEmailSecret } from "@/lib/mail/email-secrets-crypto";
 
 export type EmailDeliveryProvider = "env_smtp" | "gmail_workspace_oauth" | "dashboard_smtp";
@@ -63,6 +64,8 @@ export type DeliverySettingsPatch = {
   gmail_sender_email?: string | null;
   /** Remove stored refresh token (disconnect Gmail). */
   clear_gmail_refresh?: boolean;
+  /** Remove stored OAuth client secret (fix decrypt / rotate). User must paste secret again and save. */
+  clear_gmail_client_secret?: boolean;
   /** Public site root for OAuth (e.g. https://dashboard.example.com). */
   app_base_url?: string | null;
   /** Plain passphrase stored in DB (optional if EMAIL_SECRETS_KEY is set on server). */
@@ -110,8 +113,13 @@ export async function upsertEmailDeliverySettings(
     refreshEnc = null;
   }
 
+  if (patch.clear_gmail_client_secret) {
+    clientSecretEnc = null;
+  }
+
   const secretPlain = patch.gmail_client_secret?.trim();
-  if (secretPlain) {
+  /** Client Secret comes from `GMAIL_OAUTH_CLIENT_SECRET` / `GOOGLE_OAUTH_CLIENT_SECRET` in production — do not store from the UI. */
+  if (secretPlain && !hasGmailOAuthClientSecretInEnv()) {
     const phraseForCrypto =
       encPass?.trim() ||
       existing?.credentials_encryption_passphrase?.trim() ||
