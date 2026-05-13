@@ -108,6 +108,15 @@ export function EmailDeliverySettingsPanel({
       setOk("Google account connected. You can send a test email from the Templates tab.");
     if (gmailError) {
       const labels: Record<string, string> = {
+        no_client_id: "Save the Google OAuth Client ID in Emails → Sending, then try Connect again.",
+        no_encryption:
+          "Missing encryption key: set the passphrase under Server variables or define EMAIL_SECRETS_KEY on the server.",
+        decrypt_client_secret:
+          "Could not decrypt the Client Secret. Use the same passphrase / EMAIL_SECRETS_KEY as when you saved it, or paste the Client Secret again and save.",
+        no_client_secret: "Save the Google OAuth Client Secret in Emails → Sending first.",
+        oauth_state_secret:
+          "Server is missing a signing key for OAuth. Set SUPABASE_SERVICE_ROLE_KEY (recommended) or EMAIL_OAUTH_STATE_SECRET in the deployment environment.",
+        start_failed: "Could not start Google sign-in. Check server logs or try again.",
         no_refresh_token:
           "Google did not return a refresh token. Remove the app in Google Account permissions and try again, or ensure prompt=consent is used.",
         no_sender_email: "Could not read your Google account email after sign-in.",

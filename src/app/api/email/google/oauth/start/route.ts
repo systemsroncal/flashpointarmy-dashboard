@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createGmailOAuthState } from "@/lib/mail/email-oauth-state";
 import { decryptDeliverySecrets, fetchEmailDeliverySettings, loadEncryptionPassphrase } from "@/lib/mail/email-delivery-settings";
-import { getGmailOAuthRedirectUri } from "@/lib/mail/app-base-url";
+import { getAppBaseUrl, getGmailOAuthRedirectUri } from "@/lib/mail/app-base-url";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -20,32 +20,52 @@ export async function GET() {
   }
 
   const admin = createAdminClient();
-  const row = await fetchEmailDeliverySettings(admin);
-  if (!row?.gmail_client_id?.trim()) {
-    return NextResponse.json({ error: "Save Google Client ID and Client Secret in Emails → Sending first." }, { status: 400 });
-  }
-  const phrase = await loadEncryptionPassphrase(admin);
-  const { clientSecret } = decryptDeliverySecrets(row, phrase);
-  if (!clientSecret?.trim()) {
-    return NextResponse.json({ error: "Save the Google Client Secret in Emails → Sending first." }, { status: 400 });
-  }
+  const base = await getAppBaseUrl(admin);
+  const fail = (code: string) =>
+    NextResponse.redirect(`${base}/dashboard/emails?tab=sending&gmail_error=${encodeURIComponent(code)}`);
 
-  let state: string;
   try {
-    state = createGmailOAuthState(user.id);
+    const row = await fetchEmailDeliverySettings(admin);
+    if (!row?.gmail_client_id?.trim()) {
+      return fail("no_client_id");
+    }
+
+    let phrase: string;
+    try {
+      phrase = await loadEncryptionPassphrase(admin);
+    } catch {
+      return fail("no_encryption");
+    }
+
+    let clientSecret: string | null;
+    try {
+      ({ clientSecret } = decryptDeliverySecrets(row, phrase));
+    } catch {
+      return fail("decrypt_client_secret");
+    }
+    if (!clientSecret?.trim()) {
+      return fail("no_client_secret");
+    }
+
+    let state: string;
+    try {
+      state = createGmailOAuthState(user.id);
+    } catch {
+      return fail("oauth_state_secret");
+    }
+
+    const redirectUri = await getGmailOAuthRedirectUri(admin);
+    const scope = encodeURIComponent("https://www.googleapis.com/auth/gmail.send");
+    const url =
+      `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(row.gmail_client_id.trim())}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=code&scope=${scope}` +
+      `&access_type=offline&prompt=consent` +
+      `&state=${encodeURIComponent(state)}`;
+
+    return NextResponse.redirect(url);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "OAuth state error.";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[gmail oauth start]", e);
+    return fail("start_failed");
   }
-
-  const redirectUri = await getGmailOAuthRedirectUri(admin);
-  const scope = encodeURIComponent("https://www.googleapis.com/auth/gmail.send");
-  const url =
-    `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(row.gmail_client_id.trim())}` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&response_type=code&scope=${scope}` +
-    `&access_type=offline&prompt=consent` +
-    `&state=${encodeURIComponent(state)}`;
-
-  return NextResponse.redirect(url);
 }
