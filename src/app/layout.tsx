@@ -15,6 +15,10 @@ const barlow = Barlow({
 export const metadata: Metadata = {
   title: "FlashPOINT · DreamsTrack",
   description: "FlashPOINT F.P. Army dashboard",
+  icons: {
+    icon: [{ url: "/favicon-fp-army.png", type: "image/png" }],
+    apple: [{ url: "/favicon-fp-army.png", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({

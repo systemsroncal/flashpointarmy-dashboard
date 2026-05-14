@@ -17,5 +17,5 @@ export const LOGIN_LOGO_FORM_MARK = "/logos/DreamsTrack-fp-army-logo.svg";
 /** Large watermark (top right). */
 export const LOGIN_LOGO_WATERMARK = "/logos/flash-point-logo.svg";
 
-/** Dashboard left drawer header (`DashboardShell`). */
-export const DASHBOARD_DRAWER_LOGO = "/logos/Dashboard-Logo.svg";
+/** Dashboard left drawer header (`DashboardShell`) — white lockup on dark UI. */
+export const DASHBOARD_DRAWER_LOGO = "/logos/fp-army-chapters-white.png";
