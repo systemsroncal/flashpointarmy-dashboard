@@ -6,6 +6,7 @@
 #   PM2_APP_NAME    — default app-fparmychapters (use another name for dev, e.g. dev-fparmychapters)
 #   APP_PORT        — default 3000 (Next.js reads PORT; dev on same host should use e.g. 3001)
 #   SKIP_PM2=1      — skip stop/restart (only pull + build)
+#   DEPLOY_SOFT_PULL=1 — use `git pull` only (fails if untracked files block merge). Default: reset to origin + clean.
 #
 # Examples (Hestia: run as the shell user that owns the site, from the clone directory):
 #   Producción:  bash scripts/deploy-from-github.sh
@@ -32,7 +33,15 @@ if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
 fi
 
 git fetch origin
-git pull origin "$BRANCH"
+
+if [[ "${DEPLOY_SOFT_PULL:-}" == "1" ]]; then
+  git pull origin "$BRANCH"
+else
+  # Match the remote exactly: avoids "untracked working tree files would be overwritten by merge"
+  # (e.g. manual copies under public/). Ignored files (.env.local, node_modules) are kept.
+  git reset --hard "origin/${BRANCH}"
+  git clean -fd
+fi
 
 npm ci
 npm run build
