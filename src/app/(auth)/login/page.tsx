@@ -11,6 +11,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
+/** Set to `true` to show “New here? Create account” on the login page again. */
+const SHOW_LOGIN_REGISTER_INVITE = false;
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -162,23 +165,25 @@ function LoginForm() {
           Forgot Password
         </MuiLink>
 
-        <Typography
-          sx={{
-            mt: 1.5,
-            textAlign: "center",
-            color: authGrayText,
-            fontSize: "0.75rem",
-          }}
-        >
-          New here?{" "}
-          <MuiLink
-            component={Link}
-            href="/register"
-            sx={{ color: authGrayText, "&:hover": { color: authYellow } }}
+        {SHOW_LOGIN_REGISTER_INVITE ? (
+          <Typography
+            sx={{
+              mt: 1.5,
+              textAlign: "center",
+              color: authGrayText,
+              fontSize: "0.75rem",
+            }}
           >
-            Create account
-          </MuiLink>
-        </Typography>
+            New here?{" "}
+            <MuiLink
+              component={Link}
+              href="/register"
+              sx={{ color: authGrayText, "&:hover": { color: authYellow } }}
+            >
+              Create account
+            </MuiLink>
+          </Typography>
+        ) : null}
       </Box>
     </ArmyAuthShell>
   );

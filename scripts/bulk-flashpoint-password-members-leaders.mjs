@@ -11,8 +11,8 @@
  *   $env:DRY_RUN="1"
  *   node scripts/bulk-flashpoint-password-members-leaders.mjs
  *
- * Optional: loads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from .env.local
- * in the project root when env vars are unset.
+ * Optional: loads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from `.env.local`
+ * then `.env.production` in the project root when env vars are unset (VPS often only has the latter).
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -25,8 +25,8 @@ const ROOT = path.resolve(__dirname, "..");
 
 const DEFAULT_PASSWORD = "FLASHPOINT";
 
-function loadEnvLocal() {
-  const p = path.join(ROOT, ".env.local");
+function loadEnvFile(relPath) {
+  const p = path.join(ROOT, relPath);
   if (!fs.existsSync(p)) return;
   const raw = fs.readFileSync(p, "utf8");
   for (const line of raw.split("\n")) {
@@ -39,6 +39,11 @@ function loadEnvLocal() {
     }
     if (!process.env[k]) process.env[k] = v;
   }
+}
+
+function loadEnvFromProjectRoot() {
+  loadEnvFile(".env.local");
+  loadEnvFile(".env.production");
 }
 
 async function collectTargetUserIds(admin) {
@@ -78,7 +83,7 @@ async function collectTargetUserIds(admin) {
 }
 
 async function main() {
-  loadEnvLocal();
+  loadEnvFromProjectRoot();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const dry = process.env.DRY_RUN === "1" || process.env.DRY_RUN === "true";

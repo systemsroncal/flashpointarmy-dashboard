@@ -13,7 +13,7 @@ const barlow = Barlow({
 });
 
 export const metadata: Metadata = {
-  title: "FlashPOINT · DreamsTrack",
+  title: "FlashPoint Army Command Center",
   description: "FlashPOINT F.P. Army dashboard",
   icons: {
     icon: [{ url: "/favicon-fp-army.png", type: "image/png" }],
