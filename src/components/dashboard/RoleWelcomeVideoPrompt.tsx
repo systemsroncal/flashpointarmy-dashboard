@@ -2,24 +2,17 @@
 
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import CloseIcon from "@mui/icons-material/Close";
-import {
-  Box,
-  Checkbox,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  FormControlLabel,
-  IconButton,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Dialog, DialogContent, DialogTitle, IconButton, Tooltip, Typography } from "@mui/material";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 const MEMBER_VIDEO: string = "https://youtu.be/XBjT8Vc2kis";
 const LEADER_VIDEO: string = "https://youtu.be/HMWn-Ikrim0";
-const HIDE_DAYS = 7;
+
+const MS_24H = 24 * 60 * 60 * 1000;
+const AUTO_SHOW_COOKIE = "fpa_welcome_video_last_auto_ms";
 
 function roleVideoUrl(roleNames: string[]): string | null {
   if (roleNames.includes("local_leader")) return LEADER_VIDEO;
@@ -27,36 +20,38 @@ function roleVideoUrl(roleNames: string[]): string | null {
   return null;
 }
 
-function hideCookieKey(role: "member" | "local_leader"): string {
-  return `fpa_welcome_video_hide_until_${role}`;
-}
-
-function readHideUntil(key: string): number {
+function readLastAutoShowMs(): number {
   if (typeof document === "undefined") return 0;
   const found = document.cookie
     .split(";")
     .map((v) => v.trim())
-    .find((v) => v.startsWith(`${key}=`));
+    .find((v) => v.startsWith(`${AUTO_SHOW_COOKIE}=`));
   if (!found) return 0;
-  const raw = decodeURIComponent(found.slice(key.length + 1));
+  const raw = decodeURIComponent(found.slice(AUTO_SHOW_COOKIE.length + 1));
   const n = Number(raw);
   return Number.isFinite(n) ? n : 0;
 }
 
-function writeHideUntil(key: string, untilMs: number) {
+function writeLastAutoShowMs(ms: number) {
   if (typeof document === "undefined") return;
-  document.cookie = `${key}=${encodeURIComponent(String(untilMs))}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+  document.cookie = `${AUTO_SHOW_COOKIE}=${encodeURIComponent(String(ms))}; path=/; max-age=${60 * 60 * 24 * 400}; samesite=lax`;
 }
 
 function isAdminLike(roleNames: string[]): boolean {
   return roleNames.includes("admin") || roleNames.includes("super_admin");
 }
 
+/** National overview home only (not other /dashboard/* routes). */
+function isNationalOverviewHome(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return pathname === "/dashboard" || pathname === "/dashboard/";
+}
+
 export function RoleWelcomeVideoPrompt() {
+  const pathname = usePathname();
   const user = useDashboardUser();
   const [open, setOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
-  const [hideForWeek, setHideForWeek] = useState(false);
   const [dialogUrl, setDialogUrl] = useState<string | null>(null);
 
   const adminLike = useMemo(() => isAdminLike(user.role_names), [user.role_names]);
@@ -69,15 +64,26 @@ export function RoleWelcomeVideoPrompt() {
 
   const videoUrl = useMemo(() => roleVideoUrl(user.role_names), [user.role_names]);
 
+  const onNationalHome = isNationalOverviewHome(pathname);
+
   useEffect(() => {
     if (adminLike || !role || !videoUrl) return;
-    const key = hideCookieKey(role);
-    const hiddenUntil = readHideUntil(key);
-    if (hiddenUntil > Date.now()) return;
+    if (!onNationalHome) return;
+    const last = readLastAutoShowMs();
+    if (last > 0 && Date.now() - last < MS_24H) return;
+    writeLastAutoShowMs(Date.now());
     setDialogUrl(videoUrl);
     setOpen(true);
     setManualOpen(false);
-  }, [adminLike, role, videoUrl]);
+  }, [adminLike, role, videoUrl, onNationalHome]);
+
+  /** Auto-opened only on National overview: close if user navigates away (manual open stays until they close). */
+  useEffect(() => {
+    if (!onNationalHome && open && !manualOpen) {
+      setOpen(false);
+      setDialogUrl(null);
+    }
+  }, [onNationalHome, open, manualOpen]);
 
   /** Elevated users open clips manually — two shortcuts (leader + member). */
   const adminToolbar =
@@ -95,7 +101,6 @@ export function RoleWelcomeVideoPrompt() {
             aria-label="Local leader welcome video"
             onClick={() => {
               setManualOpen(true);
-              setHideForWeek(false);
               setDialogUrl(LEADER_VIDEO);
               setOpen(true);
             }}
@@ -110,7 +115,6 @@ export function RoleWelcomeVideoPrompt() {
             aria-label="Member welcome video"
             onClick={() => {
               setManualOpen(true);
-              setHideForWeek(false);
               setDialogUrl(MEMBER_VIDEO);
               setOpen(true);
             }}
@@ -130,7 +134,6 @@ export function RoleWelcomeVideoPrompt() {
               setManualOpen(true);
               setDialogUrl(LEADER_VIDEO);
               setOpen(true);
-              setHideForWeek(false);
             }}
           >
             <VideocamOutlinedIcon />
@@ -196,32 +199,29 @@ export function RoleWelcomeVideoPrompt() {
   if (!videoUrl || !role) return null;
 
   const handleClose = () => {
-    if (!manualOpen && hideForWeek) {
-      const until = Date.now() + HIDE_DAYS * 24 * 60 * 60 * 1000;
-      writeHideUntil(hideCookieKey(role), until);
-    }
     setOpen(false);
     setManualOpen(false);
-    setHideForWeek(false);
   };
 
   return (
     <>
-      <IconButton
-        color="inherit"
-        size="small"
-        aria-label="Open welcome video"
-        onClick={() => {
-          setManualOpen(true);
-          setOpen(true);
-          setHideForWeek(false);
-        }}
-      >
-        <VideocamOutlinedIcon />
-      </IconButton>
+      <Tooltip title="Welcome video">
+        <IconButton
+          color="inherit"
+          size="small"
+          aria-label="Open welcome video"
+          onClick={() => {
+            setManualOpen(true);
+            setDialogUrl(videoUrl);
+            setOpen(true);
+          }}
+        >
+          <VideocamOutlinedIcon />
+        </IconButton>
+      </Tooltip>
 
       <Dialog
-        open={open}
+        open={open && Boolean(dialogUrl)}
         onClose={handleClose}
         maxWidth="md"
         fullWidth
@@ -240,49 +240,26 @@ export function RoleWelcomeVideoPrompt() {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ pb: manualOpen ? 2 : 0, pt: 0, px: { xs: 1, sm: 2 } }}>
+        <DialogContent sx={{ pb: manualOpen ? 2 : 2, pt: 0, px: { xs: 1, sm: 2 } }}>
           <Box sx={{ width: "100%", bgcolor: "transparent" }}>
-            <CourseVideoPlyr
-              videoUrl={videoUrl}
-              initialSeconds={0}
-              onPersistSeconds={() => {}}
-              autoplayMuted={false}
-            />
+            {dialogUrl ? (
+              <CourseVideoPlyr
+                key={dialogUrl}
+                videoUrl={dialogUrl}
+                initialSeconds={0}
+                onPersistSeconds={() => {}}
+                autoplayMuted={false}
+              />
+            ) : null}
           </Box>
+          {!manualOpen && open ? (
+            <Typography variant="caption" sx={{ display: "block", textAlign: "center", mt: 1.5, color: "grey.400" }}>
+              En National overview se abre solo como máximo una vez cada 24 h. Puedes verlo cuando quieras con el botón
+              de videocámara arriba.
+            </Typography>
+          ) : null}
         </DialogContent>
       </Dialog>
-
-      {!manualOpen && open ? (
-        <Box
-          sx={{
-            position: "fixed",
-            left: 0,
-            right: 0,
-            bottom: 10,
-            display: "flex",
-            justifyContent: "center",
-            zIndex: 1500,
-          }}
-        >
-          <FormControlLabel
-            control={
-              <Checkbox
-                size="small"
-                checked={hideForWeek}
-                onChange={(e) => setHideForWeek(e.target.checked)}
-              />
-            }
-            sx={{
-              m: 0,
-              px: 1,
-              borderRadius: 1,
-              bgcolor: "rgba(0,0,0,0.5)",
-              color: "#fff",
-            }}
-            label={<Typography variant="caption">Don&apos;t show again</Typography>}
-          />
-        </Box>
-      ) : null}
     </>
   );
 }

@@ -291,6 +291,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     if (item.module === MODULE_SLUGS.movilization) {
       return user.role_names.includes("super_admin");
     }
+    /** Dashboard announcements: all signed-in users (not gated by communications module). */
+    if (item.href === "/dashboard/notifications") {
+      return true;
+    }
     if (!isNavModuleAllowedForRoles(item.module, user.role_names)) {
       return false;
     }
