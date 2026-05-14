@@ -54,6 +54,10 @@ export type CommunityMemberBaseRow = {
   first_name: string | null;
   last_name: string | null;
   primary_chapter_id: string | null;
+  address_line: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
 };
 
 async function fetchDashboardUsersChunks(
@@ -123,7 +127,7 @@ export async function listCommunityMembersFallback(
   }
 
   const selectCols =
-    "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id";
+    "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id, address_line, city, state, zip_code";
   const allRows = (await fetchDashboardUsersChunks(admin, ids, selectCols)) as CommunityMemberBaseRow[];
 
   let list = allRows;

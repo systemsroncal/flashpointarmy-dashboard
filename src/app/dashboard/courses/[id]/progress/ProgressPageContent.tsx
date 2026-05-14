@@ -7,9 +7,29 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { Box, Paper, Typography } from "@mui/material";
 import { CourseProgressUsersTable } from "@/components/dashboard/courses/CourseProgressUsersTable";
+import { listDashboardUsersByIds, listRoleNamesByUserIds } from "@/lib/admin/dashboard-user-queries";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** One-line role for course progress (Member vs Local leader vs staff). */
+function progressRoleLabel(slugs: string[]): string {
+  if (!slugs.length) return "—";
+  const set = new Set(slugs);
+  if (set.has("local_leader")) return "Local leader";
+  if (set.has("member")) return "Member";
+  if (set.has("super_admin")) return "Super admin";
+  if (set.has("admin")) return "Administrator";
+  return [...set]
+    .sort()
+    .map((s) =>
+      s
+        .split("_")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ")
+    )
+    .join(", ");
+}
 
 export default async function ProgressPageContent({ courseId }: { courseId: string }) {
   if (!UUID_RE.test(courseId)) notFound();
@@ -86,28 +106,41 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
   }
 
   const userIds = [...byUser.keys()];
-  const labels = new Map<string, string>();
+  const duById = new Map<string, { city: string | null; state: string | null; email: string; display_name: string | null; first_name: string | null; last_name: string | null }>();
   if (userIds.length) {
-    const { data: du } = await admin
-      .from("dashboard_users")
-      .select("id, email, display_name, first_name, last_name")
-      .in("id", userIds);
-    for (const u of du ?? []) {
-      const name =
-        (u.display_name as string)?.trim() ||
-        [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
-        (u.email as string);
-      labels.set(u.id as string, name);
+    const duRows = await listDashboardUsersByIds(admin, userIds);
+    for (const u of duRows) {
+      duById.set(u.id, {
+        city: u.city,
+        state: u.state,
+        email: u.email,
+        display_name: u.display_name,
+        first_name: u.first_name,
+        last_name: u.last_name,
+      });
     }
   }
 
+  const roleByUser = userIds.length ? await listRoleNamesByUserIds(admin, userIds) : new Map<string, string[]>();
+
   const rows = userIds
-    .map((uid) => ({
-      uid,
-      label: labels.get(uid) ?? uid,
-      done: byUser.get(uid)?.done ?? 0,
-      quiz: quizByUser.get(uid) ?? null,
-    }))
+    .map((uid) => {
+      const du = duById.get(uid);
+      const name =
+        du?.display_name?.trim() ||
+        [du?.first_name, du?.last_name].filter(Boolean).join(" ").trim() ||
+        du?.email ||
+        uid;
+      return {
+        uid,
+        label: name,
+        city: du?.city?.trim() || null,
+        state: du?.state?.trim() || null,
+        roleLabel: progressRoleLabel(roleByUser.get(uid) ?? []),
+        done: byUser.get(uid)?.done ?? 0,
+        quiz: quizByUser.get(uid) ?? null,
+      };
+    })
     .sort((a, b) => a.label.localeCompare(b.label));
 
   return (

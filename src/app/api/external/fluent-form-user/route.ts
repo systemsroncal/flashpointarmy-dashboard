@@ -58,8 +58,8 @@ async function readBodyAsRecord(req: Request): Promise<Record<string, unknown>> 
  * Env: `FLUENT_FORM_WEBHOOK_SECRET`; optional `FLUENT_FORM_SYSTEM_USER_ID` (UUID of a dashboard user
  * used as `created_by` when auto-creating chapters — use a dedicated admin/service account).
  *
- * Password: optional in the payload. If missing or shorter than 8 characters, the server uses
- * the default external password (see `DEFAULT_EXTERNAL_USER_PASSWORD`, currently FLASHPOINT).
+ * Password: new users always receive the default external password (FLASHPOINT). Existing users are
+ * never given a new password or email change via this webhook.
  */
 export async function POST(req: Request) {
   const expected = process.env.FLUENT_FORM_WEBHOOK_SECRET?.trim();
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
 
   const flat = mergeNestedFormFields(raw);
   const parsed = parseFluentFlatRow(flat);
-  const { password, phone, primaryChapterId } = parsed;
+  const { phone, primaryChapterId } = parsed;
   const mailing = userMailingAddressFromImportRow(flat);
   const systemUserId = process.env.FLUENT_FORM_SYSTEM_USER_ID?.trim() || null;
 
@@ -108,8 +108,7 @@ export async function POST(req: Request) {
   const firstName = identity.firstName;
   const lastName = identity.lastName;
 
-  const effectivePassword =
-    password.trim().length >= 8 ? password.trim() : DEFAULT_EXTERNAL_USER_PASSWORD;
+  const newUserPassword = DEFAULT_EXTERNAL_USER_PASSWORD;
 
   const admin = createAdminClient();
 
@@ -171,7 +170,6 @@ export async function POST(req: Request) {
       phone,
       chapterId,
       leaderRoleId: roleRow.id as string,
-      passwordOverride: effectivePassword,
       mailing,
     });
 
@@ -229,9 +227,16 @@ export async function POST(req: Request) {
     });
   }
 
+  const displayName = `${firstName} ${lastName}`.trim();
+  const hasMailing =
+    !!(mailing.address_line || "").trim() ||
+    !!(mailing.city || "").trim() ||
+    !!(mailing.state || "").trim() ||
+    !!(mailing.zip_code || "").trim();
+
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
-    password: effectivePassword,
+    password: newUserPassword,
     email_confirm: true,
     user_metadata: withExternalPasswordChangeFlag(
       {
@@ -239,9 +244,9 @@ export async function POST(req: Request) {
         last_name: lastName,
         primary_chapter_id: chapterId,
         phone: phone || null,
-        ...mailingForUserMetadata(mailing),
+        ...(hasMailing ? mailingForUserMetadata(mailing) : {}),
       },
-      effectivePassword
+      newUserPassword
     ),
   });
 
@@ -261,7 +266,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: roleInsErr.message || "Could not assign role." }, { status: 500 });
   }
 
-  const displayName = `${firstName} ${lastName}`.trim();
   const { error: authUpErr } = await admin.auth.admin.updateUserById(newId, {
     email_confirm: true,
     user_metadata: withExternalPasswordChangeFlag(
@@ -270,9 +274,9 @@ export async function POST(req: Request) {
         last_name: lastName,
         primary_chapter_id: chapterId,
         phone: phone || null,
-        ...mailingForUserMetadata(mailing),
+        ...(hasMailing ? mailingForUserMetadata(mailing) : {}),
       },
-      effectivePassword
+      newUserPassword
     ),
   });
   if (authUpErr) {
@@ -292,10 +296,14 @@ export async function POST(req: Request) {
       display_name: displayName,
       primary_chapter_id: chapterId,
       ...(phone ? { phone } : {}),
-      address_line: mailing.address_line,
-      city: mailing.city,
-      state: mailing.state,
-      zip_code: mailing.zip_code,
+      ...(hasMailing
+        ? {
+            address_line: mailing.address_line,
+            city: mailing.city,
+            state: mailing.state,
+            zip_code: mailing.zip_code,
+          }
+        : {}),
     })
     .eq("id", newId);
   if (profErr) {
@@ -312,7 +320,7 @@ export async function POST(req: Request) {
     displayName,
     primaryChapterId: chapterId,
     phone,
-    mailing,
+    mailing: hasMailing ? mailing : undefined,
   });
   if (mirror.error) {
     await admin.from("user_roles").delete().eq("user_id", newId);

@@ -4,6 +4,7 @@ import {
   listDashboardUsersByIdsWithAuthFallback,
   listProfilesByIds,
   listRoleNamesByUserIds,
+  preferNonEmptyAddr,
 } from "@/lib/admin/dashboard-user-queries";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -107,12 +108,9 @@ export default async function LeadersPageContent() {
   if (leaderUserIds.length > 0) {
     const data = await listDashboardUsersByIdsWithAuthFallback(admin, leaderUserIds);
     merged = data.map((u) => ({
-      ...(u as Omit<UserRow, "role_names">),
+      ...(u as unknown as Omit<UserRow, "role_names">),
       role_names: [],
-      address_line: null,
-      city: null,
-      state: null,
-      zip_code: null,
+      avatar_url: null,
     }));
   }
 
@@ -153,11 +151,11 @@ export default async function LeadersPageContent() {
         avatar_url: avatarById.get(u.id) ?? null,
         role_names: fromDb.length > 0 ? fromDb : ["local_leader"],
         primary_chapter_id: m?.primary_chapter_id ?? u.primary_chapter_id,
-        phone: m?.phone || u.phone || null,
-        address_line: m?.address_line ?? u.address_line,
-        city: m?.city ?? u.city,
-        state: m?.state ?? u.state,
-        zip_code: m?.zip_code ?? u.zip_code,
+        phone: preferNonEmptyAddr(m?.phone, u.phone),
+        address_line: preferNonEmptyAddr(m?.address_line, u.address_line),
+        city: preferNonEmptyAddr(m?.city, u.city),
+        state: preferNonEmptyAddr(m?.state, u.state),
+        zip_code: preferNonEmptyAddr(m?.zip_code, u.zip_code),
       };
     });
   } else {

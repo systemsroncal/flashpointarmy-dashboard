@@ -2043,7 +2043,10 @@ export function CommunitySection({
           <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
             {syncError ? <Alert severity="error">{syncError}</Alert> : null}
             <Typography variant="body2" color="text.secondary">
-              Pulls Fluent Forms records by date range and imports in real time. Existing users and chapters are omitted.
+              Pulls Fluent Forms records by date range and imports in real time. Existing chapters are skipped;
+              existing users are updated (roles, chapter, profile fields, mirror) without changing their password or
+              stored email. New users get the default password (FLASHPOINT). Leaders without an address in the form
+              keep their stored address.
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField

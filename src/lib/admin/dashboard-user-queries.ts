@@ -9,7 +9,22 @@ type DashboardUserListRow = {
   first_name: string | null;
   last_name: string | null;
   primary_chapter_id: string | null;
+  address_line: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
 };
+
+/** Prefer first non-empty trimmed string (e.g. profile over dashboard mirror). */
+export function preferNonEmptyAddr(
+  a: string | null | undefined,
+  b: string | null | undefined
+): string | null {
+  const ta = a?.trim();
+  if (ta) return ta;
+  const tb = b?.trim();
+  return tb || null;
+}
 
 export type ProfileMailRow = {
   id: string;
@@ -45,7 +60,9 @@ export async function listAllDashboardUsers(admin: SupabaseClient): Promise<Dash
     const to = from + PAGE_SIZE - 1;
     const { data } = await admin
       .from("dashboard_users")
-      .select("id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id")
+      .select(
+        "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id, address_line, city, state, zip_code"
+      )
       .order("email")
       .range(from, to);
     const rows = (data ?? []) as DashboardUserListRow[];
@@ -64,7 +81,9 @@ export async function listDashboardUsersByIds(
   for (const part of chunk(ids, IN_CHUNK)) {
     const { data } = await admin
       .from("dashboard_users")
-      .select("id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id")
+      .select(
+        "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id, address_line, city, state, zip_code"
+      )
       .in("id", part);
     out.push(...((data ?? []) as DashboardUserListRow[]));
   }
@@ -86,6 +105,10 @@ function dashboardRowFromAuthUser(user: User): DashboardUserListRow | null {
   const disp = combined || email.split("@")[0] || null;
   const phoneRaw = String(meta.phone ?? "").trim();
   const phone = phoneRaw || null;
+  const address_line = String(meta.address_line ?? "").trim() || null;
+  const city = String(meta.city ?? "").trim() || null;
+  const state = String(meta.state ?? "").trim() || null;
+  const zip_code = String(meta.zip_code ?? "").trim() || null;
   let primary_chapter_id: string | null = null;
   const chRaw = meta.primary_chapter_id;
   if (chRaw != null) {
@@ -107,6 +130,10 @@ function dashboardRowFromAuthUser(user: User): DashboardUserListRow | null {
     first_name: fn,
     last_name: ln,
     primary_chapter_id,
+    address_line,
+    city,
+    state,
+    zip_code,
   };
 }
 
@@ -153,6 +180,10 @@ export async function listDashboardUsersByIdsWithAuthFallback(
           display_name: row.display_name,
           primary_chapter_id: row.primary_chapter_id,
           phone: row.phone,
+          address_line: row.address_line,
+          city: row.city,
+          state: row.state,
+          zip_code: row.zip_code,
           created_at: row.created_at,
           updated_at: now,
         })),
@@ -172,10 +203,13 @@ export async function listProfilesByIds(admin: SupabaseClient, ids: string[]): P
   if (!ids.length) return [];
   const out: ProfileMailRow[] = [];
   for (const part of chunk(ids, IN_CHUNK)) {
-    const { data } = await admin
+    const { data, error } = await admin
       .from("profiles")
       .select("id, avatar_url, primary_chapter_id, phone, address_line, city, state, zip_code")
       .in("id", part);
+    if (error) {
+      throw new Error(`listProfilesByIds: ${error.message}`);
+    }
     out.push(...((data ?? []) as ProfileMailRow[]));
   }
   return out;

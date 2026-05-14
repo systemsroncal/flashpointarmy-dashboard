@@ -4,6 +4,7 @@ import {
   listDashboardUsersByIdsWithAuthFallback,
   listProfilesByIds,
   listRoleNamesByUserIds,
+  preferNonEmptyAddr,
 } from "@/lib/admin/dashboard-user-queries";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -140,11 +141,11 @@ export default async function AdminsPageContent() {
         avatar_url: avatarById.get(u.id) ?? null,
         role_names: (roleByUser.get(u.id) ?? []).sort(),
         primary_chapter_id: m?.primary_chapter_id ?? u.primary_chapter_id,
-        phone: m?.phone || u.phone || null,
-        address_line: m?.address_line ?? u.address_line,
-        city: m?.city ?? u.city,
-        state: m?.state ?? u.state,
-        zip_code: m?.zip_code ?? u.zip_code,
+        phone: preferNonEmptyAddr(m?.phone, u.phone),
+        address_line: preferNonEmptyAddr(m?.address_line, u.address_line),
+        city: preferNonEmptyAddr(m?.city, u.city),
+        state: preferNonEmptyAddr(m?.state, u.state),
+        zip_code: preferNonEmptyAddr(m?.zip_code, u.zip_code),
       };
     });
     if (!isSuperAdmin) {

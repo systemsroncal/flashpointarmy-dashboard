@@ -8,6 +8,7 @@ import {
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
+import { preferNonEmptyAddr } from "@/lib/admin/dashboard-user-queries";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -32,16 +33,23 @@ type BaseRow = {
   first_name: string | null;
   last_name: string | null;
   primary_chapter_id: string | null;
+  address_line?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
 };
 
 async function mergeProfilesAndRoles(admin: ReturnType<typeof createAdminClient>, rows: BaseRow[]) {
   const userIds = rows.map((r) => r.id);
-  const { data: profileRows } = userIds.length
+  const { data: profileRows, error: profileErr } = userIds.length
     ? await admin
         .from("profiles")
         .select("id, avatar_url, phone, address_line, city, state, zip_code")
         .in("id", userIds)
-    : { data: [] as ProfileRow[] };
+    : { data: [] as ProfileRow[], error: null as null };
+  if (profileErr) {
+    throw new Error(`mergeProfilesAndRoles profiles: ${profileErr.message}`);
+  }
   const { data: roleRows } = userIds.length
     ? await admin.from("user_roles").select("user_id, roles(name)").in("user_id", userIds)
     : { data: [] as UserRoleRow[] };
@@ -64,11 +72,11 @@ async function mergeProfilesAndRoles(admin: ReturnType<typeof createAdminClient>
     return {
       ...u,
       avatar_url: p?.avatar_url ?? null,
-      phone: (p?.phone?.trim?.() || u.phone || null) as string | null,
-      address_line: p?.address_line ?? null,
-      city: p?.city ?? null,
-      state: p?.state ?? null,
-      zip_code: p?.zip_code ?? null,
+      phone: preferNonEmptyAddr(p?.phone, u.phone),
+      address_line: preferNonEmptyAddr(p?.address_line, u.address_line),
+      city: preferNonEmptyAddr(p?.city, u.city),
+      state: preferNonEmptyAddr(p?.state, u.state),
+      zip_code: preferNonEmptyAddr(p?.zip_code, u.zip_code),
       role_names: (roleByUser.get(u.id) ?? []).sort(),
     };
   });
@@ -167,7 +175,7 @@ export async function GET(req: Request) {
   let query = admin
     .from("dashboard_community_members")
     .select(
-      "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id",
+      "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id, address_line, city, state, zip_code",
       { count: "exact" }
     )
     .order("email");

@@ -501,7 +501,7 @@ export async function POST(req: Request) {
 
             for (const entry of entries) {
               const flat = toFlatEntry(entry);
-              const { email, password, firstName, lastName, phone, primaryChapterId } = parseFluentFlatRow(flat);
+              const { email, firstName, lastName, phone, primaryChapterId } = parseFluentFlatRow(flat);
               const mailing = userMailingAddressFromImportRow(flat);
 
               if (task.key === "chapters") {
@@ -539,6 +539,7 @@ export async function POST(req: Request) {
               const emailNorm = identity.email;
               const firstOk = identity.firstName;
               const lastOk = identity.lastName;
+              /** Prefer dashboard_users; also treat auth-only accounts as existing (mirror trigger may have missed). */
               const existingDu = byEmail.get(emailNorm) ?? byAuthEmail.get(emailNorm);
 
               /** Match webhook strategy but with in-memory chapter cache for large sync runs. */
@@ -577,6 +578,7 @@ export async function POST(req: Request) {
                   } else {
                     imported += 1;
                     send({ level: "ok", message: `Leader updated: ${emailNorm}` });
+                    byEmail.set(emailNorm, { id: existingDu.id });
                   }
                 } else if (task.key === "members") {
                   const ex = await syncExistingUserFromFluentForm(admin, {
@@ -597,6 +599,7 @@ export async function POST(req: Request) {
                   } else {
                     imported += 1;
                     send({ level: "ok", message: `Member updated: ${emailNorm}` });
+                    byEmail.set(emailNorm, { id: existingDu.id });
                   }
                 } else {
                   omitted += 1;
@@ -619,7 +622,7 @@ export async function POST(req: Request) {
                     phone,
                     chapterId,
                     leaderRoleId,
-                    passwordOverride: password,
+                    /* Sync: always use default password for new accounts; never take password from Fluent. */
                     mailing,
                   })
                 );
@@ -640,7 +643,7 @@ export async function POST(req: Request) {
                 continue;
               }
 
-              const effectiveMemberPassword = password.length >= 8 ? password : DEFAULT_EXTERNAL_USER_PASSWORD;
+              const effectiveMemberPassword = DEFAULT_EXTERNAL_USER_PASSWORD;
               let created: Awaited<ReturnType<typeof admin.auth.admin.createUser>>["data"] | null = null;
               let createErr: Awaited<ReturnType<typeof admin.auth.admin.createUser>>["error"] | null = null;
               for (let attempt = 1; attempt <= 3; attempt += 1) {

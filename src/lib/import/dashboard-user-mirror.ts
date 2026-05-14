@@ -38,32 +38,54 @@ export async function ensureDashboardUserMirror(
     displayName: string;
     primaryChapterId: string | null;
     phone: string | null | undefined;
+    /** `undefined` = do not change mailing columns (keep existing). `null` or object = set/clear. */
     mailing?: UserMailingFields | null;
+    /**
+     * When updating an existing `dashboard_users` row, omit `email` so Fluent sync/webhook
+     * does not overwrite the account email (identity stays stable).
+     */
+    skipEmailOnUpdate?: boolean;
   }
 ): Promise<{ error?: string }> {
   const now = new Date().toISOString();
+  const mailingPatch =
+    row.mailing === undefined
+      ? {}
+      : row.mailing === null
+        ? {
+            address_line: null as string | null,
+            city: null as string | null,
+            state: null as string | null,
+            zip_code: null as string | null,
+          }
+        : {
+            address_line: row.mailing.address_line ?? null,
+            city: row.mailing.city ?? null,
+            state: row.mailing.state ?? null,
+            zip_code: row.mailing.zip_code ?? null,
+          };
+  const { data: exists } = await admin.from("dashboard_users").select("id").eq("id", row.id).maybeSingle();
+  const isUpdate = Boolean(exists?.id);
+  const skipEmail = Boolean(row.skipEmailOnUpdate && isUpdate);
   const patch = {
-    email: row.email,
+    ...(skipEmail ? {} : { email: row.email }),
     first_name: row.firstName,
     last_name: row.lastName,
     display_name: row.displayName,
     primary_chapter_id: row.primaryChapterId,
     phone: row.phone?.trim() || null,
-    address_line: row.mailing?.address_line ?? null,
-    city: row.mailing?.city ?? null,
-    state: row.mailing?.state ?? null,
-    zip_code: row.mailing?.zip_code ?? null,
+    ...mailingPatch,
     updated_at: now,
   };
 
-  const { data: exists } = await admin.from("dashboard_users").select("id").eq("id", row.id).maybeSingle();
-  if (exists?.id) {
+  if (isUpdate) {
     const { error } = await admin.from("dashboard_users").update(patch).eq("id", row.id);
     return error ? { error: error.message } : {};
   }
 
   const { error } = await admin.from("dashboard_users").insert({
     id: row.id,
+    email: row.email,
     ...patch,
     created_at: now,
   });
@@ -123,7 +145,12 @@ export async function syncExistingUserFromFluentForm(
   }
 ): Promise<{ error?: string }> {
   const displayName = `${opts.firstName} ${opts.lastName}`.trim();
-  const mailMeta = mailingForUserMetadata(opts.mailing);
+  const hasMailing =
+    !!(opts.mailing.address_line || "").trim() ||
+    !!(opts.mailing.city || "").trim() ||
+    !!(opts.mailing.state || "").trim() ||
+    !!(opts.mailing.zip_code || "").trim();
+  const mailMeta = hasMailing ? mailingForUserMetadata(opts.mailing) : {};
 
   const { data: prof } = await admin
     .from("profiles")
@@ -134,6 +161,7 @@ export async function syncExistingUserFromFluentForm(
   const hadNoChapter = prof?.primary_chapter_id == null;
   const primaryChapterId = hadNoChapter ? opts.chapterId : String(prof!.primary_chapter_id);
 
+  /** Never set `password` here — existing users keep their current password. */
   await admin.auth.admin.updateUserById(opts.userId, {
     user_metadata: {
       first_name: opts.firstName,
@@ -152,10 +180,14 @@ export async function syncExistingUserFromFluentForm(
       display_name: displayName,
       primary_chapter_id: primaryChapterId,
       ...(opts.phone ? { phone: opts.phone } : {}),
-      address_line: opts.mailing.address_line,
-      city: opts.mailing.city,
-      state: opts.mailing.state,
-      zip_code: opts.mailing.zip_code,
+      ...(hasMailing
+        ? {
+            address_line: opts.mailing.address_line,
+            city: opts.mailing.city,
+            state: opts.mailing.state,
+            zip_code: opts.mailing.zip_code,
+          }
+        : {}),
     })
     .eq("id", opts.userId);
 
@@ -167,7 +199,8 @@ export async function syncExistingUserFromFluentForm(
     displayName,
     primaryChapterId,
     phone: opts.phone,
-    mailing: opts.mailing,
+    mailing: hasMailing ? opts.mailing : undefined,
+    skipEmailOnUpdate: true,
   });
   if (mirror.error) return { error: mirror.error };
 

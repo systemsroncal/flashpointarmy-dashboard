@@ -15,6 +15,10 @@ import { useMemo, useState } from "react";
 export type CourseProgressRow = {
   uid: string;
   label: string;
+  city: string | null;
+  state: string | null;
+  /** Human-readable primary role for reporting (e.g. Member, Local leader). */
+  roleLabel: string;
   done: number;
   quiz: { best: number; max: number } | null;
 };
@@ -42,6 +46,9 @@ export function CourseProgressUsersTable({
         <TableHead>
           <TableRow>
             <TableCell>User</TableCell>
+            <TableCell>City</TableCell>
+            <TableCell>State</TableCell>
+            <TableCell>Role</TableCell>
             <TableCell align="right">Sessions completed</TableCell>
             <TableCell align="right">Quiz (best attempt)</TableCell>
           </TableRow>
@@ -49,7 +56,7 @@ export function CourseProgressUsersTable({
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={3}>
+              <TableCell colSpan={6}>
                 <Typography color="text.secondary">No progress recorded yet.</Typography>
               </TableCell>
             </TableRow>
@@ -57,6 +64,9 @@ export function CourseProgressUsersTable({
             paged.map((r) => (
               <TableRow key={r.uid}>
                 <TableCell>{r.label}</TableCell>
+                <TableCell>{r.city?.trim() || "—"}</TableCell>
+                <TableCell>{r.state?.trim() || "—"}</TableCell>
+                <TableCell>{r.roleLabel}</TableCell>
                 <TableCell align="right">
                   {r.done} / {totalSessions}
                 </TableCell>
