@@ -58,6 +58,7 @@ import { createClient } from "@/utils/supabase/client";
 import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
+import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { UserProfileDrawer } from "./UserProfileDrawer";
 
@@ -434,6 +435,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   }}
                   sx={{
                     py: 0.75,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    gap: 0.5,
                     "&.Mui-selected": redNavAccent
                       ? {
                           borderLeft: `3px solid ${MOVILIZATION_RED}`,
@@ -460,6 +465,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   </ListItemIcon>
                   <ListItemText
                     primary={item.label}
+                    sx={
+                      item.href === "/dashboard/notifications"
+                        ? { flex: "1 1 auto", minWidth: 0, m: 0 }
+                        : undefined
+                    }
                     primaryTypographyProps={{
                       variant: "body2",
                       fontWeight: 600,
@@ -471,6 +481,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         : "rgba(255,255,255,0.88)",
                     }}
                   />
+                  {item.href === "/dashboard/notifications" ? <NotificationsDrawerUnreadCount /> : null}
                 </ListItemButton>
               </ListItem>
             );

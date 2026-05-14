@@ -1,4 +1,4 @@
-import { DEFAULT_EXTERNAL_USER_PASSWORD } from "@/lib/auth/default-external-user-password";
+import { DEFAULT_EXTERNAL_USER_PASSWORD, withExternalPasswordChangeFlag } from "@/lib/auth/default-external-user-password";
 import { NextResponse } from "next/server";
 import {
   extractFormIdFromPayload,
@@ -59,7 +59,7 @@ async function readBodyAsRecord(req: Request): Promise<Record<string, unknown>> 
  * used as `created_by` when auto-creating chapters — use a dedicated admin/service account).
  *
  * Password: optional in the payload. If missing or shorter than 8 characters, the server uses
- * the default external user password (same as import / Fluent sync).
+ * the default external password (see `DEFAULT_EXTERNAL_USER_PASSWORD`, currently FLASHPOINT).
  */
 export async function POST(req: Request) {
   const expected = process.env.FLUENT_FORM_WEBHOOK_SECRET?.trim();
@@ -233,13 +233,16 @@ export async function POST(req: Request) {
     email,
     password: effectivePassword,
     email_confirm: true,
-    user_metadata: {
-      first_name: firstName,
-      last_name: lastName,
-      primary_chapter_id: chapterId,
-      phone: phone || null,
-      ...mailingForUserMetadata(mailing),
-    },
+    user_metadata: withExternalPasswordChangeFlag(
+      {
+        first_name: firstName,
+        last_name: lastName,
+        primary_chapter_id: chapterId,
+        phone: phone || null,
+        ...mailingForUserMetadata(mailing),
+      },
+      effectivePassword
+    ),
   });
 
   if (createErr || !created.user?.id) {
@@ -261,13 +264,16 @@ export async function POST(req: Request) {
   const displayName = `${firstName} ${lastName}`.trim();
   const { error: authUpErr } = await admin.auth.admin.updateUserById(newId, {
     email_confirm: true,
-    user_metadata: {
-      first_name: firstName,
-      last_name: lastName,
-      primary_chapter_id: chapterId,
-      phone: phone || null,
-      ...mailingForUserMetadata(mailing),
-    },
+    user_metadata: withExternalPasswordChangeFlag(
+      {
+        first_name: firstName,
+        last_name: lastName,
+        primary_chapter_id: chapterId,
+        phone: phone || null,
+        ...mailingForUserMetadata(mailing),
+      },
+      effectivePassword
+    ),
   });
   if (authUpErr) {
     await admin.from("user_roles").delete().eq("user_id", newId);

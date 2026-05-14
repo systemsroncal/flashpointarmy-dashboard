@@ -70,6 +70,42 @@ export async function ensureDashboardUserMirror(
   return error ? { error: error.message } : {};
 }
 
+/**
+ * Community (and RBAC) expect at least one row in `user_roles`. `handle_new_user` assigns `member`,
+ * but if that step was skipped (e.g. `roles` seed missing `member` temporarily, or trigger drift),
+ * the user exists in auth/dashboard_users yet never appears in `dashboard_community_members`.
+ */
+export async function ensureMemberRoleIfUserHasNoRoles(
+  admin: SupabaseClient,
+  userId: string
+): Promise<{ error?: string }> {
+  const { data: anyRole, error: countErr } = await admin
+    .from("user_roles")
+    .select("role_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  if (countErr) return { error: countErr.message };
+  if (anyRole?.role_id) return {};
+
+  const { data: memberRole, error: roleErr } = await admin
+    .from("roles")
+    .select("id")
+    .eq("name", "member")
+    .maybeSingle();
+  if (roleErr) return { error: roleErr.message };
+  if (!memberRole?.id) {
+    return { error: "Tabla public.roles no contiene la fila name = 'member'." };
+  }
+
+  const { error: insErr } = await admin.from("user_roles").insert({
+    user_id: userId,
+    role_id: memberRole.id as string,
+  });
+  if (insErr) return { error: insErr.message };
+  return {};
+}
+
 /** Re-sync: assign chapter / roles / mirror when Fluent row matches an existing dashboard user by email. */
 export async function syncExistingUserFromFluentForm(
   admin: SupabaseClient,

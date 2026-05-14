@@ -17,7 +17,7 @@ import {
 } from "@/lib/import/dashboard-user-mirror";
 import { resolveChapterForMemberImport, type ChapterRow } from "@/lib/import/chapter-import";
 import { mailingForUserMetadata, userMailingAddressFromImportRow } from "@/lib/import/user-mailing-address";
-import { DEFAULT_EXTERNAL_USER_PASSWORD } from "@/lib/auth/default-external-user-password";
+import { DEFAULT_EXTERNAL_USER_PASSWORD, withExternalPasswordChangeFlag } from "@/lib/auth/default-external-user-password";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
@@ -147,13 +147,16 @@ export async function POST(req: Request) {
       email,
       password,
       email_confirm: true,
-      user_metadata: {
-        first_name: fn,
-        last_name: ln,
-        primary_chapter_id: chapter.id,
-        phone: phone || null,
-        ...mailingForUserMetadata(mailing),
-      },
+      user_metadata: withExternalPasswordChangeFlag(
+        {
+          first_name: fn,
+          last_name: ln,
+          primary_chapter_id: chapter.id,
+          phone: phone || null,
+          ...mailingForUserMetadata(mailing),
+        },
+        password
+      ),
     });
     if (createErr || !created.user?.id) {
       results.push({ status: "omitted", email, phone, reason: createErr?.message || "Could not create user." });
@@ -163,13 +166,16 @@ export async function POST(req: Request) {
     const userId = created.user.id;
     await admin.auth.admin.updateUserById(userId, {
       email_confirm: true,
-      user_metadata: {
-        first_name: fn,
-        last_name: ln,
-        primary_chapter_id: chapter.id,
-        phone: phone || null,
-        ...mailingForUserMetadata(mailing),
-      },
+      user_metadata: withExternalPasswordChangeFlag(
+        {
+          first_name: fn,
+          last_name: ln,
+          primary_chapter_id: chapter.id,
+          phone: phone || null,
+          ...mailingForUserMetadata(mailing),
+        },
+        password
+      ),
     });
 
     await admin.from("user_roles").delete().eq("user_id", userId);

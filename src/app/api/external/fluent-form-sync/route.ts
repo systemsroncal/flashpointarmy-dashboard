@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { MODULE_SLUGS } from "@/config/modules";
-import { DEFAULT_EXTERNAL_USER_PASSWORD } from "@/lib/auth/default-external-user-password";
+import {
+  DEFAULT_EXTERNAL_USER_PASSWORD,
+  withExternalPasswordChangeFlag,
+} from "@/lib/auth/default-external-user-password";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
@@ -637,20 +640,24 @@ export async function POST(req: Request) {
                 continue;
               }
 
+              const effectiveMemberPassword = password.length >= 8 ? password : DEFAULT_EXTERNAL_USER_PASSWORD;
               let created: Awaited<ReturnType<typeof admin.auth.admin.createUser>>["data"] | null = null;
               let createErr: Awaited<ReturnType<typeof admin.auth.admin.createUser>>["error"] | null = null;
               for (let attempt = 1; attempt <= 3; attempt += 1) {
                 const res = await admin.auth.admin.createUser({
                   email: emailNorm,
-                  password: password.length >= 8 ? password : DEFAULT_EXTERNAL_USER_PASSWORD,
+                  password: effectiveMemberPassword,
                   email_confirm: true,
-                  user_metadata: {
-                    first_name: firstOk,
-                    last_name: lastOk,
-                    primary_chapter_id: chapterId,
-                    phone: phone || null,
-                    ...mailingForUserMetadata(mailing),
-                  },
+                  user_metadata: withExternalPasswordChangeFlag(
+                    {
+                      first_name: firstOk,
+                      last_name: lastOk,
+                      primary_chapter_id: chapterId,
+                      phone: phone || null,
+                      ...mailingForUserMetadata(mailing),
+                    },
+                    effectiveMemberPassword
+                  ),
                 });
                 created = res.data;
                 createErr = res.error;
@@ -715,13 +722,16 @@ export async function POST(req: Request) {
               const displayName = `${firstOk} ${lastOk}`.trim();
               await admin.auth.admin.updateUserById(newId, {
                 email_confirm: true,
-                user_metadata: {
-                  first_name: firstOk,
-                  last_name: lastOk,
-                  primary_chapter_id: chapterId,
-                  phone: phone || null,
-                  ...mailingForUserMetadata(mailing),
-                },
+                user_metadata: withExternalPasswordChangeFlag(
+                  {
+                    first_name: firstOk,
+                    last_name: lastOk,
+                    primary_chapter_id: chapterId,
+                    phone: phone || null,
+                    ...mailingForUserMetadata(mailing),
+                  },
+                  effectiveMemberPassword
+                ),
               });
               await admin.from("profiles").update({
                 first_name: firstOk,

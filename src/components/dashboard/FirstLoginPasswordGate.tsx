@@ -81,12 +81,11 @@ export function FirstLoginPasswordGate() {
       maxWidth="xs"
       fullWidth
     >
-      <DialogTitle sx={{ color: "primary.main", fontWeight: 800 }}>
-        Set a new password
-      </DialogTitle>
+      <DialogTitle sx={{ color: "primary.main", fontWeight: 800 }}>Change your password</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          For security, you must choose a new password before using the dashboard.
+          You signed in with the temporary organization password. Choose a new password (at least 8
+          characters) before using the rest of the dashboard.
         </Typography>
         {err ? (
           <Typography color="error" sx={{ mb: 1 }}>

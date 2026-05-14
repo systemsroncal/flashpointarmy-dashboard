@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DEFAULT_EXTERNAL_USER_PASSWORD } from "@/lib/auth/default-external-user-password";
+import {
+  DEFAULT_EXTERNAL_USER_PASSWORD,
+  withExternalPasswordChangeFlag,
+} from "@/lib/auth/default-external-user-password";
 import { ensureDashboardUserMirror } from "@/lib/import/dashboard-user-mirror";
 import type { UserMailingFields } from "@/lib/import/user-mailing-address";
 import { mailingForUserMetadata } from "@/lib/import/user-mailing-address";
@@ -65,13 +68,16 @@ export async function createLocalLeaderUserForChapter(
   const displayName = `${firstName} ${lastName}`.trim();
   await admin.auth.admin.updateUserById(userId, {
     email_confirm: true,
-    user_metadata: {
-      first_name: firstName,
-      last_name: lastName,
-      primary_chapter_id: chapterId,
-      phone: phone || null,
-      ...mailMeta,
-    },
+    user_metadata: withExternalPasswordChangeFlag(
+      {
+        first_name: firstName,
+        last_name: lastName,
+        primary_chapter_id: chapterId,
+        phone: phone || null,
+        ...mailMeta,
+      },
+      password
+    ),
   });
 
   const { error: profErr } = await admin

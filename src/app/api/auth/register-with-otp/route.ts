@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureMemberRoleIfUserHasNoRoles } from "@/lib/import/dashboard-user-mirror";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { hashOtp, normalizeEmail, OTP_PURPOSE_REGISTER } from "@/lib/auth/email-otp";
 
@@ -80,6 +81,11 @@ export async function POST(req: Request) {
     });
     if (createErr || !created.user) {
       return NextResponse.json({ error: createErr?.message || "Could not create account." }, { status: 500 });
+    }
+
+    const roleFix = await ensureMemberRoleIfUserHasNoRoles(supabase, created.user.id);
+    if (roleFix.error) {
+      console.error("[register-with-otp] ensureMemberRoleIfUserHasNoRoles:", roleFix.error);
     }
 
     await supabase

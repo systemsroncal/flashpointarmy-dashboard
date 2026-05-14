@@ -4,7 +4,10 @@ import { DashboardUserProvider } from "@/contexts/DashboardUserContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { loadDashboardUser } from "@/lib/auth/dashboard-user";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
-import { ensureDashboardUserMirror } from "@/lib/import/dashboard-user-mirror";
+import {
+  ensureDashboardUserMirror,
+  ensureMemberRoleIfUserHasNoRoles,
+} from "@/lib/import/dashboard-user-mirror";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
@@ -56,6 +59,13 @@ export default async function DashboardLayout({
     if (mirror.error) {
       redirect("/login");
     }
+    await ensureMemberRoleIfUserHasNoRoles(admin, user.id);
+    dashboardUser = await loadDashboardUser(supabase, user.id);
+  }
+
+  if (dashboardUser && dashboardUser.role_names.length === 0) {
+    const admin = createAdminClient();
+    await ensureMemberRoleIfUserHasNoRoles(admin, user.id);
     dashboardUser = await loadDashboardUser(supabase, user.id);
   }
 

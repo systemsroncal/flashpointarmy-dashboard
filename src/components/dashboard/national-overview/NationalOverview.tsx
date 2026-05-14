@@ -277,7 +277,7 @@ export function NationalOverview({
   return (
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 800, color: "primary.main", letterSpacing: "0.04em" }}>
-        FLASHPOINT ARMY COMMAND CENTER
+        Command Center - FlashPoint Army Chapters
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         Real-time overview of community engagement across the nation.
