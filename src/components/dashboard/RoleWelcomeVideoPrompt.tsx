@@ -2,7 +2,7 @@
 
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import CloseIcon from "@mui/icons-material/Close";
-import { Box, Dialog, DialogContent, DialogTitle, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, Dialog, DialogContent, DialogTitle, IconButton, Tooltip } from "@mui/material";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { usePathname } from "next/navigation";
@@ -240,7 +240,7 @@ export function RoleWelcomeVideoPrompt() {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ pb: manualOpen ? 2 : 2, pt: 0, px: { xs: 1, sm: 2 } }}>
+        <DialogContent sx={{ pb: 2, pt: 0, px: { xs: 1, sm: 2 } }}>
           <Box sx={{ width: "100%", bgcolor: "transparent" }}>
             {dialogUrl ? (
               <CourseVideoPlyr
@@ -252,12 +252,6 @@ export function RoleWelcomeVideoPrompt() {
               />
             ) : null}
           </Box>
-          {!manualOpen && open ? (
-            <Typography variant="caption" sx={{ display: "block", textAlign: "center", mt: 1.5, color: "grey.400" }}>
-              En National overview se abre solo como máximo una vez cada 24 h. Puedes verlo cuando quieras con el botón
-              de videocámara arriba.
-            </Typography>
-          ) : null}
         </DialogContent>
       </Dialog>
     </>

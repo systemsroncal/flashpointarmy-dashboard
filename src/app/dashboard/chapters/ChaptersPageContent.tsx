@@ -50,9 +50,24 @@ export default async function ChaptersPageContent() {
     rows = [];
   }
 
+  const isLocalLeader = roleNames.includes("local_leader");
+  const restrictToAssignedChapter =
+    !elevated && !isLocalLeader && roleNames.includes("member");
+
+  if (restrictToAssignedChapter) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("primary_chapter_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    const pid = (prof as { primary_chapter_id: string | null } | null)?.primary_chapter_id ?? null;
+    rows = pid ? rows.filter((r) => r.id === pid) : [];
+  }
+
   let leaderOptions: { id: string; label: string }[] = [];
   let leadersByChapter: Record<string, string> = {};
 
+  if (elevated) {
   try {
     const admin = createAdminClient();
     /** Anyone with the local_leader role OR already linked in chapter_leaders (covers legacy / partial role sync). */
@@ -146,6 +161,7 @@ export default async function ChaptersPageContent() {
     leaderOptions = [];
     leadersByChapter = {};
   }
+  }
 
   return (
     <ChaptersSection
@@ -157,6 +173,7 @@ export default async function ChaptersPageContent() {
       canUpdate={update}
       canDelete={del}
       showRowActions={showChapterRowActions}
+      showLeadersColumn={elevated}
     />
   );
 }

@@ -154,6 +154,8 @@ export function ChaptersSection({
   canUpdate,
   canDelete,
   showRowActions = true,
+  /** Admin / super_admin only — local leaders and members must not see assigned leaders. */
+  showLeadersColumn = true,
 }: {
   initialRows: ChapterRow[];
   leaderOptions: LeaderOption[];
@@ -165,6 +167,7 @@ export function ChaptersSection({
   canDelete: boolean;
   /** Local leaders: read-only table (no view/edit/delete column). */
   showRowActions?: boolean;
+  showLeadersColumn?: boolean;
 }) {
   const router = useRouter();
   const [rows, setRows] = useSyncedState(initialRows);
@@ -207,6 +210,12 @@ export function ChaptersSection({
     setPage(0);
   }, [tableSearch, orderBy, order, filter]);
 
+  useEffect(() => {
+    if (!showLeadersColumn && orderBy === "leaders") {
+      setOrderBy("name");
+    }
+  }, [showLeadersColumn, orderBy]);
+
   function handleRequestSort(property: ChapterSortKey) {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
@@ -220,7 +229,7 @@ export function ChaptersSection({
     return byStatus.filter((r) => {
       const st = usStateByCode(r.state);
       const stLabel = st ? `${st.name} ${r.state}`.toLowerCase() : r.state.toLowerCase();
-      const leaders = (leadersByChapter[r.id] ?? "").toLowerCase();
+      const leaders = showLeadersColumn ? (leadersByChapter[r.id] ?? "").toLowerCase() : "";
       const blob = [
         r.name,
         r.city ?? "",
@@ -232,7 +241,7 @@ export function ChaptersSection({
         .toLowerCase();
       return blob.includes(q);
     });
-  }, [rows, filter, tableSearch, leadersByChapter]);
+  }, [rows, filter, tableSearch, leadersByChapter, showLeadersColumn]);
 
   const sorted = useMemo(() => {
     const dir = order === "asc" ? 1 : -1;
@@ -274,7 +283,12 @@ export function ChaptersSection({
 
   async function openEdit(row: ChapterRow) {
     setEditRow(row);
-    await loadLeadersForChapter(row.id);
+    if (showLeadersColumn) {
+      await loadLeadersForChapter(row.id);
+    } else {
+      setEditLeaders([]);
+      setEditLeadersBaseline([]);
+    }
   }
 
   async function openDelete(row: ChapterRow) {
@@ -312,30 +326,32 @@ export function ChaptersSection({
 
     if (upErr || !updated) return;
 
-    const baseline = editLeadersBaseline;
-    const current = editLeaders;
-    const toRemove = baseline.filter((id) => !current.includes(id));
-    const toAdd = current.filter((id) => !baseline.includes(id));
+    if (showLeadersColumn) {
+      const baseline = editLeadersBaseline;
+      const current = editLeaders;
+      const toRemove = baseline.filter((id) => !current.includes(id));
+      const toAdd = current.filter((id) => !baseline.includes(id));
 
-    for (const uid of toRemove) {
-      await supabase
-        .from("chapter_leaders")
-        .delete()
-        .eq("chapter_id", editRow.id)
-        .eq("user_id", uid);
-    }
-    if (toAdd.length > 0) {
-      await supabase.from("chapter_leaders").insert(
-        toAdd.map((uid) => ({ chapter_id: editRow.id, user_id: uid }))
-      );
-    }
+      for (const uid of toRemove) {
+        await supabase
+          .from("chapter_leaders")
+          .delete()
+          .eq("chapter_id", editRow.id)
+          .eq("user_id", uid);
+      }
+      if (toAdd.length > 0) {
+        await supabase.from("chapter_leaders").insert(
+          toAdd.map((uid) => ({ chapter_id: editRow.id, user_id: uid }))
+        );
+      }
 
-    for (const uid of toAdd) {
-      void fetch("/api/email/local-leader-assigned", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId: uid, chapterId: editRow.id }),
-      });
+      for (const uid of toAdd) {
+        void fetch("/api/email/local-leader-assigned", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetUserId: uid, chapterId: editRow.id }),
+        });
+      }
     }
 
     setRows((prev) =>
@@ -388,7 +404,7 @@ export function ChaptersSection({
       .select("id,name,address_line,city,state,zip_code,status,created_at")
       .single();
     if (error || !inserted) return;
-    if (createLeaders.length > 0) {
+    if (showLeadersColumn && createLeaders.length > 0) {
       await supabase.from("chapter_leaders").insert(
         createLeaders.map((uid) => ({ chapter_id: inserted.id, user_id: uid }))
       );
@@ -504,7 +520,7 @@ export function ChaptersSection({
           <TextField
             size="small"
             label="Search"
-            placeholder="Chapter, state, leaders…"
+            placeholder={showLeadersColumn ? "Chapter, state, leaders…" : "Chapter, state…"}
             value={tableSearch}
             onChange={(e) => setTableSearch(e.target.value)}
             sx={{ minWidth: 220 }}
@@ -531,7 +547,9 @@ export function ChaptersSection({
           <TableHead>
             <TableRow>
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Chapter location</TableCell>
-              <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Leaders</TableCell>
+              {showLeadersColumn ? (
+                <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Leaders</TableCell>
+              ) : null}
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>State</TableCell>
               <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Status</TableCell>
               {showRowActions ? (
@@ -547,11 +565,13 @@ export function ChaptersSection({
               return (
               <TableRow key={row.id}>
                 <TableCell>{row.name}</TableCell>
-                <TableCell sx={{ maxWidth: 280 }}>
-                  <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                    {leadersByChapter[row.id]?.trim() || "—"}
-                  </Typography>
-                </TableCell>
+                {showLeadersColumn ? (
+                  <TableCell sx={{ maxWidth: 280 }}>
+                    <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+                      {leadersByChapter[row.id]?.trim() || "—"}
+                    </Typography>
+                  </TableCell>
+                ) : null}
                 <TableCell>
                   {stOpt ? `${stOpt.name} (${row.state})` : row.state}
                 </TableCell>
@@ -622,9 +642,11 @@ export function ChaptersSection({
               </Typography>
               <Typography><strong>ZIP:</strong> {viewRow.zip_code ?? "—"}</Typography>
               <Typography><strong>Status:</strong> {STATUS_LABEL[viewRow.status] ?? viewRow.status}</Typography>
-              <Typography>
-                <strong>Leaders:</strong> {leadersByChapter[viewRow.id]?.trim() || "—"}
-              </Typography>
+              {showLeadersColumn ? (
+                <Typography>
+                  <strong>Leaders:</strong> {leadersByChapter[viewRow.id]?.trim() || "—"}
+                </Typography>
+              ) : null}
             </Box>
           ) : null}
         </DialogContent>
@@ -677,12 +699,14 @@ export function ChaptersSection({
                   <MenuItem value="approved">Approved</MenuItem>
                 </Select>
               </FormControl>
-              <LeadersMultiAutocomplete
-                label="Leaders"
-                options={leaderOptions}
-                value={editLeaders}
-                onChange={setEditLeaders}
-              />
+              {showLeadersColumn ? (
+                <LeadersMultiAutocomplete
+                  label="Leaders"
+                  options={leaderOptions}
+                  value={editLeaders}
+                  onChange={setEditLeaders}
+                />
+              ) : null}
             </Box>
           ) : null}
         </DialogContent>
@@ -744,12 +768,14 @@ export function ChaptersSection({
                 <MenuItem value="approved">Approved</MenuItem>
               </Select>
             </FormControl>
-            <LeadersMultiAutocomplete
-              label="Leaders (optional)"
-              options={leaderOptions}
-              value={createLeaders}
-              onChange={setCreateLeaders}
-            />
+            {showLeadersColumn ? (
+              <LeadersMultiAutocomplete
+                label="Leaders (optional)"
+                options={leaderOptions}
+                value={createLeaders}
+                onChange={setCreateLeaders}
+              />
+            ) : null}
           </Box>
         </DialogContent>
         <DialogActions>
