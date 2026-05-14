@@ -51,6 +51,7 @@ export default async function ChaptersPageContent() {
   }
 
   const isLocalLeader = roleNames.includes("local_leader");
+  /** Members (role `member`, not a local leader, not admin) only see their assigned chapter (`profiles.primary_chapter_id`). */
   const restrictToAssignedChapter =
     !elevated && !isLocalLeader && roleNames.includes("member");
 
