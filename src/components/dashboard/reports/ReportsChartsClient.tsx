@@ -1,5 +1,6 @@
 "use client";
 
+import { ReportsPresenceSection } from "@/components/dashboard/reports/ReportsPresenceSection";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import {
   Alert,
@@ -205,6 +206,7 @@ export function ReportsChartsClient() {
 
   return (
     <Stack spacing={3}>
+      <ReportsPresenceSection />
       <Stack direction="row" spacing={1} alignItems="center">
         <AssessmentIcon color="primary" />
         <Typography variant="h5">Reports</Typography>

@@ -89,6 +89,10 @@ export function CourseVideoPlyr({
   storageKey,
   autoplayMuted = false,
   omitPlayLargeControl = false,
+  /** When true, the seek/progress control is hidden (e.g. until the user finishes the video once). */
+  hideProgressBar = false,
+  /** Fires once when playback reaches the end (after persisting the final position). */
+  onVideoFullyWatched,
 }: {
   videoUrl: string;
   initialSeconds: number;
@@ -99,6 +103,8 @@ export function CourseVideoPlyr({
   autoplayMuted?: boolean;
   /** Hide Plyr's big center play so it matches a single-tap flow with the bar controls. */
   omitPlayLargeControl?: boolean;
+  hideProgressBar?: boolean;
+  onVideoFullyWatched?: () => void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlyrLike | null>(null);
@@ -106,6 +112,8 @@ export function CourseVideoPlyr({
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const persistHandlerRef = useRef(onPersistSeconds);
   persistHandlerRef.current = onPersistSeconds;
+  const onFullyWatchedRef = useRef(onVideoFullyWatched);
+  onFullyWatchedRef.current = onVideoFullyWatched;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -198,7 +206,14 @@ export function CourseVideoPlyr({
 
       const snapshot = () => persist(readCurrentTime(player));
       player.on("pause", snapshot);
-      player.on("ended", snapshot);
+      player.on("ended", () => {
+        snapshot();
+        try {
+          onFullyWatchedRef.current?.();
+        } catch {
+          /* ignore */
+        }
+      });
 
       tickRef.current = setInterval(snapshot, 5000);
     });
@@ -235,6 +250,13 @@ export function CourseVideoPlyr({
           width: "100%",
           height: "100%",
         },
+        ...(hideProgressBar
+          ? {
+              "& .plyr__progress": { display: "none !important" },
+              "& .plyr__progress__container": { display: "none !important" },
+              "& input[data-plyr='seek']": { display: "none !important" },
+            }
+          : {}),
       }}
     />
   );

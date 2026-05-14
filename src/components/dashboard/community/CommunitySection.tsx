@@ -110,6 +110,51 @@ function emailFromSuggestionLabel(label: string): string {
   return label.trim();
 }
 
+/** Text used for client-side directory search (Leaders / Admins). */
+function buildUserSearchBlob(
+  u: CommunityUserRow,
+  chapterOptions: ChapterOption[],
+  variant: "community" | "leaders" | "admins",
+): string {
+  const roleLabel = tableRoleLabel(u, variant);
+  const parts: string[] = [
+    u.email,
+    u.phone ?? "",
+    u.first_name ?? "",
+    u.last_name ?? "",
+    u.display_name ?? "",
+    u.address_line ?? "",
+    u.city ?? "",
+    u.zip_code ?? "",
+    u.created_at ? new Date(u.created_at).toLocaleDateString() : "",
+    roleLabel,
+    ...(u.role_names ?? []),
+  ];
+  const st = u.state?.trim();
+  if (st) {
+    parts.push(st);
+    const meta = usStateByCode(st);
+    if (meta?.name) parts.push(meta.name);
+  }
+  if (u.primary_chapter_id) {
+    const ch = chapterOptions.find((c) => c.id === u.primary_chapter_id);
+    if (ch) {
+      parts.push(ch.name, ch.city ?? "", ch.zip_code ?? "");
+      const chSt = ch.state?.trim();
+      if (chSt) {
+        parts.push(chSt);
+        const chMeta = usStateByCode(chSt);
+        if (chMeta?.name) parts.push(chMeta.name);
+      }
+    }
+  }
+  return parts
+    .join(" ")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 type CommunitySortKey =
   | "email"
   | "phone"
@@ -535,29 +580,13 @@ export function CommunitySection({
     if (remoteMode) return users;
     const chapterScoped =
       filterChapterId === "all" ? users : users.filter((u) => u.primary_chapter_id === filterChapterId);
-    const q = searchCommitted.trim().toLowerCase();
+    const q = searchCommitted.trim().toLowerCase().replace(/\s+/g, " ");
     if (!q) return chapterScoped;
     return chapterScoped.filter((u) => {
-      const roleLabel = tableRoleLabel(u, variant);
-      const blob = [
-        u.email,
-        u.phone ?? "",
-        u.first_name ?? "",
-        u.last_name ?? "",
-        u.display_name ?? "",
-        u.address_line ?? "",
-        u.city ?? "",
-        u.state ?? "",
-        u.zip_code ?? "",
-        u.created_at ? new Date(u.created_at).toLocaleDateString() : "",
-        roleLabel,
-        (u.role_names ?? []).join(" "),
-      ]
-        .join(" ")
-        .toLowerCase();
+      const blob = buildUserSearchBlob(u, chapterOptions, variant);
       return blob.includes(q);
     });
-  }, [remoteMode, users, filterChapterId, searchCommitted, variant]);
+  }, [remoteMode, users, filterChapterId, searchCommitted, variant, chapterOptions]);
 
   const sorted = useMemo(() => {
     if (remoteMode) return users;

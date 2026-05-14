@@ -53,6 +53,7 @@ import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { DashboardPresenceProvider } from "@/contexts/DashboardPresenceContext";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/client";
 import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
@@ -659,7 +660,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const appBarShift = desktop && desktopDrawerOpen ? DRAWER_WIDTH : 0;
 
   return (
-    <Box sx={{ minHeight: "100vh" }}>
+    <DashboardPresenceProvider userId={user.id}>
+      <Box sx={{ minHeight: "100vh" }}>
       <FirstLoginPasswordGate />
       <AppBar
         position="fixed"
@@ -766,5 +768,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       <UserProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
     </Box>
+    </DashboardPresenceProvider>
   );
 }

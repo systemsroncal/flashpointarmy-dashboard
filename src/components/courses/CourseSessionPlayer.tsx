@@ -25,7 +25,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 export type SessionElementRow = {
@@ -74,6 +74,36 @@ export function CourseSessionPlayer({
   const [completed, setCompleted] = useState(initialCompleted);
   const [busyComplete, setBusyComplete] = useState(false);
 
+  const sorted = useMemo(
+    () => [...elements].sort((a, b) => a.sort_order - b.sort_order),
+    [elements]
+  );
+
+  const videoElementIds = useMemo(
+    () => sorted.filter((e) => e.element_type === "video").map((e) => e.id),
+    [sorted]
+  );
+
+  const videoIdsKey = videoElementIds.join("\0");
+
+  const [videoFullyWatchedById, setVideoFullyWatchedById] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    for (const id of videoElementIds) {
+      try {
+        const k = `coursevid-done:${user.id}:${sessionId}:${id}`;
+        if (localStorage.getItem(k) === "1") next[id] = true;
+      } catch {
+        /* ignore */
+      }
+    }
+    setVideoFullyWatchedById(next);
+  }, [user.id, sessionId, videoIdsKey]);
+
+  const allVideosFullyWatched =
+    videoElementIds.length === 0 || videoElementIds.every((id) => videoFullyWatchedById[id]);
+
   const mergePersist = useCallback(
     async (patch: { video_positions?: Record<string, number>; completed_at?: string | null }) => {
       const { data } = await supabase
@@ -114,6 +144,7 @@ export function CourseSessionPlayer({
   );
 
   async function markComplete() {
+    if (videoElementIds.length > 0 && !allVideosFullyWatched) return;
     setBusyComplete(true);
     try {
       const completedAt = new Date().toISOString();
@@ -162,7 +193,7 @@ export function CourseSessionPlayer({
     }
   }
 
-  const sorted = [...elements].sort((a, b) => a.sort_order - b.sort_order);
+  const markCompleteAllowed = allVideosFullyWatched;
 
   return (
     <Box>
@@ -236,6 +267,15 @@ export function CourseSessionPlayer({
                   initialSeconds={initialVideoPositions[el.id] ?? 0}
                   storageKey={`coursevid:${user.id}:${el.id}`}
                   onPersistSeconds={(sec) => onVideoSeconds(el.id, sec)}
+                  hideProgressBar={!videoFullyWatchedById[el.id]}
+                  onVideoFullyWatched={() => {
+                    try {
+                      localStorage.setItem(`coursevid-done:${user.id}:${sessionId}:${el.id}`, "1");
+                    } catch {
+                      /* ignore */
+                    }
+                    setVideoFullyWatchedById((prev) => ({ ...prev, [el.id]: true }));
+                  }}
                 />
               </Box>
             ) : null}
@@ -295,15 +335,42 @@ export function CourseSessionPlayer({
         >
           Previous
         </Button>
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<CheckCircleOutlineIcon />}
-          disabled={completed || busyComplete}
-          onClick={() => void markComplete()}
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: 40,
+            px: 1,
+          }}
         >
-          {completed ? "Session completed" : "Mark session as completed"}
-        </Button>
+          {completed ? (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<CheckCircleOutlineIcon />}
+              disabled
+            >
+              Session completed
+            </Button>
+          ) : !markCompleteAllowed && videoElementIds.length > 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 360 }}>
+              Watch each video to the end to unlock session completion. Your place is saved if you leave and come
+              back.
+            </Typography>
+          ) : (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<CheckCircleOutlineIcon />}
+              disabled={busyComplete}
+              onClick={() => void markComplete()}
+            >
+              Mark session as completed
+            </Button>
+          )}
+        </Box>
         <Button
           component={Link}
           href={nextSlug && !nextLocked ? `/dashboard/course/${courseSlug}/session/${nextSlug}` : "#"}
