@@ -37,12 +37,36 @@ type SyncBody = {
   syncChapters?: boolean;
   syncLeaders?: boolean;
   syncMembers?: boolean;
+  /** Update mailing address on users that already exist (default false). */
+  syncAddressForExisting?: boolean;
+  /** Set default password (FLASHPOINT) on users that already exist (default false). */
+  assignDefaultPasswordForExisting?: boolean;
+};
+
+export type FluentSyncSummary = {
+  usersAdded: number;
+  membersAdded: number;
+  localLeadersAdded: number;
+  chaptersAdded: number;
+  usersSkipped: number;
+  skippedUsers: { email: string; reason: string }[];
 };
 
 type SyncEvent = {
-  level: "info" | "ok" | "warn" | "error";
+  level: "info" | "ok" | "warn" | "error" | "summary";
   message: string;
+  summary?: FluentSyncSummary;
 };
+
+function recordUserSkip(
+  skippedUsers: { email: string; reason: string }[],
+  email: string,
+  reason: string
+): string {
+  const line = `${email} - ${reason}`;
+  skippedUsers.push({ email, reason });
+  return line;
+}
 
 type FluentEntry = Record<string, unknown>;
 const UUID_RE =
@@ -331,6 +355,8 @@ export async function POST(req: Request) {
   const syncChapters = body.syncChapters !== false;
   const syncLeaders = body.syncLeaders !== false;
   const syncMembers = body.syncMembers !== false;
+  const syncAddressForExisting = body.syncAddressForExisting === true;
+  const assignDefaultPasswordForExisting = body.assignDefaultPasswordForExisting === true;
   const admin = createAdminClient();
   const systemUserId = process.env.FLUENT_FORM_SYSTEM_USER_ID?.trim() || user.id;
 
@@ -360,9 +386,15 @@ export async function POST(req: Request) {
       void (async () => {
         try {
           send({ level: "info", message: `Sync window: ${body.fromDate} to ${body.toDate}` });
+          send({
+            level: "info",
+            message: `Existing users: sync address=${syncAddressForExisting ? "yes" : "no"}, default password=${assignDefaultPasswordForExisting ? "yes" : "no"}. New users always get address + ${DEFAULT_EXTERNAL_USER_PASSWORD}.`,
+          });
 
-          let imported = 0;
-          let omitted = 0;
+          let membersAdded = 0;
+          let localLeadersAdded = 0;
+          let chaptersAdded = 0;
+          const skippedUsers: { email: string; reason: string }[] = [];
 
           const tasks: Array<{ key: "chapters" | "leaders" | "members"; enabled: boolean; formId: number }> = [
             { key: "chapters", enabled: syncChapters, formId: DEFAULT_FORM_IDS.chapters },
@@ -507,12 +539,10 @@ export async function POST(req: Request) {
               if (task.key === "chapters") {
                 const chapterName = pickChapterName(flat).trim();
                 if (!chapterName) {
-                  omitted += 1;
                   send({ level: "warn", message: "Chapter omitted: missing Church Affiliation / chapter name." });
                   continue;
                 }
                 if (chapterNames.has(chapterName.toLowerCase())) {
-                  omitted += 1;
                   send({ level: "warn", message: `Chapter omitted (already exists): ${chapterName}` });
                   continue;
                 }
@@ -520,10 +550,9 @@ export async function POST(req: Request) {
                   findOrCreateChapterByImportRow(admin, flat, systemUserId)
                 );
                 if ("error" in res) {
-                  omitted += 1;
                   send({ level: "error", message: `Chapter error (${chapterName}): ${res.error}` });
                 } else {
-                  imported += 1;
+                  chaptersAdded += 1;
                   chapterNames.add(chapterName.toLowerCase());
                   send({ level: "ok", message: `Chapter synced: ${res.chapter.name}` });
                 }
@@ -532,8 +561,11 @@ export async function POST(req: Request) {
 
               const identity = validateImportIdentity(email, firstName, lastName);
               if (!identity.ok) {
-                omitted += 1;
-                send({ level: "warn", message: `User omitted: ${identity.reason}` });
+                const skipEmail = email.trim().toLowerCase() || "(no email)";
+                send({
+                  level: "warn",
+                  message: `User skipped: ${recordUserSkip(skippedUsers, skipEmail, identity.reason)}`,
+                });
                 continue;
               }
               const emailNorm = identity.email;
@@ -550,13 +582,31 @@ export async function POST(req: Request) {
                 existingUserId: existingDu?.id ?? null,
               });
               if ("error" in chapterRes) {
-                omitted += 1;
-                send({ level: "error", message: `Chapter resolve failed (${emailNorm}): ${chapterRes.error}` });
+                send({
+                  level: "warn",
+                  message: `User skipped: ${recordUserSkip(skippedUsers, emailNorm, chapterRes.error)}`,
+                });
                 continue;
               }
               const chapterId = chapterRes.chapterId;
 
+              const existingSyncOpts = {
+                syncAddress: syncAddressForExisting,
+                assignDefaultPassword: assignDefaultPasswordForExisting,
+              };
+
               if (existingDu?.id) {
+                if (!syncAddressForExisting && !assignDefaultPasswordForExisting) {
+                  send({
+                    level: "warn",
+                    message: `User skipped: ${recordUserSkip(
+                      skippedUsers,
+                      emailNorm,
+                      "Existing user — enable address sync and/or default password to update"
+                    )}`,
+                  });
+                  continue;
+                }
                 if (task.key === "leaders") {
                   const ex = await withStatementTimeoutRetry(() =>
                     syncExistingUserFromFluentForm(admin, {
@@ -570,13 +620,15 @@ export async function POST(req: Request) {
                       mailing,
                       leaderRoleId,
                       memberRoleId,
+                      ...existingSyncOpts,
                     })
                   );
                   if (ex.error) {
-                    omitted += 1;
-                    send({ level: "error", message: `Leader existing-user sync (${emailNorm}): ${ex.error}` });
+                    send({
+                      level: "warn",
+                      message: `User skipped: ${recordUserSkip(skippedUsers, emailNorm, ex.error)}`,
+                    });
                   } else {
-                    imported += 1;
                     send({ level: "ok", message: `Leader updated: ${emailNorm}` });
                     byEmail.set(emailNorm, { id: existingDu.id });
                   }
@@ -592,26 +644,36 @@ export async function POST(req: Request) {
                     mailing,
                     leaderRoleId,
                     memberRoleId,
+                    ...existingSyncOpts,
                   });
                   if (ex.error) {
-                    omitted += 1;
-                    send({ level: "error", message: `Member existing-user sync (${emailNorm}): ${ex.error}` });
+                    send({
+                      level: "warn",
+                      message: `User skipped: ${recordUserSkip(skippedUsers, emailNorm, ex.error)}`,
+                    });
                   } else {
-                    imported += 1;
                     send({ level: "ok", message: `Member updated: ${emailNorm}` });
                     byEmail.set(emailNorm, { id: existingDu.id });
                   }
                 } else {
-                  omitted += 1;
-                  send({ level: "warn", message: `User already registered (skipped for chapters pass): ${emailNorm}` });
+                  send({
+                    level: "warn",
+                    message: `User skipped: ${recordUserSkip(
+                      skippedUsers,
+                      emailNorm,
+                      "Already registered (chapters pass only)"
+                    )}`,
+                  });
                 }
                 continue;
               }
 
               if (task.key === "leaders") {
                 if (!leaderRoleId) {
-                  omitted += 1;
-                  send({ level: "error", message: "Role local_leader not found." });
+                  send({
+                    level: "warn",
+                    message: `User skipped: ${recordUserSkip(skippedUsers, emailNorm, "Role local_leader not found")}`,
+                  });
                   continue;
                 }
                 const leader = await withStatementTimeoutRetry(() =>
@@ -622,15 +684,16 @@ export async function POST(req: Request) {
                     phone,
                     chapterId,
                     leaderRoleId,
-                    /* Sync: always use default password for new accounts; never take password from Fluent. */
                     mailing,
                   })
                 );
                 if ("error" in leader) {
-                  omitted += 1;
-                  send({ level: "error", message: `Leader error (${emailNorm}): ${leader.error}` });
+                  send({
+                    level: "warn",
+                    message: `User skipped: ${recordUserSkip(skippedUsers, emailNorm, leader.error)}`,
+                  });
                 } else {
-                  imported += 1;
+                  localLeadersAdded += 1;
                   send({ level: "ok", message: `Leader synced: ${emailNorm}` });
                   byEmail.set(emailNorm, { id: leader.userId });
                 }
@@ -638,8 +701,10 @@ export async function POST(req: Request) {
               }
 
               if (!memberRoleId) {
-                omitted += 1;
-                send({ level: "error", message: "Role member not found." });
+                send({
+                  level: "warn",
+                  message: `User skipped: ${recordUserSkip(skippedUsers, emailNorm, "Role member not found")}`,
+                });
                 continue;
               }
 
@@ -685,6 +750,17 @@ export async function POST(req: Request) {
                     if (fallback?.id) byAuthEmail.set(emailNorm, { id: fallback.id });
                   }
                   if (fallback?.id) {
+                    if (!syncAddressForExisting && !assignDefaultPasswordForExisting) {
+                      send({
+                        level: "warn",
+                        message: `User skipped: ${recordUserSkip(
+                          skippedUsers,
+                          emailNorm,
+                          "Existing user — enable address sync and/or default password to update"
+                        )}`,
+                      });
+                      continue;
+                    }
                     const ex = await withStatementTimeoutRetry(() =>
                       syncExistingUserFromFluentForm(admin, {
                         userId: fallback.id,
@@ -697,18 +773,29 @@ export async function POST(req: Request) {
                         mailing,
                         leaderRoleId,
                         memberRoleId,
+                        ...existingSyncOpts,
                       })
                     );
                     if (!ex.error) {
-                      imported += 1;
                       send({ level: "ok", message: `Member updated: ${emailNorm}` });
                       byEmail.set(emailNorm, { id: fallback.id });
                       continue;
                     }
+                    send({
+                      level: "warn",
+                      message: `User skipped: ${recordUserSkip(skippedUsers, emailNorm, ex.error ?? "Sync failed")}`,
+                    });
+                    continue;
                   }
                 }
-                omitted += 1;
-                send({ level: "error", message: `Member create failed (${emailNorm}): ${createErr?.message || "Unknown error"}` });
+                send({
+                  level: "warn",
+                  message: `User skipped: ${recordUserSkip(
+                    skippedUsers,
+                    emailNorm,
+                    createErr?.message || "Could not create member"
+                  )}`,
+                });
                 continue;
               }
               const newId = created!.user!.id;
@@ -717,8 +804,10 @@ export async function POST(req: Request) {
               const { error: roleErr } = await admin.from("user_roles").insert({ user_id: newId, role_id: memberRoleId });
               if (roleErr) {
                 await admin.auth.admin.deleteUser(newId);
-                omitted += 1;
-                send({ level: "error", message: `Member role failed (${emailNorm}): ${roleErr.message}` });
+                send({
+                  level: "warn",
+                  message: `User skipped: ${recordUserSkip(skippedUsers, emailNorm, roleErr.message)}`,
+                });
                 continue;
               }
 
@@ -760,18 +849,39 @@ export async function POST(req: Request) {
               if (mirrorM.error) {
                 await admin.from("user_roles").delete().eq("user_id", newId);
                 await admin.auth.admin.deleteUser(newId);
-                omitted += 1;
-                send({ level: "error", message: `Member mirror failed (${emailNorm}): ${mirrorM.error}` });
+                send({
+                  level: "warn",
+                  message: `User skipped: ${recordUserSkip(skippedUsers, emailNorm, mirrorM.error)}`,
+                });
                 continue;
               }
 
-              imported += 1;
+              membersAdded += 1;
               send({ level: "ok", message: `Member synced: ${emailNorm}` });
               byEmail.set(emailNorm, { id: newId });
             }
           }
 
-          send({ level: "ok", message: `Sync completed. Imported: ${imported}. Omitted: ${omitted}.` });
+          const summary: FluentSyncSummary = {
+            usersAdded: membersAdded + localLeadersAdded,
+            membersAdded,
+            localLeadersAdded,
+            chaptersAdded,
+            usersSkipped: skippedUsers.length,
+            skippedUsers,
+          };
+          send({
+            level: "summary",
+            message: "Sync summary",
+            summary,
+          });
+          send({
+            level: "ok",
+            message: `Total users added: ${summary.usersAdded} (Members: ${summary.membersAdded}, Local leaders: ${summary.localLeadersAdded}). Total chapters: ${summary.chaptersAdded}. Users skipped: ${summary.usersSkipped}.`,
+          });
+          for (const row of skippedUsers) {
+            send({ level: "warn", message: `${row.email} - ${row.reason}` });
+          }
         } catch (error) {
           const msg = error instanceof Error ? error.message : "Unknown sync error.";
           send({ level: "error", message: msg });

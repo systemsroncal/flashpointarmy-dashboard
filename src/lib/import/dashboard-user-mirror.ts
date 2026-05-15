@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  DEFAULT_EXTERNAL_USER_PASSWORD,
+  withExternalPasswordChangeFlag,
+} from "@/lib/auth/default-external-user-password";
 import type { UserMailingFields } from "@/lib/import/user-mailing-address";
 import { mailingForUserMetadata } from "@/lib/import/user-mailing-address";
 
@@ -142,15 +146,23 @@ export async function syncExistingUserFromFluentForm(
     mailing: UserMailingFields;
     leaderRoleId: string | null;
     memberRoleId: string | null;
+    /** When false, profile/mirror/auth metadata keep stored address. Default true (import/webhook). */
+    syncAddress?: boolean;
+    /** When true, set auth password to default external password. Default false. */
+    assignDefaultPassword?: boolean;
   }
 ): Promise<{ error?: string }> {
+  const syncAddress = opts.syncAddress !== false;
+  const assignDefaultPassword = opts.assignDefaultPassword === true;
   const displayName = `${opts.firstName} ${opts.lastName}`.trim();
   const hasMailing =
-    !!(opts.mailing.address_line || "").trim() ||
-    !!(opts.mailing.city || "").trim() ||
-    !!(opts.mailing.state || "").trim() ||
-    !!(opts.mailing.zip_code || "").trim();
+    syncAddress &&
+    (!!(opts.mailing.address_line || "").trim() ||
+      !!(opts.mailing.city || "").trim() ||
+      !!(opts.mailing.state || "").trim() ||
+      !!(opts.mailing.zip_code || "").trim());
   const mailMeta = hasMailing ? mailingForUserMetadata(opts.mailing) : {};
+  const password = assignDefaultPassword ? DEFAULT_EXTERNAL_USER_PASSWORD : undefined;
 
   const { data: prof } = await admin
     .from("profiles")
@@ -161,15 +173,18 @@ export async function syncExistingUserFromFluentForm(
   const hadNoChapter = prof?.primary_chapter_id == null;
   const primaryChapterId = hadNoChapter ? opts.chapterId : String(prof!.primary_chapter_id);
 
-  /** Never set `password` here — existing users keep their current password. */
+  const baseMeta = {
+    first_name: opts.firstName,
+    last_name: opts.lastName,
+    primary_chapter_id: primaryChapterId,
+    phone: opts.phone || null,
+    ...mailMeta,
+  };
   await admin.auth.admin.updateUserById(opts.userId, {
-    user_metadata: {
-      first_name: opts.firstName,
-      last_name: opts.lastName,
-      primary_chapter_id: primaryChapterId,
-      phone: opts.phone || null,
-      ...mailMeta,
-    },
+    ...(password ? { password } : {}),
+    user_metadata: password
+      ? withExternalPasswordChangeFlag(baseMeta, password)
+      : baseMeta,
   });
 
   await admin

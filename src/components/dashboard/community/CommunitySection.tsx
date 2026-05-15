@@ -259,6 +259,16 @@ export function CommunitySection({
   const [syncChapters, setSyncChapters] = useState(true);
   const [syncLeaders, setSyncLeaders] = useState(true);
   const [syncMembers, setSyncMembers] = useState(true);
+  const [syncAddressForExisting, setSyncAddressForExisting] = useState(false);
+  const [assignDefaultPasswordForExisting, setAssignDefaultPasswordForExisting] = useState(false);
+  const [syncSummary, setSyncSummary] = useState<{
+    usersAdded: number;
+    membersAdded: number;
+    localLeadersAdded: number;
+    chaptersAdded: number;
+    usersSkipped: number;
+    skippedUsers: { email: string; reason: string }[];
+  } | null>(null);
   const [syncLogs, setSyncLogs] = useState<string[]>([]);
   const [syncError, setSyncError] = useState<string | null>(null);
 
@@ -980,6 +990,7 @@ export function CommunitySection({
     }
     setSyncError(null);
     setSyncLogs([]);
+    setSyncSummary(null);
     setSyncing(true);
     try {
       const res = await fetch("/api/external/fluent-form-sync", {
@@ -991,6 +1002,8 @@ export function CommunitySection({
           syncChapters,
           syncLeaders,
           syncMembers,
+          syncAddressForExisting,
+          assignDefaultPasswordForExisting,
         }),
       });
       if (!res.ok || !res.body) {
@@ -1011,7 +1024,21 @@ export function CommunitySection({
           const trimmed = line.trim();
           if (!trimmed) continue;
           try {
-            const evt = JSON.parse(trimmed) as { level: string; message: string };
+            const evt = JSON.parse(trimmed) as {
+              level: string;
+              message: string;
+              summary?: {
+                usersAdded: number;
+                membersAdded: number;
+                localLeadersAdded: number;
+                chaptersAdded: number;
+                usersSkipped: number;
+                skippedUsers: { email: string; reason: string }[];
+              };
+            };
+            if (evt.level === "summary" && evt.summary) {
+              setSyncSummary(evt.summary);
+            }
             const prefix =
               evt.level === "ok"
                 ? "[OK]"
@@ -1019,7 +1046,9 @@ export function CommunitySection({
                   ? "[WARN]"
                   : evt.level === "error"
                     ? "[ERROR]"
-                    : "[INFO]";
+                    : evt.level === "summary"
+                      ? "[SUMMARY]"
+                      : "[INFO]";
             setSyncLogs((prev) => [...prev, `${prefix} ${evt.message}`]);
           } catch {
             setSyncLogs((prev) => [...prev, trimmed]);
@@ -2043,10 +2072,10 @@ export function CommunitySection({
           <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
             {syncError ? <Alert severity="error">{syncError}</Alert> : null}
             <Typography variant="body2" color="text.secondary">
-              Pulls Fluent Forms records by date range and imports in real time. Existing chapters are skipped;
-              existing users are updated (roles, chapter, profile fields, mirror) without changing their password or
-              stored email. New users get the default password (FLASHPOINT). Leaders without an address in the form
-              keep their stored address.
+              Pulls Fluent Forms records by date range and imports in real time. Existing chapters are skipped.
+              <strong> New users</strong> always receive mailing address from the form and the default password
+              (FLASHPOINT). <strong>Existing users</strong> are only updated when you enable the options below (off by
+              default — no address or password changes).
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
@@ -2068,7 +2097,7 @@ export function CommunitySection({
                 InputLabelProps={{ shrink: true }}
               />
             </Stack>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
               <FormControlLabel
                 control={<Checkbox checked={syncChapters} onChange={(e) => setSyncChapters(e.target.checked)} />}
                 label="Chapters (by Church Affiliation)"
@@ -2082,6 +2111,53 @@ export function CommunitySection({
                 label="Members"
               />
             </Stack>
+            <Typography variant="subtitle2" sx={{ color: "primary.main" }}>
+              Existing users only
+            </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={syncAddressForExisting}
+                    onChange={(e) => setSyncAddressForExisting(e.target.checked)}
+                  />
+                }
+                label="Sync mailing address from form"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={assignDefaultPasswordForExisting}
+                    onChange={(e) => setAssignDefaultPasswordForExisting(e.target.checked)}
+                  />
+                }
+                label="Assign default password (FLASHPOINT)"
+              />
+            </Stack>
+            {syncSummary ? (
+              <Alert severity="info" sx={{ "& .MuiAlert-message": { width: "100%" } }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                  Sync summary
+                </Typography>
+                <Typography variant="body2">
+                  Total users added: {syncSummary.usersAdded} (Members: {syncSummary.membersAdded}, Local leaders:{" "}
+                  {syncSummary.localLeadersAdded})
+                  <br />
+                  Total chapters: {syncSummary.chaptersAdded}
+                  <br />
+                  Users skipped: {syncSummary.usersSkipped}
+                </Typography>
+                {syncSummary.skippedUsers.length > 0 ? (
+                  <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
+                    {syncSummary.skippedUsers.map((row) => (
+                      <Typography key={`${row.email}-${row.reason}`} component="li" variant="caption" display="list-item">
+                        {row.email} - {row.reason}
+                      </Typography>
+                    ))}
+                  </Box>
+                ) : null}
+              </Alert>
+            ) : null}
             <Box sx={{ maxHeight: 260, overflow: "auto", border: "1px solid rgba(255,255,255,0.12)", p: 1 }}>
               {syncLogs.length === 0 ? (
                 <Typography variant="caption" color="text.secondary">
