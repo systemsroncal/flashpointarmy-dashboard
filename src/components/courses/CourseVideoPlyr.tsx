@@ -35,17 +35,6 @@ function setPlayerTime(player: PlyrLike, seconds: number): boolean {
   }
 }
 
-function formatVideoTimestamp(totalSeconds: number): string {
-  const sec = Math.max(0, Math.floor(totalSeconds));
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
 const plyrControlsBase = [
   "play-large",
   "play",
@@ -145,6 +134,7 @@ export function CourseVideoPlyr({
   omitPlayLargeControl = false,
   hideProgressBar = false,
   onVideoFullyWatched,
+  suppressResumePrompt = false,
 }: {
   videoUrl: string;
   initialSeconds: number;
@@ -154,10 +144,15 @@ export function CourseVideoPlyr({
   omitPlayLargeControl?: boolean;
   hideProgressBar?: boolean;
   onVideoFullyWatched?: () => void;
+  /** When true (e.g. learner reached the end), do not show the resume dialog on load. */
+  suppressResumePrompt?: boolean;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlyrLike | null>(null);
   const pendingSeekRef = useRef<number | null>(null);
+  const pendingPlayAfterSeekRef = useRef(false);
+  const suppressResumeRef = useRef(suppressResumePrompt);
+  suppressResumeRef.current = suppressResumePrompt;
   const lastSentRef = useRef(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const persistHandlerRef = useRef(onPersistSeconds);
@@ -175,22 +170,32 @@ export function CourseVideoPlyr({
     setSavedSeconds(saved);
     pendingSeekRef.current = null;
     resumeChoiceMadeRef.current = false;
-    if (!autoplayMuted && saved >= MIN_SAVED_SECONDS_TO_PROMPT) {
+    if (
+      !autoplayMuted &&
+      !suppressResumeRef.current &&
+      saved >= MIN_SAVED_SECONDS_TO_PROMPT
+    ) {
       setResumeDialogOpen(true);
     } else {
       setResumeDialogOpen(false);
     }
-  }, [storageKey, autoplayMuted, videoUrl]);
+  }, [storageKey, autoplayMuted, videoUrl, suppressResumePrompt]);
 
   useEffect(() => {
     if (resumeChoiceMadeRef.current) return;
     const ls = storageKey ? readLs(storageKey) : 0;
     const saved = Math.max(0, initialSeconds, ls);
     setSavedSeconds(saved);
-    if (!autoplayMuted && saved >= MIN_SAVED_SECONDS_TO_PROMPT) {
+    if (
+      !autoplayMuted &&
+      !suppressResumeRef.current &&
+      saved >= MIN_SAVED_SECONDS_TO_PROMPT
+    ) {
       setResumeDialogOpen(true);
+    } else if (suppressResumeRef.current) {
+      setResumeDialogOpen(false);
     }
-  }, [initialSeconds, storageKey, autoplayMuted]);
+  }, [initialSeconds, storageKey, autoplayMuted, suppressResumePrompt]);
 
   const applyPendingSeek = useCallback((player: PlyrLike) => {
     const target = pendingSeekRef.current;
@@ -206,6 +211,12 @@ export function CourseVideoPlyr({
       const cur = readCurrentTime(player);
       if (cur >= seekTo - 2) {
         pendingSeekRef.current = null;
+        if (pendingPlayAfterSeekRef.current) {
+          pendingPlayAfterSeekRef.current = false;
+          void Promise.resolve(player.play()).catch(() => {
+            /* autoplay blocked */
+          });
+        }
         return;
       }
       if (seekAttempts >= maxSeekAttempts) return;
@@ -224,9 +235,19 @@ export function CourseVideoPlyr({
     resumeChoiceMadeRef.current = true;
     const seekTo = Math.max(0, savedSeconds - RESUME_REWIND_SECONDS);
     pendingSeekRef.current = seekTo;
+    pendingPlayAfterSeekRef.current = true;
     setResumeDialogOpen(false);
     const player = playerRef.current;
-    if (player) applyPendingSeek(player);
+    if (player) {
+      applyPendingSeek(player);
+      window.setTimeout(() => {
+        if (!pendingPlayAfterSeekRef.current) return;
+        pendingPlayAfterSeekRef.current = false;
+        void Promise.resolve(player.play()).catch(() => {
+          /* autoplay blocked */
+        });
+      }, 2500);
+    }
   }, [savedSeconds, applyPendingSeek]);
 
   const handleStartOver = useCallback(() => {
@@ -373,8 +394,10 @@ export function CourseVideoPlyr({
     );
   }
 
-  const resumeFromSeconds = Math.max(0, savedSeconds - RESUME_REWIND_SECONDS);
-  const showResumePrompt = resumeDialogOpen && savedSeconds >= MIN_SAVED_SECONDS_TO_PROMPT;
+  const showResumePrompt =
+    resumeDialogOpen &&
+    !suppressResumePrompt &&
+    savedSeconds >= MIN_SAVED_SECONDS_TO_PROMPT;
 
   return (
     <Box sx={{ position: "relative", width: "100%" }}>
@@ -419,12 +442,8 @@ export function CourseVideoPlyr({
           Resume this video?
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            You left off at <strong>{formatVideoTimestamp(savedSeconds)}</strong>.
-          </Typography>
           <Typography variant="body2" color="text.secondary">
-            Would you like to resume from <strong>{formatVideoTimestamp(resumeFromSeconds)}</strong> (
-            {RESUME_REWIND_SECONDS} seconds earlier)?
+            Would you like to continue this video where you left off last time?
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

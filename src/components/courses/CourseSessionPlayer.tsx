@@ -17,6 +17,10 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import {
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Link as MuiLink,
   Paper,
@@ -25,7 +29,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 export type SessionElementRow = {
@@ -72,6 +76,8 @@ export function CourseSessionPlayer({
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [completed, setCompleted] = useState(initialCompleted);
+  const completedRef = useRef(initialCompleted);
+  completedRef.current = completed;
   const [busyComplete, setBusyComplete] = useState(false);
   const [videoPositions, setVideoPositions] = useState<Record<string, number>>(initialVideoPositions);
 
@@ -87,7 +93,23 @@ export function CourseSessionPlayer({
 
   const videoIdsKey = videoElementIds.join("\0");
 
-  const [videoFullyWatchedById, setVideoFullyWatchedById] = useState<Record<string, boolean>>({});
+  function readVideoFullyWatched(ids: string[]): Record<string, boolean> {
+    const next: Record<string, boolean> = {};
+    for (const id of ids) {
+      try {
+        if (localStorage.getItem(`coursevid-done:${user.id}:${sessionId}:${id}`) === "1") next[id] = true;
+      } catch {
+        /* ignore */
+      }
+    }
+    return next;
+  }
+
+  const [videoFullyWatchedById, setVideoFullyWatchedById] = useState(() =>
+    readVideoFullyWatched(videoElementIds)
+  );
+  const [markCompleteDialogOpen, setMarkCompleteDialogOpen] = useState(false);
+  const markCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setVideoPositions(initialVideoPositions);
@@ -114,16 +136,7 @@ export function CourseSessionPlayer({
   }, [supabase, user.id, sessionId]);
 
   useEffect(() => {
-    const next: Record<string, boolean> = {};
-    for (const id of videoElementIds) {
-      try {
-        const k = `coursevid-done:${user.id}:${sessionId}:${id}`;
-        if (localStorage.getItem(k) === "1") next[id] = true;
-      } catch {
-        /* ignore */
-      }
-    }
-    setVideoFullyWatchedById(next);
+    setVideoFullyWatchedById(readVideoFullyWatched(videoElementIds));
   }, [user.id, sessionId, videoIdsKey]);
 
   const allVideosFullyWatched =
@@ -224,6 +237,56 @@ export function CourseSessionPlayer({
 
   const markCompleteAllowed = allVideosFullyWatched;
 
+  const scheduleMarkCompleteDialog = useCallback(() => {
+    if (markCompleteTimerRef.current) {
+      clearTimeout(markCompleteTimerRef.current);
+      markCompleteTimerRef.current = null;
+    }
+    markCompleteTimerRef.current = setTimeout(() => {
+      markCompleteTimerRef.current = null;
+      setMarkCompleteDialogOpen(true);
+    }, 4000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (markCompleteTimerRef.current) {
+        clearTimeout(markCompleteTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (completed) {
+      setMarkCompleteDialogOpen(false);
+      if (markCompleteTimerRef.current) {
+        clearTimeout(markCompleteTimerRef.current);
+        markCompleteTimerRef.current = null;
+      }
+    }
+  }, [completed]);
+
+  const onVideoFullyWatched = useCallback(
+    (elementId: string) => {
+      try {
+        localStorage.setItem(`coursevid-done:${user.id}:${sessionId}:${elementId}`, "1");
+      } catch {
+        /* ignore */
+      }
+      setVideoFullyWatchedById((prev) => {
+        const next = { ...prev, [elementId]: true };
+        const allDone =
+          videoElementIds.length === 0 ||
+          videoElementIds.every((id) => (id === elementId ? true : Boolean(prev[id])));
+        if (allDone && !completedRef.current) {
+          scheduleMarkCompleteDialog();
+        }
+        return next;
+      });
+    },
+    [user.id, sessionId, videoElementIds, scheduleMarkCompleteDialog]
+  );
+
   return (
     <Box>
       <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2, bgcolor: "rgba(0,0,0,0.45)" }}>
@@ -299,14 +362,8 @@ export function CourseSessionPlayer({
                   hideProgressBar={
                     !videoFullyWatchedById[el.id] && !completed
                   }
-                  onVideoFullyWatched={() => {
-                    try {
-                      localStorage.setItem(`coursevid-done:${user.id}:${sessionId}:${el.id}`, "1");
-                    } catch {
-                      /* ignore */
-                    }
-                    setVideoFullyWatchedById((prev) => ({ ...prev, [el.id]: true }));
-                  }}
+                  suppressResumePrompt={Boolean(videoFullyWatchedById[el.id])}
+                  onVideoFullyWatched={() => onVideoFullyWatched(el.id)}
                 />
               </Box>
             ) : null}
@@ -387,8 +444,8 @@ export function CourseSessionPlayer({
             </Button>
           ) : !markCompleteAllowed && videoElementIds.length > 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 360 }}>
-              Watch each video to the end to unlock session completion. When you return, you can choose to resume
-              where you left off (10 seconds earlier).
+              Watch each video to the end to unlock session completion. When you return, you can continue where you
+              left off.
             </Typography>
           ) : (
             <Button
@@ -417,6 +474,45 @@ export function CourseSessionPlayer({
           Complete this session to unlock the next one.
         </Typography>
       ) : null}
+
+      <Dialog
+        open={markCompleteDialogOpen && markCompleteAllowed && !completed}
+        onClose={(_, reason) => {
+          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+        }}
+        maxWidth="xs"
+        fullWidth
+        aria-labelledby="mark-complete-video-title"
+      >
+        <DialogTitle id="mark-complete-video-title" sx={{ color: "primary.main", fontWeight: 700 }}>
+          Video complete
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {videoElementIds.length > 1
+              ? "You have finished watching all videos in this session. You can mark this session as completed when you are ready."
+              : "You have finished watching this video. You can mark this session as completed when you are ready."}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setMarkCompleteDialogOpen(false)} color="inherit">
+            Not now
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<CheckCircleOutlineIcon />}
+            disabled={busyComplete}
+            autoFocus
+            onClick={() => {
+              setMarkCompleteDialogOpen(false);
+              void markComplete();
+            }}
+          >
+            Mark as complete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
