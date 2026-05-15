@@ -5,11 +5,22 @@ import { Box } from "@mui/material";
 import { useEffect, useRef } from "react";
 
 type PlyrLike = {
-  on: (event: string, fn: () => void) => void;
+  on: (event: string, fn: (...args: unknown[]) => void) => void;
   currentTime?: number;
+  duration?: number;
   play: () => void | Promise<void>;
   destroy: () => void;
 };
+
+function setPlayerTime(player: PlyrLike, seconds: number): boolean {
+  if (seconds <= 0) return true;
+  try {
+    (player as { currentTime: number }).currentTime = seconds;
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const plyrControlsBase = [
   "play-large",
@@ -108,12 +119,21 @@ export function CourseVideoPlyr({
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlyrLike | null>(null);
+  const resumeSecondsRef = useRef(Math.max(0, initialSeconds));
   const lastSentRef = useRef(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const persistHandlerRef = useRef(onPersistSeconds);
   persistHandlerRef.current = onPersistSeconds;
   const onFullyWatchedRef = useRef(onVideoFullyWatched);
   onFullyWatchedRef.current = onVideoFullyWatched;
+
+  useEffect(() => {
+    const ls = storageKey ? readLs(storageKey) : 0;
+    resumeSecondsRef.current = Math.max(resumeSecondsRef.current, initialSeconds, ls);
+    const player = playerRef.current;
+    if (!player || resumeSecondsRef.current <= 0) return;
+    setPlayerTime(player, resumeSecondsRef.current);
+  }, [initialSeconds, storageKey]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -123,7 +143,11 @@ export function CourseVideoPlyr({
     const resolved = resolveVideoForPlyr(videoUrl);
     if (resolved.kind === "none") return;
 
+    let pageHideCleanup: (() => void) | null = null;
+
     const destroy = () => {
+      pageHideCleanup?.();
+      pageHideCleanup = null;
       if (tickRef.current) {
         clearInterval(tickRef.current);
         tickRef.current = null;
@@ -146,7 +170,8 @@ export function CourseVideoPlyr({
     };
 
     const ls = storageKey ? readLs(storageKey) : 0;
-    const startFrom = Math.max(0, initialSeconds, ls);
+    resumeSecondsRef.current = Math.max(resumeSecondsRef.current, initialSeconds, ls);
+    const startFrom = resumeSecondsRef.current;
 
     const root = createPlyrRoot(resolved);
     if (!root) return;
@@ -189,14 +214,35 @@ export function CourseVideoPlyr({
         if (storageKey) writeLs(storageKey, floored);
       };
 
-      player.on("ready", () => {
-        if (startFrom > 0) {
-          try {
-            (player as { currentTime?: number }).currentTime = startFrom;
-          } catch {
-            /* Plyr / provider may ignore until playable */
-          }
+      /** YouTube/Vimeo often ignore seek on `ready`; retry until position sticks or attempts exhaust. */
+      const resumeTargetRef = { sec: startFrom };
+      let seekAttempts = 0;
+      const maxSeekAttempts = 24;
+
+      const tryResume = () => {
+        const target = resumeTargetRef.sec;
+        if (target <= 0) return;
+        const cur = readCurrentTime(player);
+        if (cur >= target - 2) return;
+        if (seekAttempts >= maxSeekAttempts) return;
+        seekAttempts += 1;
+        setPlayerTime(player, target);
+      };
+
+      const scheduleResumeRetries = () => {
+        if (resumeTargetRef.sec <= 0) return;
+        tryResume();
+        const delays = [150, 400, 900, 1800, 3000, 5000];
+        for (const ms of delays) {
+          window.setTimeout(() => {
+            if (cancelled) return;
+            tryResume();
+          }, ms);
         }
+      };
+
+      player.on("ready", () => {
+        scheduleResumeRetries();
         if (autoplayMuted) {
           void Promise.resolve((player as { play?: () => void | Promise<void> }).play?.()).catch(() => {
             /* autoplay blocked: user uses control bar */
@@ -204,8 +250,19 @@ export function CourseVideoPlyr({
         }
       });
 
+      for (const evt of ["loadeddata", "canplay", "playing"] as const) {
+        player.on(evt, tryResume);
+      }
+
       const snapshot = () => persist(readCurrentTime(player));
       player.on("pause", snapshot);
+      let lastTimeupdatePersist = 0;
+      player.on("timeupdate", () => {
+        const t = readCurrentTime(player);
+        if (t < 1 || t - lastTimeupdatePersist < 12) return;
+        lastTimeupdatePersist = t;
+        persist(t);
+      });
       player.on("ended", () => {
         snapshot();
         try {
@@ -215,14 +272,25 @@ export function CourseVideoPlyr({
         }
       });
 
-      tickRef.current = setInterval(snapshot, 5000);
+      tickRef.current = setInterval(snapshot, 3000);
+
+      const onPageHide = () => snapshot();
+      const onVis = () => {
+        if (document.visibilityState === "hidden") onPageHide();
+      };
+      document.addEventListener("visibilitychange", onVis);
+      window.addEventListener("pagehide", onPageHide);
+      pageHideCleanup = () => {
+        document.removeEventListener("visibilitychange", onVis);
+        window.removeEventListener("pagehide", onPageHide);
+      };
     });
 
     return () => {
       cancelled = true;
       destroy();
     };
-  }, [videoUrl, initialSeconds, storageKey, autoplayMuted, omitPlayLargeControl]);
+  }, [videoUrl, storageKey, autoplayMuted, omitPlayLargeControl]);
 
   if (resolveVideoForPlyr(videoUrl).kind === "none") {
     return (

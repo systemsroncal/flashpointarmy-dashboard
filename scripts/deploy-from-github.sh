@@ -106,6 +106,7 @@ else
   git clean -fd -e .env.production -e .env.local -e .env
 fi
 
+# Always restore .env.production backup after any git sync (reset or pull).
 restore_env_files
 
 npm ci

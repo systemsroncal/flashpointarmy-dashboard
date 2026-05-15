@@ -73,6 +73,7 @@ export function CourseSessionPlayer({
   const supabase = useMemo(() => createClient(), []);
   const [completed, setCompleted] = useState(initialCompleted);
   const [busyComplete, setBusyComplete] = useState(false);
+  const [videoPositions, setVideoPositions] = useState<Record<string, number>>(initialVideoPositions);
 
   const sorted = useMemo(
     () => [...elements].sort((a, b) => a.sort_order - b.sort_order),
@@ -87,6 +88,30 @@ export function CourseSessionPlayer({
   const videoIdsKey = videoElementIds.join("\0");
 
   const [videoFullyWatchedById, setVideoFullyWatchedById] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setVideoPositions(initialVideoPositions);
+  }, [initialVideoPositions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await supabase
+        .from("course_session_progress")
+        .select("video_positions")
+        .eq("user_id", user.id)
+        .eq("session_id", sessionId)
+        .maybeSingle();
+      if (cancelled || error) return;
+      const vp = data?.video_positions;
+      if (typeof vp === "object" && vp && !Array.isArray(vp)) {
+        setVideoPositions((prev) => ({ ...prev, ...(vp as Record<string, number>) }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, user.id, sessionId]);
 
   useEffect(() => {
     const next: Record<string, boolean> = {};
@@ -123,7 +148,7 @@ export function CourseSessionPlayer({
       const completedAt =
         patch.completed_at !== undefined ? patch.completed_at : (data?.completed_at as string | null) ?? null;
 
-      await supabase.from("course_session_progress").upsert(
+      const { error } = await supabase.from("course_session_progress").upsert(
         {
           user_id: user.id,
           session_id: sessionId,
@@ -132,6 +157,10 @@ export function CourseSessionPlayer({
         },
         { onConflict: "user_id,session_id" }
       );
+      if (error && process.env.NODE_ENV === "development") {
+        console.warn("[CourseSessionPlayer] Could not save progress:", error.message);
+      }
+      return { error: error?.message ?? null, nextPos };
     },
     [supabase, user.id, sessionId]
   );
@@ -264,7 +293,7 @@ export function CourseSessionPlayer({
               >
                 <CourseVideoPlyr
                   videoUrl={String((el.payload as { url?: string } | null)?.url ?? "").trim()}
-                  initialSeconds={initialVideoPositions[el.id] ?? 0}
+                  initialSeconds={videoPositions[el.id] ?? 0}
                   storageKey={`coursevid:${user.id}:${el.id}`}
                   onPersistSeconds={(sec) => onVideoSeconds(el.id, sec)}
                   hideProgressBar={
@@ -358,8 +387,8 @@ export function CourseSessionPlayer({
             </Button>
           ) : !markCompleteAllowed && videoElementIds.length > 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 360 }}>
-              Watch each video to the end to unlock session completion. Your place is saved if you leave and come
-              back.
+              Watch each video to the end to unlock session completion. Your place is saved automatically while you
+              watch and when you leave the page (resume on return).
             </Typography>
           ) : (
             <Button
