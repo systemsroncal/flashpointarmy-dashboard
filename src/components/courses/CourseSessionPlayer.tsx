@@ -267,7 +267,9 @@ export function CourseSessionPlayer({
                   initialSeconds={initialVideoPositions[el.id] ?? 0}
                   storageKey={`coursevid:${user.id}:${el.id}`}
                   onPersistSeconds={(sec) => onVideoSeconds(el.id, sec)}
-                  hideProgressBar={!videoFullyWatchedById[el.id]}
+                  hideProgressBar={
+                    !videoFullyWatchedById[el.id] && !completed
+                  }
                   onVideoFullyWatched={() => {
                     try {
                       localStorage.setItem(`coursevid-done:${user.id}:${sessionId}:${el.id}`, "1");
