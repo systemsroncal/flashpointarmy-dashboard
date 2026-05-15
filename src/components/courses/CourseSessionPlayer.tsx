@@ -15,6 +15,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -56,6 +57,7 @@ export function CourseSessionPlayer({
   initialCompleted,
   initialVideoPositions,
   quizScores,
+  trainingDebug = false,
 }: {
   courseSlug: string;
   courseTitle: string;
@@ -71,6 +73,8 @@ export function CourseSessionPlayer({
   initialCompleted: boolean;
   initialVideoPositions: Record<string, number>;
   quizScores: Record<string, { score: number; maxScore: number }>;
+  /** When true (dev host + `?trainingDebug=1`), always show the Plyr seek bar for QA. */
+  trainingDebug?: boolean;
 }) {
   const user = useDashboardUser();
   const router = useRouter();
@@ -316,6 +320,16 @@ export function CourseSessionPlayer({
         ) : null}
       </Paper>
 
+      {trainingDebug ? (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Training debug: video seek bar is always visible. Remove{" "}
+          <Typography component="span" variant="body2" sx={{ fontFamily: "monospace" }}>
+            ?trainingDebug=1
+          </Typography>{" "}
+          for normal behavior.
+        </Alert>
+      ) : null}
+
       <Stack spacing={2} sx={{ mb: 3 }}>
         {sorted.map((el) => (
           <Paper key={el.id} sx={{ p: 2, bgcolor: "rgba(0,0,0,0.38)" }}>
@@ -360,7 +374,7 @@ export function CourseSessionPlayer({
                   storageKey={`coursevid:${user.id}:${el.id}`}
                   onPersistSeconds={(sec) => onVideoSeconds(el.id, sec)}
                   hideProgressBar={
-                    !videoFullyWatchedById[el.id] && !completed
+                    !trainingDebug && !videoFullyWatchedById[el.id] && !completed
                   }
                   suppressResumePrompt={Boolean(videoFullyWatchedById[el.id])}
                   onVideoFullyWatched={() => onVideoFullyWatched(el.id)}

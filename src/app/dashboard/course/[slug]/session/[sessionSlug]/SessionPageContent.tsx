@@ -1,18 +1,29 @@
 import { CourseSessionPlayer, type SessionElementRow } from "@/components/courses/CourseSessionPlayer";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { isTrainingDebugParamAllowedHost } from "@/lib/training/training-debug";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Paper, Typography } from "@mui/material";
 
 export default async function SessionPageContent({
   courseSlug,
   sessionSlug,
+  trainingDebugRequested = false,
 }: {
   courseSlug: string;
   sessionSlug: string;
+  /** From `?trainingDebug=1`; applied only on allowed hosts (see training-debug). */
+  trainingDebugRequested?: boolean;
 }) {
+  const hdrs = await headers();
+  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
+  const trainingDebug =
+    trainingDebugRequested &&
+    (process.env.NODE_ENV === "development" || isTrainingDebugParamAllowedHost(host));
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -139,6 +150,7 @@ export default async function SessionPageContent({
       initialCompleted={completed}
       initialVideoPositions={currentProg?.video_positions ?? {}}
       quizScores={quizScores}
+      trainingDebug={trainingDebug}
     />
   );
 }
