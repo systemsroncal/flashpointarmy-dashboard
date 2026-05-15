@@ -147,23 +147,33 @@ function LoginForm() {
           >
             {loading ? "Signing in…" : "LOG IN"}
           </Button>
-        </Box>
 
-        <MuiLink
-          component={Link}
-          href="/forgot-password"
-          underline="always"
-          sx={{
-            display: "block",
-            mt: 2,
-            textAlign: "center",
-            color: authGrayText,
-            fontSize: "0.75rem",
-            "&:hover": { color: authYellow },
-          }}
-        >
-          Forgot Password
-        </MuiLink>
+          <Typography
+            sx={{
+              mt: 2,
+              textAlign: "center",
+              color: authGrayText,
+              fontSize: "0.8rem",
+              lineHeight: 1.55,
+            }}
+          >
+            Having trouble signing in?{" "}
+            <MuiLink
+              component={Link}
+              href="/forgot-password"
+              underline="always"
+              sx={{
+                color: authYellow,
+                fontWeight: 600,
+                "&:hover": { color: authYellow, opacity: 0.9 },
+              }}
+            >
+              Reset password
+            </MuiLink>
+            {" "}
+            to get an email with a secure link. Check your spam folder if you do not see it within a few minutes.
+          </Typography>
+        </Box>
 
         {SHOW_LOGIN_REGISTER_INVITE ? (
           <Typography

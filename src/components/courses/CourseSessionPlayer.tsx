@@ -113,7 +113,6 @@ export function CourseSessionPlayer({
     readVideoFullyWatched(videoElementIds)
   );
   const [markCompleteDialogOpen, setMarkCompleteDialogOpen] = useState(false);
-  const markCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setVideoPositions(initialVideoPositions);
@@ -241,32 +240,9 @@ export function CourseSessionPlayer({
 
   const markCompleteAllowed = allVideosFullyWatched;
 
-  const scheduleMarkCompleteDialog = useCallback(() => {
-    if (markCompleteTimerRef.current) {
-      clearTimeout(markCompleteTimerRef.current);
-      markCompleteTimerRef.current = null;
-    }
-    markCompleteTimerRef.current = setTimeout(() => {
-      markCompleteTimerRef.current = null;
-      setMarkCompleteDialogOpen(true);
-    }, 4000);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (markCompleteTimerRef.current) {
-        clearTimeout(markCompleteTimerRef.current);
-      }
-    };
-  }, []);
-
   useEffect(() => {
     if (completed) {
       setMarkCompleteDialogOpen(false);
-      if (markCompleteTimerRef.current) {
-        clearTimeout(markCompleteTimerRef.current);
-        markCompleteTimerRef.current = null;
-      }
     }
   }, [completed]);
 
@@ -283,12 +259,12 @@ export function CourseSessionPlayer({
           videoElementIds.length === 0 ||
           videoElementIds.every((id) => (id === elementId ? true : Boolean(prev[id])));
         if (allDone && !completedRef.current) {
-          scheduleMarkCompleteDialog();
+          setMarkCompleteDialogOpen(true);
         }
         return next;
       });
     },
-    [user.id, sessionId, videoElementIds, scheduleMarkCompleteDialog]
+    [user.id, sessionId, videoElementIds]
   );
 
   return (
@@ -504,14 +480,11 @@ export function CourseSessionPlayer({
         <DialogContent>
           <Typography variant="body2" color="text.secondary">
             {videoElementIds.length > 1
-              ? "You have finished watching all videos in this session. You can mark this session as completed when you are ready."
-              : "You have finished watching this video. You can mark this session as completed when you are ready."}
+              ? "You have finished watching all videos in this session. Tap the button below to mark this session as completed."
+              : "You have finished watching this video. Tap the button below to mark this session as completed."}
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setMarkCompleteDialogOpen(false)} color="inherit">
-            Not now
-          </Button>
+        <DialogActions sx={{ px: 3, pb: 2, justifyContent: "center" }}>
           <Button
             variant="contained"
             color="success"
