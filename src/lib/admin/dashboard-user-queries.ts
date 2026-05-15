@@ -53,7 +53,8 @@ const PROFILES_SELECT_FULL =
   "id, avatar_url, primary_chapter_id, phone, address_line, city, state, zip_code";
 const PROFILES_SELECT_MIN = "id, avatar_url, primary_chapter_id, phone";
 
-function chunk<T>(arr: T[], size: number): T[][] {
+/** Batch UUID lists for PostgREST `.in()` (URL length limits). */
+export function chunkIdsForInQuery<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
@@ -83,7 +84,7 @@ export async function listDashboardUsersByIds(
 ): Promise<DashboardUserListRow[]> {
   if (!ids.length) return [];
   const out: DashboardUserListRow[] = [];
-  for (const part of chunk(ids, IN_CHUNK)) {
+  for (const part of chunkIdsForInQuery(ids, IN_CHUNK)) {
     const { data } = await admin
       .from("dashboard_users")
       .select(
@@ -161,7 +162,7 @@ export async function listDashboardUsersByIdsWithAuthFallback(
 
   const toHeal: DashboardUserListRow[] = [];
   const AUTH_CHUNK = 15;
-  for (const part of chunk(missing, AUTH_CHUNK)) {
+  for (const part of chunkIdsForInQuery(missing, AUTH_CHUNK)) {
     const results = await Promise.all(part.map((id) => admin.auth.admin.getUserById(id)));
     for (const res of results) {
       const u = res.data?.user;
@@ -175,7 +176,7 @@ export async function listDashboardUsersByIdsWithAuthFallback(
 
   if (healMirror && toHeal.length > 0) {
     const now = new Date().toISOString();
-    for (const batch of chunk(toHeal, 100)) {
+    for (const batch of chunkIdsForInQuery(toHeal, 100)) {
       await admin.from("dashboard_users").upsert(
         batch.map((row) => ({
           id: row.id,
@@ -226,7 +227,7 @@ function profileRowsWithMailingDefaults(
 export async function listProfilesByIds(admin: SupabaseClient, ids: string[]): Promise<ProfileMailRow[]> {
   if (!ids.length) return [];
   const out: ProfileMailRow[] = [];
-  for (const part of chunk(ids, IN_CHUNK)) {
+  for (const part of chunkIdsForInQuery(ids, IN_CHUNK)) {
     const { data, error } = await admin.from("profiles").select(PROFILES_SELECT_FULL).in("id", part);
     if (!error) {
       out.push(...profileRowsWithMailingDefaults(data ?? [], true));
@@ -250,7 +251,7 @@ export async function listUserRoleJoinsByUserIds(
 ): Promise<RoleJoinRow[]> {
   if (!ids.length) return [];
   const out: RoleJoinRow[] = [];
-  for (const part of chunk(ids, IN_CHUNK)) {
+  for (const part of chunkIdsForInQuery(ids, IN_CHUNK)) {
     const { data } = await admin
       .from("user_roles")
       .select("user_id, roles(name)")
@@ -270,7 +271,7 @@ export async function listRoleNamesByUserIds(
 ): Promise<Map<string, string[]>> {
   const out = new Map<string, string[]>();
   if (!ids.length) return out;
-  for (const part of chunk(ids, USER_ROLE_NAME_CHUNK)) {
+  for (const part of chunkIdsForInQuery(ids, USER_ROLE_NAME_CHUNK)) {
     const { data: urRows, error: urErr } = await admin
       .from("user_roles")
       .select("user_id, role_id")

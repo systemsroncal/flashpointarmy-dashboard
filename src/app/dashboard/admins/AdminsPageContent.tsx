@@ -9,7 +9,7 @@ import {
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Alert, Paper, Typography } from "@mui/material";
 import { redirect } from "next/navigation";
@@ -47,6 +47,18 @@ export default async function AdminsPageContent() {
     .maybeSingle();
 
   const localChapterId = profile?.primary_chapter_id ?? null;
+
+  if (!hasSupabaseAdminEnv()) {
+    return (
+      <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
+        <Typography color="error">
+          This page needs the Supabase service role on the server. Set{" "}
+          <code>SUPABASE_SERVICE_ROLE_KEY</code> and <code>NEXT_PUBLIC_SUPABASE_URL</code> in{" "}
+          <code>.env.production</code>, then restart the app.
+        </Typography>
+      </Paper>
+    );
+  }
 
   type UserRow = {
     id: string;

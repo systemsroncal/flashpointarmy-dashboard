@@ -1,6 +1,7 @@
 import { CommunitySection } from "@/components/dashboard/community/CommunitySection";
 import { MODULE_SLUGS } from "@/config/modules";
 import {
+  chunkIdsForInQuery,
   listDashboardUsersByIdsWithAuthFallback,
   listProfilesByIds,
   listRoleNamesByUserIds,
@@ -9,10 +10,12 @@ import {
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Paper, Typography } from "@mui/material";
 import { redirect } from "next/navigation";
+
+const PROFILE_ID_IN_CHUNK = 100;
 
 export default async function LeadersPageContent() {
   const supabase = await createClient();
@@ -47,6 +50,18 @@ export default async function LeadersPageContent() {
 
   const localChapterId = profile?.primary_chapter_id ?? null;
 
+  if (!hasSupabaseAdminEnv()) {
+    return (
+      <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
+        <Typography color="error">
+          This page needs the Supabase service role on the server. Set{" "}
+          <code>SUPABASE_SERVICE_ROLE_KEY</code> and <code>NEXT_PUBLIC_SUPABASE_URL</code> in{" "}
+          <code>.env.production</code>, then restart the app.
+        </Typography>
+      </Paper>
+    );
+  }
+
   const admin = createAdminClient();
 
   const { data: leaderRole } = await supabase
@@ -65,12 +80,15 @@ export default async function LeadersPageContent() {
   }
 
   if (!elevated && isLocalLeader && localChapterId && leaderUserIds.length > 0) {
-    const { data: inChapter } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("primary_chapter_id", localChapterId)
-      .in("id", leaderUserIds);
-    const allowed = new Set((inChapter ?? []).map((p: { id: string }) => p.id));
+    const allowed = new Set<string>();
+    for (const part of chunkIdsForInQuery(leaderUserIds, PROFILE_ID_IN_CHUNK)) {
+      const { data: inChapter } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("primary_chapter_id", localChapterId)
+        .in("id", part);
+      for (const p of inChapter ?? []) allowed.add((p as { id: string }).id);
+    }
     leaderUserIds = leaderUserIds.filter((id) => allowed.has(id));
   }
 

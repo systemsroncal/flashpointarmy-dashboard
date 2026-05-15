@@ -1,7 +1,7 @@
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -51,6 +51,18 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
 
   const { data: course } = await supabase.from("courses").select("id, title, slug, applies_grades").eq("id", courseId).maybeSingle();
   if (!course) notFound();
+
+  if (!hasSupabaseAdminEnv()) {
+    return (
+      <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
+        <Typography color="error">
+          This page needs the Supabase service role on the server. Set{" "}
+          <code>SUPABASE_SERVICE_ROLE_KEY</code> and <code>NEXT_PUBLIC_SUPABASE_URL</code> in{" "}
+          <code>.env.production</code>, then restart the app.
+        </Typography>
+      </Paper>
+    );
+  }
 
   const admin = createAdminClient();
   const { data: sessions } = await admin.from("course_sessions").select("id").eq("course_id", courseId);
