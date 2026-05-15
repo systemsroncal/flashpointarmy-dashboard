@@ -8,7 +8,7 @@ import {
   ensureDashboardUserMirror,
   ensureMemberRoleIfUserHasNoRoles,
 } from "@/lib/import/dashboard-user-mirror";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -45,6 +45,9 @@ export default async function DashboardLayout({
     const phoneRaw = meta.phone;
     const phone = typeof phoneRaw === "string" ? phoneRaw : null;
 
+    if (!hasSupabaseAdminEnv()) {
+      redirect("/login");
+    }
     const admin = createAdminClient();
     const mirror = await ensureDashboardUserMirror(admin, {
       id: user.id,
@@ -64,6 +67,9 @@ export default async function DashboardLayout({
   }
 
   if (dashboardUser && dashboardUser.role_names.length === 0) {
+    if (!hasSupabaseAdminEnv()) {
+      redirect("/login");
+    }
     const admin = createAdminClient();
     await ensureMemberRoleIfUserHasNoRoles(admin, user.id);
     dashboardUser = await loadDashboardUser(supabase, user.id);
