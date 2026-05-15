@@ -6,6 +6,7 @@ import {
   suggestBucket,
   type DateBucket,
 } from "@/lib/reports/bucket-series";
+import { fetchCreatedAtInRange } from "@/lib/reports/fetch-created-at-range";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -39,23 +40,18 @@ export async function GET(req: Request) {
     const fromIso = from.toISOString();
     const toIso = to.toISOString();
 
-    const [usersRes, chaptersRes, gatheringsRes, roleRes, chapterStatusRes] = await Promise.all([
-      admin.from("dashboard_users").select("created_at").gte("created_at", fromIso).lte("created_at", toIso),
-      admin.from("chapters").select("created_at").gte("created_at", fromIso).lte("created_at", toIso),
-      admin.from("gatherings").select("created_at").gte("created_at", fromIso).lte("created_at", toIso),
+    const [userDates, chapterDates, gatheringDates, roleRes, chapterStatusRes] = await Promise.all([
+      fetchCreatedAtInRange(admin, "dashboard_users", fromIso, toIso),
+      fetchCreatedAtInRange(admin, "chapters", fromIso, toIso),
+      fetchCreatedAtInRange(admin, "gatherings", fromIso, toIso),
       admin.from("user_roles").select("roles(name)"),
       admin.from("chapters").select("status"),
     ]);
 
-    const firstErr =
-      usersRes.error || chaptersRes.error || gatheringsRes.error || roleRes.error || chapterStatusRes.error;
+    const firstErr = roleRes.error || chapterStatusRes.error;
     if (firstErr) {
       return NextResponse.json({ error: firstErr.message }, { status: 400 });
     }
-
-    const userDates = (usersRes.data ?? []).map((r: { created_at: string }) => r.created_at);
-    const chapterDates = (chaptersRes.data ?? []).map((r: { created_at: string }) => r.created_at);
-    const gatheringDates = (gatheringsRes.data ?? []).map((r: { created_at: string }) => r.created_at);
 
     const usersByBucket = buildSeriesForTimestamps(userDates, from, to, bucket);
     const chaptersByBucket = buildSeriesForTimestamps(chapterDates, from, to, bucket);
