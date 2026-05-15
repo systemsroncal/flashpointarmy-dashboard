@@ -12,6 +12,8 @@
 # Examples (Hestia: run as the shell user that owns the site, from the clone directory):
 #   Producción:  bash scripts/deploy-from-github.sh
 #   Dev:         GIT_BRANCH=main PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
+#
+# Two apps on one host: pin PORT (see scripts/pm2.ecosystem.cjs) so prod never shares 3000 with dev.
 
 set -euo pipefail
 
@@ -70,11 +72,13 @@ if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
     exit 1
   fi
 
+  echo "[deploy] PM2 will bind PORT=$PORT for process name: $PM2_NAME"
+
   if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
-    pm2 restart "$PM2_NAME" --update-env
+    PORT="$APP_PORT" NODE_ENV=production pm2 restart "$PM2_NAME" --update-env
     echo "[deploy] PM2 restarted: $PM2_NAME"
   else
-    pm2 start npm --name "$PM2_NAME" -- start
+    PORT="$APP_PORT" NODE_ENV=production pm2 start npm --name "$PM2_NAME" -- start
     echo "[deploy] PM2 started: $PM2_NAME"
   fi
 else
