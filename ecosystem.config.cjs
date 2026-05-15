@@ -1,11 +1,15 @@
 /**
  * PM2: production (3000) + dev (3001) on one VPS.
  *
- * Must be named `ecosystem.config.cjs` (or `ecosystem.config.js`) at repo root
- * so `pm2 start` parses `apps[]` — do NOT use a random filename or PM2 runs the file as one app.
+ * Uses the Next CLI directly (not `npm start`) so PM2 does not depend on `npm`
+ * being on PATH for the root user / daemon environment.
  *
- * From this directory:
- *   pm2 delete app-fparmychapters dev-fparmychapters pm2.ecosystem 2>/dev/null || true
+ * Before `pm2 start ecosystem.config.cjs`, run a successful build in **each** cwd:
+ *   cd .../public_html && npm ci && npm run build
+ *   cd .../dev.../public_html && npm ci && npm run build
+ *
+ * From repo root (either clone):
+ *   pm2 delete app-fparmychapters dev-fparmychapters 2>/dev/null || true
  *   pm2 start ecosystem.config.cjs
  *   pm2 save
  *
@@ -16,8 +20,9 @@ module.exports = {
     {
       name: "app-fparmychapters",
       cwd: "/home/admin/web/app.fparmychapters.com/public_html",
-      script: "npm",
+      script: "node_modules/next/dist/bin/next",
       args: "start",
+      interpreter: "node",
       env: {
         NODE_ENV: "production",
         PORT: "3000",
@@ -26,8 +31,9 @@ module.exports = {
     {
       name: "dev-fparmychapters",
       cwd: "/home/admin/web/dev.fparmychapters.com/public_html",
-      script: "npm",
+      script: "node_modules/next/dist/bin/next",
       args: "start",
+      interpreter: "node",
       env: {
         NODE_ENV: "production",
         PORT: "3001",
