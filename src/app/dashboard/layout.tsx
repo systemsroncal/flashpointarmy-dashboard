@@ -12,6 +12,9 @@ import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
+/** Authenticated area: always render on request (cookies + admin mirror); avoids brittle static prerender. */
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {

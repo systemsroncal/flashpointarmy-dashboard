@@ -7,6 +7,7 @@
 #   APP_PORT        — default 3000 (Next.js reads PORT; dev on same host should use e.g. 3001)
 #   SKIP_PM2=1      — skip stop/restart (only pull + build)
 #   DEPLOY_SOFT_PULL=1 — use `git pull` only (fails if untracked files block merge). Default: reset to origin + clean.
+#   SKIP_DEPLOY_ENV_WARN=1 — skip warning when .env.production is missing (e.g. vars injected elsewhere).
 #
 # Examples (Hestia: run as the shell user that owns the site, from the clone directory):
 #   Producción:  bash scripts/deploy-from-github.sh
@@ -21,6 +22,12 @@ BRANCH="${GIT_BRANCH:-main}"
 PM2_NAME="${PM2_APP_NAME:-app-fparmychapters}"
 APP_PORT="${APP_PORT:-3000}"
 export PORT="${APP_PORT}"
+
+if [[ "${SKIP_DEPLOY_ENV_WARN:-}" != "1" ]]; then
+  if [[ ! -f .env.production ]]; then
+    echo "[deploy] WARNING: .env.production not found in $(pwd). next build/next start expect Supabase vars there (or export them before this script)." >&2
+  fi
+fi
 
 echo "[deploy] $(pwd) branch=$BRANCH PORT=$PORT pm2=$PM2_NAME"
 
