@@ -117,7 +117,7 @@ export async function ensureMemberRoleIfUserHasNoRoles(
     .maybeSingle();
   if (roleErr) return { error: roleErr.message };
   if (!memberRole?.id) {
-    return { error: "Tabla public.roles no contiene la fila name = 'member'." };
+    return { error: "Table public.roles is missing a row with name = 'member'." };
   }
 
   const { error: insErr } = await admin.from("user_roles").insert({
