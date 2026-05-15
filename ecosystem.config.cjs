@@ -1,17 +1,14 @@
 /**
  * PM2: production (3000) + dev (3001) on one VPS.
  *
- * Uses `next start -p <port>` so the listen port is fixed even if `.env.production`
- * contains `PORT=3000` in both clones (common copy-paste mistake on dev).
+ * Starts Next via `scripts/pm2-next-start.sh` so the listen port is always correct
+ * (PM2 + `args` on the Next binary can drop flags; `.env.production` may set PORT=3000 on both clones).
  *
- * Before `pm2 start ecosystem.config.cjs`, run a successful build in **each** cwd:
- *   cd .../public_html && npm ci && npm run build
- *   cd .../dev.../public_html && npm ci && npm run build
+ * Before `pm2 start ecosystem.config.cjs`, build in **each** cwd: `npm ci && npm run build`
  *
- * From repo root (either clone):
  *   pm2 delete app-fparmychapters dev-fparmychapters 2>/dev/null || true
- *   pm2 start ecosystem.config.cjs
- *   pm2 save
+ *   sudo fuser -k 3000/tcp 3001/tcp 2>/dev/null; sleep 2
+ *   cd /home/admin/web/app.fparmychapters.com/public_html && pm2 start ecosystem.config.cjs && pm2 save
  *
  * Edit `cwd` if your Hestia paths differ.
  */
@@ -20,23 +17,21 @@ module.exports = {
     {
       name: "app-fparmychapters",
       cwd: "/home/admin/web/app.fparmychapters.com/public_html",
-      script: "node_modules/next/dist/bin/next",
-      args: ["start", "-p", "3000"],
-      interpreter: "node",
+      interpreter: "bash",
+      script: "scripts/pm2-next-start.sh",
+      args: ["3000"],
       env: {
         NODE_ENV: "production",
-        PORT: "3000",
       },
     },
     {
       name: "dev-fparmychapters",
       cwd: "/home/admin/web/dev.fparmychapters.com/public_html",
-      script: "node_modules/next/dist/bin/next",
-      args: ["start", "-p", "3001"],
-      interpreter: "node",
+      interpreter: "bash",
+      script: "scripts/pm2-next-start.sh",
+      args: ["3001"],
       env: {
         NODE_ENV: "production",
-        PORT: "3001",
       },
     },
   ],
