@@ -1,9 +1,12 @@
 /**
  * PM2: production (3000) + dev (3001) on one VPS.
  *
- * First time or after fixing wrong PORT:
- *   pm2 delete app-fparmychapters dev-fparmychapters 2>/dev/null || true
- *   cd /path/to/this/repo && pm2 start scripts/pm2.ecosystem.cjs
+ * Must be named `ecosystem.config.cjs` (or `ecosystem.config.js`) at repo root
+ * so `pm2 start` parses `apps[]` — do NOT use a random filename or PM2 runs the file as one app.
+ *
+ * From this directory:
+ *   pm2 delete app-fparmychapters dev-fparmychapters pm2.ecosystem 2>/dev/null || true
+ *   pm2 start ecosystem.config.cjs
  *   pm2 save
  *
  * Edit `cwd` if your Hestia paths differ.

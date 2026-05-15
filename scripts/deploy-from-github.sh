@@ -13,7 +13,7 @@
 #   Producción:  bash scripts/deploy-from-github.sh
 #   Dev:         GIT_BRANCH=main PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
 #
-# Two apps on one host: pin PORT (see scripts/pm2.ecosystem.cjs) so prod never shares 3000 with dev.
+# Two apps on one host: pin PORT (see ecosystem.config.cjs in repo root) so prod never shares 3000 with dev.
 
 set -euo pipefail
 
