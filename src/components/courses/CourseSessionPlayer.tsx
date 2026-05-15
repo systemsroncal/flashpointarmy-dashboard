@@ -387,8 +387,8 @@ export function CourseSessionPlayer({
             </Button>
           ) : !markCompleteAllowed && videoElementIds.length > 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 360 }}>
-              Watch each video to the end to unlock session completion. Your place is saved automatically while you
-              watch and when you leave the page (resume on return).
+              Watch each video to the end to unlock session completion. When you return, you can choose to resume
+              where you left off (10 seconds earlier).
             </Typography>
           ) : (
             <Button

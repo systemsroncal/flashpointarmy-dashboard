@@ -62,6 +62,7 @@ export default async function CommunityPageContent() {
     city: string | null;
     state: string;
     zip_code: string | null;
+    address_line?: string | null;
   };
 
   /** Service role: RLS on `dashboard_users` / `profiles` is self-only for JWT; listing all users must bypass RLS after permission checks above. */
@@ -72,7 +73,7 @@ export default async function CommunityPageContent() {
   try {
     const { data: allCh } = await supabase
       .from("chapters")
-      .select("id, name, city, state, zip_code")
+      .select("id, name, city, state, zip_code, address_line")
       .order("name");
     if (elevated || !isLocalLeader) {
       chapterOptions = (allCh ?? []) as ChapterRow[];

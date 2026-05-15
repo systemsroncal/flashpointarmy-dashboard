@@ -1,8 +1,16 @@
 "use client";
 
 import { resolveVideoForPlyr, type ResolvedPlyrVideo } from "@/lib/media/resolve-plyr-video";
-import { Box } from "@mui/material";
-import { useEffect, useRef } from "react";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+} from "@mui/material";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type PlyrLike = {
   on: (event: string, fn: (...args: unknown[]) => void) => void;
@@ -12,6 +20,11 @@ type PlyrLike = {
   destroy: () => void;
 };
 
+/** Resume playback this many seconds before the saved position. */
+const RESUME_REWIND_SECONDS = 10;
+/** Only prompt when the learner saved at least this far into the video. */
+const MIN_SAVED_SECONDS_TO_PROMPT = 15;
+
 function setPlayerTime(player: PlyrLike, seconds: number): boolean {
   if (seconds <= 0) return true;
   try {
@@ -20,6 +33,17 @@ function setPlayerTime(player: PlyrLike, seconds: number): boolean {
   } catch {
     return false;
   }
+}
+
+function formatVideoTimestamp(totalSeconds: number): string {
+  const sec = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 const plyrControlsBase = [
@@ -89,9 +113,28 @@ function readCurrentTime(player: PlyrLike): number {
   return Number.isFinite(t) ? Math.max(0, t) : 0;
 }
 
+function readLs(key: string): number {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return 0;
+    const n = Number(raw);
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeLs(key: string, sec: number) {
+  try {
+    localStorage.setItem(key, String(Math.floor(sec)));
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
- * Inline Plyr player with resume support: parent supplies `initialSeconds` from persisted progress
- * and receives debounced `onPersistSeconds` while the user watches.
+ * Inline Plyr player with optional resume prompt (English). Progress is persisted via
+ * `onPersistSeconds`; resume seeks to saved position minus {@link RESUME_REWIND_SECONDS}.
  */
 export function CourseVideoPlyr({
   videoUrl,
@@ -100,26 +143,21 @@ export function CourseVideoPlyr({
   storageKey,
   autoplayMuted = false,
   omitPlayLargeControl = false,
-  /** When true, the seek/progress control is hidden (e.g. until the user finishes the video once). */
   hideProgressBar = false,
-  /** Fires once when playback reaches the end (after persisting the final position). */
   onVideoFullyWatched,
 }: {
   videoUrl: string;
   initialSeconds: number;
   onPersistSeconds: (seconds: number) => void;
-  /** Optional localStorage key to merge resume position between visits (in addition to DB). */
   storageKey?: string | null;
-  /** Start muted and try autoplay (Training intro); browsers may still require a tap. */
   autoplayMuted?: boolean;
-  /** Hide Plyr's big center play so it matches a single-tap flow with the bar controls. */
   omitPlayLargeControl?: boolean;
   hideProgressBar?: boolean;
   onVideoFullyWatched?: () => void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlyrLike | null>(null);
-  const resumeSecondsRef = useRef(Math.max(0, initialSeconds));
+  const pendingSeekRef = useRef<number | null>(null);
   const lastSentRef = useRef(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const persistHandlerRef = useRef(onPersistSeconds);
@@ -127,13 +165,77 @@ export function CourseVideoPlyr({
   const onFullyWatchedRef = useRef(onVideoFullyWatched);
   onFullyWatchedRef.current = onVideoFullyWatched;
 
+  const [savedSeconds, setSavedSeconds] = useState(0);
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const resumeChoiceMadeRef = useRef(false);
+
   useEffect(() => {
     const ls = storageKey ? readLs(storageKey) : 0;
-    resumeSecondsRef.current = Math.max(resumeSecondsRef.current, initialSeconds, ls);
+    const saved = Math.max(0, initialSeconds, ls);
+    setSavedSeconds(saved);
+    pendingSeekRef.current = null;
+    resumeChoiceMadeRef.current = false;
+    if (!autoplayMuted && saved >= MIN_SAVED_SECONDS_TO_PROMPT) {
+      setResumeDialogOpen(true);
+    } else {
+      setResumeDialogOpen(false);
+    }
+  }, [storageKey, autoplayMuted, videoUrl]);
+
+  useEffect(() => {
+    if (resumeChoiceMadeRef.current) return;
+    const ls = storageKey ? readLs(storageKey) : 0;
+    const saved = Math.max(0, initialSeconds, ls);
+    setSavedSeconds(saved);
+    if (!autoplayMuted && saved >= MIN_SAVED_SECONDS_TO_PROMPT) {
+      setResumeDialogOpen(true);
+    }
+  }, [initialSeconds, storageKey, autoplayMuted]);
+
+  const applyPendingSeek = useCallback((player: PlyrLike) => {
+    const target = pendingSeekRef.current;
+    if (target == null || target <= 0) return;
+
+    let seekAttempts = 0;
+    const maxSeekAttempts = 24;
+
+    const tryResume = () => {
+      if (pendingSeekRef.current == null) return;
+      const seekTo = pendingSeekRef.current;
+      if (seekTo <= 0) return;
+      const cur = readCurrentTime(player);
+      if (cur >= seekTo - 2) {
+        pendingSeekRef.current = null;
+        return;
+      }
+      if (seekAttempts >= maxSeekAttempts) return;
+      seekAttempts += 1;
+      setPlayerTime(player, seekTo);
+    };
+
+    tryResume();
+    const delays = [150, 400, 900, 1800, 3000, 5000];
+    for (const ms of delays) {
+      window.setTimeout(tryResume, ms);
+    }
+  }, []);
+
+  const handleResume = useCallback(() => {
+    resumeChoiceMadeRef.current = true;
+    const seekTo = Math.max(0, savedSeconds - RESUME_REWIND_SECONDS);
+    pendingSeekRef.current = seekTo;
+    setResumeDialogOpen(false);
     const player = playerRef.current;
-    if (!player || resumeSecondsRef.current <= 0) return;
-    setPlayerTime(player, resumeSecondsRef.current);
-  }, [initialSeconds, storageKey]);
+    if (player) applyPendingSeek(player);
+  }, [savedSeconds, applyPendingSeek]);
+
+  const handleStartOver = useCallback(() => {
+    resumeChoiceMadeRef.current = true;
+    pendingSeekRef.current = null;
+    setResumeDialogOpen(false);
+    const player = playerRef.current;
+    if (player) setPlayerTime(player, 0);
+  }, []);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -168,10 +270,6 @@ export function CourseVideoPlyr({
       playerRef.current = null;
       mount.innerHTML = "";
     };
-
-    const ls = storageKey ? readLs(storageKey) : 0;
-    resumeSecondsRef.current = Math.max(resumeSecondsRef.current, initialSeconds, ls);
-    const startFrom = resumeSecondsRef.current;
 
     const root = createPlyrRoot(resolved);
     if (!root) return;
@@ -214,44 +312,21 @@ export function CourseVideoPlyr({
         if (storageKey) writeLs(storageKey, floored);
       };
 
-      /** YouTube/Vimeo often ignore seek on `ready`; retry until position sticks or attempts exhaust. */
-      const resumeTargetRef = { sec: startFrom };
-      let seekAttempts = 0;
-      const maxSeekAttempts = 24;
-
-      const tryResume = () => {
-        const target = resumeTargetRef.sec;
-        if (target <= 0) return;
-        const cur = readCurrentTime(player);
-        if (cur >= target - 2) return;
-        if (seekAttempts >= maxSeekAttempts) return;
-        seekAttempts += 1;
-        setPlayerTime(player, target);
-      };
-
-      const scheduleResumeRetries = () => {
-        if (resumeTargetRef.sec <= 0) return;
-        tryResume();
-        const delays = [150, 400, 900, 1800, 3000, 5000];
-        for (const ms of delays) {
-          window.setTimeout(() => {
-            if (cancelled) return;
-            tryResume();
-          }, ms);
-        }
-      };
-
       player.on("ready", () => {
-        scheduleResumeRetries();
+        if (pendingSeekRef.current != null && pendingSeekRef.current > 0) {
+          applyPendingSeek(player);
+        }
         if (autoplayMuted) {
           void Promise.resolve((player as { play?: () => void | Promise<void> }).play?.()).catch(() => {
-            /* autoplay blocked: user uses control bar */
+            /* autoplay blocked */
           });
         }
       });
 
       for (const evt of ["loadeddata", "canplay", "playing"] as const) {
-        player.on(evt, tryResume);
+        player.on(evt, () => {
+          if (pendingSeekRef.current != null) applyPendingSeek(player);
+        });
       }
 
       const snapshot = () => persist(readCurrentTime(player));
@@ -290,7 +365,7 @@ export function CourseVideoPlyr({
       cancelled = true;
       destroy();
     };
-  }, [videoUrl, storageKey, autoplayMuted, omitPlayLargeControl]);
+  }, [videoUrl, storageKey, autoplayMuted, omitPlayLargeControl, applyPendingSeek]);
 
   if (resolveVideoForPlyr(videoUrl).kind === "none") {
     return (
@@ -298,53 +373,69 @@ export function CourseVideoPlyr({
     );
   }
 
+  const resumeFromSeconds = Math.max(0, savedSeconds - RESUME_REWIND_SECONDS);
+  const showResumePrompt = resumeDialogOpen && savedSeconds >= MIN_SAVED_SECONDS_TO_PROMPT;
+
   return (
-    <Box
-      ref={mountRef}
-      className="course-video-plyr-mount"
-      sx={{
-        width: "100%",
-        /* 16:9 within 72vh height: without maxWidth, aspect-ratio + maxHeight clipped the video */
-        maxWidth: "min(100%, calc(72vh * 16 / 9))",
-        mx: "auto",
-        position: "relative",
-        overflow: "hidden",
-        borderRadius: 1,
-        bgcolor: "#000",
-        aspectRatio: "16 / 9",
-        isolation: "isolate",
-        "& .plyr": {
-          borderRadius: 1,
+    <Box sx={{ position: "relative", width: "100%" }}>
+      <Box
+        ref={mountRef}
+        className="course-video-plyr-mount"
+        sx={{
           width: "100%",
-          height: "100%",
-        },
-        ...(hideProgressBar
-          ? {
-              "& .plyr__progress": { display: "none !important" },
-              "& .plyr__progress__container": { display: "none !important" },
-              "& input[data-plyr='seek']": { display: "none !important" },
-            }
-          : {}),
-      }}
-    />
+          maxWidth: "min(100%, calc(72vh * 16 / 9))",
+          mx: "auto",
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: 1,
+          bgcolor: "#000",
+          aspectRatio: "16 / 9",
+          isolation: "isolate",
+          "& .plyr": {
+            borderRadius: 1,
+            width: "100%",
+            height: "100%",
+          },
+          ...(hideProgressBar
+            ? {
+                "& .plyr__progress": { display: "none !important" },
+                "& .plyr__progress__container": { display: "none !important" },
+                "& input[data-plyr='seek']": { display: "none !important" },
+              }
+            : {}),
+        }}
+      />
+
+      <Dialog
+        open={showResumePrompt}
+        onClose={(_, reason) => {
+          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+        }}
+        maxWidth="xs"
+        fullWidth
+        aria-labelledby="resume-video-title"
+      >
+        <DialogTitle id="resume-video-title" sx={{ color: "primary.main", fontWeight: 700 }}>
+          Resume this video?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            You left off at <strong>{formatVideoTimestamp(savedSeconds)}</strong>.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Would you like to resume from <strong>{formatVideoTimestamp(resumeFromSeconds)}</strong> (
+            {RESUME_REWIND_SECONDS} seconds earlier)?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleStartOver} color="inherit">
+            Start from the beginning
+          </Button>
+          <Button onClick={handleResume} variant="contained" autoFocus>
+            Resume
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
-}
-
-function readLs(key: string): number {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return 0;
-    const n = Number(raw);
-    return Number.isFinite(n) ? Math.max(0, n) : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function writeLs(key: string, sec: number) {
-  try {
-    localStorage.setItem(key, String(Math.floor(sec)));
-  } catch {
-    /* ignore */
-  }
 }

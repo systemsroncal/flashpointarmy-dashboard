@@ -40,6 +40,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { ChapterSearchAutocomplete } from "@/components/forms/ChapterSearchAutocomplete";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { parseUploadFile } from "@/lib/import/parse-upload";
@@ -72,6 +73,7 @@ export type ChapterOption = {
   city: string | null;
   state: string;
   zip_code: string | null;
+  address_line?: string | null;
 };
 
 type EditableRole = "member" | "local_leader" | "admin";
@@ -272,10 +274,7 @@ export function CommunitySection({
   const [syncLogs, setSyncLogs] = useState<string[]>([]);
   const [syncError, setSyncError] = useState<string | null>(null);
 
-  const chapterSearchOptions = useMemo(
-    () => chapterOptions.map((c) => ({ id: c.id, label: c.name })),
-    [chapterOptions]
-  );
+  const allowChapterNameSearch = elevated || isSuperAdmin;
 
   const [viewUser, setViewUser] = useState<CommunityUserRow | null>(null);
   const [editUser, setEditUser] = useState<CommunityUserRow | null>(null);
@@ -1557,25 +1556,13 @@ export function CommunitySection({
               autoComplete="new-password"
             />
             {chapterOptions.length > 0 ? (
-              <Autocomplete
-                options={chapterSearchOptions}
-                value={
-                  chapterSearchOptions.find(
-                    (o) => o.id === (isLocalLeader && localChapterId ? localChapterId : chapterId)
-                  ) ?? null
-                }
-                onChange={(_, v) => setChapterId(v?.id ?? "")}
-                getOptionLabel={(o) => o.label}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
+              <ChapterSearchAutocomplete
+                chapters={chapterOptions}
+                valueId={isLocalLeader && localChapterId ? localChapterId : chapterId}
+                onChangeId={setChapterId}
+                allowNameAndAddressSearch={allowChapterNameSearch}
                 disabled={Boolean(isLocalLeader && localChapterId)}
-                filterOptions={(opts, state) => {
-                  const q = state.inputValue.trim().toLowerCase();
-                  if (!q) return opts;
-                  return opts.filter((o) => o.label.toLowerCase().includes(q));
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} label="Primary chapter" required placeholder="Search chapter…" />
-                )}
+                required
               />
             ) : (
               <Typography variant="body2" color="warning.main">
@@ -1961,20 +1948,12 @@ export function CommunitySection({
               </Box>
             ) : null}
             {chapterOptions.length > 0 ? (
-              <Autocomplete
-                options={chapterSearchOptions}
-                value={chapterSearchOptions.find((o) => o.id === editChapterId) ?? null}
-                onChange={(_, v) => setEditChapterId(v?.id ?? "")}
-                getOptionLabel={(o) => o.label}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
-                filterOptions={(opts, state) => {
-                  const q = state.inputValue.trim().toLowerCase();
-                  if (!q) return opts;
-                  return opts.filter((o) => o.label.toLowerCase().includes(q));
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} label="Primary chapter" required placeholder="Search chapter…" />
-                )}
+              <ChapterSearchAutocomplete
+                chapters={chapterOptions}
+                valueId={editChapterId}
+                onChangeId={setEditChapterId}
+                allowNameAndAddressSearch={allowChapterNameSearch}
+                required
               />
             ) : (
               <Typography variant="body2" color="warning.main">

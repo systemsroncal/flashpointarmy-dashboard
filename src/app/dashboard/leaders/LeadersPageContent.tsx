@@ -119,6 +119,7 @@ export default async function LeadersPageContent() {
     city: string | null;
     state: string;
     zip_code: string | null;
+    address_line?: string | null;
   };
 
   let merged: UserRow[] = [];
@@ -184,7 +185,7 @@ export default async function LeadersPageContent() {
   try {
     const { data: allCh } = await supabase
       .from("chapters")
-      .select("id, name, city, state, zip_code")
+      .select("id, name, city, state, zip_code, address_line")
       .order("name");
     if (elevated || !isLocalLeader) {
       chapterOptions = (allCh ?? []) as ChapterRow[];
