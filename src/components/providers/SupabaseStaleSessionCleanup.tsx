@@ -11,15 +11,24 @@ import { useEffect } from "react";
  */
 export function SupabaseStaleSessionCleanup() {
   useEffect(() => {
-    const supabase = createClient();
     let cancelled = false;
+    let client: ReturnType<typeof createClient>;
+    try {
+      client = createClient();
+    } catch (e) {
+      console.error(
+        "[SupabaseStaleSessionCleanup] Browser Supabase client unavailable (check NEXT_PUBLIC_* and rebuild).",
+        e
+      );
+      return;
+    }
 
     async function clearStale() {
-      const { error } = await supabase.auth.getSession();
+      const { error } = await client.auth.getSession();
       if (cancelled) return;
       if (!error || !isStaleRefreshTokenError(error)) return;
       try {
-        await supabase.auth.signOut({ scope: "local" });
+        await client.auth.signOut({ scope: "local" });
       } catch {
         /* ignore */
       }

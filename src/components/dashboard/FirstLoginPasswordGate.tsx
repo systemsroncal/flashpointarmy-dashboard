@@ -10,17 +10,30 @@ import {
   Typography,
 } from "@mui/material";
 import { createClient } from "@/utils/supabase/client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { useCallback, useEffect, useState } from "react";
 
 export function FirstLoginPasswordGate() {
-  const supabase = useMemo(() => createClient(), []);
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  useEffect(() => {
+    try {
+      setSupabase(createClient());
+    } catch (e) {
+      console.error(
+        "[FirstLoginPasswordGate] Supabase browser client failed (check NEXT_PUBLIC_* in .env.production and rebuild).",
+        e
+      );
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
+    if (!supabase) return;
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -33,6 +46,7 @@ export function FirstLoginPasswordGate() {
   }, [supabase]);
 
   useEffect(() => {
+    if (!supabase) return;
     void refresh();
     const {
       data: { subscription },
@@ -43,6 +57,7 @@ export function FirstLoginPasswordGate() {
   }, [refresh, supabase]);
 
   async function submit() {
+    if (!supabase) return;
     setErr(null);
     if (password.length < 8) {
       setErr("Password must be at least 8 characters.");
