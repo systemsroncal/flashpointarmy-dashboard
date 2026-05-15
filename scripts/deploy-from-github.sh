@@ -37,6 +37,8 @@ port_holders() {
 
 if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
   pm2 stop "$PM2_NAME" 2>/dev/null || true
+  # Let the old Node process release the TCP port (avoids EADDRINUSE on immediate restart).
+  sleep 2
 fi
 
 git fetch origin
@@ -56,15 +58,16 @@ npm run build
 test -f .next/BUILD_ID && echo "[deploy] BUILD OK"
 
 if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
-  # If another process is still binding APP_PORT, clear it before starting.
-  if [[ -n "$(port_holders)" ]]; then
-    echo "[deploy] Port ${APP_PORT} in use before PM2 start/restart:"
-    port_holders || true
-    if command -v fuser >/dev/null 2>&1; then
-      echo "[deploy] Killing process on ${APP_PORT}/tcp via fuser..."
-      fuser -k "${APP_PORT}/tcp" || true
-      sleep 1
-    fi
+  # Free APP_PORT before bind: `ss` can miss short-lived listeners; fuser clears stale Node/Next.
+  echo "[deploy] Checking port ${APP_PORT} (listeners, if any):"
+  port_holders || true
+  if command -v fuser >/dev/null 2>&1; then
+    echo "[deploy] Clearing any process on ${APP_PORT}/tcp (fuser)..."
+    fuser -k "${APP_PORT}/tcp" 2>/dev/null || true
+    sleep 2
+  elif [[ -n "$(port_holders)" ]]; then
+    echo "[deploy] ERROR: Port ${APP_PORT} is in use and fuser is not installed. Install package psmisc, or stop the other process manually." >&2
+    exit 1
   fi
 
   if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
