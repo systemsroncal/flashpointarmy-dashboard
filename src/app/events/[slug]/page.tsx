@@ -1,11 +1,11 @@
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { EventCategoryPill } from "@/components/events/EventCategoryPill";
 import { EventImageCarousel } from "@/components/events/EventImageCarousel";
 import { SocialShareButtons } from "@/components/events/SocialShareButtons";
 import { EventDescriptionHtml } from "@/components/events/EventDescriptionHtml";
 import { EventVideoPlyrDialog } from "@/components/events/EventVideoPlyrDialog";
-import { Box, Button, Paper, Typography } from "@mui/material";
+import { Box, Button, Link as MuiLink, Paper, Typography } from "@mui/material";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -21,12 +21,31 @@ function formatEventDateTime(iso: string): string {
   }).format(new Date(iso));
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicEventPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  if (!hasSupabaseAdminEnv()) {
+    return (
+      <Box sx={{ maxWidth: 1200, mx: "auto", p: { xs: 2, md: 3 } }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+          Event
+        </Typography>
+        <Typography color="text.secondary">
+          This page is temporarily unavailable. Please try again later.
+        </Typography>
+        <MuiLink component={Link} href="/events" color="primary" sx={{ display: "inline-block", mt: 2 }}>
+          ← Back to events
+        </MuiLink>
+      </Box>
+    );
+  }
+
   const admin = createAdminClient();
 
   const { data: ev } = await admin

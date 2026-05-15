@@ -1,8 +1,10 @@
 import { formatEventLocationLine } from "@/lib/gatherings/event-location";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { Box, Paper, Typography } from "@mui/material";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 
 function formatEventDateTime(iso: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -16,6 +18,19 @@ function formatEventDateTime(iso: string): string {
 }
 
 export default async function PublicEventsPage() {
+  if (!hasSupabaseAdminEnv()) {
+    return (
+      <Box sx={{ maxWidth: 1200, mx: "auto", p: { xs: 2, md: 3 } }}>
+        <Typography variant="h3" sx={{ fontWeight: 800, mb: 2 }}>
+          Events
+        </Typography>
+        <Typography color="text.secondary">
+          Events are temporarily unavailable. Please try again later.
+        </Typography>
+      </Box>
+    );
+  }
+
   const admin = createAdminClient();
   const { data: events } = await admin
     .from("gatherings")

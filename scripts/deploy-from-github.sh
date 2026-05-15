@@ -38,7 +38,7 @@ if [[ "${DEPLOY_SOFT_PULL:-}" == "1" ]]; then
   git pull origin "$BRANCH"
 else
   # Match the remote exactly: avoids "untracked working tree files would be overwritten by merge"
-  # (e.g. manual copies under public/). Ignored files (.env.local, node_modules) are kept.
+  # (e.g. manual copies under public/). Ignored files (node_modules, .env*, .env.production) are kept.
   git reset --hard "origin/${BRANCH}"
   git clean -fd
 fi
