@@ -44,9 +44,14 @@ export type RoleJoinRow = {
 };
 
 const PAGE_SIZE = 1000;
-const IN_CHUNK = 400;
+/** Keep `.in(uuid…)` batches small: long lists exceed PostgREST / proxy URL limits (~8–16k). */
+const IN_CHUNK = 100;
 /** Smaller batches for `user_roles` / role maps: long `.in(uuid…)` lists can exceed PostgREST URL limits. */
 const USER_ROLE_NAME_CHUNK = 80;
+
+const PROFILES_SELECT_FULL =
+  "id, avatar_url, primary_chapter_id, phone, address_line, city, state, zip_code";
+const PROFILES_SELECT_MIN = "id, avatar_url, primary_chapter_id, phone";
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -199,18 +204,42 @@ export async function listDashboardUsersByIdsWithAuthFallback(
   return merged;
 }
 
+function profileRowsWithMailingDefaults(
+  rows: unknown[],
+  mailingFromFullSelect: boolean
+): ProfileMailRow[] {
+  return (rows ?? []).map((row) => {
+    const r = row as Record<string, unknown>;
+    return {
+      id: String(r.id),
+      avatar_url: (r.avatar_url as string | null) ?? null,
+      primary_chapter_id: (r.primary_chapter_id as string | null) ?? null,
+      phone: (r.phone as string | null) ?? null,
+      address_line: mailingFromFullSelect ? ((r.address_line as string | null) ?? null) : null,
+      city: mailingFromFullSelect ? ((r.city as string | null) ?? null) : null,
+      state: mailingFromFullSelect ? ((r.state as string | null) ?? null) : null,
+      zip_code: mailingFromFullSelect ? ((r.zip_code as string | null) ?? null) : null,
+    };
+  });
+}
+
 export async function listProfilesByIds(admin: SupabaseClient, ids: string[]): Promise<ProfileMailRow[]> {
   if (!ids.length) return [];
   const out: ProfileMailRow[] = [];
   for (const part of chunk(ids, IN_CHUNK)) {
-    const { data, error } = await admin
-      .from("profiles")
-      .select("id, avatar_url, primary_chapter_id, phone, address_line, city, state, zip_code")
-      .in("id", part);
-    if (error) {
-      throw new Error(`listProfilesByIds: ${error.message}`);
+    const { data, error } = await admin.from("profiles").select(PROFILES_SELECT_FULL).in("id", part);
+    if (!error) {
+      out.push(...profileRowsWithMailingDefaults(data ?? [], true));
+      continue;
     }
-    out.push(...((data ?? []) as ProfileMailRow[]));
+    const { data: dataMin, error: errMin } = await admin
+      .from("profiles")
+      .select(PROFILES_SELECT_MIN)
+      .in("id", part);
+    if (errMin) {
+      throw new Error(`listProfilesByIds: ${errMin.message} (after: ${error.message})`);
+    }
+    out.push(...profileRowsWithMailingDefaults(dataMin ?? [], false));
   }
   return out;
 }
