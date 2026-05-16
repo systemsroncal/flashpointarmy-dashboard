@@ -5,6 +5,7 @@ import { useDashboardPresence } from "@/contexts/DashboardPresenceContext";
 import BoltOutlined from "@mui/icons-material/BoltOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import HowToRegOutlined from "@mui/icons-material/HowToRegOutlined";
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
 import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import TrendingUpOutlined from "@mui/icons-material/TrendingUpOutlined";
 import {
@@ -12,9 +13,11 @@ import {
   Box,
   Card,
   CardContent,
+  IconButton,
   LinearProgress,
   Paper,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import type { ApexOptions } from "apexcharts";
@@ -58,12 +61,14 @@ type StatCardProps = {
   label: string;
   value: number | string;
   sub?: string;
+  /** Shown next to `sub` as a small (i) icon with this tooltip. */
+  subTooltip?: string;
   color: string;
   icon: SvgIconComponent;
   pulse?: boolean;
 };
 
-function PresenceStatCard({ label, value, sub, color, icon: Icon, pulse }: StatCardProps) {
+function PresenceStatCard({ label, value, sub, subTooltip, color, icon: Icon, pulse }: StatCardProps) {
   return (
     <Card
       sx={{
@@ -111,9 +116,28 @@ function PresenceStatCard({ label, value, sub, color, icon: Icon, pulse }: StatC
           {value}
         </Typography>
         {sub ? (
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-            {sub}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.35, mt: 0.5, flexWrap: "wrap" }}>
+            <Typography variant="caption" color="text.secondary" component="span">
+              {sub}
+            </Typography>
+            {subTooltip ? (
+              <Tooltip title={subTooltip} arrow placement="top" enterTouchDelay={0}>
+                <IconButton
+                  size="small"
+                  aria-label={`More about: ${label}`}
+                  sx={{
+                    p: 0.2,
+                    ml: -0.25,
+                    color: "text.secondary",
+                    opacity: 0.65,
+                    "&:hover": { opacity: 1, bgcolor: "rgba(255,255,255,0.06)" },
+                  }}
+                >
+                  <InfoOutlined sx={{ fontSize: "0.95rem" }} />
+                </IconButton>
+              </Tooltip>
+            ) : null}
+          </Box>
         ) : null}
       </CardContent>
     </Card>
@@ -192,6 +216,10 @@ export function ReportsPresenceSection() {
 
   const summary = data?.summary;
   const trend = formatTrend(summary?.todayVsYesterdayPercent ?? null);
+  const todayVsPeakPercent =
+    summary && summary.peakDayCount > 0
+      ? Math.round(Math.min(100, (summary.activeToday / summary.peakDayCount) * 100))
+      : null;
 
   return (
     <Paper sx={{ p: 2 }}>
@@ -231,6 +259,7 @@ export function ReportsPresenceSection() {
           label="Online now"
           value={onlineUserCount}
           sub="Dashboard open (Realtime)"
+          subTooltip="People currently connected to the Command Center in an open browser tab. Updates live via Supabase Realtime presence; this is not a stored historical total."
           color="#ef4444"
           icon={BoltOutlined}
           pulse={onlineUserCount > 0}
@@ -239,6 +268,7 @@ export function ReportsPresenceSection() {
           label="Active today (UTC)"
           value={summary?.activeToday ?? (loading ? "…" : 0)}
           sub={trend.text}
+          subTooltip="Distinct users with at least one dashboard session on today’s UTC calendar day (midnight to midnight UTC). The line below compares this count to yesterday using the same definition."
           color="#22c55e"
           icon={GroupsOutlined}
         />
@@ -246,6 +276,7 @@ export function ReportsPresenceSection() {
           label={`Distinct users (${PRESENCE_REPORT_DAYS}d)`}
           value={summary?.distinctLast30Days ?? (loading ? "…" : 0)}
           sub="At least one session pulse"
+          subTooltip={`Unique users who had at least one stored presence pulse on any UTC day in the last ${PRESENCE_REPORT_DAYS} days (rolling window).`}
           color="#3b82f6"
           icon={TrendingUpOutlined}
         />
@@ -253,6 +284,7 @@ export function ReportsPresenceSection() {
           label={`New registrations (${PRESENCE_REPORT_DAYS}d)`}
           value={summary?.registrationsLast30Days ?? (loading ? "…" : 0)}
           sub="dashboard_users.created_at"
+          subTooltip={`Accounts created in the last ${PRESENCE_REPORT_DAYS} UTC days, by \`dashboard_users.created_at\` (new sign-ups in this window).`}
           color="#eab308"
           icon={HowToRegOutlined}
         />
@@ -316,9 +348,30 @@ export function ReportsPresenceSection() {
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
-                    Today vs peak
-                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.35, mb: 0.75 }}>
+                    <Typography variant="caption" color="text.secondary" component="span">
+                      Today vs busiest day (UTC)
+                    </Typography>
+                    <Tooltip
+                      title="The bar compares today’s distinct active users to the single busiest UTC calendar day in this period—not an average. 100% means today matched that peak; lower means fewer users than that peak day."
+                      arrow
+                      placement="top"
+                      enterTouchDelay={0}
+                    >
+                      <IconButton
+                        size="small"
+                        aria-label="More about today vs busiest day"
+                        sx={{
+                          p: 0.2,
+                          color: "text.secondary",
+                          opacity: 0.65,
+                          "&:hover": { opacity: 1, bgcolor: "rgba(255,255,255,0.06)" },
+                        }}
+                      >
+                        <InfoOutlined sx={{ fontSize: "0.95rem" }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                   <LinearProgress
                     variant="determinate"
                     value={
@@ -333,6 +386,11 @@ export function ReportsPresenceSection() {
                       "& .MuiLinearProgress-bar": { bgcolor: "primary.main" },
                     }}
                   />
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.75 }}>
+                    {summary && summary.peakDayCount > 0
+                      ? `${summary.activeToday} today · peak was ${summary.peakDayCount} users (${todayVsPeakPercent}% of peak)`
+                      : "No peak in this window yet."}
+                  </Typography>
                 </Box>
               </Stack>
             </Paper>

@@ -181,6 +181,10 @@ export default async function LeadersPageContent() {
     merged = merged.map((u) => ({ ...u, avatar_url: null }));
   }
 
+  merged = [...merged].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
   let chapterOptions: ChapterRow[] = [];
   try {
     const { data: allCh } = await supabase

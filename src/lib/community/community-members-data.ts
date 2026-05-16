@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  parseCommunityMemberRemoteSortKey,
+  sortCommunityMemberBaseRows,
+} from "@/lib/community/community-table-sort";
 
 /** User IDs that have `member` and none of `local_leader` / `admin` / `super_admin` (same logic as `dashboard_community_members` view). */
 export async function listCommunityMemberUserIds(
@@ -99,9 +103,13 @@ export async function listCommunityMembersFallback(
     isLocalLeader: boolean;
     localChapterId: string | null;
     selectedUserId: string;
+    sortKey?: string;
+    sortAsc?: boolean;
   }
 ): Promise<{ rows: CommunityMemberBaseRow[]; count: number }> {
   const { page, perPage, q, selectedUserId } = opts;
+  const sortKey = parseCommunityMemberRemoteSortKey(opts.sortKey);
+  const sortAsc = opts.sortAsc ?? false;
   const ch = chapterScope(opts);
 
   let ids = await listCommunityMemberUserIds(admin);
@@ -143,9 +151,7 @@ export async function listCommunityMembersFallback(
     );
   }
 
-  list.sort((a, b) =>
-    String(a.email ?? "").localeCompare(String(b.email ?? ""), undefined, { sensitivity: "base" })
-  );
+  list = sortCommunityMemberBaseRows(list, sortKey, sortAsc);
 
   const total = list.length;
   const from = page * perPage;

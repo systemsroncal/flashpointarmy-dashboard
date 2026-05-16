@@ -519,6 +519,8 @@ export function CommunitySection({
         page: String(page),
         perPage: String(rowsPerPage < 0 ? 200 : rowsPerPage),
         chapterId: filterChapterId,
+        sort: orderBy,
+        order,
       });
       if (searchCommitted.length >= 2) {
         params.set("q", searchCommitted);
@@ -534,7 +536,7 @@ export function CommunitySection({
     } finally {
       setTableLoading(false);
     }
-  }, [remoteMode, page, rowsPerPage, filterChapterId, searchCommitted]);
+  }, [remoteMode, page, rowsPerPage, filterChapterId, searchCommitted, orderBy, order]);
 
   useEffect(() => {
     void fetchRemoteRows();

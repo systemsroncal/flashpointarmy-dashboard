@@ -166,6 +166,10 @@ export default async function AdminsPageContent() {
     }
   }
 
+  merged = [...merged].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
   let chapterOptions: ChapterRow[] = [];
   try {
     const { data: allCh } = await supabase

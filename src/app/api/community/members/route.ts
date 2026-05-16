@@ -7,8 +7,13 @@ import {
 } from "@/lib/community/community-members-data";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
-import { can } from "@/types/permissions";
 import { preferNonEmptyAddr } from "@/lib/admin/dashboard-user-queries";
+import { can } from "@/types/permissions";
+import {
+  communityMemberSortDbColumn,
+  parseCommunityMemberRemoteSortKey,
+  parseCommunityMemberSortAscending,
+} from "@/lib/community/community-table-sort";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -101,6 +106,8 @@ export async function GET(req: Request) {
   const selectedUserId = (url.searchParams.get("selectedUserId") || "").trim();
   const q = (url.searchParams.get("q") || "").trim();
   const autocomplete = url.searchParams.get("autocomplete") === "1";
+  const sortKey = parseCommunityMemberRemoteSortKey(url.searchParams.get("sort"));
+  const sortAsc = parseCommunityMemberSortAscending(url.searchParams.get("order"));
 
   const roles = await loadUserRoleNames(supabase, user.id);
   const elevated = isElevatedRole(roles);
@@ -178,7 +185,8 @@ export async function GET(req: Request) {
       "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id, address_line, city, state, zip_code",
       { count: "exact" }
     )
-    .order("email");
+    .order(communityMemberSortDbColumn(sortKey), { ascending: sortAsc })
+    .order("id", { ascending: true });
   if (!elevated && isLocalLeader && localChapterId) {
     query = query.eq("primary_chapter_id", localChapterId);
   }
@@ -208,6 +216,8 @@ export async function GET(req: Request) {
         isLocalLeader,
         localChapterId,
         selectedUserId,
+        sortKey,
+        sortAsc,
       });
       const merged = await mergeProfilesAndRoles(admin, rows);
       return NextResponse.json({
