@@ -3,6 +3,7 @@ import {
   type PresenceDailyPayload,
   type PresenceDemographicRow,
 } from "@/lib/reports/presence-daily-payload";
+import { chunkIdsForInQuery } from "@/lib/admin/dashboard-user-queries";
 import { normalizeUserStateForReports } from "@/lib/reports/normalize-user-state";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -10,6 +11,7 @@ import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const DAY_COUNT = PRESENCE_REPORT_DAYS;
 
@@ -24,6 +26,34 @@ function utcDateKey(y: number, m: number, d: number, offsetDays: number): string
   const dt = new Date(Date.UTC(y, m, d));
   dt.setUTCDate(dt.getUTCDate() + offsetDays);
   return dt.toISOString().slice(0, 10);
+}
+
+type PresenceRow = { day_utc: string; user_id: string };
+
+const PRESENCE_PAGE = 1000;
+const DEMOGRAPHICS_IN_CHUNK = 100;
+
+/** PostgREST returns at most ~1000 rows per request unless paginated; long `.in()` lists also break proxies. */
+async function fetchAllPresenceRowsSince(
+  admin: SupabaseClient,
+  fromStr: string
+): Promise<{ rows: PresenceRow[]; errorMessage: string | null }> {
+  const rows: PresenceRow[] = [];
+  for (let from = 0; ; from += PRESENCE_PAGE) {
+    const to = from + PRESENCE_PAGE - 1;
+    const { data, error } = await admin
+      .from("dashboard_presence_daily")
+      .select("day_utc, user_id")
+      .gte("day_utc", fromStr)
+      .order("day_utc", { ascending: true })
+      .order("user_id", { ascending: true })
+      .range(from, to);
+    if (error) return { rows, errorMessage: error.message };
+    const batch = (data ?? []) as PresenceRow[];
+    rows.push(...batch);
+    if (batch.length < PRESENCE_PAGE) break;
+  }
+  return { rows, errorMessage: null };
 }
 
 export async function GET() {
@@ -50,21 +80,19 @@ export async function GET() {
     const registrationsFrom = new Date(Date.UTC(y, m, d));
     registrationsFrom.setUTCDate(registrationsFrom.getUTCDate() - (DAY_COUNT - 1));
 
-    const [presenceRes, registrationsRes] = await Promise.all([
-      admin.from("dashboard_presence_daily").select("day_utc, user_id").gte("day_utc", fromStr),
-      admin
-        .from("dashboard_users")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", registrationsFrom.toISOString()),
-    ]);
-
-    if (presenceRes.error) {
-      return NextResponse.json({ error: presenceRes.error.message }, { status: 400 });
+    const { rows: presenceRows, errorMessage: presenceErr } = await fetchAllPresenceRowsSince(admin, fromStr);
+    if (presenceErr) {
+      return NextResponse.json({ error: presenceErr }, { status: 400 });
     }
+
+    const registrationsRes = await admin
+      .from("dashboard_users")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", registrationsFrom.toISOString());
 
     const byDay = new Map<string, Set<string>>();
     const activeUserIds = new Set<string>();
-    for (const row of presenceRes.data ?? []) {
+    for (const row of presenceRows) {
       const day = String((row as { day_utc: string }).day_utc).slice(0, 10);
       const uid = String((row as { user_id: string }).user_id);
       activeUserIds.add(uid);
@@ -102,17 +130,19 @@ export async function GET() {
     let demographicsByState: PresenceDemographicRow[] = [];
     if (activeUserIds.size > 0) {
       const ids = [...activeUserIds];
-      const { data: users, error: usersErr } = await admin
-        .from("dashboard_users")
-        .select("id, state")
-        .in("id", ids);
-      if (usersErr) {
-        return NextResponse.json({ error: usersErr.message }, { status: 400 });
-      }
       const byState = new Map<string, number>();
-      for (const u of users ?? []) {
-        const st = normalizeUserStateForReports((u as { state: string | null }).state);
-        byState.set(st, (byState.get(st) ?? 0) + 1);
+      for (const part of chunkIdsForInQuery(ids, DEMOGRAPHICS_IN_CHUNK)) {
+        const { data: users, error: usersErr } = await admin
+          .from("dashboard_users")
+          .select("id, state")
+          .in("id", part);
+        if (usersErr) {
+          return NextResponse.json({ error: usersErr.message }, { status: 400 });
+        }
+        for (const u of users ?? []) {
+          const st = normalizeUserStateForReports((u as { state: string | null }).state);
+          byState.set(st, (byState.get(st) ?? 0) + 1);
+        }
       }
       const total = activeUserIds.size;
       demographicsByState = [...byState.entries()]
@@ -131,7 +161,7 @@ export async function GET() {
         activeToday,
         activeYesterday,
         distinctLast30Days: activeUserIds.size,
-        registrationsLast30Days: registrationsRes.count ?? 0,
+        registrationsLast30Days: registrationsRes.error ? 0 : (registrationsRes.count ?? 0),
         peakDayCount,
         peakDayLabel,
         todayVsYesterdayPercent,
