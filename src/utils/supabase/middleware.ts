@@ -3,6 +3,7 @@ import {
   getPublicSupabaseAnonKey,
   getPublicSupabaseUrl,
 } from "@/utils/supabase/public-env";
+import { clearSessionStartedCookie } from "@/lib/auth/session-policy";
 import { isStaleRefreshTokenError } from "@/utils/supabase/auth-errors";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -47,6 +48,7 @@ export async function getSupabaseSession(request: NextRequest) {
       } catch {
         /* ignore */
       }
+      clearSessionStartedCookie(supabaseResponse);
       return { supabase, user: null, supabaseResponse };
     }
 
@@ -58,6 +60,7 @@ export async function getSupabaseSession(request: NextRequest) {
       } catch {
         /* ignore */
       }
+      clearSessionStartedCookie(supabaseResponse);
       return { supabase, user: null, supabaseResponse };
     }
     throw err;

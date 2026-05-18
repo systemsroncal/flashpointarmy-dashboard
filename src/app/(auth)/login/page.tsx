@@ -47,6 +47,10 @@ function LoginForm() {
         );
         return;
       }
+      await fetch("/api/auth/session-start", {
+        method: "POST",
+        credentials: "include",
+      });
       router.refresh();
       router.push(redirectTo);
     } catch (unknownErr) {
@@ -74,7 +78,8 @@ function LoginForm() {
         <Box component="form" onSubmit={handleSubmit} noValidate>
           {sessionReason === "session_expired" ? (
             <Alert severity="info" sx={{ mb: 2 }}>
-              Your session expired or is no longer valid. Please sign in again.
+              Your session expired (sessions last 24 hours) or is no longer valid.
+              Please sign in again.
             </Alert>
           ) : null}
           <Box>

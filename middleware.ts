@@ -4,6 +4,10 @@ import {
   MAINTENANCE_MESSAGE,
 } from "@/lib/maintenance";
 import { getSupabaseSession } from "@/utils/supabase/middleware";
+import {
+  applyAppSessionPolicy,
+  redirectExpiredAppSession,
+} from "@/utils/supabase/middleware-session";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
@@ -29,6 +33,17 @@ export async function middleware(request: NextRequest) {
   }
 
   const { user, supabaseResponse } = await getSupabaseSession(request);
+
+  if (user) {
+    const sessionResponse = applyAppSessionPolicy(
+      request,
+      user,
+      supabaseResponse
+    );
+    if (sessionResponse === null) {
+      return redirectExpiredAppSession(request);
+    }
+  }
 
   if (path.startsWith("/dashboard") && !user) {
     const url = request.nextUrl.clone();

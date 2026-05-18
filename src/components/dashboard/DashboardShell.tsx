@@ -327,6 +327,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    try {
+      await fetch("/api/auth/session-clear", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      /* ignore */
+    }
     router.push("/login");
     router.refresh();
   }
