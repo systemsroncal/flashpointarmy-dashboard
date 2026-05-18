@@ -28,8 +28,12 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import {
+  isTrainingDebugActiveClient,
+  parseTrainingDebugQueryParam,
+} from "@/lib/training/training-debug";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -73,11 +77,17 @@ export function CourseSessionPlayer({
   initialCompleted: boolean;
   initialVideoPositions: Record<string, number>;
   quizScores: Record<string, { score: number; maxScore: number }>;
-  /** When true (dev host + `?trainingDebug=1`), always show the Plyr seek bar for QA. */
+  /** Server hint from `?trainingDebug=1` (any role; host/env gated). */
   trainingDebug?: boolean;
 }) {
   const user = useDashboardUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const trainingDebugActive = useMemo(() => {
+    if (trainingDebug) return true;
+    const requested = parseTrainingDebugQueryParam(searchParams.get("trainingDebug"));
+    return isTrainingDebugActiveClient(requested);
+  }, [trainingDebug, searchParams]);
   const supabase = useMemo(() => createClient(), []);
   const [completed, setCompleted] = useState(initialCompleted);
   const completedRef = useRef(initialCompleted);
@@ -296,7 +306,7 @@ export function CourseSessionPlayer({
         ) : null}
       </Paper>
 
-      {trainingDebug ? (
+      {trainingDebugActive ? (
         <Alert severity="info" sx={{ mb: 2 }}>
           Training debug: video seek bar is always visible. Remove{" "}
           <Typography component="span" variant="body2" sx={{ fontFamily: "monospace" }}>
@@ -350,7 +360,7 @@ export function CourseSessionPlayer({
                   storageKey={`coursevid:${user.id}:${el.id}`}
                   onPersistSeconds={(sec) => onVideoSeconds(el.id, sec)}
                   hideProgressBar={
-                    !trainingDebug && !videoFullyWatchedById[el.id] && !completed
+                    !trainingDebugActive && !videoFullyWatchedById[el.id] && !completed
                   }
                   suppressResumePrompt={Boolean(videoFullyWatchedById[el.id])}
                   onVideoFullyWatched={() => onVideoFullyWatched(el.id)}

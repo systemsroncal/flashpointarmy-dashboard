@@ -1,4 +1,5 @@
 import { DataPaneFallback } from "@/components/dashboard/DataPaneFallback";
+import { parseTrainingDebugQueryParam } from "@/lib/training/training-debug";
 import { Suspense } from "react";
 import SessionPageContent from "./SessionPageContent";
 
@@ -11,9 +12,7 @@ export default async function CourseSessionPage({
 }) {
   const { slug, sessionSlug } = await params;
   const sp = await searchParams;
-  const raw = sp.trainingDebug;
-  const trainingDebugRequested =
-    raw === "1" || raw === "true" || (Array.isArray(raw) && raw.some((v) => v === "1" || v === "true"));
+  const trainingDebugRequested = parseTrainingDebugQueryParam(sp.trainingDebug);
 
   return (
     <Suspense fallback={<DataPaneFallback label="Loading session" />}>
