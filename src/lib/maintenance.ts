@@ -36,3 +36,9 @@ export const MAINTENANCE_BANNER_BODY =
 export const MAINTENANCE_BANNER_OFFSET_VAR = "--fp-maintenance-banner-offset";
 
 export const MAINTENANCE_BANNER_DISMISS_KEY = "fp-maintenance-banner-dismissed";
+
+/** After dismiss (X), show the banner again after this many minutes. */
+export const MAINTENANCE_BANNER_DISMISS_MINUTES = 25;
+
+export const MAINTENANCE_BANNER_DISMISS_MS =
+  MAINTENANCE_BANNER_DISMISS_MINUTES * 60 * 1000;

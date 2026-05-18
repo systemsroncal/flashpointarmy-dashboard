@@ -3,18 +3,51 @@
 import {
   MAINTENANCE_BANNER_BODY,
   MAINTENANCE_BANNER_DISMISS_KEY,
+  MAINTENANCE_BANNER_DISMISS_MS,
   MAINTENANCE_BANNER_OFFSET_VAR,
 } from "@/lib/maintenance";
 import CloseIcon from "@mui/icons-material/Close";
 import { Box, IconButton, Typography } from "@mui/material";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+
+function getDismissedAt(): number | null {
+  try {
+    const raw = localStorage.getItem(MAINTENANCE_BANNER_DISMISS_KEY);
+    if (!raw) return null;
+    if (raw === "1") {
+      localStorage.removeItem(MAINTENANCE_BANNER_DISMISS_KEY);
+      return null;
+    }
+    const dismissedAt = Number(raw);
+    if (!Number.isFinite(dismissedAt)) {
+      localStorage.removeItem(MAINTENANCE_BANNER_DISMISS_KEY);
+      return null;
+    }
+    return dismissedAt;
+  } catch {
+    return null;
+  }
+}
 
 function readDismissed(): boolean {
-  try {
-    return localStorage.getItem(MAINTENANCE_BANNER_DISMISS_KEY) === "1";
-  } catch {
+  const dismissedAt = getDismissedAt();
+  if (dismissedAt === null) return false;
+  if (Date.now() - dismissedAt >= MAINTENANCE_BANNER_DISMISS_MS) {
+    try {
+      localStorage.removeItem(MAINTENANCE_BANNER_DISMISS_KEY);
+    } catch {
+      /* ignore */
+    }
     return false;
   }
+  return true;
+}
+
+function msUntilBannerReturns(): number | null {
+  const dismissedAt = getDismissedAt();
+  if (dismissedAt === null) return null;
+  const remaining = MAINTENANCE_BANNER_DISMISS_MS - (Date.now() - dismissedAt);
+  return remaining > 0 ? remaining : null;
 }
 
 export function MaintenanceBanner() {
@@ -37,6 +70,21 @@ export function MaintenanceBanner() {
   useLayoutEffect(() => {
     setDismissed(readDismissed());
   }, []);
+
+  useEffect(() => {
+    if (!dismissed) return;
+    const remaining = msUntilBannerReturns();
+    if (remaining === null) return;
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.removeItem(MAINTENANCE_BANNER_DISMISS_KEY);
+      } catch {
+        /* ignore */
+      }
+      setDismissed(false);
+    }, remaining);
+    return () => window.clearTimeout(timer);
+  }, [dismissed]);
 
   useLayoutEffect(() => {
     syncOffset();
@@ -65,7 +113,10 @@ export function MaintenanceBanner() {
 
   function handleDismiss() {
     try {
-      localStorage.setItem(MAINTENANCE_BANNER_DISMISS_KEY, "1");
+      localStorage.setItem(
+        MAINTENANCE_BANNER_DISMISS_KEY,
+        String(Date.now())
+      );
     } catch {
       /* ignore */
     }
