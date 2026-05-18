@@ -4,16 +4,14 @@ import { fetchEmailDeliverySettings, upsertEmailDeliverySettings } from "@/lib/m
 import { getGmailOAuthRedirectUri } from "@/lib/mail/app-base-url";
 import { hasGmailOAuthClientSecretInEnv } from "@/lib/mail/gmail-oauth-client-secret-env";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
+import { requireApiAuth } from "@/lib/auth/server-session";
 
 async function requireSuperAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: NextResponse.json({ error: "Unauthorized." }, { status: 401 }) };
+  const authResult = await requireApiAuth();
+  if ("response" in authResult) {
+    return { error: authResult.response };
   }
+  const { supabase, user } = authResult;
   const roles = await loadUserRoleNames(supabase, user.id);
   if (!roles.includes("super_admin")) {
     return { error: NextResponse.json({ error: "Forbidden." }, { status: 403 }) };

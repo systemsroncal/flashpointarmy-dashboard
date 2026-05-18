@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/auth/server-session";
 import { loadUserRoleNames, isElevatedRole } from "@/lib/auth/user-roles";
 import { sendTemplatedEmail } from "@/lib/mail/send-templated-email";
 import { createClient } from "@/utils/supabase/server";
@@ -27,13 +28,9 @@ async function displayNameForUser(
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireApiAuth();
+  if ("response" in authResult) return authResult.response;
+  const { supabase, user } = authResult;
 
     const body = (await req.json()) as { gatheringId?: string };
     const gatheringId = (body.gatheringId || "").trim();

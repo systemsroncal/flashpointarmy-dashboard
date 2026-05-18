@@ -7,7 +7,7 @@ import { EventDescriptionHtml } from "@/components/events/EventDescriptionHtml";
 import { EventVideoPlyrDialog } from "@/components/events/EventVideoPlyrDialog";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
-import { createClient } from "@/utils/supabase/server";
+import { requireServerUser } from "@/lib/auth/server-session";
 import { redirect, notFound } from "next/navigation";
 import { Box, Button, Paper, Typography } from "@mui/material";
 
@@ -28,11 +28,7 @@ export default async function GatheringDetailContent({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.gatherings, "read")) {

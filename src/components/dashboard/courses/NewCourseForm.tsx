@@ -15,6 +15,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { AuthorOption } from "@/lib/courses/author-options";
+import { getClientAuthUser } from "@/utils/supabase/client-auth";
 import { createClient } from "@/utils/supabase/client";
 
 export function NewCourseForm({ authorOptions }: { authorOptions: AuthorOption[] }) {
@@ -44,9 +45,7 @@ export function NewCourseForm({ authorOptions }: { authorOptions: AuthorOption[]
       return;
     }
     setSaving(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user } = await getClientAuthUser(supabase);
     if (!user) {
       setErr("Not signed in.");
       setSaving(false);

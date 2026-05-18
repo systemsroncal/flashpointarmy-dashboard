@@ -2,8 +2,8 @@ import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
-import { redirect, notFound } from "next/navigation";
+import { requireServerUser } from "@/lib/auth/server-session";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Box, Paper, Typography } from "@mui/material";
 import { CourseProgressUsersTable } from "@/components/dashboard/courses/CourseProgressUsersTable";
@@ -34,11 +34,7 @@ function progressRoleLabel(slugs: string[]): string {
 export default async function ProgressPageContent({ courseId }: { courseId: string }) {
   if (!UUID_RE.test(courseId)) notFound();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.courses, "read")) {

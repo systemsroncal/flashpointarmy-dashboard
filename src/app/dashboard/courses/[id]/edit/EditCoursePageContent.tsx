@@ -4,7 +4,7 @@ import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
+import { requireServerUser } from "@/lib/auth/server-session";
 import { redirect, notFound } from "next/navigation";
 import { Paper, Typography } from "@mui/material";
 
@@ -14,11 +14,7 @@ const UUID_RE =
 export default async function EditCoursePageContent({ courseId }: { courseId: string }) {
   if (!UUID_RE.test(courseId)) notFound();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.courses, "update")) {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/auth/server-session";
 import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -17,13 +18,9 @@ export async function POST(
     return NextResponse.json({ error: "Invalid user id." }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user: caller },
-  } = await supabase.auth.getUser();
-  if (!caller) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const authResult = await requireApiAuth();
+  if ("response" in authResult) return authResult.response;
+  const { supabase, user: caller } = authResult;
 
   const callerRoles = await loadUserRoleNames(supabase, caller.id);
   if (!isSuperAdminUser(callerRoles)) {

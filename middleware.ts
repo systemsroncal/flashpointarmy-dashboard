@@ -32,7 +32,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { user, supabaseResponse } = await getSupabaseSession(request);
+  const { user, supabaseResponse, staleSessionCleared } =
+    await getSupabaseSession(request);
 
   if (user) {
     const sessionResponse = applyAppSessionPolicy(
@@ -49,6 +50,9 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", path);
+    if (staleSessionCleared) {
+      url.searchParams.set("reason", "session_expired");
+    }
     return NextResponse.redirect(url);
   }
 

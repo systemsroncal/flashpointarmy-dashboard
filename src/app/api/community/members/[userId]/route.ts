@@ -10,6 +10,7 @@ import {
 import { can } from "@/types/permissions";
 import { usStateByCode } from "@/data/usStates";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { getApiSessionWithPermissions } from "@/lib/auth/server-session";
 import { createClient } from "@/utils/supabase/server";
 
 const UUID_RE =
@@ -29,15 +30,7 @@ type PatchBody = {
 };
 
 async function getSessionAndPermissions() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: NextResponse.json({ error: "Unauthorized." }, { status: 401 }) };
-  }
-  const permissions = await loadModulePermissions(supabase, user.id);
-  return { user, permissions, supabase };
+  return getApiSessionWithPermissions();
 }
 
 export async function PATCH(

@@ -5,14 +5,10 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
 import { Paper, Typography } from "@mui/material";
-import { redirect } from "next/navigation";
+import { requireServerUser } from "@/lib/auth/server-session";
 
 export default async function CommunityPageContent() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.community, "read")) {

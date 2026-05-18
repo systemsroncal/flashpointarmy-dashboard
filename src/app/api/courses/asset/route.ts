@@ -8,6 +8,7 @@ import { writeCourseAsset } from "@/lib/uploads/local-public-image";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/auth/server-session";
 
 function isPdf(buf: ArrayBuffer): boolean {
   const u = new Uint8Array(buf.slice(0, 5));
@@ -15,13 +16,9 @@ function isPdf(buf: ArrayBuffer): boolean {
 }
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const authResult = await requireApiAuth();
+  if ("response" in authResult) return authResult.response;
+  const { supabase, user } = authResult;
 
   const roles = await loadUserRoleNames(supabase, user.id);
   if (!isElevatedRole(roles)) {

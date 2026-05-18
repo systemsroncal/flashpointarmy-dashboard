@@ -9,8 +9,7 @@ import {
   ensureMemberRoleIfUserHasNoRoles,
 } from "@/lib/import/dashboard-user-mirror";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
-import { getAuthUser } from "@/utils/supabase/get-auth-user";
-import { createClient } from "@/utils/supabase/server";
+import { getServerAuth } from "@/lib/auth/server-session";
 import { redirect } from "next/navigation";
 
 /** Authenticated area: always render on request (cookies + admin mirror); avoids brittle static prerender. */
@@ -21,8 +20,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { user, staleSessionCleared } = await getAuthUser(supabase);
+  const { supabase, user, staleSessionCleared } = await getServerAuth();
 
   if (!user) {
     redirect(staleSessionCleared ? "/login?reason=session_expired" : "/login");

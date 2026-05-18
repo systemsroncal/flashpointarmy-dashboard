@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/auth/server-session";
 import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -10,13 +11,9 @@ type Body = { limit?: number; dryRun?: boolean; confirm?: string };
  * Super admin only. Use dryRun first to verify the list matches your mistaken import.
  */
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const authResult = await requireApiAuth();
+  if ("response" in authResult) return authResult.response;
+  const { supabase, user } = authResult;
 
   const roles = await loadUserRoleNames(supabase, user.id);
   if (!isSuperAdminUser(roles)) {

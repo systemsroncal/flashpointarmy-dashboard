@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/auth/server-session";
 import { createGmailOAuthState } from "@/lib/mail/email-oauth-state";
 import { fetchEmailDeliverySettings } from "@/lib/mail/email-delivery-settings";
 import { resolveGmailOAuthClientSecret } from "@/lib/mail/gmail-oauth-env";
@@ -8,13 +9,9 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const authResult = await requireApiAuth();
+  if ("response" in authResult) return authResult.response;
+  const { supabase, user } = authResult;
   const roles = await loadUserRoleNames(supabase, user.id);
   if (!roles.includes("super_admin")) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });

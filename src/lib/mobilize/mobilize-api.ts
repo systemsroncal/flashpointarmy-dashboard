@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/auth/server-session";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
@@ -14,13 +15,9 @@ export type MobilizeAuthOk = {
  * Mobilize APIs: authenticate, require `movilization` read (nav access), return admin client for queries.
  */
 export async function requireMobilizeRead(): Promise<MobilizeAuthOk | NextResponse> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const authResult = await requireApiAuth();
+  if ("response" in authResult) return authResult.response;
+  const { supabase, user } = authResult;
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.movilization, "read")) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });

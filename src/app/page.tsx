@@ -1,10 +1,8 @@
-import { getAuthUser } from "@/utils/supabase/get-auth-user";
-import { createClient } from "@/utils/supabase/server";
+import { getServerAuth } from "@/lib/auth/server-session";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
-  const supabase = await createClient();
-  const { user, staleSessionCleared } = await getAuthUser(supabase);
+  const { user, staleSessionCleared } = await getServerAuth();
   if (user) {
     redirect("/dashboard");
   }

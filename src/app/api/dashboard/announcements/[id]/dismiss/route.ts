@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/auth/server-session";
 import { createClient } from "@/utils/supabase/server";
 
 const UUID_RE =
@@ -8,11 +9,9 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
   const { id } = await context.params;
   if (!UUID_RE.test(id)) return NextResponse.json({ error: "Invalid id." }, { status: 400 });
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const authResult = await requireApiAuth();
+  if ("response" in authResult) return authResult.response;
+  const { supabase, user } = authResult;
 
   const { error } = await supabase.from("announcement_dismissed").upsert(
     {

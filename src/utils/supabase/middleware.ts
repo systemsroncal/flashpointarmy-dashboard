@@ -4,7 +4,7 @@ import {
   getPublicSupabaseUrl,
 } from "@/utils/supabase/public-env";
 import { clearSessionStartedCookie } from "@/lib/auth/session-policy";
-import { isStaleRefreshTokenError } from "@/utils/supabase/auth-errors";
+import { getAuthUser } from "@/utils/supabase/get-auth-user";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function getSupabaseSession(request: NextRequest) {
@@ -39,30 +39,9 @@ export async function getSupabaseSession(request: NextRequest) {
     },
   });
 
-  try {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-
-    if (userError && isStaleRefreshTokenError(userError)) {
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        /* ignore */
-      }
-      clearSessionStartedCookie(supabaseResponse);
-      return { supabase, user: null, supabaseResponse };
-    }
-
-    return { supabase, user: userData.user ?? null, supabaseResponse };
-  } catch (err) {
-    if (isStaleRefreshTokenError(err)) {
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        /* ignore */
-      }
-      clearSessionStartedCookie(supabaseResponse);
-      return { supabase, user: null, supabaseResponse };
-    }
-    throw err;
+  const { user, staleSessionCleared } = await getAuthUser(supabase);
+  if (staleSessionCleared) {
+    clearSessionStartedCookie(supabaseResponse);
   }
+  return { supabase, user, supabaseResponse, staleSessionCleared };
 }

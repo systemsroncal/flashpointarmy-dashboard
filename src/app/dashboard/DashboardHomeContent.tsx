@@ -13,14 +13,10 @@ import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
 import { readFile } from "fs/promises";
 import path from "path";
-import { redirect } from "next/navigation";
+import { requireServerUser } from "@/lib/auth/server-session";
 
 export default async function DashboardHomeContent() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   const allowed =

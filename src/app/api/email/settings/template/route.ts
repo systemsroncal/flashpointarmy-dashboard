@@ -3,6 +3,7 @@ import { MODULE_SLUGS } from "@/config/modules";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/auth/server-session";
 
 const ALLOWED_KEYS = new Set([
   "verify_email",
@@ -14,13 +15,9 @@ const ALLOWED_KEYS = new Set([
 
 export async function PATCH(req: Request) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireApiAuth();
+  if ("response" in authResult) return authResult.response;
+  const { supabase, user } = authResult;
 
     const permissions = await loadModulePermissions(supabase, user.id);
     if (!can(permissions, MODULE_SLUGS.emails, "update")) {

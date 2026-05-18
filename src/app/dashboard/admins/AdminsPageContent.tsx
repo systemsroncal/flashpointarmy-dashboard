@@ -12,14 +12,10 @@ import { can } from "@/types/permissions";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Alert, Paper, Typography } from "@mui/material";
-import { redirect } from "next/navigation";
+import { requireServerUser } from "@/lib/auth/server-session";
 
 export default async function AdminsPageContent() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.admins, "read")) {

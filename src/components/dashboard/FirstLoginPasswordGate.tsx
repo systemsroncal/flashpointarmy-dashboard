@@ -9,6 +9,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { getClientAuthUser } from "@/utils/supabase/client-auth";
 import { createClient } from "@/utils/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
@@ -34,9 +35,7 @@ export function FirstLoginPasswordGate() {
 
   const refresh = useCallback(async () => {
     if (!supabase) return;
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user } = await getClientAuthUser(supabase);
     if (!user) {
       setOpen(false);
       return;

@@ -5,7 +5,7 @@ import { isTrainingDebugActive } from "@/lib/training/training-debug";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { requireServerUser } from "@/lib/auth/server-session";
 import { Paper, Typography } from "@mui/material";
 
 export default async function SessionPageContent({
@@ -22,11 +22,7 @@ export default async function SessionPageContent({
   const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
   const trainingDebug = isTrainingDebugActive(trainingDebugRequested, { hostHeader: host });
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.training, "read")) {

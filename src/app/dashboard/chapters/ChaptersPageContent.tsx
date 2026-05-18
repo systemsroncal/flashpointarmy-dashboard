@@ -6,18 +6,14 @@ import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { requireServerUser } from "@/lib/auth/server-session";
 
 function leaderLabel(r: { display_name: string | null; email: string }): string {
   return r.display_name ? `${r.display_name} (${r.email})` : r.email;
 }
 
 export default async function ChaptersPageContent() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   const read = can(permissions, MODULE_SLUGS.chapters, "read");

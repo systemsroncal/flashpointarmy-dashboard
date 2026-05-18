@@ -4,15 +4,11 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { requireServerUser } from "@/lib/auth/server-session";
 import { Box, Paper, Typography } from "@mui/material";
 
 export default async function CoursePageContent({ slug }: { slug: string }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.training, "read")) {

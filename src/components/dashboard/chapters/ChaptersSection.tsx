@@ -1,5 +1,6 @@
 "use client";
 
+import { getClientAuthUser } from "@/utils/supabase/client-auth";
 import { createClient } from "@/utils/supabase/client";
 import DeleteOutline from "@mui/icons-material/DeleteOutline";
 import Edit from "@mui/icons-material/Edit";
@@ -387,9 +388,7 @@ export function ChaptersSection({
     const state = st?.code ?? "";
     if (!name || !state) return;
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user } = await getClientAuthUser(supabase);
     const { data: inserted, error } = await supabase
       .from("chapters")
       .insert({

@@ -1,3 +1,4 @@
+import { getServerAuth } from "@/lib/auth/server-session";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function writeAuditLog(
@@ -7,9 +8,7 @@ export async function writeAuditLog(
   entityId?: string,
   payload?: Record<string, unknown>
 ) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getServerAuth(supabase);
   await supabase.from("audit_logs").insert({
     user_id: user?.id ?? null,
     action,

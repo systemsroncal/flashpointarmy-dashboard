@@ -5,7 +5,7 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { requireServerUser } from "@/lib/auth/server-session";
 
 export default async function EmailsPageContent({
   initialTab,
@@ -16,11 +16,7 @@ export default async function EmailsPageContent({
   gmailConnected?: boolean;
   gmailError?: string;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.emails, "read")) {
