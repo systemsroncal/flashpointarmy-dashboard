@@ -34,3 +34,5 @@ export const MAINTENANCE_BANNER_BODY =
 
 /** CSS variable set by MaintenanceBanner for fixed AppBar offset */
 export const MAINTENANCE_BANNER_OFFSET_VAR = "--fp-maintenance-banner-offset";
+
+export const MAINTENANCE_BANNER_DISMISS_KEY = "fp-maintenance-banner-dismissed";

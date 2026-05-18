@@ -732,7 +732,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       }
                     : {}),
                   position: "fixed",
-                  height: "100%",
+                  top: maintenanceTop,
+                  height: `calc(100vh - ${maintenanceTop})`,
                 },
               }
             : {
@@ -744,6 +745,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         scrollbarColor: "rgba(195,32,32,0.28) rgba(0,0,0,0.35)",
                       }
                     : {}),
+                  top: maintenanceTop,
+                  height: `calc(100vh - ${maintenanceTop})`,
                 },
               }),
         }}
