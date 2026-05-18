@@ -9,6 +9,7 @@ import {
   ensureMemberRoleIfUserHasNoRoles,
 } from "@/lib/import/dashboard-user-mirror";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
+import { getAuthUser } from "@/utils/supabase/get-auth-user";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -21,12 +22,10 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, staleSessionCleared } = await getAuthUser(supabase);
 
   if (!user) {
-    redirect("/login");
+    redirect(staleSessionCleared ? "/login?reason=session_expired" : "/login");
   }
 
   let dashboardUser = await loadDashboardUser(supabase, user.id);

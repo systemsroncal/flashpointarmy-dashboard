@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { Barlow } from "next/font/google";
+import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { AppProviders } from "@/components/providers/AppProviders";
+import { isMaintenanceBannerEnabled } from "@/lib/maintenance";
 import "./globals.css";
 import "plyr/dist/plyr.css";
 
@@ -30,7 +32,10 @@ export default function RootLayout({
     <html lang="en" className={`${barlow.variable} ${barlow.className}`}>
       <body>
         <AppRouterCacheProvider options={{ key: "css" }}>
-          <AppProviders>{children}</AppProviders>
+          <AppProviders>
+            {isMaintenanceBannerEnabled() ? <MaintenanceBanner /> : null}
+            {children}
+          </AppProviders>
         </AppRouterCacheProvider>
       </body>
     </html>

@@ -1,10 +1,34 @@
-import { type NextRequest, NextResponse } from "next/server";
+import {
+  isMaintenanceExemptPath,
+  isMaintenanceMode,
+  MAINTENANCE_MESSAGE,
+} from "@/lib/maintenance";
 import { getSupabaseSession } from "@/utils/supabase/middleware";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const { user, supabaseResponse } = await getSupabaseSession(request);
-
   const path = request.nextUrl.pathname;
+
+  if (isMaintenanceMode()) {
+    if (isMaintenanceExemptPath(path)) {
+      return NextResponse.next();
+    }
+    if (path.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "service_unavailable", message: MAINTENANCE_MESSAGE },
+        { status: 503 }
+      );
+    }
+    if (path !== "/maintenance") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/maintenance";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
+  const { user, supabaseResponse } = await getSupabaseSession(request);
 
   if (path.startsWith("/dashboard") && !user) {
     const url = request.nextUrl.clone();

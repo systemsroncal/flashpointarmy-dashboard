@@ -19,18 +19,16 @@ export function formatAuthSignInError(err: AuthError): string {
 }
 
 /** Supabase Auth errors where stored refresh token must be discarded. */
-export function isStaleRefreshTokenError(err: {
-  message?: string;
-  code?: string;
-  name?: string;
-} | null): boolean {
-  if (!err) return false;
-  if (err.code === "refresh_token_not_found") return true;
-  if (err.code === "invalid_refresh_token") return true;
-  const m = err.message?.toLowerCase() ?? "";
+export function isStaleRefreshTokenError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { message?: string; code?: string; name?: string };
+  if (e.code === "refresh_token_not_found") return true;
+  if (e.code === "invalid_refresh_token") return true;
+  const m = e.message?.toLowerCase() ?? "";
   if (m.includes("refresh token not found")) return true;
   if (m.includes("invalid refresh token")) return true;
-  const n = String(err.name || "");
+  if (m.includes("refresh token") && m.includes("not found")) return true;
+  const n = String(e.name || "");
   if (n === "AuthApiError" || n === "AuthSessionMissingError") {
     if (m.includes("refresh") && (m.includes("invalid") || m.includes("not found"))) return true;
   }

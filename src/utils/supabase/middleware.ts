@@ -38,16 +38,28 @@ export async function getSupabaseSession(request: NextRequest) {
     },
   });
 
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+  try {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
 
-  if (userError && isStaleRefreshTokenError(userError)) {
-    try {
-      await supabase.auth.signOut();
-    } catch {
-      /* ignore */
+    if (userError && isStaleRefreshTokenError(userError)) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore */
+      }
+      return { supabase, user: null, supabaseResponse };
     }
-    return { supabase, user: null, supabaseResponse };
-  }
 
-  return { supabase, user: userData.user ?? null, supabaseResponse };
+    return { supabase, user: userData.user ?? null, supabaseResponse };
+  } catch (err) {
+    if (isStaleRefreshTokenError(err)) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore */
+      }
+      return { supabase, user: null, supabaseResponse };
+    }
+    throw err;
+  }
 }

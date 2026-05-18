@@ -8,6 +8,8 @@
 #   SKIP_PM2=1      — skip stop/restart (only pull + build)
 #   DEPLOY_SOFT_PULL=1 — use `git pull` only (fails if untracked files block merge). Default: reset to origin + clean.
 #   SKIP_DEPLOY_ENV_WARN=1 — skip warning when .env.production is missing (e.g. vars injected elsewhere).
+#   MAINTENANCE_MODE=1 in .env.production — full-site /maintenance redirect (optional).
+#   MAINTENANCE_BANNER=0 — hide the white top maintenance bar (default: shown).
 #
 # .env.production on the VPS is NEVER deleted by this script: it is gitignored, excluded from
 # `git clean`, backed up before sync, and restored if missing after reset/clean. Do not use

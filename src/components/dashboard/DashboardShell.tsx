@@ -62,8 +62,10 @@ import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { UserProfileDrawer } from "./UserProfileDrawer";
+import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
 
 const DRAWER_WIDTH = 220;
+const maintenanceTop = `var(${MAINTENANCE_BANNER_OFFSET_VAR}, 0px)`;
 
 type NavItem = {
   label: string;
@@ -667,6 +669,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         position="fixed"
         elevation={0}
         sx={{
+          top: maintenanceTop,
           zIndex: (t) => t.zIndex.drawer + 1,
           bgcolor: "rgba(12,12,14,0.88)",
           backdropFilter: "blur(8px)",
@@ -751,7 +754,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Box
         component="main"
         sx={{
-          pt: 7,
+          pt: `calc(${theme.spacing(7)} + ${maintenanceTop})`,
           px: { xs: 2, sm: 3 },
           pb: 4,
           ml: { md: desktopDrawerOpen ? `${DRAWER_WIDTH}px` : 0 },

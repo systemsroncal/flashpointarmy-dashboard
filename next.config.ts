@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /** Baked at build time so Edge middleware can read maintenance flag from .env.production */
+  env: {
+    MAINTENANCE_MODE: process.env.MAINTENANCE_MODE ?? "",
+    MAINTENANCE_BANNER: process.env.MAINTENANCE_BANNER ?? "1",
+  },
   /** VPS/CI: do not fail `next build` on ESLint; run `npm run lint` separately in dev/CI. */
   eslint: {
     ignoreDuringBuilds: true,
