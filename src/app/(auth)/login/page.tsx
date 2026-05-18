@@ -78,8 +78,7 @@ function LoginForm() {
         <Box component="form" onSubmit={handleSubmit} noValidate>
           {sessionReason === "session_expired" ? (
             <Alert severity="info" sx={{ mb: 2 }}>
-              Your session expired (sessions last 24 hours) or is no longer valid.
-              Please sign in again.
+              Your session expired or is no longer valid. Please sign in again.
             </Alert>
           ) : null}
           <Box>
