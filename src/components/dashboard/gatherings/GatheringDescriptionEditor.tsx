@@ -39,6 +39,8 @@ type Props = {
   helperText?: string;
   /** Adds a “Video” toolbar control that inserts a Plyr-ready embed block (YouTube, Vimeo, MP4, etc.). */
   videoEmbedButton?: boolean;
+  /** Dark chrome + white text in the editing surface (course editor). */
+  darkSurface?: boolean;
 };
 
 export function GatheringDescriptionEditor({
@@ -50,8 +52,16 @@ export function GatheringDescriptionEditor({
   compact = false,
   helperText,
   videoEmbedButton = false,
+  darkSurface = false,
 }: Props) {
   const init = useMemo(() => {
+    const lightBodyStyle =
+      'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.45; margin: 6px; } p { margin: 0 0 0.5em 0; } p:last-child { margin-bottom: 0; }';
+    const darkBodyStyle =
+      'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.45; margin: 8px; background-color: #121212; color: #f5f5f5; } p { margin: 0 0 0.5em 0; color: #f5f5f5; } p:last-child { margin-bottom: 0; } a { color: #f5d547; }';
+    const darkChrome = darkSurface
+      ? { skin: "oxide-dark" as const, content_css: "dark" as const, content_style: darkBodyStyle }
+      : {};
     const videoToolbar = videoEmbedButton ? " | fplyrvideo" : "";
     const videoSchema = videoEmbedButton
       ? {
@@ -95,10 +105,10 @@ export function GatheringDescriptionEditor({
         paste_data_images: false,
         relative_urls: false,
         convert_urls: true,
-        content_style:
-          'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.45; margin: 6px; } p { margin: 0 0 0.5em 0; } p:last-child { margin-bottom: 0; }',
+        content_style: lightBodyStyle,
         setup: registerVideo,
         ...videoSchema,
+        ...darkChrome,
       };
     }
     return {
@@ -132,12 +142,14 @@ export function GatheringDescriptionEditor({
       paste_data_images: false,
       relative_urls: false,
       convert_urls: true,
-      content_style:
-        'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.5; }',
+      content_style: darkSurface
+        ? 'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.5; background-color: #121212; color: #f5f5f5; } p { color: #f5f5f5; }'
+        : 'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.5; }',
       setup: registerVideo,
       ...videoSchema,
+      ...darkChrome,
     };
-  }, [compact, videoEmbedButton]);
+  }, [compact, videoEmbedButton, darkSurface]);
 
   const defaultHelper =
     "Self-hosted TinyMCE (GPL). HTML is saved to the database. For images, prefer HTTPS URLs.";
@@ -147,14 +159,39 @@ export function GatheringDescriptionEditor({
       <InputLabel shrink sx={{ mb: 0.75, position: "relative", transform: "none" }}>
         {label}
       </InputLabel>
-      <Editor
-        tinymceScriptSrc={`${TINYMCE_BASE}/tinymce.min.js`}
-        licenseKey="gpl"
-        value={value}
-        onEditorChange={onChange}
-        disabled={disabled ?? false}
-        init={init}
-      />
+      <Box
+        sx={
+          darkSurface
+            ? {
+                borderRadius: 1,
+                overflow: "hidden",
+                border: "1px solid rgba(255, 215, 0, 0.28)",
+                bgcolor: "rgba(0,0,0,0.55)",
+                "& .tox-tinymce": { border: "none !important" },
+                "& .tox .tox-editor-header": {
+                  background: "rgba(0,0,0,0.65) !important",
+                  borderBottom: "1px solid rgba(255,215,0,0.2) !important",
+                },
+                "& .tox .tox-toolbar__primary": {
+                  background: "transparent !important",
+                },
+                "& .tox .tox-statusbar": {
+                  background: "rgba(0,0,0,0.5) !important",
+                  borderTop: "1px solid rgba(255,215,0,0.15) !important",
+                },
+              }
+            : undefined
+        }
+      >
+        <Editor
+          tinymceScriptSrc={`${TINYMCE_BASE}/tinymce.min.js`}
+          licenseKey="gpl"
+          value={value}
+          onEditorChange={onChange}
+          disabled={disabled ?? false}
+          init={init}
+        />
+      </Box>
       {showHelper ? (
         <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
           {helperText ?? defaultHelper}

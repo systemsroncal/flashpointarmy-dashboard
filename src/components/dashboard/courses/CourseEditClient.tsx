@@ -1,15 +1,28 @@
 "use client";
 
 import { CourseQuizFormEditor, coerceQuizPayload } from "@/components/dashboard/courses/CourseQuizFormEditor";
+import {
+  blockTitleHtmlFromPlain,
+  blockTitlePlainFromHtml,
+  COURSE_ELEMENT_TYPE_LABELS,
+  videoPayloadUrl,
+} from "@/lib/courses/course-block-editor";
 import { slugify } from "@/lib/slug";
 import type { QuizElementPayload } from "@/types/course-content";
 import type { AuthorOption } from "@/lib/courses/author-options";
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import AddIcon from "@mui/icons-material/Add";
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import NotesOutlinedIcon from "@mui/icons-material/NotesOutlined";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
+import QuizOutlinedIcon from "@mui/icons-material/QuizOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import {
   Accordion,
   AccordionDetails,
@@ -82,6 +95,15 @@ const DEFAULT_QUIZ_PAYLOAD = coerceQuizPayload({
 const RICH_EDITOR_HELPER =
   "Self-hosted TinyMCE (GPL). Content is stored as HTML. For images, use HTTPS URLs.";
 
+const ADD_BLOCK_TYPES = [
+  { type: "video", label: "Video", Icon: VideocamOutlinedIcon },
+  { type: "rich_text", label: "Rich text", Icon: ArticleOutlinedIcon },
+  { type: "plain_text", label: "Plain text", Icon: NotesOutlinedIcon },
+  { type: "pdf", label: "PDF", Icon: PictureAsPdfOutlinedIcon },
+  { type: "image", label: "Image", Icon: ImageOutlinedIcon },
+  { type: "quiz", label: "Quiz", Icon: QuizOutlinedIcon },
+] as const;
+
 function SortableShell({
   id,
   children,
@@ -135,6 +157,7 @@ export function CourseEditClient({
   const [busy, setBusy] = useState(false);
   const [deleteCourseOpen, setDeleteCourseOpen] = useState(false);
   const [deleteBlockTarget, setDeleteBlockTarget] = useState<{ sessionId: string; elementId: string } | null>(null);
+  const [expandedBlockIds, setExpandedBlockIds] = useState<Record<string, boolean>>({});
   const dragBlockIdxRef = useRef<number | null>(null);
   const dragBlockSessionRef = useRef<string | null>(null);
   /** dnd-kit aria-describedby IDs must match SSR vs client; stable context ids avoid global counter drift. */
@@ -186,6 +209,17 @@ export function CourseEditClient({
       if (!nextSlug) {
         setErr("Slug is required.");
         return;
+      }
+      for (const s of sessions) {
+        for (const el of s.elements) {
+          if (el.element_type === "video" && !videoPayloadUrl(el.payload)) {
+            const label = COURSE_ELEMENT_TYPE_LABELS.video ?? "Video";
+            setErr(
+              `Session “${s.title || "Untitled"}”: each ${label} block needs a video URL before saving.`
+            );
+            return;
+          }
+        }
       }
       const { error: cErr } = await supabase
         .from("courses")
@@ -309,6 +343,7 @@ export function CourseEditClient({
     setSessions((prev) =>
       prev.map((s) => (s.id === sessionId ? { ...s, elements: [...s.elements, row] } : s))
     );
+    setExpandedBlockIds((prev) => ({ ...prev, [row.id]: true }));
   }
 
   function requestRemoveElement(sessionId: string, elementId: string) {
@@ -517,7 +552,12 @@ export function CourseEditClient({
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
                       Content blocks (drag the block or use ↑ ↓)
                     </Typography>
-                    {s.elements.map((el, elIdx) => (
+                    {s.elements.map((el, elIdx) => {
+                      const videoUrl = videoPayloadUrl(el.payload);
+                      const blockTitlePlain = blockTitlePlainFromHtml(el.title_html);
+                      const blockTypeLabel =
+                        COURSE_ELEMENT_TYPE_LABELS[el.element_type] ?? el.element_type;
+                      return (
                       <Paper
                         key={el.id}
                         draggable
@@ -543,13 +583,52 @@ export function CourseEditClient({
                           reorderBlocksByDrag(s.id, from, elIdx);
                         }}
                         sx={{
-                          p: 1.5,
-                          mb: 1,
-                          bgcolor: "rgba(0,0,0,0.35)",
+                          mb: 2,
+                          border: "1px solid rgba(255,215,0,0.22)",
+                          borderRadius: 1,
+                          overflow: "hidden",
+                          bgcolor: "rgba(0,0,0,0.28)",
                           cursor: "grab",
                           "&:active": { cursor: "grabbing" },
                         }}
                       >
+                        <Accordion
+                          disableGutters
+                          expanded={expandedBlockIds[el.id] ?? false}
+                          onChange={(_, isExpanded) =>
+                            setExpandedBlockIds((prev) => ({ ...prev, [el.id]: isExpanded }))
+                          }
+                          sx={{
+                            bgcolor: "transparent",
+                            boxShadow: "none",
+                            "&:before": { display: "none" },
+                          }}
+                        >
+                          <AccordionSummary
+                            expandIcon={<ExpandMoreIcon sx={{ color: "primary.main" }} />}
+                            sx={{
+                              px: 1.5,
+                              minHeight: 48,
+                              "& .MuiAccordionSummary-content": { my: 1, alignItems: "center" },
+                            }}
+                          >
+                            <DragIndicatorIcon
+                              sx={{ cursor: "grab", color: "text.secondary", mr: 1 }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                {blockTypeLabel}
+                                {blockTitlePlain ? ` · ${blockTitlePlain}` : ""}
+                              </Typography>
+                              {el.element_type === "video" && !videoUrl ? (
+                                <Typography variant="caption" color="warning.main">
+                                  Video URL required
+                                </Typography>
+                              ) : null}
+                            </Box>
+                          </AccordionSummary>
+                          <AccordionDetails sx={{ px: 1.5, pt: 0, pb: 1.5, borderTop: "1px solid rgba(255,215,0,0.12)" }}>
                                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1, flexWrap: "wrap" }}>
                                   <IconButton
                                     size="small"
@@ -616,13 +695,12 @@ export function CourseEditClient({
                                     <DeleteOutlineIcon fontSize="small" />
                                   </Button>
                                 </Box>
-                                <GatheringDescriptionEditor
-                                  key={`${el.id}-block-title`}
-                                  compact
-                                  showHelper={false}
+                                <TextField
                                   label="Block title (optional)"
-                                  value={el.title_html}
-                                  onChange={(html) =>
+                                  fullWidth
+                                  value={blockTitlePlain}
+                                  onChange={(e) => {
+                                    const html = blockTitleHtmlFromPlain(e.target.value);
                                     setSessions((prev) =>
                                       prev.map((ss) =>
                                         ss.id !== s.id
@@ -634,13 +712,14 @@ export function CourseEditClient({
                                               ),
                                             }
                                       )
-                                    )
-                                  }
+                                    );
+                                  }}
                                 />
                                 {el.element_type === "quiz" ? (
                                   <GatheringDescriptionEditor
                                     key={`${el.id}-quiz-intro`}
                                     compact
+                                    darkSurface
                                     showHelper
                                     helperText={`Shown before the quiz. ${RICH_EDITOR_HELPER}`}
                                     label="Intro text (optional)"
@@ -663,6 +742,7 @@ export function CourseEditClient({
                                 ) : (
                                   <GatheringDescriptionEditor
                                     key={`${el.id}-block-desc`}
+                                    darkSurface
                                     label="Description (optional)"
                                     showHelper
                                     helperText={RICH_EDITOR_HELPER}
@@ -686,9 +766,16 @@ export function CourseEditClient({
                                 {el.element_type === "video" ? (
                                   <TextField
                                     label="Video URL"
+                                    required
                                     fullWidth
                                     sx={{ mt: 1 }}
                                     value={(el.payload as { url?: string }).url ?? ""}
+                                    error={!videoUrl}
+                                    helperText={
+                                      !videoUrl
+                                        ? "Required. Empty video blocks block session completion for learners."
+                                        : "YouTube, Vimeo, or direct MP4 URL."
+                                    }
                                     onChange={(e) =>
                                       setSessions((prev) =>
                                         prev.map((ss) =>
@@ -793,6 +880,7 @@ export function CourseEditClient({
                                   <Box sx={{ mt: 1 }}>
                                     <GatheringDescriptionEditor
                                       label="Block content"
+                                      darkSurface
                                       helperText={RICH_EDITOR_HELPER}
                                       value={(el.payload as { html?: string }).html ?? ""}
                                       onChange={(html) =>
@@ -855,28 +943,24 @@ export function CourseEditClient({
                                     }
                                   />
                                 ) : null}
+                          </AccordionDetails>
+                        </Accordion>
                       </Paper>
-                    ))}
+                    );
+                    })}
 
                     <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
-                      <Button size="small" onClick={() => void addElement(s.id, "video")}>
-                        + Video
-                      </Button>
-                      <Button size="small" onClick={() => void addElement(s.id, "rich_text")}>
-                        + Rich text
-                      </Button>
-                      <Button size="small" onClick={() => void addElement(s.id, "plain_text")}>
-                        + Plain text
-                      </Button>
-                      <Button size="small" onClick={() => void addElement(s.id, "pdf")}>
-                        + PDF
-                      </Button>
-                      <Button size="small" onClick={() => void addElement(s.id, "image")}>
-                        + Image
-                      </Button>
-                      <Button size="small" onClick={() => void addElement(s.id, "quiz")}>
-                        + Quiz
-                      </Button>
+                      {ADD_BLOCK_TYPES.map(({ type, label, Icon }) => (
+                        <Button
+                          key={type}
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Icon fontSize="small" />}
+                          onClick={() => void addElement(s.id, type)}
+                        >
+                          {label}
+                        </Button>
+                      ))}
                     </Stack>
                   </AccordionDetails>
                 </Accordion>

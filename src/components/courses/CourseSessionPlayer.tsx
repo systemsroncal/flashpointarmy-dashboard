@@ -5,6 +5,7 @@ import { CourseQuizBlock } from "@/components/courses/CourseQuizBlock";
 import { EventDescriptionHtml } from "@/components/events/EventDescriptionHtml";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import { resolveVideoForPlyr } from "@/lib/media/resolve-plyr-video";
 import {
   insertCourseCompletedFeed,
   insertCourseSessionCompletedFeed,
@@ -101,7 +102,14 @@ export function CourseSessionPlayer({
   );
 
   const videoElementIds = useMemo(
-    () => sorted.filter((e) => e.element_type === "video").map((e) => e.id),
+    () =>
+      sorted
+        .filter((e) => {
+          if (e.element_type !== "video") return false;
+          const url = String((e.payload as { url?: string } | null)?.url ?? "").trim();
+          return resolveVideoForPlyr(url).kind !== "none";
+        })
+        .map((e) => e.id),
     [sorted]
   );
 
@@ -344,6 +352,10 @@ export function CourseSessionPlayer({
             ) : null}
 
             {el.element_type === "video" ? (
+              (() => {
+                const videoUrl = String((el.payload as { url?: string } | null)?.url ?? "").trim();
+                if (resolveVideoForPlyr(videoUrl).kind === "none") return null;
+                return (
               <Box
                 sx={{
                   width: 1,
@@ -355,7 +367,7 @@ export function CourseSessionPlayer({
                 }}
               >
                 <CourseVideoPlyr
-                  videoUrl={String((el.payload as { url?: string } | null)?.url ?? "").trim()}
+                  videoUrl={videoUrl}
                   initialSeconds={videoPositions[el.id] ?? 0}
                   storageKey={`coursevid:${user.id}:${el.id}`}
                   onPersistSeconds={(sec) => onVideoSeconds(el.id, sec)}
@@ -366,6 +378,8 @@ export function CourseSessionPlayer({
                   onVideoFullyWatched={() => onVideoFullyWatched(el.id)}
                 />
               </Box>
+                );
+              })()
             ) : null}
 
             {el.element_type === "pdf" ? (
