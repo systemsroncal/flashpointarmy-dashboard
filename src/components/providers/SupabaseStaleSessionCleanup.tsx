@@ -1,7 +1,8 @@
 "use client";
 
-import { createClient } from "@/utils/supabase/client";
+import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { isStaleRefreshTokenError } from "@/utils/supabase/auth-errors";
+import { createClient } from "@/utils/supabase/client";
 import { useEffect } from "react";
 
 /**
@@ -24,6 +25,14 @@ export function SupabaseStaleSessionCleanup() {
     }
 
     async function clearStale() {
+      try {
+        if (sessionStorage.getItem(SIGNING_OUT_SESSION_KEY)) {
+          sessionStorage.removeItem(SIGNING_OUT_SESSION_KEY);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
       const { error } = await client.auth.getSession();
       if (cancelled) return;
       if (!error || !isStaleRefreshTokenError(error)) return;

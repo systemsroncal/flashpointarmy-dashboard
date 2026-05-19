@@ -7,6 +7,9 @@ export const SESSION_MAX_AGE_MS = SESSION_MAX_AGE_SECONDS * 1000;
 
 export const SESSION_STARTED_COOKIE = "fp_session_started_at";
 
+/** Set in sessionStorage during intentional sign-out (avoid false "session expired" UI). */
+export const SIGNING_OUT_SESSION_KEY = "fp_signing_out";
+
 export function sessionStartedCookieOptions(): {
   httpOnly: boolean;
   secure: boolean;

@@ -62,6 +62,7 @@ import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { UserProfileDrawer } from "./UserProfileDrawer";
+import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
 
 const DRAWER_WIDTH = 220;
@@ -325,8 +326,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [settingsHasActive]);
 
   async function handleSignOut() {
+    try {
+      sessionStorage.setItem(SIGNING_OUT_SESSION_KEY, "1");
+    } catch {
+      /* ignore */
+    }
     const supabase = createClient();
-    await supabase.auth.signOut();
     try {
       await fetch("/api/auth/session-clear", {
         method: "POST",
@@ -335,8 +340,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     } catch {
       /* ignore */
     }
-    router.push("/login");
-    router.refresh();
+    await supabase.auth.signOut();
+    window.location.replace("/login");
   }
 
   const displayInitial =
