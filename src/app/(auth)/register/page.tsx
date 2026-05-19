@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
+import { useOtpResendCooldown } from "@/hooks/useOtpResendCooldown";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
 import { authFloatingTextFieldSx } from "@/components/auth/authFieldStyles";
 import { createClient } from "@/utils/supabase/client";
@@ -41,6 +42,7 @@ export default function RegisterPage() {
   const [resendLoading, setResendLoading] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const resendCooldown = useOtpResendCooldown();
 
   useEffect(() => {
     let cancelled = false;
@@ -84,12 +86,15 @@ export default function RegisterPage() {
     const data = (await res.json()) as { error?: string };
     if (!res.ok) {
       setError(data.error || "Could not send verification code.");
+      if (res.status === 429) resendCooldown.startCooldown();
       return false;
     }
+    resendCooldown.startCooldown();
     return true;
   }
 
   async function handleResendOtp() {
+    if (!resendCooldown.canResend) return;
     setError(null);
     setMessage(null);
     const em = email.trim();
@@ -280,6 +285,7 @@ export default function RegisterPage() {
               if (otpSent && next.trim().toLowerCase() !== email.trim().toLowerCase()) {
                 setOtpSent(false);
                 setOtpCode("");
+                resendCooldown.clearCooldown();
               }
               setEmail(next);
             }}
@@ -307,7 +313,7 @@ export default function RegisterPage() {
                 type="button"
                 variant="text"
                 size="small"
-                disabled={resendLoading || loading || !email.trim()}
+                disabled={resendLoading || loading || !email.trim() || !resendCooldown.canResend}
                 onClick={() => void handleResendOtp()}
                 sx={{
                   p: 0,
@@ -318,7 +324,11 @@ export default function RegisterPage() {
                   "&:disabled": { color: authGrayText },
                 }}
               >
-                {resendLoading ? "Sending…" : "Resend verification email"}
+                {resendLoading
+                  ? "Sending…"
+                  : resendCooldown.canResend
+                    ? "Resend verification email"
+                    : `Resend verification email (${resendCooldown.formatCountdown(resendCooldown.secondsLeft)})`}
               </Button>
             </Box>
           ) : null}

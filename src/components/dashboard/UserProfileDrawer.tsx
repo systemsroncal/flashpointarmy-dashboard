@@ -1,5 +1,6 @@
 "use client";
 
+import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { validateAvatarFile } from "@/lib/upload/validate-image";
@@ -75,22 +76,7 @@ export function UserProfileDrawer({
   const [avatarNonce, setAvatarNonce] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newEmail, setNewEmail] = useState("");
-  const [emailOtp, setEmailOtp] = useState("");
-  const [emailOtpSent, setEmailOtpSent] = useState(false);
-  const [emailChangeSending, setEmailChangeSending] = useState(false);
-  const [emailChangeConfirming, setEmailChangeConfirming] = useState(false);
-  const [emailChangeInfo, setEmailChangeInfo] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  function resetEmailChangeFlow() {
-    setNewEmail("");
-    setEmailOtp("");
-    setEmailOtpSent(false);
-    setEmailChangeSending(false);
-    setEmailChangeConfirming(false);
-    setEmailChangeInfo(null);
-  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -123,74 +109,8 @@ export function UserProfileDrawer({
     if (open) {
       void load();
       setEditMode(false);
-      resetEmailChangeFlow();
     }
   }, [open, load]);
-
-  async function sendEmailChangeOtp() {
-    const trimmed = newEmail.trim().toLowerCase();
-    if (!trimmed || !trimmed.includes("@")) {
-      setError("Enter a valid new email address.");
-      return;
-    }
-    if (trimmed === du.email.trim().toLowerCase()) {
-      setError("New email must be different from your current email.");
-      return;
-    }
-    setEmailChangeSending(true);
-    setError(null);
-    setEmailChangeInfo(null);
-    try {
-      const res = await fetch("/api/profile/change-email/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newEmail: trimmed }),
-      });
-      const data = (await res.json()) as { error?: string; message?: string };
-      if (!res.ok) {
-        setError(data.error || "Could not send verification code.");
-        return;
-      }
-      setEmailOtpSent(true);
-      setEmailChangeInfo(
-        data.message ||
-          `We sent a 6-digit code to ${du.email}. Enter it below to confirm the change.`
-      );
-    } finally {
-      setEmailChangeSending(false);
-    }
-  }
-
-  async function confirmEmailChange() {
-    const trimmed = newEmail.trim().toLowerCase();
-    const otp = emailOtp.trim();
-    if (!trimmed || !otp) {
-      setError("Enter your new email and the verification code.");
-      return;
-    }
-    setEmailChangeConfirming(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/profile/change-email/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newEmail: trimmed, otp }),
-      });
-      const data = (await res.json()) as { error?: string; email?: string };
-      if (!res.ok) {
-        setError(data.error || "Could not update email.");
-        return;
-      }
-      const supabase = createClient();
-      await supabase.auth.refreshSession();
-      resetEmailChangeFlow();
-      setEmailChangeInfo("Email updated. Your next sign-in will use the new address.");
-      setEditMode(false);
-      router.refresh();
-    } finally {
-      setEmailChangeConfirming(false);
-    }
-  }
 
   async function save() {
     setSaving(true);
@@ -487,88 +407,19 @@ export function UserProfileDrawer({
                 />
 
                 <Divider sx={{ my: 0.5 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  Sign-in email
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Current: <strong>{du.email}</strong>
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-                  We will send a verification code to your current email before applying a new one.
-                </Typography>
-                <TextField
-                  label="New email"
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => {
-                    setNewEmail(e.target.value);
-                    setEmailOtpSent(false);
-                    setEmailOtp("");
+                <SignInEmailChangePanel
+                  key={du.email}
+                  currentEmail={du.email}
+                  sendOtpUrl="/api/profile/change-email/send-otp"
+                  confirmUrl="/api/profile/change-email/confirm"
+                  disabled={saving}
+                  onSuccess={async () => {
+                    const supabase = createClient();
+                    await supabase.auth.refreshSession();
+                    setEditMode(false);
+                    router.refresh();
                   }}
-                  size="small"
-                  fullWidth
-                  autoComplete="email"
-                  disabled={emailChangeSending || emailChangeConfirming}
                 />
-                {!emailOtpSent ? (
-                  <Button
-                    type="button"
-                    variant="outlined"
-                    size="small"
-                    disabled={emailChangeSending || !newEmail.trim()}
-                    onClick={() => void sendEmailChangeOtp()}
-                  >
-                    {emailChangeSending ? "Sending code…" : "Send verification code"}
-                  </Button>
-                ) : (
-                  <>
-                    <TextField
-                      label="Verification code"
-                      value={emailOtp}
-                      onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      size="small"
-                      fullWidth
-                      inputProps={{ inputMode: "numeric", maxLength: 6 }}
-                      placeholder="6-digit code"
-                      disabled={emailChangeConfirming}
-                    />
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                      <Button
-                        type="button"
-                        variant="contained"
-                        size="small"
-                        disabled={emailChangeConfirming || emailOtp.length !== 6}
-                        onClick={() => void confirmEmailChange()}
-                      >
-                        {emailChangeConfirming ? "Updating…" : "Confirm new email"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="text"
-                        size="small"
-                        disabled={emailChangeSending || emailChangeConfirming}
-                        onClick={() => void sendEmailChangeOtp()}
-                      >
-                        Resend code
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="text"
-                        size="small"
-                        color="inherit"
-                        disabled={emailChangeConfirming}
-                        onClick={resetEmailChangeFlow}
-                      >
-                        Cancel
-                      </Button>
-                    </Box>
-                  </>
-                )}
-                {emailChangeInfo ? (
-                  <Alert severity="info" sx={{ py: 0.5 }}>
-                    {emailChangeInfo}
-                  </Alert>
-                ) : null}
 
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
@@ -616,7 +467,6 @@ export function UserProfileDrawer({
                     disabled={saving}
                     onClick={() => {
                       setEditMode(false);
-                      resetEmailChangeFlow();
                       void load();
                     }}
                   >

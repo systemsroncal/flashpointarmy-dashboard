@@ -17,6 +17,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   LinearProgress,
   FormControl,
   FormControlLabel,
@@ -40,6 +41,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
 import { ChapterSearchAutocomplete } from "@/components/forms/ChapterSearchAutocomplete";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
@@ -1828,9 +1830,28 @@ export function CommunitySection({
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             {editError ? <Alert severity="error">{editError}</Alert> : null}
-            {editUser ? (
+            {editUser && elevated ? (
+              <>
+                <Divider />
+                <SignInEmailChangePanel
+                  key={`${editUser.id}-${editUser.email}`}
+                  currentEmail={editUser.email}
+                  sendOtpUrl={`/api/community/members/${editUser.id}/change-email/send-otp`}
+                  confirmUrl={`/api/community/members/${editUser.id}/change-email/confirm`}
+                  adminMode
+                  disabled={editSaving || editRoleSaving}
+                  onSuccess={(newEmail) => {
+                    setEditUser((prev) => (prev ? { ...prev, email: newEmail } : prev));
+                    setUsers((prev) =>
+                      prev.map((u) => (u.id === editUser.id ? { ...u, email: newEmail } : u))
+                    );
+                    router.refresh();
+                  }}
+                />
+              </>
+            ) : editUser ? (
               <Typography variant="body2" color="text.secondary">
-                Email: <strong>{editUser.email}</strong> (sign-in email cannot be changed here.)
+                Email: <strong>{editUser.email}</strong> (only administrators can change sign-in email here.)
               </Typography>
             ) : null}
             <TextField

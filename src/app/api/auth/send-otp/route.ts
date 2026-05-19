@@ -5,11 +5,10 @@ import {
   hashOtp,
   normalizeEmail,
   OTP_PURPOSE_REGISTER,
+  OTP_RESEND_COOLDOWN_SECONDS,
 } from "@/lib/auth/email-otp";
 import { sendOtpEmail } from "@/lib/mail/send-otp-email";
 import { createAdminClient } from "@/utils/supabase/admin";
-
-const MIN_SECONDS_BETWEEN_SENDS = 60;
 
 export async function POST(req: Request) {
   try {
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
     }
 
     const supabase = createAdminClient();
-    const cutoff = new Date(Date.now() - MIN_SECONDS_BETWEEN_SENDS * 1000).toISOString();
+    const cutoff = new Date(Date.now() - OTP_RESEND_COOLDOWN_SECONDS * 1000).toISOString();
     const { data: recentRow } = await supabase
       .from("email_otp_codes")
       .select("id")
@@ -33,7 +32,9 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (recentRow) {
       return NextResponse.json(
-        { error: "Please wait about 60 seconds before requesting another code." },
+        {
+          error: `Please wait about ${Math.ceil(OTP_RESEND_COOLDOWN_SECONDS / 60)} minutes before requesting another code.`,
+        },
         { status: 429 }
       );
     }
