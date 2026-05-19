@@ -7,8 +7,9 @@ import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 
-const BASE_FILL = "rgb(22, 22, 42)";
-const STROKE = "rgba(255, 255, 255, 0.22)";
+const BASE_FILL = "rgb(18, 20, 32)";
+const STATE_BORDER = "rgba(255, 215, 0, 0.72)";
+const STATE_BORDER_WIDTH = 1.05;
 
 const HEAT_STOPS: Array<{ at: number; rgb: [number, number, number] }> = [
   { at: 0, rgb: [49, 54, 149] },
@@ -100,8 +101,8 @@ export function ReportsCityHeatmapMap({
     <Box>
       <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
         Heat blobs are placed by <strong>profile city</strong> (not full state fill) for{" "}
-        <strong>{rangeLabel}</strong>. Overlapping areas blend like a weather map — only cities with
-        active users show warm colors.
+        <strong>{rangeLabel}</strong>. State outlines stay visible on top; warmer colors mark cities
+        with active users.
       </Typography>
 
       <Box
@@ -165,17 +166,16 @@ export function ReportsCityHeatmapMap({
                     const g = geo as RsmGeo;
                     return (
                       <Geography
-                        key={g.rsmKey}
+                        key={`base-${g.rsmKey}`}
                         geography={geo}
                         style={{
                           default: {
                             fill: BASE_FILL,
-                            stroke: STROKE,
-                            strokeWidth: 0.5,
+                            stroke: "none",
                             outline: "none",
                           },
-                          hover: { fill: BASE_FILL, outline: "none" },
-                          pressed: { fill: BASE_FILL, outline: "none" },
+                          hover: { fill: BASE_FILL, stroke: "none", outline: "none" },
+                          pressed: { fill: BASE_FILL, stroke: "none", outline: "none" },
                         }}
                       />
                     );
@@ -202,7 +202,7 @@ export function ReportsCityHeatmapMap({
                       <circle
                         r={r}
                         fill={fill}
-                        opacity={0.62}
+                        opacity={0.52}
                         stroke="none"
                         style={{ filter: "url(#reports-city-heat-blur)" }}
                         pointerEvents="none"
@@ -219,6 +219,63 @@ export function ReportsCityHeatmapMap({
                   </Marker>
                 );
               })}
+
+              <Geographies geography={GEO_URL}>
+                {({ geographies }) =>
+                  geographies.map((geo) => {
+                    const g = geo as RsmGeo;
+                    const borderOnly = {
+                      fill: "none" as const,
+                      outline: "none" as const,
+                      pointerEvents: "none" as const,
+                    };
+                    return (
+                      <g key={`border-${g.rsmKey}`}>
+                        <Geography
+                          geography={geo}
+                          style={{
+                            default: {
+                              ...borderOnly,
+                              stroke: "rgba(0, 0, 0, 0.75)",
+                              strokeWidth: STATE_BORDER_WIDTH + 0.55,
+                            },
+                            hover: {
+                              ...borderOnly,
+                              stroke: "rgba(0, 0, 0, 0.75)",
+                              strokeWidth: STATE_BORDER_WIDTH + 0.55,
+                            },
+                            pressed: {
+                              ...borderOnly,
+                              stroke: "rgba(0, 0, 0, 0.75)",
+                              strokeWidth: STATE_BORDER_WIDTH + 0.55,
+                            },
+                          }}
+                        />
+                        <Geography
+                          geography={geo}
+                          style={{
+                            default: {
+                              ...borderOnly,
+                              stroke: STATE_BORDER,
+                              strokeWidth: STATE_BORDER_WIDTH,
+                            },
+                            hover: {
+                              ...borderOnly,
+                              stroke: STATE_BORDER,
+                              strokeWidth: STATE_BORDER_WIDTH,
+                            },
+                            pressed: {
+                              ...borderOnly,
+                              stroke: STATE_BORDER,
+                              strokeWidth: STATE_BORDER_WIDTH,
+                            },
+                          }}
+                        />
+                      </g>
+                    );
+                  })
+                }
+              </Geographies>
             </ComposableMap>
           </Box>
           <HeatLegend maxCount={maxCount} />
