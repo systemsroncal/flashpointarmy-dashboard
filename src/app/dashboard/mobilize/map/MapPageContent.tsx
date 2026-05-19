@@ -347,7 +347,12 @@ export default function MobilizeMapPageContent() {
           </Typography>
         </Box>
         {canCreateGroup ? (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateOpen(true)}
+            sx={{ minWidth: 200 }}
+          >
             New group
           </Button>
         ) : null}
