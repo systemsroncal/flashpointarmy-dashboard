@@ -216,31 +216,6 @@ export function ReportsPresenceSection() {
     };
   }, [data, periodLabel]);
 
-  const profileBarOptions = useMemo((): ApexOptions => {
-    const top = (data?.demographicsByState ?? []).slice(0, 10);
-    return {
-      chart: {
-        type: "bar",
-        toolbar: { show: false },
-        foreColor: "rgba(255,255,255,0.72)",
-        background: "transparent",
-      },
-      theme: { mode: "dark" },
-      plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "70%" } },
-      dataLabels: { enabled: false },
-      grid: { borderColor: "rgba(255,215,0,0.14)" },
-      xaxis: {
-        categories: top.map((r) => r.stateName),
-        title: { text: "Active users" },
-      },
-      colors: ["#4cc9f0"],
-      title: {
-        text: "Active users by state (profile)",
-        style: { color: "#4cc9f0", fontSize: "14px" },
-      },
-    };
-  }, [data]);
-
   const summary = data?.summary;
   const trend = formatTrend(summary?.todayVsYesterdayPercent ?? null);
   const todayVsPeakPercent =
@@ -259,15 +234,6 @@ export function ReportsPresenceSection() {
           </Typography>
         </Box>
       </Stack>
-
-      <ReportsPresenceDateRangeControls
-        preset={preset}
-        customFrom={customFrom}
-        customTo={customTo}
-        onPresetChange={setPreset}
-        onCustomFromChange={setCustomFrom}
-        onCustomToChange={setCustomTo}
-      />
 
       {err ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -435,10 +401,15 @@ export function ReportsPresenceSection() {
             <Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 700, mb: 1 }}>
               Users by state
             </Typography>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-              Profile state for users with dashboard activity in the selected period. Use the period
-              filter above to compare 7 days, 30 days, or a custom range.
-            </Typography>
+
+            <ReportsPresenceDateRangeControls
+              preset={preset}
+              customFrom={customFrom}
+              customTo={customTo}
+              onPresetChange={setPreset}
+              onCustomFromChange={setCustomFrom}
+              onCustomToChange={setCustomTo}
+            />
 
             {data.demographicsByState.length === 0 ? (
               <Typography color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
@@ -446,29 +417,7 @@ export function ReportsPresenceSection() {
                 session.
               </Typography>
             ) : (
-              <Stack spacing={3}>
-                <ReportsStateDemographicMap rows={data.demographicsByState} rangeLabel={periodLabel} />
-
-                <Box>
-                  <Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 700, mb: 1 }}>
-                    Active users by state (profile)
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-                    Same data as the heatmap, shown as a ranked bar chart for the selected period.
-                  </Typography>
-                  <Chart
-                    type="bar"
-                    height={Math.max(220, data.demographicsByState.slice(0, 10).length * 36)}
-                    series={[
-                      {
-                        name: "Active users",
-                        data: data.demographicsByState.slice(0, 10).map((r) => r.activeUsers),
-                      },
-                    ]}
-                    options={profileBarOptions}
-                  />
-                </Box>
-              </Stack>
+              <ReportsStateDemographicMap rows={data.demographicsByState} rangeLabel={periodLabel} />
             )}
           </Paper>
 
