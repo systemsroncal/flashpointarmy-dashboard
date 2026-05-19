@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 export const OTP_PURPOSE_REGISTER = "register";
+export const OTP_PURPOSE_CHANGE_EMAIL = "change_email";
 export const OTP_TTL_MINUTES = 10;
 
 export function normalizeEmail(email: string) {

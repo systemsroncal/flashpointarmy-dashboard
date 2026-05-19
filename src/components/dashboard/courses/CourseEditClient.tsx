@@ -5,7 +5,12 @@ import {
   blockTitleHtmlFromPlain,
   blockTitlePlainFromHtml,
   COURSE_ELEMENT_TYPE_LABELS,
-  videoPayloadUrl,
+  collectCourseBlockValidationIssues,
+  elementTypeRequiresUrl,
+  formatCourseBlockValidationIssue,
+  payloadUrl,
+  urlFieldLabelForElementType,
+  type CourseBlockValidationIssue,
 } from "@/lib/courses/course-block-editor";
 import { slugify } from "@/lib/slug";
 import type { QuizElementPayload } from "@/types/course-content";
@@ -27,6 +32,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Alert,
   Box,
   Button,
   Dialog,
@@ -55,7 +61,7 @@ import {
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 type ElementRow = {
@@ -158,11 +164,43 @@ export function CourseEditClient({
   const [deleteCourseOpen, setDeleteCourseOpen] = useState(false);
   const [deleteBlockTarget, setDeleteBlockTarget] = useState<{ sessionId: string; elementId: string } | null>(null);
   const [expandedBlockIds, setExpandedBlockIds] = useState<Record<string, boolean>>({});
+  const [expandedSessionIds, setExpandedSessionIds] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(initialSessions.map((s) => [s.id, true]))
+  );
+  const [highlightedBlockIds, setHighlightedBlockIds] = useState<Record<string, boolean>>({});
   const dragBlockIdxRef = useRef<number | null>(null);
   const dragBlockSessionRef = useRef<string | null>(null);
   /** dnd-kit aria-describedby IDs must match SSR vs client; stable context ids avoid global counter drift. */
   const sessionDndId = useMemo(() => `course-edit-dnd-${courseId}`, [courseId]);
   const sessionSortableId = useMemo(() => `course-edit-sort-${courseId}`, [courseId]);
+
+  const saveValidationIssues = useMemo(
+    () => collectCourseBlockValidationIssues(sessions),
+    [sessions]
+  );
+
+  const scrollToValidationIssue = useCallback((issue: CourseBlockValidationIssue) => {
+    setExpandedSessionIds((prev) => ({ ...prev, [issue.sessionId]: true }));
+    setExpandedBlockIds((prev) => ({ ...prev, [issue.elementId]: true }));
+    setHighlightedBlockIds((prev) => ({ ...prev, [issue.elementId]: true }));
+    window.setTimeout(() => {
+      document.getElementById(`course-block-${issue.elementId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 120);
+  }, []);
+
+  useEffect(() => {
+    const invalidIds = new Set(saveValidationIssues.map((i) => i.elementId));
+    setHighlightedBlockIds((prev) => {
+      const next: Record<string, boolean> = {};
+      for (const [id, on] of Object.entries(prev)) {
+        if (on && invalidIds.has(id)) next[id] = true;
+      }
+      return next;
+    });
+  }, [saveValidationIssues]);
 
   const reorderSessions = useCallback((ev: DragEndEvent) => {
     const { active, over } = ev;
@@ -203,24 +241,24 @@ export function CourseEditClient({
   async function saveAll() {
     setErr(null);
     setMsg(null);
+
+    const nextSlug = slugify(slug || title);
+    if (!nextSlug) {
+      setErr("Slug is required.");
+      return;
+    }
+
+    const issues = collectCourseBlockValidationIssues(sessions);
+    if (issues.length > 0) {
+      setErr(
+        `Cannot save: ${issues.length} content block${issues.length === 1 ? "" : "s"} still need a URL. Use the list below to jump to each item.`
+      );
+      scrollToValidationIssue(issues[0]);
+      return;
+    }
+
     setBusy(true);
     try {
-      const nextSlug = slugify(slug || title);
-      if (!nextSlug) {
-        setErr("Slug is required.");
-        return;
-      }
-      for (const s of sessions) {
-        for (const el of s.elements) {
-          if (el.element_type === "video" && !videoPayloadUrl(el.payload)) {
-            const label = COURSE_ELEMENT_TYPE_LABELS.video ?? "Video";
-            setErr(
-              `Session “${s.title || "Untitled"}”: each ${label} block needs a video URL before saving.`
-            );
-            return;
-          }
-        }
-      }
       const { error: cErr } = await supabase
         .from("courses")
         .update({
@@ -290,10 +328,11 @@ export function CourseEditClient({
       setErr(error?.message ?? "Could not add session.");
       return;
     }
+    const newId = data.id as string;
     setSessions((prev) => [
       ...prev,
       {
-        id: data.id as string,
+        id: newId,
         slug: data.slug as string,
         title: data.title as string,
         subtitle: (data.subtitle as string) ?? "",
@@ -302,6 +341,7 @@ export function CourseEditClient({
         elements: [],
       },
     ]);
+    setExpandedSessionIds((prev) => ({ ...prev, [newId]: true }));
   }
 
   async function addElement(sessionId: string, type: string) {
@@ -495,7 +535,12 @@ export function CourseEditClient({
           {sessions.map((s) => (
             <SortableShell key={s.id} id={s.id}>
               {(handle) => (
-                <Accordion defaultExpanded>
+                <Accordion
+                  expanded={expandedSessionIds[s.id] ?? false}
+                  onChange={(_, isExpanded) =>
+                    setExpandedSessionIds((prev) => ({ ...prev, [s.id]: isExpanded }))
+                  }
+                >
                   <AccordionSummary>
                     <Typography fontWeight={700}>{s.title || "(untitled session)"}</Typography>
                   </AccordionSummary>
@@ -553,13 +598,17 @@ export function CourseEditClient({
                       Content blocks (drag the block or use ↑ ↓)
                     </Typography>
                     {s.elements.map((el, elIdx) => {
-                      const videoUrl = videoPayloadUrl(el.payload);
+                      const blockUrl = payloadUrl(el.payload);
+                      const urlRequired = elementTypeRequiresUrl(el.element_type);
+                      const urlMissing = urlRequired && !blockUrl;
                       const blockTitlePlain = blockTitlePlainFromHtml(el.title_html);
                       const blockTypeLabel =
                         COURSE_ELEMENT_TYPE_LABELS[el.element_type] ?? el.element_type;
+                      const isHighlighted = Boolean(highlightedBlockIds[el.id]);
                       return (
                       <Paper
                         key={el.id}
+                        id={`course-block-${el.id}`}
                         draggable
                         onDragStart={() => {
                           dragBlockIdxRef.current = elIdx;
@@ -584,11 +633,13 @@ export function CourseEditClient({
                         }}
                         sx={{
                           mb: 2,
-                          border: "1px solid rgba(255,215,0,0.22)",
+                          border: isHighlighted ? "2px solid" : "1px solid",
+                          borderColor: isHighlighted ? "warning.main" : "rgba(255,215,0,0.22)",
                           borderRadius: 1,
                           overflow: "hidden",
-                          bgcolor: "rgba(0,0,0,0.28)",
+                          bgcolor: isHighlighted ? "rgba(255, 152, 0, 0.08)" : "rgba(0,0,0,0.28)",
                           cursor: "grab",
+                          scrollMarginTop: 96,
                           "&:active": { cursor: "grabbing" },
                         }}
                       >
@@ -621,9 +672,9 @@ export function CourseEditClient({
                                 {blockTypeLabel}
                                 {blockTitlePlain ? ` · ${blockTitlePlain}` : ""}
                               </Typography>
-                              {el.element_type === "video" && !videoUrl ? (
+                              {urlMissing ? (
                                 <Typography variant="caption" color="warning.main">
-                                  Video URL required
+                                  {urlFieldLabelForElementType(el.element_type)} required
                                 </Typography>
                               ) : null}
                             </Box>
@@ -770,10 +821,10 @@ export function CourseEditClient({
                                     fullWidth
                                     sx={{ mt: 1 }}
                                     value={(el.payload as { url?: string }).url ?? ""}
-                                    error={!videoUrl}
+                                    error={urlMissing}
                                     helperText={
-                                      !videoUrl
-                                        ? "Required. Empty video blocks block session completion for learners."
+                                      urlMissing
+                                        ? "Required before you can save the course."
                                         : "YouTube, Vimeo, or direct MP4 URL."
                                     }
                                     onChange={(e) =>
@@ -798,8 +849,15 @@ export function CourseEditClient({
                                   <Stack spacing={1} sx={{ mt: 1 }}>
                                     <TextField
                                       label="PDF URL"
+                                      required
                                       fullWidth
                                       value={(el.payload as { url?: string }).url ?? ""}
+                                      error={urlMissing}
+                                      helperText={
+                                        urlMissing
+                                          ? "Required before you can save the course."
+                                          : "HTTPS link to the PDF file."
+                                      }
                                       onChange={(e) =>
                                         setSessions((prev) =>
                                           prev.map((ss) =>
@@ -855,9 +913,16 @@ export function CourseEditClient({
                                 {el.element_type === "image" ? (
                                   <TextField
                                     label="Image URL"
+                                    required
                                     fullWidth
                                     sx={{ mt: 1 }}
                                     value={(el.payload as { url?: string }).url ?? ""}
+                                    error={urlMissing}
+                                    helperText={
+                                      urlMissing
+                                        ? "Required before you can save the course."
+                                        : "HTTPS link to the image."
+                                    }
                                     onChange={(e) =>
                                       setSessions((prev) =>
                                         prev.map((ss) =>
@@ -969,6 +1034,37 @@ export function CourseEditClient({
           ))}
         </SortableContext>
       </DndContext>
+
+      {saveValidationIssues.length > 0 ? (
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+            Complete required URLs before saving ({saveValidationIssues.length})
+          </Typography>
+          <Stack component="ul" spacing={0.5} sx={{ m: 0, pl: 2.25 }}>
+            {saveValidationIssues.map((issue) => (
+              <Typography component="li" key={issue.elementId} variant="body2">
+                <Button
+                  variant="text"
+                  size="small"
+                  color="inherit"
+                  sx={{
+                    textTransform: "none",
+                    justifyContent: "flex-start",
+                    textAlign: "left",
+                    p: 0,
+                    minHeight: 0,
+                    fontWeight: 600,
+                    "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+                  }}
+                  onClick={() => scrollToValidationIssue(issue)}
+                >
+                  {formatCourseBlockValidationIssue(issue)}
+                </Button>
+              </Typography>
+            ))}
+          </Stack>
+        </Alert>
+      ) : null}
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 2 }} alignItems={{ sm: "center" }}>
         <Button variant="contained" disabled={busy} onClick={() => void saveAll()}>
