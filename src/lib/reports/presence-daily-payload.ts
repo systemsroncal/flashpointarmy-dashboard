@@ -1,9 +1,10 @@
 /** Shared shape for GET /api/reports/presence-daily and the Reports UI. */
 
-export const PRESENCE_REPORT_DAYS = 30;
+import type { PresenceDateRange, PresenceRangePreset } from "@/lib/reports/presence-range";
 
 export type PresenceDemographicRow = {
   state: string;
+  stateName: string;
   activeUsers: number;
   percent: number;
 };
@@ -11,14 +12,20 @@ export type PresenceDemographicRow = {
 export type PresenceOverviewSummary = {
   activeToday: number;
   activeYesterday: number;
-  distinctLast30Days: number;
-  registrationsLast30Days: number;
+  distinctInRange: number;
+  registrationsInRange: number;
   peakDayCount: number;
   peakDayLabel: string;
   todayVsYesterdayPercent: number | null;
 };
 
 export type PresenceDailyPayload = {
+  range: {
+    preset: PresenceRangePreset;
+    from: string;
+    to: string;
+    dayCount: number;
+  };
   categories: string[];
   activeUsersByDay: number[];
   summary: PresenceOverviewSummary;

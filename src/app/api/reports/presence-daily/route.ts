@@ -1,43 +1,35 @@
 import {
-  PRESENCE_REPORT_DAYS,
+  parsePresenceDateRange,
+  utcDateKey,
+  utcDayKeysInclusive,
+  utcTodayParts,
+} from "@/lib/reports/presence-range";
+import {
   type PresenceDailyPayload,
   type PresenceDemographicRow,
 } from "@/lib/reports/presence-daily-payload";
 import { chunkIdsForInQuery } from "@/lib/admin/dashboard-user-queries";
-import { normalizeUserStateForReports } from "@/lib/reports/normalize-user-state";
+import {
+  normalizeUserStateForReports,
+  stateDisplayNameForReports,
+} from "@/lib/reports/normalize-user-state";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
-import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
+import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-
-const DAY_COUNT = PRESENCE_REPORT_DAYS;
-
-function utcTodayParts(now = new Date()) {
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth();
-  const d = now.getUTCDate();
-  return { y, m, d };
-}
-
-function utcDateKey(y: number, m: number, d: number, offsetDays: number): string {
-  const dt = new Date(Date.UTC(y, m, d));
-  dt.setUTCDate(dt.getUTCDate() + offsetDays);
-  return dt.toISOString().slice(0, 10);
-}
 
 type PresenceRow = { day_utc: string; user_id: string };
 
 const PRESENCE_PAGE = 1000;
 const DEMOGRAPHICS_IN_CHUNK = 100;
 
-/** PostgREST returns at most ~1000 rows per request unless paginated; long `.in()` lists also break proxies. */
-async function fetchAllPresenceRowsSince(
+async function fetchPresenceRowsInRange(
   admin: SupabaseClient,
-  fromStr: string
+  fromStr: string,
+  toStr: string
 ): Promise<{ rows: PresenceRow[]; errorMessage: string | null }> {
   const rows: PresenceRow[] = [];
   for (let from = 0; ; from += PRESENCE_PAGE) {
@@ -46,6 +38,7 @@ async function fetchAllPresenceRowsSince(
       .from("dashboard_presence_daily")
       .select("day_utc, user_id")
       .gte("day_utc", fromStr)
+      .lte("day_utc", toStr)
       .order("day_utc", { ascending: true })
       .order("user_id", { ascending: true })
       .range(from, to);
@@ -57,27 +50,28 @@ async function fetchAllPresenceRowsSince(
   return { rows, errorMessage: null };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const authResult = await requireApiAuth();
-  if ("response" in authResult) return authResult.response;
-  const { supabase, user } = authResult;
+    if ("response" in authResult) return authResult.response;
+    const { supabase, user } = authResult;
 
     const permissions = await loadModulePermissions(supabase, user.id);
     if (!can(permissions, MODULE_SLUGS.reports, "read")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const range = parsePresenceDateRange(new URL(req.url).searchParams);
     const admin = createAdminClient();
     const { y, m, d } = utcTodayParts();
-    const fromStr = utcDateKey(y, m, d, -(DAY_COUNT - 1));
     const todayKey = utcDateKey(y, m, d, 0);
     const yesterdayKey = utcDateKey(y, m, d, -1);
 
-    const registrationsFrom = new Date(Date.UTC(y, m, d));
-    registrationsFrom.setUTCDate(registrationsFrom.getUTCDate() - (DAY_COUNT - 1));
+    const registrationsFrom = new Date(`${range.fromStr}T00:00:00.000Z`);
+    const registrationsTo = new Date(`${range.toStr}T23:59:59.999Z`);
 
-    const { rows: presenceRows, errorMessage: presenceErr } = await fetchAllPresenceRowsSince(admin, fromStr);
+    const { rows: presenceRows, errorMessage: presenceErr } =
+      await fetchPresenceRowsInRange(admin, range.fromStr, range.toStr);
     if (presenceErr) {
       return NextResponse.json({ error: presenceErr }, { status: 400 });
     }
@@ -85,30 +79,26 @@ export async function GET() {
     const registrationsRes = await admin
       .from("dashboard_users")
       .select("id", { count: "exact", head: true })
-      .gte("created_at", registrationsFrom.toISOString());
+      .gte("created_at", registrationsFrom.toISOString())
+      .lte("created_at", registrationsTo.toISOString());
 
     const byDay = new Map<string, Set<string>>();
     const activeUserIds = new Set<string>();
     for (const row of presenceRows) {
-      const day = String((row as { day_utc: string }).day_utc).slice(0, 10);
-      const uid = String((row as { user_id: string }).user_id);
+      const day = String(row.day_utc).slice(0, 10);
+      const uid = String(row.user_id);
       activeUserIds.add(uid);
       if (!byDay.has(day)) byDay.set(day, new Set());
       byDay.get(day)!.add(uid);
     }
 
-    const categories: string[] = [];
-    const activeUsersByDay: number[] = [];
-    for (let i = DAY_COUNT - 1; i >= 0; i--) {
-      const key = utcDateKey(y, m, d, -i);
-      categories.push(key);
-      activeUsersByDay.push(byDay.get(key)?.size ?? 0);
-    }
+    const categories = utcDayKeysInclusive(range.fromStr, range.toStr);
+    const activeUsersByDay = categories.map((key) => byDay.get(key)?.size ?? 0);
 
     const activeToday = byDay.get(todayKey)?.size ?? 0;
     const activeYesterday = byDay.get(yesterdayKey)?.size ?? 0;
     let peakDayCount = 0;
-    let peakDayLabel = todayKey;
+    let peakDayLabel = range.toStr;
     for (let i = 0; i < categories.length; i++) {
       const n = activeUsersByDay[i] ?? 0;
       if (n >= peakDayCount) {
@@ -145,6 +135,7 @@ export async function GET() {
       demographicsByState = [...byState.entries()]
         .map(([state, activeUsers]) => ({
           state,
+          stateName: stateDisplayNameForReports(state),
           activeUsers,
           percent: total > 0 ? Math.round((activeUsers / total) * 1000) / 10 : 0,
         }))
@@ -152,19 +143,25 @@ export async function GET() {
     }
 
     const payload: PresenceDailyPayload = {
+      range: {
+        preset: range.preset,
+        from: range.fromStr,
+        to: range.toStr,
+        dayCount: range.dayCount,
+      },
       categories,
       activeUsersByDay,
       summary: {
         activeToday,
         activeYesterday,
-        distinctLast30Days: activeUserIds.size,
-        registrationsLast30Days: registrationsRes.error ? 0 : (registrationsRes.count ?? 0),
+        distinctInRange: activeUserIds.size,
+        registrationsInRange: registrationsRes.error ? 0 : (registrationsRes.count ?? 0),
         peakDayCount,
         peakDayLabel,
         todayVsYesterdayPercent,
       },
       demographicsByState,
-      note: `UTC calendar days; retention keeps ${DAY_COUNT} rolling days. "Online now" uses Realtime Presence in the dashboard shell. Demographics group active users in this window by profile state.`,
+      note: `UTC calendar days (${range.fromStr} → ${range.toStr}). "Online now" uses Realtime Presence. State breakdown uses profile state for users with at least one session pulse in this window.`,
     };
 
     return NextResponse.json(payload);

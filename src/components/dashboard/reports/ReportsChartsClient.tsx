@@ -65,7 +65,7 @@ function formatStatusSlug(label: string): string {
 }
 
 export function ReportsChartsClient() {
-  const [preset, setPreset] = useState<"7d" | "30d" | "12m" | "ytd" | "custom">("30d");
+  const [preset, setPreset] = useState<"7d" | "30d" | "12m" | "ytd" | "custom">("7d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [granularity, setGranularity] = useState<Bucket | "auto">("auto");

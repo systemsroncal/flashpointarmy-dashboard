@@ -1,6 +1,12 @@
 "use client";
 
-import { PRESENCE_REPORT_DAYS, type PresenceDailyPayload } from "@/lib/reports/presence-daily-payload";
+import { ReportsPresenceDateRangeControls } from "@/components/dashboard/reports/ReportsPresenceDateRangeControls";
+import { ReportsStateDemographicMap } from "@/components/dashboard/reports/ReportsStateDemographicMap";
+import type { PresenceDailyPayload } from "@/lib/reports/presence-daily-payload";
+import {
+  type PresenceRangePreset,
+  presenceRangeQueryString,
+} from "@/lib/reports/presence-range";
 import { useDashboardPresence } from "@/contexts/DashboardPresenceContext";
 import BoltOutlined from "@mui/icons-material/BoltOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
@@ -57,11 +63,16 @@ function formatTrend(percent: number | null): { text: string; positive: boolean 
   return { text: `${sign}${percent}% vs yesterday`, positive: percent >= 0 };
 }
 
+function rangeLabel(payload: PresenceDailyPayload | null): string {
+  if (!payload) return "last 7 days";
+  const { from, to, dayCount } = payload.range;
+  return `${from} → ${to} (${dayCount} day${dayCount === 1 ? "" : "s"})`;
+}
+
 type StatCardProps = {
   label: string;
   value: number | string;
   sub?: string;
-  /** Shown next to `sub` as a small (i) icon with this tooltip. */
   subTooltip?: string;
   color: string;
   icon: SvgIconComponent;
@@ -146,15 +157,28 @@ function PresenceStatCard({ label, value, sub, subTooltip, color, icon: Icon, pu
 
 export function ReportsPresenceSection() {
   const { onlineUserCount } = useDashboardPresence();
+  const [preset, setPreset] = useState<PresenceRangePreset>("7d");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [data, setData] = useState<PresenceDailyPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (preset === "custom" && !customFrom) {
+      const t = new Date();
+      const f = new Date(t.getTime() - 7 * 86400000);
+      setCustomFrom(f.toISOString().slice(0, 10));
+      setCustomTo(t.toISOString().slice(0, 10));
+    }
+  }, [preset, customFrom]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/reports/presence-daily", { cache: "no-store" });
+      const qs = presenceRangeQueryString({ preset, customFrom, customTo });
+      const res = await fetch(`/api/reports/presence-daily?${qs}`, { cache: "no-store" });
       const json = (await res.json()) as PresenceDailyPayload & { error?: string };
       if (!res.ok) throw new Error(json.error || "Failed to load presence stats");
       setData(json);
@@ -164,11 +188,14 @@ export function ReportsPresenceSection() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [preset, customFrom, customTo]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const dayCount = data?.range.dayCount ?? 7;
+  const periodLabel = rangeLabel(data);
 
   const activityOptions = useMemo((): ApexOptions => {
     if (!data) return chartOpts;
@@ -178,8 +205,8 @@ export function ReportsPresenceSection() {
       chart: { ...chartOpts.chart, id: "presence-activity-area", type: "area" },
       xaxis: {
         categories: labels,
-        tickAmount: 8,
-        title: { text: `Day (UTC, last ${PRESENCE_REPORT_DAYS})` },
+        tickAmount: Math.min(12, labels.length),
+        title: { text: `Day (UTC, ${periodLabel})` },
         labels: { rotate: -35, hideOverlappingLabels: true },
       },
       title: {
@@ -187,10 +214,10 @@ export function ReportsPresenceSection() {
         style: { color: "#90be6d", fontSize: "14px" },
       },
     };
-  }, [data]);
+  }, [data, periodLabel]);
 
-  const demographicBarOptions = useMemo((): ApexOptions => {
-    const top = (data?.demographicsByState ?? []).slice(0, 8);
+  const profileBarOptions = useMemo((): ApexOptions => {
+    const top = (data?.demographicsByState ?? []).slice(0, 10);
     return {
       chart: {
         type: "bar",
@@ -203,8 +230,8 @@ export function ReportsPresenceSection() {
       dataLabels: { enabled: false },
       grid: { borderColor: "rgba(255,215,0,0.14)" },
       xaxis: {
-        categories: top.map((r) => r.state),
-        title: { text: "Active users (30d)" },
+        categories: top.map((r) => r.stateName),
+        title: { text: "Active users" },
       },
       colors: ["#4cc9f0"],
       title: {
@@ -225,14 +252,22 @@ export function ReportsPresenceSection() {
     <Paper sx={{ p: 2 }}>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
         <PeopleOutlineIcon color="primary" />
-        <Box>
+        <Box sx={{ flex: 1 }}>
           <Typography variant="h6">Live & recent presence</Typography>
           <Typography variant="body2" color="text.secondary">
-            Realtime online count plus rolling {PRESENCE_REPORT_DAYS}-day activity and sign-ins by profile
-            state.
+            Realtime online count plus activity, sign-ups, and state breakdown for the selected period.
           </Typography>
         </Box>
       </Stack>
+
+      <ReportsPresenceDateRangeControls
+        preset={preset}
+        customFrom={customFrom}
+        customTo={customTo}
+        onPresetChange={setPreset}
+        onCustomFromChange={setCustomFrom}
+        onCustomToChange={setCustomTo}
+      />
 
       {err ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -273,18 +308,18 @@ export function ReportsPresenceSection() {
           icon={GroupsOutlined}
         />
         <PresenceStatCard
-          label={`Distinct users (${PRESENCE_REPORT_DAYS}d)`}
-          value={summary?.distinctLast30Days ?? (loading ? "…" : 0)}
+          label={`Distinct users (${dayCount}d)`}
+          value={summary?.distinctInRange ?? (loading ? "…" : 0)}
           sub="At least one session pulse"
-          subTooltip={`Unique users who had at least one stored presence pulse on any UTC day in the last ${PRESENCE_REPORT_DAYS} days (rolling window).`}
+          subTooltip={`Unique users who had at least one stored presence pulse on any UTC day in the selected period (${periodLabel}).`}
           color="#3b82f6"
           icon={TrendingUpOutlined}
         />
         <PresenceStatCard
-          label={`New registrations (${PRESENCE_REPORT_DAYS}d)`}
-          value={summary?.registrationsLast30Days ?? (loading ? "…" : 0)}
-          sub="dashboard_users.created_at"
-          subTooltip={`Accounts created in the last ${PRESENCE_REPORT_DAYS} UTC days, by \`dashboard_users.created_at\` (new sign-ups in this window).`}
+          label={`New registrations (${dayCount}d)`}
+          value={summary?.registrationsInRange ?? (loading ? "…" : 0)}
+          sub="New accounts in this period"
+          subTooltip={`Accounts created during the selected period (${periodLabel}), based on when the user joined the platform.`}
           color="#eab308"
           icon={HowToRegOutlined}
         />
@@ -325,7 +360,7 @@ export function ReportsPresenceSection() {
               }}
             >
               <Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 700, mb: 2 }}>
-                {PRESENCE_REPORT_DAYS}-day snapshot
+                {dayCount}-day snapshot
               </Typography>
               <Stack spacing={2}>
                 <Box>
@@ -396,72 +431,46 @@ export function ReportsPresenceSection() {
             </Paper>
           </Box>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              gap: 2,
-            }}
-          >
-            <Paper variant="outlined" sx={{ p: 2, borderColor: "rgba(255,215,0,0.18)" }}>
-              {data.demographicsByState.length > 0 ? (
-                <Chart
-                  type="bar"
-                  height={Math.max(220, data.demographicsByState.slice(0, 8).length * 36)}
-                  series={[
-                    {
-                      name: "Active users",
-                      data: data.demographicsByState.slice(0, 8).map((r) => r.activeUsers),
-                    },
-                  ]}
-                  options={demographicBarOptions}
-                />
-              ) : (
-                <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
-                  No state data for active users in this period. Users need a profile state and at least
-                  one dashboard session.
-                </Typography>
-              )}
-            </Paper>
+          <Paper variant="outlined" sx={{ p: 2, borderColor: "rgba(255,215,0,0.18)" }}>
+            <Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 700, mb: 1 }}>
+              Users by state
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+              Profile state for users with dashboard activity in the selected period. Use the period
+              filter above to compare 7 days, 30 days, or a custom range.
+            </Typography>
 
-            <Paper variant="outlined" sx={{ p: 2, borderColor: "rgba(255,215,0,0.18)" }}>
-              <Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 700, mb: 1.5 }}>
-                Users by state (active in last {PRESENCE_REPORT_DAYS} days)
+            {data.demographicsByState.length === 0 ? (
+              <Typography color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
+                No state data for this period. Users need a profile state and at least one dashboard
+                session.
               </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                Based on profile <strong>state</strong> from mailing address metadata, for users with
-                dashboard activity in this window.
-              </Typography>
-              {data.demographicsByState.length === 0 ? (
-                <Typography color="text.secondary">No breakdown available yet.</Typography>
-              ) : (
-                <Stack spacing={1.5}>
-                  {data.demographicsByState.slice(0, 10).map((row) => (
-                    <Box key={row.state}>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.35 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {row.state}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {row.activeUsers} · {row.percent}%
-                        </Typography>
-                      </Box>
-                      <LinearProgress
-                        variant="determinate"
-                        value={row.percent}
-                        sx={{
-                          height: 6,
-                          borderRadius: 1,
-                          bgcolor: "rgba(255,255,255,0.08)",
-                          "& .MuiLinearProgress-bar": { bgcolor: "#4cc9f0" },
-                        }}
-                      />
-                    </Box>
-                  ))}
-                </Stack>
-              )}
-            </Paper>
-          </Box>
+            ) : (
+              <Stack spacing={3}>
+                <ReportsStateDemographicMap rows={data.demographicsByState} rangeLabel={periodLabel} />
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 700, mb: 1 }}>
+                    Active users by state (profile)
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                    Same data as the heatmap, shown as a ranked bar chart for the selected period.
+                  </Typography>
+                  <Chart
+                    type="bar"
+                    height={Math.max(220, data.demographicsByState.slice(0, 10).length * 36)}
+                    series={[
+                      {
+                        name: "Active users",
+                        data: data.demographicsByState.slice(0, 10).map((r) => r.activeUsers),
+                      },
+                    ]}
+                    options={profileBarOptions}
+                  />
+                </Box>
+              </Stack>
+            )}
+          </Paper>
 
           <Typography variant="caption" color="text.secondary" display="block">
             {data.note}
