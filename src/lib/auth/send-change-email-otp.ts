@@ -1,11 +1,5 @@
-import {
-  generateOtpCode,
-  getOtpExpiryDate,
-  hashOtp,
-  normalizeEmail,
-  OTP_PURPOSE_CHANGE_EMAIL,
-  OTP_RESEND_COOLDOWN_SECONDS,
-} from "@/lib/auth/email-otp";
+import { OTP_PURPOSE_CHANGE_EMAIL, OTP_RESEND_COOLDOWN_SECONDS } from "@/lib/auth/email-otp-constants";
+import { generateOtpCode, getOtpExpiryDate, hashOtp, normalizeEmail } from "@/lib/auth/email-otp";
 import { sendOtpEmail } from "@/lib/mail/send-otp-email";
 import type { SupabaseClient } from "@supabase/supabase-js";
 

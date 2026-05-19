@@ -1,6 +1,7 @@
 "use client";
 
 import { ReportsPresenceDateRangeControls } from "@/components/dashboard/reports/ReportsPresenceDateRangeControls";
+import { ReportsCityHeatmapMap } from "@/components/dashboard/reports/ReportsCityHeatmapMap";
 import { ReportsStateDemographicMap } from "@/components/dashboard/reports/ReportsStateDemographicMap";
 import type { PresenceDailyPayload } from "@/lib/reports/presence-daily-payload";
 import {
@@ -418,6 +419,24 @@ export function ReportsPresenceSection() {
               </Typography>
             ) : (
               <ReportsStateDemographicMap rows={data.demographicsByState} rangeLabel={periodLabel} />
+            )}
+          </Paper>
+
+          <Paper variant="outlined" sx={{ p: 2, borderColor: "rgba(255,215,0,0.18)" }}>
+            <Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 700, mb: 0.5 }}>
+              Users by city
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+              Same period as above. Heat is shown at each profile city, not as a solid state fill.
+            </Typography>
+
+            {(data.demographicsByCity ?? []).length === 0 ? (
+              <Typography color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
+                No city data for this period. Users need a profile city and state plus at least one
+                dashboard session.
+              </Typography>
+            ) : (
+              <ReportsCityHeatmapMap rows={data.demographicsByCity} rangeLabel={periodLabel} />
             )}
           </Paper>
 

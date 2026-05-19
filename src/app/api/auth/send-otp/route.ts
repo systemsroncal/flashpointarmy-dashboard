@@ -5,8 +5,8 @@ import {
   hashOtp,
   normalizeEmail,
   OTP_PURPOSE_REGISTER,
-  OTP_RESEND_COOLDOWN_SECONDS,
 } from "@/lib/auth/email-otp";
+import { OTP_RESEND_COOLDOWN_SECONDS } from "@/lib/auth/email-otp-constants";
 import { sendOtpEmail } from "@/lib/mail/send-otp-email";
 import { createAdminClient } from "@/utils/supabase/admin";
 

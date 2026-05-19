@@ -9,6 +9,17 @@ export type PresenceDemographicRow = {
   percent: number;
 };
 
+export type PresenceCityDemographicRow = {
+  city: string;
+  state: string;
+  stateName: string;
+  label: string;
+  activeUsers: number;
+  percent: number;
+  lng: number;
+  lat: number;
+};
+
 export type PresenceOverviewSummary = {
   activeToday: number;
   activeYesterday: number;
@@ -30,5 +41,6 @@ export type PresenceDailyPayload = {
   activeUsersByDay: number[];
   summary: PresenceOverviewSummary;
   demographicsByState: PresenceDemographicRow[];
+  demographicsByCity: PresenceCityDemographicRow[];
   note: string;
 };

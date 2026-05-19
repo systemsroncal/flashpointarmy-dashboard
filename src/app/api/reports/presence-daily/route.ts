@@ -5,9 +5,15 @@ import {
   utcTodayParts,
 } from "@/lib/reports/presence-range";
 import {
+  cityDisplayLabel,
+  normalizeUserCityForReports,
+} from "@/lib/reports/normalize-user-city";
+import {
+  type PresenceCityDemographicRow,
   type PresenceDailyPayload,
   type PresenceDemographicRow,
 } from "@/lib/reports/presence-daily-payload";
+import { resolveCityCoordinates } from "@/lib/reports/us-city-coordinates";
 import { chunkIdsForInQuery } from "@/lib/admin/dashboard-user-queries";
 import {
   normalizeUserStateForReports,
@@ -115,20 +121,29 @@ export async function GET(req: Request) {
           : null;
 
     let demographicsByState: PresenceDemographicRow[] = [];
+    let demographicsByCity: PresenceCityDemographicRow[] = [];
     if (activeUserIds.size > 0) {
       const ids = [...activeUserIds];
       const byState = new Map<string, number>();
+      const byCity = new Map<string, { city: string; state: string; count: number }>();
       for (const part of chunkIdsForInQuery(ids, DEMOGRAPHICS_IN_CHUNK)) {
         const { data: users, error: usersErr } = await admin
           .from("dashboard_users")
-          .select("id, state")
+          .select("id, state, city")
           .in("id", part);
         if (usersErr) {
           return NextResponse.json({ error: usersErr.message }, { status: 400 });
         }
         for (const u of users ?? []) {
-          const st = normalizeUserStateForReports((u as { state: string | null }).state);
+          const row = u as { state: string | null; city: string | null };
+          const st = normalizeUserStateForReports(row.state);
           byState.set(st, (byState.get(st) ?? 0) + 1);
+
+          const city = normalizeUserCityForReports(row.city);
+          const cityKey = `${city}|${st}`;
+          const cur = byCity.get(cityKey);
+          if (cur) cur.count += 1;
+          else byCity.set(cityKey, { city, state: st, count: 1 });
         }
       }
       const total = activeUserIds.size;
@@ -139,6 +154,29 @@ export async function GET(req: Request) {
           activeUsers,
           percent: total > 0 ? Math.round((activeUsers / total) * 1000) / 10 : 0,
         }))
+        .sort((a, b) => b.activeUsers - a.activeUsers);
+
+      demographicsByCity = [...byCity.values()]
+        .map(({ city, state, count }) => {
+          const coords =
+            state !== "Unknown"
+              ? resolveCityCoordinates(city, state)
+              : null;
+          if (!coords) return null;
+          const stateName = stateDisplayNameForReports(state);
+          const displayCity = cityDisplayLabel(city);
+          return {
+            city: displayCity,
+            state,
+            stateName,
+            label: `${displayCity}, ${state}`,
+            activeUsers: count,
+            percent: total > 0 ? Math.round((count / total) * 1000) / 10 : 0,
+            lng: coords.lng,
+            lat: coords.lat,
+          };
+        })
+        .filter((row): row is PresenceCityDemographicRow => row != null)
         .sort((a, b) => b.activeUsers - a.activeUsers);
     }
 
@@ -161,7 +199,8 @@ export async function GET(req: Request) {
         todayVsYesterdayPercent,
       },
       demographicsByState,
-      note: `UTC calendar days (${range.fromStr} → ${range.toStr}). "Online now" uses Realtime Presence. State breakdown uses profile state for users with at least one session pulse in this window.`,
+      demographicsByCity,
+      note: `UTC calendar days (${range.fromStr} → ${range.toStr}). "Online now" uses Realtime Presence. State and city breakdowns use profile location for users with at least one session pulse in this window.`,
     };
 
     return NextResponse.json(payload);

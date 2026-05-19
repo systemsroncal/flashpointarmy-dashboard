@@ -1,6 +1,6 @@
 "use client";
 
-import { OTP_RESEND_COOLDOWN_SECONDS } from "@/lib/auth/email-otp";
+import { OTP_RESEND_COOLDOWN_SECONDS } from "@/lib/auth/email-otp-constants";
 import { useCallback, useEffect, useState } from "react";
 
 export function formatOtpResendCountdown(secondsLeft: number): string {
