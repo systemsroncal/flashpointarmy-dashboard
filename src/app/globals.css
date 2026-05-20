@@ -101,10 +101,23 @@ body {
   max-width: min(320px, calc(100vw - 48px));
 }
 
-/* Keep tour overlay above MUI drawers (profile panel during tour). */
-.driver-active-element,
-.driver-popover {
-  z-index: 1400 !important;
+/* driver.js stacking: overlay below popover; popover receives clicks. */
+.driver-overlay {
+  z-index: 1300 !important;
+}
+
+.driver-active-element {
+  z-index: 1301 !important;
+}
+
+.driver-popover,
+.fp-dashboard-tour-popover.driver-popover {
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+}
+
+.driver-popover * {
+  pointer-events: auto !important;
 }
 
 /* Plyr inside dialog: give the root a stable width (embed sizing comes from Plyr). */

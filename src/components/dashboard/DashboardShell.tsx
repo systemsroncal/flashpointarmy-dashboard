@@ -327,7 +327,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const tourBuildInput = useMemo(
     () => ({
       roleNames: user.role_names,
-      visibleNav,
+      visibleNav: visibleNav.filter((item) => item.module !== MODULE_SLUGS.movilization),
       settingsNav,
       mobilizeNav: mobilizeDrawerNav,
       isMobilize,

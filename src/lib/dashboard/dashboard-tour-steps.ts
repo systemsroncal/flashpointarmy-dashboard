@@ -29,9 +29,8 @@ export type DashboardTourBuildInput = {
 };
 
 const NAV_SELECTOR = (module: string) => `[data-tour="nav-${module}"]`;
-const MOBILIZE_SELECTOR = (id: string) => `[data-tour="${id}"]`;
 
-/** `data-tour` value for a Mobilize sidebar link. */
+/** `data-tour` value for a Mobilize sidebar link (Mobilize not included in tour). */
 export function mobilizeNavTourAttr(href: string): string {
   const part = href.replace("/dashboard/mobilize", "").replace(/^\//, "") || "home";
   return `mobilize-${part.replace(/\//g, "-")}`;
@@ -51,7 +50,7 @@ function welcomeCopy(profile: ReturnType<typeof roleProfile>, displayName: strin
     case "super_admin":
       return {
         title: "Welcome, platform owner",
-        description: `Hi ${name}. This tour walks through your dashboard: national overview, chapters, Mobilize, administrator tools, and Settings. Use Back and Next to move. Press Skip or the X to exit.`,
+        description: `Hi ${name}. This tour walks through your dashboard: national overview, chapters, administrator tools, and Settings. Use Back and Next to move. Press Skip or the X to exit.`,
       };
     case "admin":
       return {
@@ -102,11 +101,6 @@ const MODULE_COPY: Record<string, { title: string; description: string }> = {
     description:
       "Create and manage gatherings and events: schedules, locations, registration, and published event pages.",
   },
-  [MODULE_SLUGS.movilization]: {
-    title: "Mobilize",
-    description:
-      "Mobilization hub (super administrators): maps, groups, activities, and mobilize-specific notifications. The sidebar turns red while you are inside Mobilize.",
-  },
   [MODULE_SLUGS.admins]: {
     title: "Administrators",
     description:
@@ -149,30 +143,16 @@ const MODULE_COPY: Record<string, { title: string; description: string }> = {
   },
 };
 
-const MOBILIZE_COPY: Record<string, { title: string; description: string }> = {
-  map: {
-    title: "Map & Groups",
-    description: "Geographic view of groups and mobilization activity. Explore regions and group locations on the map.",
-  },
-  "my-groups": {
-    title: "My Groups",
-    description: "Groups you follow or manage within Mobilize. Open a group to see members and details.",
-  },
-  activities: {
-    title: "Upcoming Activities",
-    description: "Scheduled mobilization activities and events. Plan and review what is coming up.",
-  },
-  notifications: {
-    title: "Mobilize notifications",
-    description: "Alerts and messages specific to Mobilize workflows (separate from dashboard-wide announcements).",
-  },
-  settings: {
-    title: "Mobilize settings",
-    description: "Super-admin configuration for the Mobilize module: defaults, integrations, and module behavior.",
-  },
-};
+export type TourStepEntry = { id: string; step: DriveStep };
 
 type StepSide = "left" | "right" | "bottom" | "top" | "over";
+
+function mainWorkspaceCopy(label: string): { title: string; description: string } {
+  return {
+    title: `${label} workspace`,
+    description: `This area shows the ${label} screen. Use the left menu to open other sections anytime.`,
+  };
+}
 
 function highlightHook(
   actions: DashboardTourActions,
@@ -188,125 +168,91 @@ function highlightHook(
 }
 
 function stepForSelector(
+  id: string,
   selector: string,
   title: string,
   description: string,
   side: StepSide = "right",
   hooks?: { onHighlightStarted?: DriverHook; onNextClick?: DriverHook }
-): DriveStep {
+): TourStepEntry {
   return {
-    element: selector,
-    popover: {
-      title,
-      description,
-      side,
-      align: "start",
-      onNextClick: hooks?.onNextClick,
+    id,
+    step: {
+      element: selector,
+      popover: {
+        title,
+        description,
+        side,
+        align: "start",
+        onNextClick: hooks?.onNextClick,
+      },
+      onHighlightStarted: hooks?.onHighlightStarted,
     },
-    onHighlightStarted: hooks?.onHighlightStarted,
   };
 }
 
 function stepForDynamicElement(
+  id: string,
   resolve: () => Element | null,
   title: string,
   description: string,
   side: StepSide = "left",
   hooks?: { onHighlightStarted?: DriverHook; onNextClick?: DriverHook }
-): DriveStep {
+): TourStepEntry {
   return {
-    element: () => resolve() ?? document.body,
-    popover: {
-      title,
-      description,
-      side,
-      align: "start",
-      onNextClick: hooks?.onNextClick,
+    id,
+    step: {
+      element: () => resolve() ?? document.body,
+      popover: {
+        title,
+        description,
+        side,
+        align: "start",
+        onNextClick: hooks?.onNextClick,
+      },
+      onHighlightStarted: hooks?.onHighlightStarted,
     },
-    onHighlightStarted: hooks?.onHighlightStarted,
   };
 }
 
-function filterStepsWithElements(steps: DriveStep[]): DriveStep[] {
-  if (typeof document === "undefined") return steps;
-  return steps.filter((step) => {
+export function filterEntriesWithDom(entries: TourStepEntry[]): TourStepEntry[] {
+  if (typeof document === "undefined") return entries;
+  return entries.filter(({ step }) => {
     const el = step.element;
     if (!el) return true;
     if (typeof el === "function") return true;
     if (typeof el === "string" && el.includes("profile-")) return true;
-    if (typeof el === "string") return Boolean(document.querySelector(el));
-    return true;
+    return typeof el === "string" ? Boolean(document.querySelector(el)) : true;
   });
 }
 
-export function buildMobilizeTourSteps(
-  input: DashboardTourBuildInput,
-  actions: DashboardTourActions
-): DriveStep[] {
-  const steps: DriveStep[] = [
-    stepForSelector(
-      '[data-tour="main-content"]',
-      "Mobilize workspace",
-      "You are inside the Mobilize section. The menu on the left lists map, groups, activities, and mobilize notifications. Use Back and Next to continue. Press Skip or the X to exit.",
-      "over"
-    ),
-  ];
-
-  for (const item of input.mobilizeNav) {
-    const id = mobilizeNavTourAttr(item.href);
-    const slug = id.replace("mobilize-", "");
-    const copy = MOBILIZE_COPY[slug] ?? {
-      title: item.label,
-      description: `Open ${item.label} from the Mobilize menu.`,
-    };
-    steps.push(
-      stepForSelector(MOBILIZE_SELECTOR(id), copy.title, copy.description, "right", {
-        onHighlightStarted: highlightHook(actions),
-      })
-    );
-  }
-
-  steps.push(
-    stepForSelector(
-      '[data-tour="sidebar-sign-out"]',
-      "Return to main dashboard",
-      "Use this control at the bottom of the menu to leave Mobilize and go back to the main dashboard sidebar.",
-      "right",
-      { onHighlightStarted: highlightHook(actions) }
-    )
-  );
-
-  steps.push(
-    stepForSelector(
-      '[data-tour="main-content"]',
-      "Page content",
-      "The main area shows the screen for whichever Mobilize item you selected. Select items from the left menu to switch views.",
-      "top"
-    )
-  );
-
-  return filterStepsWithElements(steps);
+export function filterUnseenEntries(entries: TourStepEntry[], seen: Set<string>): TourStepEntry[] {
+  return entries.filter((e) => !seen.has(e.id));
 }
 
-export function buildMainDashboardTourSteps(
+export function buildMainDashboardTourEntries(
   input: DashboardTourBuildInput,
   actions: DashboardTourActions
-): DriveStep[] {
+): TourStepEntry[] {
   const profile = roleProfile(input.roleNames);
   const welcome = welcomeCopy(profile, input.displayName);
   const elevated = isElevatedRole(input.roleNames);
   const sidebarHook = { onHighlightStarted: highlightHook(actions) };
 
-  const steps: DriveStep[] = [
+  const entries: TourStepEntry[] = [
     {
-      popover: {
-        title: welcome.title,
-        description: welcome.description,
-        side: "over",
-        align: "center",
+      id: "welcome",
+      step: {
+        popover: {
+          title: welcome.title,
+          description: welcome.description,
+          side: "over",
+          align: "center",
+        },
       },
     },
     stepForSelector(
+      "sidebar-toggle",
       '[data-tour="sidebar-toggle"]',
       "Sidebar menu",
       "Show or hide the left navigation panel. On phones, open the menu before following steps that highlight sidebar items.",
@@ -316,14 +262,29 @@ export function buildMainDashboardTourSteps(
   ];
 
   for (const item of input.visibleNav) {
+    if (item.module === MODULE_SLUGS.movilization) continue;
     const copy = MODULE_COPY[item.module];
     if (!copy) continue;
-    steps.push(stepForSelector(NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook));
+    entries.push(
+      stepForSelector(`nav-${item.module}`, NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook)
+    );
+    const mainCopy = mainWorkspaceCopy(copy.title);
+    entries.push(
+      stepForSelector(
+        `main-${item.module}`,
+        '[data-tour="main-content"]',
+        mainCopy.title,
+        mainCopy.description,
+        "top",
+        sidebarHook
+      )
+    );
   }
 
   if (input.settingsNav.length > 0) {
-    steps.push(
+    entries.push(
       stepForSelector(
+        "nav-settings-group",
         '[data-tour="nav-settings-group"]',
         "Settings",
         "Administrator tools are grouped here: emails, logs, courses editor, reports, administrators, and roles. Click to expand or collapse the list.",
@@ -334,12 +295,26 @@ export function buildMainDashboardTourSteps(
     for (const item of input.settingsNav) {
       const copy = MODULE_COPY[item.module];
       if (!copy) continue;
-      steps.push(stepForSelector(NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook));
+      entries.push(
+        stepForSelector(`nav-${item.module}`, NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook)
+      );
+      const mainCopy = mainWorkspaceCopy(copy.title);
+      entries.push(
+        stepForSelector(
+          `main-${item.module}`,
+          '[data-tour="main-content"]',
+          mainCopy.title,
+          mainCopy.description,
+          "top",
+          sidebarHook
+        )
+      );
     }
   }
 
-  steps.push(
+  entries.push(
     stepForSelector(
+      "sidebar-profile",
       '[data-tour="sidebar-profile"]',
       "Your profile",
       "This area opens your account panel on the right. We will open it for you in the next steps.",
@@ -356,6 +331,7 @@ export function buildMainDashboardTourSteps(
       }
     ),
     stepForSelector(
+      "profile-drawer",
       '[data-tour="profile-drawer"]',
       "Profile panel",
       "Your profile drawer shows your photo, email, and role. Review your details here before making changes.",
@@ -370,6 +346,7 @@ export function buildMainDashboardTourSteps(
       }
     ),
     stepForSelector(
+      "profile-view",
       '[data-tour="profile-view"]',
       "Profile summary",
       "This is the read-only summary: your name, phone, and address as stored in the system.",
@@ -384,6 +361,7 @@ export function buildMainDashboardTourSteps(
       }
     ),
     stepForSelector(
+      "profile-edit-button",
       '[data-tour="profile-edit-button"]',
       "Edit profile",
       "Press Next to open the editor and walk through the fields you can update.",
@@ -398,6 +376,7 @@ export function buildMainDashboardTourSteps(
       }
     ),
     stepForDynamicElement(
+      "profile-edit-form",
       () => document.querySelector('[data-tour="profile-edit-form"]'),
       "Edit your details",
       "Update your first name, last name, display name, phone, and mailing address. Display name is what others see in the sidebar.",
@@ -414,6 +393,7 @@ export function buildMainDashboardTourSteps(
       }
     ),
     stepForDynamicElement(
+      "profile-edit-email",
       () => document.querySelector('[data-tour="profile-edit-email"]'),
       "Sign-in email",
       "If your organization allows it, you can request a verification code to change the email you use to sign in.",
@@ -430,6 +410,7 @@ export function buildMainDashboardTourSteps(
       }
     ),
     stepForDynamicElement(
+      "profile-edit-photo",
       () => document.querySelector('[data-tour="profile-edit-photo"]'),
       "Profile photo",
       "Upload or remove your profile photo here (JPEG, PNG, WebP, or GIF — max 1 MB).",
@@ -446,6 +427,7 @@ export function buildMainDashboardTourSteps(
       }
     ),
     stepForDynamicElement(
+      "profile-save-actions",
       () => document.querySelector('[data-tour="profile-save-actions"]'),
       "Save or cancel",
       "Use Save to apply your changes, or Cancel to discard edits and return to the profile summary.",
@@ -467,6 +449,7 @@ export function buildMainDashboardTourSteps(
       }
     ),
     stepForSelector(
+      "sidebar-sign-out",
       '[data-tour="sidebar-sign-out"]',
       "Sign out",
       "Sign out securely when you are done. You will return to the login page.",
@@ -474,6 +457,7 @@ export function buildMainDashboardTourSteps(
       sidebarHook
     ),
     stepForSelector(
+      "header-notifications",
       '[data-tour="header-notifications"]',
       elevated && input.showSystemNotificationBell ? "System notifications" : "Announcements",
       elevated && input.showSystemNotificationBell
@@ -482,18 +466,13 @@ export function buildMainDashboardTourSteps(
       "bottom"
     ),
     stepForSelector(
+      "header-tour-help",
       '[data-tour="header-tour-help"]',
-      "Replay this tour",
-      "Tap the question mark anytime to run this guided tour again.",
+      "Tour help",
+      "Tap the question mark anytime to continue the guided tour for sections you have not seen yet.",
       "bottom"
-    ),
-    stepForSelector(
-      '[data-tour="main-content"]',
-      "Main workspace",
-      "Page content appears here. Choose a menu item on the left to open a section; use the header for alerts and help.",
-      "top"
     )
   );
 
-  return filterStepsWithElements(steps);
+  return filterEntriesWithDom(entries);
 }

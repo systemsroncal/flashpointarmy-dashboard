@@ -1,42 +1,52 @@
-const TOUR_MAIN_KEY = "fpa_dashboard_tour_v1";
-const TOUR_MOBILIZE_KEY = "fpa_mobilize_tour_v1";
+const TOUR_SEEN_KEY = "fpa_dashboard_tour_seen_v2";
 
-function key(base: string, userId: string): string {
-  return `${base}:${userId}`;
+function storageKey(userId: string): string {
+  return `${TOUR_SEEN_KEY}:${userId}`;
 }
 
-export function isMainDashboardTourCompleted(userId: string): boolean {
-  if (typeof window === "undefined") return true;
+function readRaw(userId: string): string[] {
+  if (typeof window === "undefined") return [];
   try {
-    return localStorage.getItem(key(TOUR_MAIN_KEY, userId)) === "1";
+    const raw = localStorage.getItem(storageKey(userId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((id): id is string => typeof id === "string" && id.length > 0);
   } catch {
-    return false;
+    return [];
   }
 }
 
-export function markMainDashboardTourCompleted(userId: string): void {
-  if (typeof window === "undefined") return;
+export function getSeenTourStepIds(userId: string): Set<string> {
+  return new Set(readRaw(userId));
+}
+
+export function markTourStepSeen(userId: string, stepId: string): void {
+  if (typeof window === "undefined" || !stepId) return;
   try {
-    localStorage.setItem(key(TOUR_MAIN_KEY, userId), "1");
+    const seen = getSeenTourStepIds(userId);
+    if (seen.has(stepId)) return;
+    seen.add(stepId);
+    localStorage.setItem(storageKey(userId), JSON.stringify([...seen]));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function markTourStepIdsSeen(userId: string, stepIds: string[]): void {
+  if (typeof window === "undefined" || stepIds.length === 0) return;
+  try {
+    const seen = getSeenTourStepIds(userId);
+    for (const id of stepIds) seen.add(id);
+    localStorage.setItem(storageKey(userId), JSON.stringify([...seen]));
   } catch {
     /* ignore */
   }
 }
 
-export function isMobilizeTourCompleted(userId: string): boolean {
-  if (typeof window === "undefined") return true;
-  try {
-    return localStorage.getItem(key(TOUR_MOBILIZE_KEY, userId)) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function markMobilizeTourCompleted(userId: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(key(TOUR_MOBILIZE_KEY, userId), "1");
-  } catch {
-    /* ignore */
-  }
+/** True when every step id in the list has been marked seen. */
+export function areAllTourStepsSeen(userId: string, stepIds: string[]): boolean {
+  if (stepIds.length === 0) return true;
+  const seen = getSeenTourStepIds(userId);
+  return stepIds.every((id) => seen.has(id));
 }
