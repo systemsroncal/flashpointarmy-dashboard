@@ -1556,7 +1556,7 @@ export function CommunitySection({
               value={password}
               onChange={setPassword}
               autoComplete="new-password"
-              helperText="At least 8 characters. The member signs in with this once, then must choose their own password. Passwords are case-sensitive except the default FLASHPOINT (any letter case works)."
+              helperText="At least 8 characters. Share this only with the member. They must choose their own password after the first sign-in."
             />
             {chapterOptions.length > 0 ? (
               <ChapterSearchAutocomplete

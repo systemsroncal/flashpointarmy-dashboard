@@ -1,5 +1,5 @@
 import type { AuthError } from "@supabase/supabase-js";
-import { isInvalidLoginCredentialsError } from "@/lib/auth/sign-in-password";
+import { isInvalidLoginCredentialsError } from "@/lib/auth/sign-in-credentials";
 
 /** Human-readable sign-in error; Supabase often returns empty `message` on network failures. */
 export function formatAuthSignInError(err: AuthError): string {
@@ -7,8 +7,7 @@ export function formatAuthSignInError(err: AuthError): string {
   if (msg) {
     if (isInvalidLoginCredentialsError(err)) {
       return (
-        "That email or password did not match our records. Check that your email is correct, turn off Caps Lock if needed, and re-enter your password carefully. " +
-        "If you were given a temporary password such as FLASHPOINT, you may type it in any mix of upper and lower case letters. " +
+        "That email or password did not match our records. Check your email, turn off Caps Lock if needed, and use the temporary password from your welcome message. " +
         "If you already chose your own password, use Forgot password below to get a reset link by email."
       );
     }

@@ -5,6 +5,8 @@ import {
   buildMobilizeTourSteps,
   type DashboardTourBuildInput,
 } from "@/lib/dashboard/dashboard-tour-steps";
+import type { DashboardTourActions } from "@/lib/dashboard/dashboard-tour-actions";
+import { waitMs } from "@/lib/dashboard/dashboard-tour-actions";
 import {
   isMainDashboardTourCompleted,
   isMobilizeTourCompleted,
@@ -45,9 +47,10 @@ type DashboardTourProviderProps = {
   userId: string;
   buildInput: DashboardTourBuildInput;
   openSidebar: () => void;
-  /** Expand Settings submenu so tour steps exist in the DOM. */
   ensureSettingsExpanded?: () => void;
-  /** National overview home — auto-start main tour once. */
+  openProfileDrawer: () => void;
+  closeProfileDrawer: () => void;
+  setProfileEditMode: (edit: boolean) => void;
   autoStartMainTour?: boolean;
 };
 
@@ -55,11 +58,15 @@ async function loadDriver(): Promise<typeof import("driver.js")> {
   return import("driver.js");
 }
 
+function noopOverlayClick(): void {
+  /* Do not close the tour when clicking outside the popover. */
+}
+
 function createDriverInstance(
   driverModule: typeof import("driver.js"),
   steps: ReturnType<typeof buildMainDashboardTourSteps>,
   onDone: () => void,
-  openSidebar: () => void
+  onCleanup: () => void
 ): Driver {
   const { driver } = driverModule;
   return driver({
@@ -71,27 +78,18 @@ function createDriverInstance(
     showButtons: ["next", "previous", "close"],
     allowClose: true,
     smoothScroll: true,
+    overlayClickBehavior: noopOverlayClick,
     popoverClass: "fp-dashboard-tour-popover",
     steps,
     onPopoverRender: (popover) => {
-      popover.closeButton?.setAttribute("aria-label", "Skip tour");
-      popover.closeButton?.setAttribute("title", "Skip tour");
-    },
-    onHighlightStarted: (element) => {
-      if (!element) return;
-      const tour = element.getAttribute("data-tour") ?? "";
-      if (
-        tour.startsWith("nav-") ||
-        tour.startsWith("mobilize-") ||
-        tour === "sidebar-profile" ||
-        tour === "sidebar-sign-out" ||
-        tour === "nav-settings-group" ||
-        tour === "sidebar-toggle"
-      ) {
-        openSidebar();
+      if (popover.closeButton) {
+        popover.closeButton.textContent = "Skip";
+        popover.closeButton.setAttribute("aria-label", "Skip tour");
+        popover.closeButton.setAttribute("title", "Skip tour");
       }
     },
     onDestroyed: () => {
+      onCleanup();
       onDone();
     },
   });
@@ -103,11 +101,36 @@ export function DashboardTourProvider({
   buildInput,
   openSidebar,
   ensureSettingsExpanded,
+  openProfileDrawer,
+  closeProfileDrawer,
+  setProfileEditMode,
   autoStartMainTour = false,
 }: DashboardTourProviderProps) {
   const driverRef = useRef<Driver | null>(null);
   const runningRef = useRef(false);
   const [driverReady, setDriverReady] = useState(false);
+
+  const tourActions = useMemo<DashboardTourActions>(
+    () => ({
+      openSidebar,
+      ensureSettingsExpanded: ensureSettingsExpanded ?? (() => {}),
+      openProfileDrawer,
+      closeProfileDrawer,
+      setProfileEditMode,
+    }),
+    [
+      openSidebar,
+      ensureSettingsExpanded,
+      openProfileDrawer,
+      closeProfileDrawer,
+      setProfileEditMode,
+    ]
+  );
+
+  const cleanupTourUi = useCallback(() => {
+    setProfileEditMode(false);
+    closeProfileDrawer();
+  }, [closeProfileDrawer, setProfileEditMode]);
 
   useEffect(() => {
     void loadDriver().then(() => setDriverReady(true));
@@ -116,17 +139,17 @@ export function DashboardTourProvider({
   const runTour = useCallback(async () => {
     if (runningRef.current) return;
     runningRef.current = true;
-    openSidebar();
+    tourActions.openSidebar();
     if (!buildInput.isMobilize && buildInput.settingsNav.length > 0) {
-      ensureSettingsExpanded?.();
-      await new Promise((r) => setTimeout(r, 400));
+      tourActions.ensureSettingsExpanded();
+      await waitMs(400);
     }
 
     try {
       const driverModule = await loadDriver();
       const steps = buildInput.isMobilize
-        ? buildMobilizeTourSteps(buildInput)
-        : buildMainDashboardTourSteps(buildInput);
+        ? buildMobilizeTourSteps(buildInput, tourActions)
+        : buildMainDashboardTourSteps(buildInput, tourActions);
 
       if (steps.length === 0) return;
 
@@ -139,13 +162,18 @@ export function DashboardTourProvider({
         }
       };
 
-      const instance = createDriverInstance(driverModule, steps, markDone, openSidebar);
+      const instance = createDriverInstance(
+        driverModule,
+        steps,
+        markDone,
+        cleanupTourUi
+      );
       driverRef.current = instance;
       instance.drive();
     } finally {
       runningRef.current = false;
     }
-  }, [buildInput, ensureSettingsExpanded, openSidebar, userId]);
+  }, [buildInput, cleanupTourUi, tourActions, userId]);
 
   const startTour = useCallback(() => {
     void runTour();
@@ -170,7 +198,7 @@ export function DashboardTourProvider({
         return;
       }
 
-      await new Promise((r) => setTimeout(r, 2200));
+      await waitMs(2200);
       if (cancelled) return;
       if (isMainDashboardTourCompleted(userId)) return;
 
@@ -189,7 +217,7 @@ export function DashboardTourProvider({
 
     void (async () => {
       if (isMobilizeTourCompleted(userId)) return;
-      await new Promise((r) => setTimeout(r, 1600));
+      await waitMs(1600);
       if (cancelled) return;
       if (isMobilizeTourCompleted(userId)) return;
       await runTour();

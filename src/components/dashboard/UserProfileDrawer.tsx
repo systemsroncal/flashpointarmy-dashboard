@@ -54,15 +54,23 @@ function formatStateForDisplay(code: string | null | undefined): string {
 export function UserProfileDrawer({
   open,
   onClose,
+  editMode: editModeControlled,
+  onEditModeChange,
 }: {
   open: boolean;
   onClose: () => void;
+  /** Controlled edit mode (used by the dashboard tour). */
+  editMode?: boolean;
+  onEditModeChange?: (edit: boolean) => void;
 }) {
   const du = useDashboardUser();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editMode, setEditMode] = useState(false);
+  const [editModeInternal, setEditModeInternal] = useState(false);
+  const editModeControlledMode = onEditModeChange !== undefined && editModeControlled !== undefined;
+  const editMode = editModeControlledMode ? editModeControlled : editModeInternal;
+  const setEditMode = editModeControlledMode ? onEditModeChange : setEditModeInternal;
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -260,7 +268,13 @@ export function UserProfileDrawer({
     : undefined;
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: "100%", sm: 380 }, maxWidth: "100vw" } }}>
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={onClose}
+      PaperProps={{ sx: { width: { xs: "100%", sm: 380 }, maxWidth: "100vw" } }}
+    >
+      <Box data-tour="profile-drawer" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Box sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <PersonOutlineIcon color="primary" />
@@ -309,7 +323,7 @@ export function UserProfileDrawer({
             ) : null}
 
             {!editMode ? (
-              <>
+              <Box data-tour="profile-view">
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                   {initial}
                 </Typography>
@@ -342,13 +356,18 @@ export function UserProfileDrawer({
                   startIcon={<EditOutlinedIcon />}
                   variant="outlined"
                   sx={{ mt: 2 }}
+                  data-tour="profile-edit-button"
                   onClick={() => setEditMode(true)}
                 >
                   Edit profile
                 </Button>
-              </>
+              </Box>
             ) : (
-              <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Box
+                component="form"
+                data-tour="profile-edit-form"
+                sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+              >
                 <TextField
                   label="First name"
                   value={firstName}
@@ -407,21 +426,23 @@ export function UserProfileDrawer({
                 />
 
                 <Divider sx={{ my: 0.5 }} />
-                <SignInEmailChangePanel
-                  key={du.email}
-                  currentEmail={du.email}
-                  sendOtpUrl="/api/profile/change-email/send-otp"
-                  confirmUrl="/api/profile/change-email/confirm"
-                  disabled={saving}
-                  onSuccess={async () => {
-                    const supabase = createClient();
-                    await supabase.auth.refreshSession();
-                    setEditMode(false);
-                    router.refresh();
-                  }}
-                />
+                <Box data-tour="profile-edit-email">
+                  <SignInEmailChangePanel
+                    key={du.email}
+                    currentEmail={du.email}
+                    sendOtpUrl="/api/profile/change-email/send-otp"
+                    confirmUrl="/api/profile/change-email/confirm"
+                    disabled={saving}
+                    onSuccess={async () => {
+                      const supabase = createClient();
+                      await supabase.auth.refreshSession();
+                      setEditMode(false);
+                      router.refresh();
+                    }}
+                  />
+                </Box>
 
-                <Box>
+                <Box data-tour="profile-edit-photo">
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
                     Profile photo (JPEG, PNG, WebP, or GIF — max 1 MB)
                   </Typography>
@@ -458,7 +479,7 @@ export function UserProfileDrawer({
                     ) : null}
                   </Box>
                 </Box>
-                <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                <Box data-tour="profile-save-actions" sx={{ display: "flex", gap: 1, mt: 1 }}>
                   <Button variant="contained" disabled={saving} onClick={() => void save()}>
                     {saving ? "Saving…" : "Save"}
                   </Button>
@@ -477,6 +498,7 @@ export function UserProfileDrawer({
             )}
           </>
         )}
+      </Box>
       </Box>
     </Drawer>
   );

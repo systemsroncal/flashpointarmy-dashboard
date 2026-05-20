@@ -268,6 +268,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [desktopDrawerOpen, setDesktopDrawerOpen] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profileEditMode, setProfileEditMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -436,7 +437,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </Box>
       </Box>
       <Divider sx={{ borderColor: redNavAccent ? "rgba(195,32,32,0.22)" : "rgba(255,215,0,0.2)" }} />
-      <List sx={{ flex: 1, py: 1, overflowY: "auto" }} data-tour="sidebar-nav">
+      <List sx={{ flex: 1, py: 1, overflowY: "auto" }} data-tour="sidebar-nav-scroll">
         {isMobilize ? (
           <>
             {mobilizeDrawerNav.map((item) => {
@@ -729,6 +730,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       buildInput={tourBuildInput}
       openSidebar={openSidebarForTour}
       ensureSettingsExpanded={ensureSettingsExpandedForTour}
+      openProfileDrawer={() => setProfileOpen(true)}
+      closeProfileDrawer={() => setProfileOpen(false)}
+      setProfileEditMode={setProfileEditMode}
       autoStartMainTour={autoStartMainTour}
     >
     <DashboardPresenceProvider userId={user.id}>
@@ -844,7 +848,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {children}
       </Box>
 
-      <UserProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <UserProfileDrawer
+        open={profileOpen}
+        onClose={() => {
+          setProfileOpen(false);
+          setProfileEditMode(false);
+        }}
+        editMode={profileEditMode}
+        onEditModeChange={setProfileEditMode}
+      />
     </Box>
     </DashboardPresenceProvider>
     </DashboardTourProvider>

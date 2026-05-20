@@ -1,10 +1,16 @@
 import { MODULE_SLUGS } from "@/config/modules";
+import type { DashboardTourActions } from "@/lib/dashboard/dashboard-tour-actions";
+import {
+  prepareSidebarTarget,
+  scrollTourTargetIntoView,
+  waitMs,
+} from "@/lib/dashboard/dashboard-tour-actions";
+import { isLocalLeaderNonElevated, isRestrictedMemberNav } from "@/lib/auth/nav-access";
 import {
   isElevatedRole,
   isSuperAdminUser,
 } from "@/lib/auth/user-roles";
-import { isLocalLeaderNonElevated, isRestrictedMemberNav } from "@/lib/auth/nav-access";
-import type { DriveStep } from "driver.js";
+import type { DriveStep, DriverHook } from "driver.js";
 
 export type TourNavItem = {
   label: string;
@@ -45,7 +51,7 @@ function welcomeCopy(profile: ReturnType<typeof roleProfile>, displayName: strin
     case "super_admin":
       return {
         title: "Welcome, platform owner",
-        description: `Hi ${name}. This tour walks through your dashboard: national overview, chapters, Mobilize, administrator tools, and Settings. Use Back and Next to move, or close anytime to skip.`,
+        description: `Hi ${name}. This tour walks through your dashboard: national overview, chapters, Mobilize, administrator tools, and Settings. Use Back and Next to move. Press Skip or the X to exit.`,
       };
     case "admin":
       return {
@@ -65,7 +71,7 @@ function welcomeCopy(profile: ReturnType<typeof roleProfile>, displayName: strin
     default:
       return {
         title: "Dashboard tour",
-        description: `Hi ${name}. This short tour explains the sidebar and header. Use Back and Next, or close to skip.`,
+        description: `Hi ${name}. This short tour explains the sidebar and header. Use Back and Next. Press Skip or the X to exit.`,
       };
   }
 }
@@ -166,15 +172,58 @@ const MOBILIZE_COPY: Record<string, { title: string; description: string }> = {
   },
 };
 
+type StepSide = "left" | "right" | "bottom" | "top" | "over";
+
+function highlightHook(
+  actions: DashboardTourActions,
+  extra?: DriverHook
+): DriverHook {
+  return (element, step, opts) => {
+    if (element) {
+      prepareSidebarTarget(element, actions);
+      scrollTourTargetIntoView(element);
+    }
+    extra?.(element, step, opts);
+  };
+}
+
 function stepForSelector(
   selector: string,
   title: string,
   description: string,
-  side: "left" | "right" | "bottom" | "top" | "over" = "right"
+  side: StepSide = "right",
+  hooks?: { onHighlightStarted?: DriverHook; onNextClick?: DriverHook }
 ): DriveStep {
   return {
     element: selector,
-    popover: { title, description, side, align: "start" },
+    popover: {
+      title,
+      description,
+      side,
+      align: "start",
+      onNextClick: hooks?.onNextClick,
+    },
+    onHighlightStarted: hooks?.onHighlightStarted,
+  };
+}
+
+function stepForDynamicElement(
+  resolve: () => Element | null,
+  title: string,
+  description: string,
+  side: StepSide = "left",
+  hooks?: { onHighlightStarted?: DriverHook; onNextClick?: DriverHook }
+): DriveStep {
+  return {
+    element: () => resolve() ?? document.body,
+    popover: {
+      title,
+      description,
+      side,
+      align: "start",
+      onNextClick: hooks?.onNextClick,
+    },
+    onHighlightStarted: hooks?.onHighlightStarted,
   };
 }
 
@@ -183,17 +232,22 @@ function filterStepsWithElements(steps: DriveStep[]): DriveStep[] {
   return steps.filter((step) => {
     const el = step.element;
     if (!el) return true;
+    if (typeof el === "function") return true;
+    if (typeof el === "string" && el.includes("profile-")) return true;
     if (typeof el === "string") return Boolean(document.querySelector(el));
     return true;
   });
 }
 
-export function buildMobilizeTourSteps(input: DashboardTourBuildInput): DriveStep[] {
+export function buildMobilizeTourSteps(
+  input: DashboardTourBuildInput,
+  actions: DashboardTourActions
+): DriveStep[] {
   const steps: DriveStep[] = [
     stepForSelector(
       '[data-tour="main-content"]',
       "Mobilize workspace",
-      "You are inside the Mobilize section. The menu on the left lists map, groups, activities, and mobilize notifications. Use Back and Next to continue, or close to skip.",
+      "You are inside the Mobilize section. The menu on the left lists map, groups, activities, and mobilize notifications. Use Back and Next to continue. Press Skip or the X to exit.",
       "over"
     ),
   ];
@@ -205,7 +259,11 @@ export function buildMobilizeTourSteps(input: DashboardTourBuildInput): DriveSte
       title: item.label,
       description: `Open ${item.label} from the Mobilize menu.`,
     };
-    steps.push(stepForSelector(MOBILIZE_SELECTOR(id), copy.title, copy.description));
+    steps.push(
+      stepForSelector(MOBILIZE_SELECTOR(id), copy.title, copy.description, "right", {
+        onHighlightStarted: highlightHook(actions),
+      })
+    );
   }
 
   steps.push(
@@ -213,7 +271,8 @@ export function buildMobilizeTourSteps(input: DashboardTourBuildInput): DriveSte
       '[data-tour="sidebar-sign-out"]',
       "Return to main dashboard",
       "Use this control at the bottom of the menu to leave Mobilize and go back to the main dashboard sidebar.",
-      "right"
+      "right",
+      { onHighlightStarted: highlightHook(actions) }
     )
   );
 
@@ -229,10 +288,14 @@ export function buildMobilizeTourSteps(input: DashboardTourBuildInput): DriveSte
   return filterStepsWithElements(steps);
 }
 
-export function buildMainDashboardTourSteps(input: DashboardTourBuildInput): DriveStep[] {
+export function buildMainDashboardTourSteps(
+  input: DashboardTourBuildInput,
+  actions: DashboardTourActions
+): DriveStep[] {
   const profile = roleProfile(input.roleNames);
   const welcome = welcomeCopy(profile, input.displayName);
   const elevated = isElevatedRole(input.roleNames);
+  const sidebarHook = { onHighlightStarted: highlightHook(actions) };
 
   const steps: DriveStep[] = [
     {
@@ -247,14 +310,15 @@ export function buildMainDashboardTourSteps(input: DashboardTourBuildInput): Dri
       '[data-tour="sidebar-toggle"]',
       "Sidebar menu",
       "Show or hide the left navigation panel. On phones, open the menu before following steps that highlight sidebar items.",
-      "right"
+      "right",
+      sidebarHook
     ),
   ];
 
   for (const item of input.visibleNav) {
     const copy = MODULE_COPY[item.module];
     if (!copy) continue;
-    steps.push(stepForSelector(NAV_SELECTOR(item.module), copy.title, copy.description));
+    steps.push(stepForSelector(NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook));
   }
 
   if (input.settingsNav.length > 0) {
@@ -263,13 +327,14 @@ export function buildMainDashboardTourSteps(input: DashboardTourBuildInput): Dri
         '[data-tour="nav-settings-group"]',
         "Settings",
         "Administrator tools are grouped here: emails, logs, courses editor, reports, administrators, and roles. Click to expand or collapse the list.",
-        "right"
+        "right",
+        sidebarHook
       )
     );
     for (const item of input.settingsNav) {
       const copy = MODULE_COPY[item.module];
       if (!copy) continue;
-      steps.push(stepForSelector(NAV_SELECTOR(item.module), copy.title, copy.description));
+      steps.push(stepForSelector(NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook));
     }
   }
 
@@ -277,14 +342,136 @@ export function buildMainDashboardTourSteps(input: DashboardTourBuildInput): Dri
     stepForSelector(
       '[data-tour="sidebar-profile"]',
       "Your profile",
-      "Open your profile to update your name, photo, email (where allowed), and account details.",
-      "right"
+      "This area opens your account panel on the right. We will open it for you in the next steps.",
+      "right",
+      {
+        onHighlightStarted: highlightHook(actions, async (element, _step, { driver }) => {
+          actions.openSidebar();
+          actions.setProfileEditMode(false);
+          actions.openProfileDrawer();
+          await waitMs(450);
+          if (element) scrollTourTargetIntoView(element);
+          driver.refresh();
+        }),
+      }
+    ),
+    stepForSelector(
+      '[data-tour="profile-drawer"]',
+      "Profile panel",
+      "Your profile drawer shows your photo, email, and role. Review your details here before making changes.",
+      "left",
+      {
+        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
+          actions.openProfileDrawer();
+          actions.setProfileEditMode(false);
+          await waitMs(200);
+          driver.refresh();
+        }),
+      }
+    ),
+    stepForSelector(
+      '[data-tour="profile-view"]',
+      "Profile summary",
+      "This is the read-only summary: your name, phone, and address as stored in the system.",
+      "left",
+      {
+        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
+          actions.openProfileDrawer();
+          actions.setProfileEditMode(false);
+          await waitMs(200);
+          driver.refresh();
+        }),
+      }
+    ),
+    stepForSelector(
+      '[data-tour="profile-edit-button"]',
+      "Edit profile",
+      "Press Next to open the editor and walk through the fields you can update.",
+      "left",
+      {
+        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
+          actions.openProfileDrawer();
+          actions.setProfileEditMode(false);
+          await waitMs(200);
+          driver.refresh();
+        }),
+      }
+    ),
+    stepForDynamicElement(
+      () => document.querySelector('[data-tour="profile-edit-form"]'),
+      "Edit your details",
+      "Update your first name, last name, display name, phone, and mailing address. Display name is what others see in the sidebar.",
+      "left",
+      {
+        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
+          actions.openProfileDrawer();
+          actions.setProfileEditMode(true);
+          await waitMs(350);
+          const form = document.querySelector('[data-tour="profile-edit-form"]');
+          if (form) scrollTourTargetIntoView(form);
+          driver.refresh();
+        }),
+      }
+    ),
+    stepForDynamicElement(
+      () => document.querySelector('[data-tour="profile-edit-email"]'),
+      "Sign-in email",
+      "If your organization allows it, you can request a verification code to change the email you use to sign in.",
+      "left",
+      {
+        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
+          actions.openProfileDrawer();
+          actions.setProfileEditMode(true);
+          await waitMs(300);
+          const block = document.querySelector('[data-tour="profile-edit-email"]');
+          if (block) scrollTourTargetIntoView(block);
+          driver.refresh();
+        }),
+      }
+    ),
+    stepForDynamicElement(
+      () => document.querySelector('[data-tour="profile-edit-photo"]'),
+      "Profile photo",
+      "Upload or remove your profile photo here (JPEG, PNG, WebP, or GIF — max 1 MB).",
+      "left",
+      {
+        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
+          actions.openProfileDrawer();
+          actions.setProfileEditMode(true);
+          await waitMs(300);
+          const block = document.querySelector('[data-tour="profile-edit-photo"]');
+          if (block) scrollTourTargetIntoView(block);
+          driver.refresh();
+        }),
+      }
+    ),
+    stepForDynamicElement(
+      () => document.querySelector('[data-tour="profile-save-actions"]'),
+      "Save or cancel",
+      "Use Save to apply your changes, or Cancel to discard edits and return to the profile summary.",
+      "left",
+      {
+        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
+          actions.openProfileDrawer();
+          actions.setProfileEditMode(true);
+          await waitMs(250);
+          driver.refresh();
+        }),
+        onNextClick: async (_el, _step, { driver }) => {
+          actions.setProfileEditMode(false);
+          actions.closeProfileDrawer();
+          await waitMs(300);
+          driver.refresh();
+          driver.moveNext();
+        },
+      }
     ),
     stepForSelector(
       '[data-tour="sidebar-sign-out"]',
       "Sign out",
       "Sign out securely when you are done. You will return to the login page.",
-      "right"
+      "right",
+      sidebarHook
     ),
     stepForSelector(
       '[data-tour="header-notifications"]',

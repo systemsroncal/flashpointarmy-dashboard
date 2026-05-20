@@ -96,6 +96,17 @@ body {
   border-color: #141418;
 }
 
+/* Login page — single-step driver.js highlight */
+.fp-login-hint-popover.driver-popover {
+  max-width: min(320px, calc(100vw - 48px));
+}
+
+/* Keep tour overlay above MUI drawers (profile panel during tour). */
+.driver-active-element,
+.driver-popover {
+  z-index: 1400 !important;
+}
+
 /* Plyr inside dialog: give the root a stable width (embed sizing comes from Plyr). */
 .event-video-plyr-mount .plyr {
   width: 100%;
