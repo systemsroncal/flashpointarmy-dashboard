@@ -49,6 +49,8 @@ export async function PATCH(req: Request) {
     const body = (await req.json()) as {
       presets?: Array<{
         id: string;
+        amount_cents?: number;
+        label?: string;
         is_enabled?: boolean;
         allow_one_time?: boolean;
         allow_monthly?: boolean;
@@ -64,19 +66,49 @@ export async function PATCH(req: Request) {
     }
 
     const admin = createAdminClient();
+
+    const { data: existing, error: existingError } = await admin
+      .from("donation_amount_presets")
+      .select("id, is_custom_amount");
+    if (existingError) {
+      return NextResponse.json({ error: existingError.message }, { status: 400 });
+    }
+    const isCustomById = new Map(
+      (existing ?? []).map((p) => [p.id, Boolean(p.is_custom_amount)] as const)
+    );
+
     for (const row of body.presets) {
+      const update: Record<string, unknown> = {
+        is_enabled: row.is_enabled,
+        allow_one_time: row.allow_one_time,
+        allow_monthly: row.allow_monthly,
+        allow_bimonthly: row.allow_bimonthly,
+        allow_quarterly: row.allow_quarterly,
+        allow_yearly: row.allow_yearly,
+        sort_order: row.sort_order,
+        updated_at: new Date().toISOString(),
+      };
+
+      const isCustom = isCustomById.get(row.id) ?? false;
+      if (!isCustom && typeof row.amount_cents === "number") {
+        if (!Number.isFinite(row.amount_cents) || row.amount_cents <= 0) {
+          return NextResponse.json(
+            { error: "amount_cents must be a positive integer" },
+            { status: 400 }
+          );
+        }
+        update.amount_cents = Math.round(row.amount_cents);
+        if (typeof row.label !== "string" || row.label.trim().length === 0) {
+          const dollars = Math.round(row.amount_cents) / 100;
+          update.label = `$${dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(2)}`;
+        } else {
+          update.label = row.label.trim();
+        }
+      }
+
       const { error } = await admin
         .from("donation_amount_presets")
-        .update({
-          is_enabled: row.is_enabled,
-          allow_one_time: row.allow_one_time,
-          allow_monthly: row.allow_monthly,
-          allow_bimonthly: row.allow_bimonthly,
-          allow_quarterly: row.allow_quarterly,
-          allow_yearly: row.allow_yearly,
-          sort_order: row.sort_order,
-          updated_at: new Date().toISOString(),
-        })
+        .update(update)
         .eq("id", row.id);
 
       if (error) {

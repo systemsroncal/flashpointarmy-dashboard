@@ -7,7 +7,7 @@ values
   ('donate', 'Donate', 12)
 on conflict (slug) do nothing;
 
--- donations + orders: admin / super_admin
+-- donations + orders + donate: super_admin only for now
 insert into public.role_permissions (role_id, module_id, can_create, can_read, can_update, can_delete)
 select r.id, m.id,
   case when m.slug = 'donations' then true else false end,
@@ -16,16 +16,8 @@ select r.id, m.id,
   case when m.slug = 'donations' then true else false end
 from public.roles r
 cross join public.modules m
-where r.name in ('super_admin', 'admin')
-  and m.slug in ('donations', 'orders')
-on conflict (role_id, module_id) do nothing;
-
--- donate: all roles with dashboard access
-insert into public.role_permissions (role_id, module_id, can_create, can_read, can_update, can_delete)
-select r.id, m.id, false, true, false, false
-from public.roles r
-cross join public.modules m
-where m.slug = 'donate'
+where r.name = 'super_admin'
+  and m.slug in ('donations', 'orders', 'donate')
 on conflict (role_id, module_id) do nothing;
 
 create table if not exists public.donation_amount_presets (

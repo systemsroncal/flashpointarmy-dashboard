@@ -27,7 +27,6 @@ const MEMBER_NAV_MODULES = new Set<string>([
   MODULE_SLUGS.training,
   MODULE_SLUGS.communications,
   MODULE_SLUGS.movilization,
-  MODULE_SLUGS.donate,
 ]);
 
 /**
