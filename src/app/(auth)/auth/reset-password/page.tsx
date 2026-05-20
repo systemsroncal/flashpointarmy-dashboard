@@ -2,11 +2,13 @@
 
 import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
-import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles";
-import { Box, Button, Link as MuiLink, TextField, Typography } from "@mui/material";
+import { PasswordTextField } from "@/components/auth/PasswordTextField";
+import { Alert, Box, Button, Link as MuiLink, Typography } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+const MIN_PASSWORD_LENGTH = 8;
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -39,11 +41,11 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError("The two passwords do not match. Type the same password in both boxes.");
       return;
     }
-    if (password.length < 6) {
-      setError("Use at least 6 characters.");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Use at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
     if (!token || !email) {
@@ -62,7 +64,7 @@ export default function ResetPasswordPage() {
       setError(data.error || "Could not update password.");
       return;
     }
-    router.push("/login");
+    router.push("/login?password_updated=1");
     router.refresh();
   }
 
@@ -85,8 +87,11 @@ export default function ResetPasswordPage() {
 
         {invalidLink && !ready ? (
           <>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              This link is invalid or has expired (links last about 30 minutes).
+            </Alert>
             <Typography sx={{ color: authGrayText, fontSize: "0.9rem", mb: 2, lineHeight: 1.5 }}>
-              This link is invalid or has expired. Request a new reset from the sign-in page.
+              Request a new reset from the sign-in page and use the newest email we send you.
             </Typography>
             <MuiLink
               component={Link}
@@ -106,72 +111,67 @@ export default function ResetPasswordPage() {
         ) : null}
 
         {ready ? (
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Box>
-              <Typography component="label" htmlFor="reset-password" sx={authLabelSx}>
-                New password
-              </Typography>
-              <TextField
+          <>
+            <Typography sx={{ color: authGrayText, fontSize: "0.85rem", mb: 2, lineHeight: 1.55 }}>
+              Choose a <strong>new password</strong> you will remember. After saving, sign in with this password
+              (not your old temporary one). Passwords are <strong>case-sensitive</strong> — note which letters are
+              uppercase.
+            </Typography>
+            <Box component="form" onSubmit={handleSubmit} noValidate>
+              <PasswordTextField
                 id="reset-password"
                 name="password"
-                type="password"
-                required
-                fullWidth
+                label="New password"
+                authStyled
                 autoComplete="new-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                sx={authTextFieldSx}
+                onChange={setPassword}
+                helperText={`At least ${MIN_PASSWORD_LENGTH} characters.`}
               />
-            </Box>
-            <Box>
-              <Typography component="label" htmlFor="reset-password-confirm" sx={authLabelSx}>
-                Confirm password
-              </Typography>
-              <TextField
+              <PasswordTextField
                 id="reset-password-confirm"
                 name="confirm"
-                type="password"
-                required
-                fullWidth
+                label="Confirm new password"
+                authStyled
                 autoComplete="new-password"
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                sx={authTextFieldSx}
+                onChange={setConfirm}
+                helperText="Must match the password above exactly, including upper and lower case."
               />
-            </Box>
-            {error ? (
-              <Typography color="error" variant="body2" sx={{ mb: 1 }}>
-                {error}
-              </Typography>
-            ) : null}
-            <Button
-              type="submit"
-              fullWidth
-              disabled={loading}
-              sx={{
-                mt: 1,
-                py: 1.25,
-                border: `1px solid ${authYellow}`,
-                borderRadius: "6px",
-                color: authYellow,
-                bgcolor: "transparent",
-                fontWeight: 700,
-                textTransform: "none",
-                fontSize: "0.95rem",
-                "&:hover": {
-                  bgcolor: authYellow,
-                  color: "#000000",
-                },
-                "&:disabled": {
-                  opacity: 0.55,
-                  borderColor: authYellow,
+              {error ? (
+                <Typography color="error" variant="body2" sx={{ mb: 1 }}>
+                  {error}
+                </Typography>
+              ) : null}
+              <Button
+                type="submit"
+                fullWidth
+                disabled={loading}
+                sx={{
+                  mt: 1,
+                  py: 1.25,
+                  border: `1px solid ${authYellow}`,
+                  borderRadius: "6px",
                   color: authYellow,
-                },
-              }}
-            >
-              {loading ? "Updating…" : "UPDATE PASSWORD"}
-            </Button>
-          </Box>
+                  bgcolor: "transparent",
+                  fontWeight: 700,
+                  textTransform: "none",
+                  fontSize: "0.95rem",
+                  "&:hover": {
+                    bgcolor: authYellow,
+                    color: "#000000",
+                  },
+                  "&:disabled": {
+                    opacity: 0.55,
+                    borderColor: authYellow,
+                    color: authYellow,
+                  },
+                }}
+              >
+                {loading ? "Updating…" : "SAVE NEW PASSWORD"}
+              </Button>
+            </Box>
+          </>
         ) : null}
       </Box>
     </ArmyAuthShell>

@@ -1,15 +1,7 @@
 "use client";
 
 import { resolveVideoForPlyr, type ResolvedPlyrVideo } from "@/lib/media/resolve-plyr-video";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type PlyrLike = {
@@ -22,8 +14,12 @@ type PlyrLike = {
 
 /** Resume playback this many seconds before the saved position. */
 const RESUME_REWIND_SECONDS = 10;
-/** Only prompt when the learner saved at least this far into the video. */
-const MIN_SAVED_SECONDS_TO_PROMPT = 15;
+/** Auto-resume when saved progress is at least this far in. */
+const MIN_SAVED_SECONDS_TO_AUTO_RESUME = 15;
+/** Persist at most every N seconds during playback (also on pause/seek). */
+const TIMEUPDATE_PERSIST_INTERVAL_SEC = 8;
+/** Mark video complete when within this many seconds of the end (Vimeo sometimes skips `ended`). */
+const NEAR_END_SECONDS = 45;
 
 function setPlayerTime(player: PlyrLike, seconds: number): boolean {
   if (seconds <= 0) return true;
@@ -38,6 +34,8 @@ function setPlayerTime(player: PlyrLike, seconds: number): boolean {
 const plyrControlsBase = [
   "play-large",
   "play",
+  "rewind",
+  "fast-forward",
   "progress",
   "current-time",
   "mute",
@@ -122,8 +120,8 @@ function writeLs(key: string, sec: number) {
 }
 
 /**
- * Inline Plyr player with optional resume prompt (English). Progress is persisted via
- * `onPersistSeconds`; resume seeks to saved position minus {@link RESUME_REWIND_SECONDS}.
+ * Inline Plyr player for course sessions. Progress is persisted via `onPersistSeconds`;
+ * on return, auto-seeks to saved position minus {@link RESUME_REWIND_SECONDS}.
  */
 export function CourseVideoPlyr({
   videoUrl,
@@ -132,7 +130,6 @@ export function CourseVideoPlyr({
   storageKey,
   autoplayMuted = false,
   omitPlayLargeControl = false,
-  hideProgressBar = false,
   onVideoFullyWatched,
   suppressResumePrompt = false,
 }: {
@@ -142,9 +139,8 @@ export function CourseVideoPlyr({
   storageKey?: string | null;
   autoplayMuted?: boolean;
   omitPlayLargeControl?: boolean;
-  hideProgressBar?: boolean;
   onVideoFullyWatched?: () => void;
-  /** When true (e.g. learner reached the end), do not show the resume dialog on load. */
+  /** When true (e.g. learner already finished), skip auto-resume on load. */
   suppressResumePrompt?: boolean;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -161,56 +157,46 @@ export function CourseVideoPlyr({
   onFullyWatchedRef.current = onVideoFullyWatched;
 
   const [savedSeconds, setSavedSeconds] = useState(0);
-  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
-  const resumeChoiceMadeRef = useRef(false);
+  const [autoResumed, setAutoResumed] = useState(false);
+  const fullyWatchedFiredRef = useRef(false);
 
   useEffect(() => {
     const ls = storageKey ? readLs(storageKey) : 0;
     const saved = Math.max(0, initialSeconds, ls);
     setSavedSeconds(saved);
-    pendingSeekRef.current = null;
-    resumeChoiceMadeRef.current = false;
+    fullyWatchedFiredRef.current = false;
+    setAutoResumed(false);
     if (
       !autoplayMuted &&
       !suppressResumeRef.current &&
-      saved >= MIN_SAVED_SECONDS_TO_PROMPT
+      saved >= MIN_SAVED_SECONDS_TO_AUTO_RESUME
     ) {
-      setResumeDialogOpen(true);
+      pendingSeekRef.current = Math.max(0, saved - RESUME_REWIND_SECONDS);
     } else {
-      setResumeDialogOpen(false);
+      pendingSeekRef.current = null;
     }
   }, [storageKey, autoplayMuted, videoUrl, suppressResumePrompt]);
 
   useEffect(() => {
-    if (resumeChoiceMadeRef.current) return;
     const ls = storageKey ? readLs(storageKey) : 0;
-    const saved = Math.max(0, initialSeconds, ls);
-    setSavedSeconds(saved);
-    if (
-      !autoplayMuted &&
-      !suppressResumeRef.current &&
-      saved >= MIN_SAVED_SECONDS_TO_PROMPT
-    ) {
-      setResumeDialogOpen(true);
-    } else if (suppressResumeRef.current) {
-      setResumeDialogOpen(false);
-    }
-  }, [initialSeconds, storageKey, autoplayMuted, suppressResumePrompt]);
+    setSavedSeconds(Math.max(0, initialSeconds, ls));
+  }, [initialSeconds, storageKey]);
 
   const applyPendingSeek = useCallback((player: PlyrLike) => {
     const target = pendingSeekRef.current;
     if (target == null || target <= 0) return;
 
     let seekAttempts = 0;
-    const maxSeekAttempts = 24;
+    const maxSeekAttempts = 48;
 
     const tryResume = () => {
       if (pendingSeekRef.current == null) return;
       const seekTo = pendingSeekRef.current;
       if (seekTo <= 0) return;
       const cur = readCurrentTime(player);
-      if (cur >= seekTo - 2) {
+      if (cur >= seekTo - 3) {
         pendingSeekRef.current = null;
+        setAutoResumed(true);
         if (pendingPlayAfterSeekRef.current) {
           pendingPlayAfterSeekRef.current = false;
           void Promise.resolve(player.play()).catch(() => {
@@ -225,38 +211,23 @@ export function CourseVideoPlyr({
     };
 
     tryResume();
-    const delays = [150, 400, 900, 1800, 3000, 5000];
+    const delays = [100, 250, 500, 900, 1500, 2500, 4000, 6000, 9000, 12000];
     for (const ms of delays) {
       window.setTimeout(tryResume, ms);
     }
   }, []);
 
-  const handleResume = useCallback(() => {
-    resumeChoiceMadeRef.current = true;
-    const seekTo = Math.max(0, savedSeconds - RESUME_REWIND_SECONDS);
-    pendingSeekRef.current = seekTo;
-    pendingPlayAfterSeekRef.current = true;
-    setResumeDialogOpen(false);
+  const handleStartOver = useCallback(() => {
+    pendingSeekRef.current = null;
+    setAutoResumed(false);
     const player = playerRef.current;
     if (player) {
-      applyPendingSeek(player);
-      window.setTimeout(() => {
-        if (!pendingPlayAfterSeekRef.current) return;
-        pendingPlayAfterSeekRef.current = false;
-        void Promise.resolve(player.play()).catch(() => {
-          /* autoplay blocked */
-        });
-      }, 2500);
+      setPlayerTime(player, 0);
+      lastSentRef.current = 0;
+      persistHandlerRef.current(0);
+      if (storageKey) writeLs(storageKey, 0);
     }
-  }, [savedSeconds, applyPendingSeek]);
-
-  const handleStartOver = useCallback(() => {
-    resumeChoiceMadeRef.current = true;
-    pendingSeekRef.current = null;
-    setResumeDialogOpen(false);
-    const player = playerRef.current;
-    if (player) setPlayerTime(player, 0);
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -319,7 +290,8 @@ export function CourseVideoPlyr({
           byline: false,
           portrait: false,
           title: false,
-          ...(autoplayMuted ? { autopause: false } : {}),
+          /** Avoid Vimeo pausing when another embed/tab steals focus (common reset complaint). */
+          autopause: false,
         },
       });
       playerRef.current = player;
@@ -350,21 +322,48 @@ export function CourseVideoPlyr({
         });
       }
 
-      const snapshot = () => persist(readCurrentTime(player));
+      const maybeMarkNearEnd = () => {
+        if (fullyWatchedFiredRef.current) return;
+        const t = readCurrentTime(player);
+        const dur = typeof player.duration === "number" && player.duration > 0 ? player.duration : 0;
+        if (dur > 0 && t >= Math.max(0, dur - NEAR_END_SECONDS)) {
+          fullyWatchedFiredRef.current = true;
+          try {
+            onFullyWatchedRef.current?.();
+          } catch {
+            /* ignore */
+          }
+        }
+      };
+
+      const snapshot = () => {
+        const t = readCurrentTime(player);
+        persist(t);
+        maybeMarkNearEnd();
+      };
+
       player.on("pause", snapshot);
+      player.on("seeked", snapshot);
+
       let lastTimeupdatePersist = 0;
       player.on("timeupdate", () => {
         const t = readCurrentTime(player);
-        if (t < 1 || t - lastTimeupdatePersist < 12) return;
-        lastTimeupdatePersist = t;
-        persist(t);
+        if (t < 1) return;
+        if (t - lastTimeupdatePersist >= TIMEUPDATE_PERSIST_INTERVAL_SEC) {
+          lastTimeupdatePersist = t;
+          persist(t);
+        }
+        maybeMarkNearEnd();
       });
       player.on("ended", () => {
         snapshot();
-        try {
-          onFullyWatchedRef.current?.();
-        } catch {
-          /* ignore */
+        if (!fullyWatchedFiredRef.current) {
+          fullyWatchedFiredRef.current = true;
+          try {
+            onFullyWatchedRef.current?.();
+          } catch {
+            /* ignore */
+          }
         }
       });
 
@@ -394,11 +393,6 @@ export function CourseVideoPlyr({
     );
   }
 
-  const showResumePrompt =
-    resumeDialogOpen &&
-    !suppressResumePrompt &&
-    savedSeconds >= MIN_SAVED_SECONDS_TO_PROMPT;
-
   return (
     <Box sx={{ position: "relative", width: "100%" }}>
       <Box
@@ -419,42 +413,30 @@ export function CourseVideoPlyr({
             width: "100%",
             height: "100%",
           },
-          ...(hideProgressBar
-            ? {
-                "& .plyr__progress": { display: "none !important" },
-                "& .plyr__progress__container": { display: "none !important" },
-                "& input[data-plyr='seek']": { display: "none !important" },
-              }
-            : {}),
         }}
       />
 
-      <Dialog
-        open={showResumePrompt}
-        onClose={(_, reason) => {
-          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
-        }}
-        maxWidth="xs"
-        fullWidth
-        aria-labelledby="resume-video-title"
-      >
-        <DialogTitle id="resume-video-title" sx={{ color: "primary.main", fontWeight: 700 }}>
-          Resume this video?
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            Would you like to continue this video where you left off last time?
+      {autoResumed && savedSeconds >= MIN_SAVED_SECONDS_TO_AUTO_RESUME ? (
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1}
+          alignItems={{ xs: "flex-start", sm: "center" }}
+          justifyContent="space-between"
+          sx={{ mt: 1 }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            Resumed near your last saved position. Use the timeline to rewind or skip ahead — your progress
+            is saved automatically.
           </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleStartOver} color="inherit">
-            Start from the beginning
+          <Button size="small" color="inherit" onClick={handleStartOver} sx={{ flexShrink: 0 }}>
+            Start from beginning
           </Button>
-          <Button onClick={handleResume} variant="contained" autoFocus>
-            Resume
-          </Button>
-        </DialogActions>
-      </Dialog>
+        </Stack>
+      ) : (
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+          Use the progress bar to rewind or skip ahead. Your position is saved while you watch.
+        </Typography>
+      )}
     </Box>
   );
 }

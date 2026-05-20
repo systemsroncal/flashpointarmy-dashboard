@@ -2,6 +2,7 @@
 
 import DeleteOutline from "@mui/icons-material/DeleteOutline";
 import Edit from "@mui/icons-material/Edit";
+import { PasswordTextField } from "@/components/auth/PasswordTextField";
 import Search from "@mui/icons-material/Search";
 import Upgrade from "@mui/icons-material/Upgrade";
 import Visibility from "@mui/icons-material/Visibility";
@@ -1549,15 +1550,13 @@ export function CommunitySection({
                 Role: <strong>Local leader</strong>
               </Typography>
             ) : null}
-            <TextField
+            <PasswordTextField
+              id="invite-temporary-password"
               label="Temporary password"
-              type="password"
-              fullWidth
-              required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              helperText="At least 8 characters. User can change it after sign-in."
+              onChange={setPassword}
               autoComplete="new-password"
+              helperText="At least 8 characters. The member signs in with this once, then must choose their own password. Passwords are case-sensitive except the default FLASHPOINT (any letter case works)."
             />
             {chapterOptions.length > 0 ? (
               <ChapterSearchAutocomplete

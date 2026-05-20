@@ -2,7 +2,9 @@
 
 import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
+import { PasswordTextField } from "@/components/auth/PasswordTextField";
 import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles";
+import { signInWithPasswordFlexible } from "@/lib/auth/sign-in-client";
 import { formatAuthSignInError } from "@/utils/supabase/auth-errors";
 import { createClient } from "@/utils/supabase/client";
 import ArrowForward from "@mui/icons-material/ArrowForward";
@@ -19,6 +21,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? "/dashboard";
   const sessionReason = searchParams.get("reason");
+  const passwordUpdated = searchParams.get("password_updated") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,12 +33,9 @@ function LoginForm() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error: err } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (err) {
-        setError(formatAuthSignInError(err));
+      const result = await signInWithPasswordFlexible(supabase, email, password);
+      if (!result.ok) {
+        setError(formatAuthSignInError(result.error));
         return;
       }
       const {
@@ -76,14 +76,29 @@ function LoginForm() {
         }}
       >
         <Box component="form" onSubmit={handleSubmit} noValidate>
+          {passwordUpdated ? (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Your password was updated. Sign in with your new password below.
+            </Alert>
+          ) : null}
           {sessionReason === "session_expired" ? (
             <Alert severity="info" sx={{ mb: 2 }}>
               Your session expired or is no longer valid. Please sign in again.
             </Alert>
           ) : null}
+
+          <Alert severity="info" sx={{ mb: 2, bgcolor: "rgba(255,255,255,0.06)" }}>
+            <Typography variant="body2" component="div" sx={{ lineHeight: 1.55 }}>
+              <strong>First time signing in?</strong> Use the email and temporary password you received.
+              The default organization password is <strong>FLASHPOINT</strong> — you may type it in any mix of
+              upper and lower case (for example <em>flashpoint</em> or <em>Flashpoint</em>).
+              After you sign in, you will be asked to choose your own password.
+            </Typography>
+          </Alert>
+
           <Box>
             <Typography component="label" htmlFor="login-email" sx={authLabelSx}>
-              Username or Email Address
+              Email address
             </Typography>
             <TextField
               id="login-email"
@@ -95,26 +110,27 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               sx={authTextFieldSx}
-              inputProps={{ "aria-label": "Username or Email Address" }}
+              inputProps={{ "aria-label": "Email address" }}
             />
-          </Box>
-          <Box>
-            <Typography component="label" htmlFor="login-password" sx={authLabelSx}>
-              Password
+            <Typography
+              component="p"
+              sx={{ color: "#9ca3af", fontSize: "0.75rem", lineHeight: 1.45, mt: -1, mb: 1.5 }}
+            >
+              Use the same email address where you received your welcome message (capital letters in the email
+              address do not matter).
             </Typography>
-            <TextField
-              id="login-password"
-              name="password"
-              type="password"
-              required
-              fullWidth
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              sx={authTextFieldSx}
-              inputProps={{ "aria-label": "Password" }}
-            />
           </Box>
+
+          <PasswordTextField
+            id="login-password"
+            name="password"
+            label="Password"
+            authStyled
+            autoComplete="current-password"
+            value={password}
+            onChange={setPassword}
+            helperText="Tap the eye icon to show or hide what you type. Passwords you choose yourself are case-sensitive; the temporary FLASHPOINT password is not."
+          />
 
           {error ? (
             <Typography color="error" variant="body2" sx={{ mb: 1 }}>
@@ -161,7 +177,7 @@ function LoginForm() {
               lineHeight: 1.55,
             }}
           >
-            Having trouble signing in?{" "}
+            Forgot your password or already set your own?{" "}
             <MuiLink
               component={Link}
               href="/forgot-password"
@@ -175,7 +191,7 @@ function LoginForm() {
               Reset password
             </MuiLink>
             {" "}
-            to get an email with a secure link. Check your spam folder if you do not see it within a few minutes.
+            and we will email you a secure link (check spam if you do not see it within a few minutes).
           </Typography>
         </Box>
 

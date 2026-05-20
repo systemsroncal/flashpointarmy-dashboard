@@ -11,9 +11,13 @@ export async function POST(req: Request) {
     };
     const rawToken = (token || "").trim();
     const normalizedEmail = (email || "").trim().toLowerCase();
-    const nextPassword = (password || "").trim();
-    if (!rawToken || !normalizedEmail || nextPassword.length < 6) {
-      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    const nextPassword = password || "";
+    const MIN_PASSWORD_LENGTH = 8;
+    if (!rawToken || !normalizedEmail || nextPassword.length < MIN_PASSWORD_LENGTH) {
+      return NextResponse.json(
+        { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` },
+        { status: 400 }
+      );
     }
 
     const tokenHash = hashActionToken(rawToken);
@@ -32,8 +36,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Reset link is invalid or expired." }, { status: 400 });
     }
 
+    const { data: existingUser } = await supabase.auth.admin.getUserById(row.user_id);
+    const priorMeta =
+      existingUser?.user && typeof existingUser.user.user_metadata === "object"
+        ? (existingUser.user.user_metadata as Record<string, unknown>)
+        : {};
+
     const { error: updateErr } = await supabase.auth.admin.updateUserById(row.user_id, {
       password: nextPassword,
+      user_metadata: { ...priorMeta, require_password_change: false },
     });
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });

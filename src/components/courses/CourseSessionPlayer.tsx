@@ -95,6 +95,20 @@ export function CourseSessionPlayer({
   completedRef.current = completed;
   const [busyComplete, setBusyComplete] = useState(false);
   const [videoPositions, setVideoPositions] = useState<Record<string, number>>(initialVideoPositions);
+  const videoPositionsRef = useRef(initialVideoPositions);
+  videoPositionsRef.current = videoPositions;
+
+  const mergeVideoPositionMaps = useCallback(
+    (base: Record<string, number>, patch: Record<string, number>): Record<string, number> => {
+      const next = { ...base };
+      for (const [k, v] of Object.entries(patch)) {
+        const n = Math.max(0, Number(v) || 0);
+        next[k] = Math.max(next[k] ?? 0, n);
+      }
+      return next;
+    },
+    []
+  );
 
   const sorted = useMemo(
     () => [...elements].sort((a, b) => a.sort_order - b.sort_order),
@@ -133,8 +147,12 @@ export function CourseSessionPlayer({
   const [markCompleteDialogOpen, setMarkCompleteDialogOpen] = useState(false);
 
   useEffect(() => {
-    setVideoPositions(initialVideoPositions);
-  }, [initialVideoPositions]);
+    setVideoPositions((prev) => {
+      const next = mergeVideoPositionMaps(prev, initialVideoPositions);
+      videoPositionsRef.current = next;
+      return next;
+    });
+  }, [initialVideoPositions, mergeVideoPositionMaps]);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,13 +166,17 @@ export function CourseSessionPlayer({
       if (cancelled || error) return;
       const vp = data?.video_positions;
       if (typeof vp === "object" && vp && !Array.isArray(vp)) {
-        setVideoPositions((prev) => ({ ...prev, ...(vp as Record<string, number>) }));
+        setVideoPositions((prev) => {
+          const next = mergeVideoPositionMaps(prev, vp as Record<string, number>);
+          videoPositionsRef.current = next;
+          return next;
+        });
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [supabase, user.id, sessionId]);
+  }, [supabase, user.id, sessionId, mergeVideoPositionMaps]);
 
   useEffect(() => {
     setVideoFullyWatchedById(readVideoFullyWatched(videoElementIds));
@@ -172,12 +194,15 @@ export function CourseSessionPlayer({
         .eq("session_id", sessionId)
         .maybeSingle();
 
-      const prevPos =
-        (typeof data?.video_positions === "object" && data?.video_positions && !Array.isArray(data.video_positions)
+      const serverPos =
+        typeof data?.video_positions === "object" && data?.video_positions && !Array.isArray(data.video_positions)
           ? (data.video_positions as Record<string, number>)
-          : {}) ?? {};
+          : {};
 
-      const nextPos = { ...prevPos, ...(patch.video_positions ?? {}) };
+      const nextPos = mergeVideoPositionMaps(
+        mergeVideoPositionMaps(serverPos, videoPositionsRef.current),
+        patch.video_positions ?? {}
+      );
 
       const completedAt =
         patch.completed_at !== undefined ? patch.completed_at : (data?.completed_at as string | null) ?? null;
@@ -196,14 +221,20 @@ export function CourseSessionPlayer({
       }
       return { error: error?.message ?? null, nextPos };
     },
-    [supabase, user.id, sessionId]
+    [supabase, user.id, sessionId, mergeVideoPositionMaps]
   );
 
   const onVideoSeconds = useCallback(
     (elementId: string, sec: number) => {
-      void mergePersist({ video_positions: { [elementId]: sec } });
+      const n = Math.max(0, sec);
+      setVideoPositions((prev) => {
+        const next = mergeVideoPositionMaps(prev, { [elementId]: n });
+        videoPositionsRef.current = next;
+        return next;
+      });
+      void mergePersist({ video_positions: { [elementId]: n } });
     },
-    [mergePersist]
+    [mergePersist, mergeVideoPositionMaps]
   );
 
   async function markComplete() {
@@ -316,11 +347,11 @@ export function CourseSessionPlayer({
 
       {trainingDebugActive ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Training debug: video seek bar is always visible. Remove{" "}
+          Training debug mode is on. Remove{" "}
           <Typography component="span" variant="body2" sx={{ fontFamily: "monospace" }}>
             ?trainingDebug=1
           </Typography>{" "}
-          for normal behavior.
+          from the URL when you are done testing.
         </Alert>
       ) : null}
 
@@ -371,9 +402,6 @@ export function CourseSessionPlayer({
                   initialSeconds={videoPositions[el.id] ?? 0}
                   storageKey={`coursevid:${user.id}:${el.id}`}
                   onPersistSeconds={(sec) => onVideoSeconds(el.id, sec)}
-                  hideProgressBar={
-                    !trainingDebugActive && !videoFullyWatchedById[el.id] && !completed
-                  }
                   suppressResumePrompt={Boolean(videoFullyWatchedById[el.id])}
                   onVideoFullyWatched={() => onVideoFullyWatched(el.id)}
                 />
@@ -458,8 +486,8 @@ export function CourseSessionPlayer({
             </Button>
           ) : !markCompleteAllowed && videoElementIds.length > 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 360 }}>
-              Watch each video to the end to unlock session completion. When you return, you can continue where you
-              left off.
+              Watch each video through to the end to unlock session completion. You can use the timeline to rewind or
+              skip ahead; your position is saved automatically when you return.
             </Typography>
           ) : (
             <Button

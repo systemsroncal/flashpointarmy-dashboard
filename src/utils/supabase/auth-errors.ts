@@ -1,9 +1,17 @@
 import type { AuthError } from "@supabase/supabase-js";
+import { isInvalidLoginCredentialsError } from "@/lib/auth/sign-in-password";
 
 /** Human-readable sign-in error; Supabase often returns empty `message` on network failures. */
 export function formatAuthSignInError(err: AuthError): string {
   const msg = (err.message || "").trim();
   if (msg) {
+    if (isInvalidLoginCredentialsError(err)) {
+      return (
+        "That email or password did not match our records. Check that your email is correct, turn off Caps Lock if needed, and re-enter your password carefully. " +
+        "If you were given a temporary password such as FLASHPOINT, you may type it in any mix of upper and lower case letters. " +
+        "If you already chose your own password, use Forgot password below to get a reset link by email."
+      );
+    }
     if (/failed to fetch|network|load failed|fetch failed/i.test(msg)) {
       return `${msg}. Check NEXT_PUBLIC_SUPABASE_URL and the anon key, that the project is active, and that extensions or the network are not blocking *.supabase.co.`;
     }

@@ -1,5 +1,5 @@
 /**
- * `?trainingDebug=1` on a course session (QA: always show video seek bar).
+ * `?trainingDebug=1` on a course session (QA helpers for training flows).
  * Available to **any** user with training access — not limited to admin / super_admin.
  * Gated by host / env so production cannot enable it via URL alone.
  */
