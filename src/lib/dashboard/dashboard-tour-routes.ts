@@ -67,3 +67,17 @@ export function pickEntriesForModuleVisit(
   const wanted = new Set(stepIdsForModuleVisit(moduleKey));
   return filterEntriesWithDom(allEntries.filter((e) => wanted.has(e.id) && !seen.has(e.id)));
 }
+
+/** All steps for a module route, ignoring the "seen" state (used when restarting from zero). */
+export function pickAllEntriesForModuleVisit(
+  moduleKey: string,
+  allEntries: TourStepEntry[]
+): TourStepEntry[] {
+  const wanted = new Set(stepIdsForModuleVisit(moduleKey));
+  const order = stepIdsForModuleVisit(moduleKey);
+  const byId = new Map(allEntries.map((e) => [e.id, e] as const));
+  const ordered = order
+    .map((id) => byId.get(id))
+    .filter((e): e is TourStepEntry => Boolean(e && wanted.has(e.id)));
+  return filterEntriesWithDom(ordered);
+}

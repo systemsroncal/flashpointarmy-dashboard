@@ -11,9 +11,12 @@ import type { DashboardTourActions } from "@/lib/dashboard/dashboard-tour-action
 import { waitMs } from "@/lib/dashboard/dashboard-tour-actions";
 import {
   pathnameToTourModuleKey,
+  pickAllEntriesForModuleVisit,
   pickEntriesForModuleVisit,
+  stepIdsForModuleVisit,
 } from "@/lib/dashboard/dashboard-tour-routes";
 import {
+  clearSeenTourStepIds,
   getSeenTourStepIds,
   markTourStepSeen,
 } from "@/lib/dashboard/dashboard-tour-storage";
@@ -34,6 +37,7 @@ import {
 } from "react";
 
 type DashboardTourContextValue = {
+  /** Restart the tour from zero for the user's current module (help button). */
   startTour: () => void;
 };
 
@@ -69,7 +73,6 @@ function noopOverlayClick(): void {
 
 type RunTourOptions = {
   entries: TourStepEntry[];
-  markSeenOnAdvance?: boolean;
 };
 
 function createDriverInstance(
@@ -149,32 +152,41 @@ export function DashboardTourProvider({
   const lastModuleTourPathRef = useRef<string | null>(null);
   const [driverReady, setDriverReady] = useState(false);
 
+  /** Keep latest callbacks in refs so internal effects/callbacks don't recreate on every render. */
+  const openSidebarRef = useRef(openSidebar);
+  const ensureSettingsExpandedRef = useRef(ensureSettingsExpanded);
+  const openProfileDrawerRef = useRef(openProfileDrawer);
+  const closeProfileDrawerRef = useRef(closeProfileDrawer);
+  const setProfileEditModeRef = useRef(setProfileEditMode);
+  useEffect(() => {
+    openSidebarRef.current = openSidebar;
+    ensureSettingsExpandedRef.current = ensureSettingsExpanded;
+    openProfileDrawerRef.current = openProfileDrawer;
+    closeProfileDrawerRef.current = closeProfileDrawer;
+    setProfileEditModeRef.current = setProfileEditMode;
+  });
+
   const navItemsForRoutes = useMemo(
     () => [...buildInput.visibleNav, ...buildInput.settingsNav],
     [buildInput.visibleNav, buildInput.settingsNav]
   );
 
+  /** Stable tourActions that read from refs to avoid identity churn between renders. */
   const tourActions = useMemo<DashboardTourActions>(
     () => ({
-      openSidebar,
-      ensureSettingsExpanded: ensureSettingsExpanded ?? (() => {}),
-      openProfileDrawer,
-      closeProfileDrawer,
-      setProfileEditMode,
+      openSidebar: () => openSidebarRef.current(),
+      ensureSettingsExpanded: () => ensureSettingsExpandedRef.current?.(),
+      openProfileDrawer: () => openProfileDrawerRef.current(),
+      closeProfileDrawer: () => closeProfileDrawerRef.current(),
+      setProfileEditMode: (edit) => setProfileEditModeRef.current(edit),
     }),
-    [
-      openSidebar,
-      ensureSettingsExpanded,
-      openProfileDrawer,
-      closeProfileDrawer,
-      setProfileEditMode,
-    ]
+    []
   );
 
   const cleanupTourUi = useCallback(() => {
-    setProfileEditMode(false);
-    closeProfileDrawer();
-  }, [closeProfileDrawer, setProfileEditMode]);
+    setProfileEditModeRef.current(false);
+    closeProfileDrawerRef.current();
+  }, []);
 
   useEffect(() => {
     void loadDriver().then(() => setDriverReady(true));
@@ -188,46 +200,55 @@ export function DashboardTourProvider({
     async ({ entries }: RunTourOptions) => {
       if (runningRef.current || entries.length === 0) return;
       runningRef.current = true;
-      tourActions.openSidebar();
-      if (buildInput.settingsNav.length > 0) {
-        tourActions.ensureSettingsExpanded();
-        await waitMs(400);
-      }
 
       try {
+        tourActions.openSidebar();
+        if (buildInput.settingsNav.length > 0) {
+          tourActions.ensureSettingsExpanded();
+        }
+        await waitMs(450);
+
         const driverModule = await loadDriver();
         driverRef.current?.destroy();
-        const instance = createDriverInstance(
-          driverModule,
-          entries,
-          userId,
-          cleanupTourUi
-        );
+
+        const instance = createDriverInstance(driverModule, entries, userId, () => {
+          driverRef.current = null;
+          runningRef.current = false;
+          cleanupTourUi();
+        });
         driverRef.current = instance;
         instance.drive();
-      } finally {
+      } catch (e) {
         runningRef.current = false;
+        driverRef.current = null;
+        if (process.env.NODE_ENV !== "production") {
+          /* eslint-disable-next-line no-console */
+          console.warn("dashboard tour: failed to start", e);
+        }
       }
     },
     [buildInput.settingsNav.length, cleanupTourUi, tourActions, userId]
   );
 
-  const runUnseenTour = useCallback(
-    async (subset?: TourStepEntry[]) => {
-      const all = subset ?? allEntriesRef.current;
-      const seen = getSeenTourStepIds(userId);
-      const entries = filterEntriesWithDom(filterUnseenEntries(all, seen));
-      await runTourEntries({ entries });
-    },
-    [runTourEntries, userId]
-  );
-
+  /** Help button: restart the tour from zero for the user's current module. */
   const startTour = useCallback(() => {
-    void runUnseenTour();
-  }, [runUnseenTour]);
+    const moduleKey = pathnameToTourModuleKey(pathname, navItemsForRoutes);
+    if (!moduleKey) return;
+    const all = allEntriesRef.current;
+    if (all.length === 0) return;
+
+    const ids = stepIdsForModuleVisit(moduleKey);
+    clearSeenTourStepIds(userId, ids);
+
+    const entries = pickAllEntriesForModuleVisit(moduleKey, all);
+    if (entries.length === 0) return;
+
+    void runTourEntries({ entries });
+  }, [navItemsForRoutes, pathname, runTourEntries, userId]);
 
   const contextValue = useMemo(() => ({ startTour }), [startTour]);
 
+  /** Auto-tour: when navigating to a new module, show the steps the user hasn't seen yet. */
   useEffect(() => {
     if (!driverReady) return;
     if (pathname.startsWith("/dashboard/mobilize")) return;
@@ -251,11 +272,20 @@ export function DashboardTourProvider({
         return;
       }
 
-      await waitMs(isHome ? 2200 : 900);
+      await waitMs(isHome ? 1500 : 700);
+      if (cancelled) return;
+
+      if (allEntriesRef.current.length === 0) {
+        await waitMs(400);
+      }
       if (cancelled) return;
 
       const seen = getSeenTourStepIds(userId);
-      const entries = pickEntriesForModuleVisit(moduleKey, allEntriesRef.current, seen);
+      const entries = pickEntriesForModuleVisit(
+        moduleKey,
+        allEntriesRef.current,
+        seen
+      );
       if (entries.length === 0) return;
 
       await runTourEntries({ entries });
@@ -281,11 +311,11 @@ export function DashboardTourHelpButton() {
   const { startTour } = useDashboardTour();
 
   return (
-    <Tooltip title="Continue guided tour">
+    <Tooltip title="Restart guided tour for this section">
       <IconButton
         color="inherit"
         size="small"
-        aria-label="Continue guided tour"
+        aria-label="Restart guided tour for this section"
         data-tour="header-tour-help"
         onClick={() => startTour()}
       >

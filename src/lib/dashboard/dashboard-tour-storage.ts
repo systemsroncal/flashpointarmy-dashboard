@@ -50,3 +50,20 @@ export function areAllTourStepsSeen(userId: string, stepIds: string[]): boolean 
   const seen = getSeenTourStepIds(userId);
   return stepIds.every((id) => seen.has(id));
 }
+
+/** Remove the given step ids from the per-user "seen" set (used to restart a module's tour). */
+export function clearSeenTourStepIds(userId: string, stepIds: string[]): void {
+  if (typeof window === "undefined" || stepIds.length === 0) return;
+  try {
+    const seen = getSeenTourStepIds(userId);
+    let changed = false;
+    for (const id of stepIds) {
+      if (seen.delete(id)) changed = true;
+    }
+    if (changed) {
+      localStorage.setItem(storageKey(userId), JSON.stringify([...seen]));
+    }
+  } catch {
+    /* ignore */
+  }
+}

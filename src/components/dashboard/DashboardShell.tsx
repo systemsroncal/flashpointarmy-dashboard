@@ -399,6 +399,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     setSettingsOpen(true);
   }, []);
 
+  const openProfileDrawerForTour = useCallback(() => {
+    setProfileOpen(true);
+  }, []);
+
+  const closeProfileDrawerForTour = useCallback(() => {
+    setProfileOpen(false);
+  }, []);
+
   const autoStartMainTour =
     pathname === "/dashboard" || pathname === "/dashboard/";
 
@@ -883,8 +891,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       buildInput={tourBuildInput}
       openSidebar={openSidebarForTour}
       ensureSettingsExpanded={ensureSettingsExpandedForTour}
-      openProfileDrawer={() => setProfileOpen(true)}
-      closeProfileDrawer={() => setProfileOpen(false)}
+      openProfileDrawer={openProfileDrawerForTour}
+      closeProfileDrawer={closeProfileDrawerForTour}
       setProfileEditMode={setProfileEditMode}
       autoStartMainTour={autoStartMainTour}
     >
@@ -985,6 +993,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       <Box
         component="main"
+        data-tour="main-content"
         sx={{
           pt: `calc(${theme.spacing(7)} + ${maintenanceTop})`,
           px: { xs: 2, sm: 3 },
