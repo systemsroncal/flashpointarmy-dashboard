@@ -46,7 +46,9 @@ import type { Theme } from "@mui/material/styles";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { DashboardTourHelpButton, DashboardTourProvider } from "@/components/dashboard/DashboardTour";
+import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
@@ -321,6 +323,46 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const showSystemNotificationBell =
     user.role_names.includes("admin") || user.role_names.includes("super_admin");
 
+  const tourBuildInput = useMemo(
+    () => ({
+      roleNames: user.role_names,
+      visibleNav,
+      settingsNav,
+      mobilizeNav: mobilizeDrawerNav,
+      isMobilize,
+      showSystemNotificationBell,
+      displayName:
+        user.display_name?.trim() ||
+        [user.first_name, user.last_name].filter(Boolean).join(" ").trim() ||
+        user.email.split("@")[0] ||
+        "",
+    }),
+    [
+      user.role_names,
+      user.display_name,
+      user.first_name,
+      user.last_name,
+      user.email,
+      visibleNav,
+      settingsNav,
+      mobilizeDrawerNav,
+      isMobilize,
+      showSystemNotificationBell,
+    ]
+  );
+
+  const openSidebarForTour = useCallback(() => {
+    setDesktopDrawerOpen(true);
+    setMobileDrawerOpen(true);
+  }, []);
+
+  const ensureSettingsExpandedForTour = useCallback(() => {
+    setSettingsOpen(true);
+  }, []);
+
+  const autoStartMainTour =
+    pathname === "/dashboard" || pathname === "/dashboard/";
+
   useEffect(() => {
     if (settingsHasActive) setSettingsOpen(true);
   }, [settingsHasActive]);
@@ -355,6 +397,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <IconButton
           size="small"
           aria-label={sidebarOpen ? "Hide menu" : "Show menu"}
+          data-tour="sidebar-toggle"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           sx={{
             color: "primary.main",
@@ -393,7 +436,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </Box>
       </Box>
       <Divider sx={{ borderColor: redNavAccent ? "rgba(195,32,32,0.22)" : "rgba(255,215,0,0.2)" }} />
-      <List sx={{ flex: 1, py: 1, overflowY: "auto" }}>
+      <List sx={{ flex: 1, py: 1, overflowY: "auto" }} data-tour="sidebar-nav">
         {isMobilize ? (
           <>
             {mobilizeDrawerNav.map((item) => {
@@ -404,6 +447,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     component={Link}
                     href={item.href}
                     selected={selected}
+                    data-tour={mobilizeNavTourAttr(item.href)}
                     onClick={() => {
                       if (!desktop) setMobileDrawerOpen(false);
                     }}
@@ -446,6 +490,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   component={Link}
                   href={item.href}
                   selected={selected}
+                  data-tour={`nav-${item.module}`}
                   onClick={() => {
                     if (!desktop) setMobileDrawerOpen(false);
                   }}
@@ -509,6 +554,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <ListItemButton
                 onClick={() => setSettingsOpen((prev) => !prev)}
                 selected={settingsHasActive}
+                data-tour="nav-settings-group"
                 sx={{
                   py: 0.75,
                   "&.Mui-selected": redNavAccent
@@ -561,6 +607,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         component={Link}
                         href={item.href}
                         selected={selected}
+                        data-tour={`nav-${item.module}`}
                         onClick={() => {
                           if (!desktop) setMobileDrawerOpen(false);
                         }}
@@ -615,6 +662,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </List>
       <Divider />
       <Box
+        data-tour="sidebar-profile"
         sx={{
           p: 1.5,
           cursor: "pointer",
@@ -647,6 +695,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </Box>
         </Box>
         <ListItemButton
+          data-tour="sidebar-sign-out"
           {...(isMobilize
             ? ({ component: Link, href: "/dashboard" } as const)
             : ({ component: "button", type: "button" } as const))}
@@ -675,6 +724,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const appBarShift = desktop && desktopDrawerOpen ? DRAWER_WIDTH : 0;
 
   return (
+    <DashboardTourProvider
+      userId={user.id}
+      buildInput={tourBuildInput}
+      openSidebar={openSidebarForTour}
+      ensureSettingsExpanded={ensureSettingsExpandedForTour}
+      autoStartMainTour={autoStartMainTour}
+    >
     <DashboardPresenceProvider userId={user.id}>
       <Box sx={{ minHeight: "100vh" }}>
       <FirstLoginPasswordGate />
@@ -718,11 +774,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           ) : null}
           <Box sx={{ flexGrow: 1 }} />
           <RoleWelcomeVideoPrompt />
-          {showSystemNotificationBell ? (
-            <NotificationMenu userId={user.id} />
-          ) : (
-            <AnnouncementsNavBadge />
-          )}
+          <DashboardTourHelpButton />
+          <Box data-tour="header-notifications" sx={{ display: "inline-flex", alignItems: "center" }}>
+            {showSystemNotificationBell ? (
+              <NotificationMenu userId={user.id} />
+            ) : (
+              <AnnouncementsNavBadge />
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
 
@@ -788,5 +847,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <UserProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
     </Box>
     </DashboardPresenceProvider>
+    </DashboardTourProvider>
   );
 }

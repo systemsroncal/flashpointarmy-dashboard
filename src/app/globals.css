@@ -1,3 +1,5 @@
+@import "driver.js/dist/driver.css";
+
 html,
 body {
   margin: 0;
@@ -32,6 +34,66 @@ body {
 
 #nprogress .spinner {
   display: none;
+}
+
+/* driver.js — dashboard guided tour */
+.fp-dashboard-tour-popover.driver-popover {
+  background-color: #141418;
+  color: #f3f4f6;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  border-radius: 8px;
+  max-width: min(360px, calc(100vw - 32px));
+}
+
+.fp-dashboard-tour-popover .driver-popover-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.fp-dashboard-tour-popover .driver-popover-description {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #d1d5db;
+}
+
+.fp-dashboard-tour-popover .driver-popover-progress-text {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.fp-dashboard-tour-popover button {
+  border-radius: 6px;
+  font-weight: 600;
+  text-shadow: none;
+}
+
+.fp-dashboard-tour-popover .driver-popover-next-btn,
+.fp-dashboard-tour-popover .driver-popover-prev-btn {
+  background-color: transparent;
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, 0.55);
+}
+
+.fp-dashboard-tour-popover .driver-popover-next-btn:hover,
+.fp-dashboard-tour-popover .driver-popover-prev-btn:hover {
+  background-color: #ffd700;
+  color: #111;
+}
+
+.fp-dashboard-tour-popover .driver-popover-close-btn {
+  color: #9ca3af;
+}
+
+.fp-dashboard-tour-popover .driver-popover-close-btn:hover {
+  color: #f3f4f6;
+}
+
+.fp-dashboard-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow,
+.fp-dashboard-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow,
+.fp-dashboard-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow,
+.fp-dashboard-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow {
+  border-color: #141418;
 }
 
 /* Plyr inside dialog: give the root a stable width (embed sizing comes from Plyr). */
