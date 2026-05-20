@@ -3,7 +3,6 @@ import type { DashboardTourActions } from "@/lib/dashboard/dashboard-tour-action
 import {
   prepareSidebarTarget,
   scrollTourTargetIntoView,
-  waitMs,
 } from "@/lib/dashboard/dashboard-tour-actions";
 import { isLocalLeaderNonElevated, isRestrictedMemberNav } from "@/lib/auth/nav-access";
 import {
@@ -152,11 +151,33 @@ function highlightHook(
   extra?: DriverHook
 ): DriverHook {
   return (element, step, opts) => {
-    if (element) {
-      prepareSidebarTarget(element, actions);
-      scrollTourTargetIntoView(element);
+    try {
+      if (element) {
+        prepareSidebarTarget(element, actions);
+        scrollTourTargetIntoView(element);
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV !== "production") {
+        /* eslint-disable-next-line no-console */
+        console.warn("tour highlight hook error", e);
+      }
     }
-    extra?.(element, step, opts);
+    try {
+      extra?.(element, step, opts);
+    } catch (e) {
+      if (process.env.NODE_ENV !== "production") {
+        /* eslint-disable-next-line no-console */
+        console.warn("tour extra hook error", e);
+      }
+    }
+    /** Recompute popover position after potential layout shifts (sidebar / settings expand). */
+    window.setTimeout(() => {
+      try {
+        opts.driver.refresh();
+      } catch {
+        /* driver may have been destroyed */
+      }
+    }, 120);
   };
 }
 
@@ -184,38 +205,23 @@ function stepForSelector(
   };
 }
 
-function stepForDynamicElement(
-  id: string,
-  resolve: () => Element | null,
-  title: string,
-  description: string,
-  side: StepSide = "left",
-  hooks?: { onHighlightStarted?: DriverHook; onNextClick?: DriverHook }
-): TourStepEntry {
-  return {
-    id,
-    step: {
-      element: () => resolve() ?? document.body,
-      popover: {
-        title,
-        description,
-        side,
-        align: "start",
-        onNextClick: hooks?.onNextClick,
-      },
-      onHighlightStarted: hooks?.onHighlightStarted,
-    },
-  };
-}
-
 export function filterEntriesWithDom(entries: TourStepEntry[]): TourStepEntry[] {
   if (typeof document === "undefined") return entries;
   return entries.filter(({ step }) => {
     const el = step.element;
     if (!el) return true;
-    if (typeof el === "function") return true;
-    if (typeof el === "string" && el.includes("profile-")) return true;
-    return typeof el === "string" ? Boolean(document.querySelector(el)) : true;
+    if (typeof el === "function") {
+      try {
+        const resolved = el();
+        if (!resolved) return false;
+        if (resolved === document.body) return false;
+        return resolved instanceof Element;
+      } catch {
+        return false;
+      }
+    }
+    if (typeof el === "string") return Boolean(document.querySelector(el));
+    return true;
   });
 }
 
@@ -288,136 +294,9 @@ export function buildMainDashboardTourEntries(
       "sidebar-profile",
       '[data-tour="sidebar-profile"]',
       "Your profile",
-      "This area opens your account panel on the right. We will open it for you in the next steps.",
+      "Click your name here to open your profile drawer. From there you can update your photo, name, phone, and sign-in email.",
       "right",
-      {
-        onHighlightStarted: highlightHook(actions, async (element, _step, { driver }) => {
-          actions.openSidebar();
-          actions.setProfileEditMode(false);
-          actions.openProfileDrawer();
-          await waitMs(450);
-          if (element) scrollTourTargetIntoView(element);
-          driver.refresh();
-        }),
-      }
-    ),
-    stepForSelector(
-      "profile-drawer",
-      '[data-tour="profile-drawer"]',
-      "Profile panel",
-      "Your profile drawer shows your photo, email, and role. Review your details here before making changes.",
-      "left",
-      {
-        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
-          actions.openProfileDrawer();
-          actions.setProfileEditMode(false);
-          await waitMs(200);
-          driver.refresh();
-        }),
-      }
-    ),
-    stepForSelector(
-      "profile-view",
-      '[data-tour="profile-view"]',
-      "Profile summary",
-      "This is the read-only summary: your name, phone, and address as stored in the system.",
-      "left",
-      {
-        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
-          actions.openProfileDrawer();
-          actions.setProfileEditMode(false);
-          await waitMs(200);
-          driver.refresh();
-        }),
-      }
-    ),
-    stepForSelector(
-      "profile-edit-button",
-      '[data-tour="profile-edit-button"]',
-      "Edit profile",
-      "Press Next to open the editor and walk through the fields you can update.",
-      "left",
-      {
-        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
-          actions.openProfileDrawer();
-          actions.setProfileEditMode(false);
-          await waitMs(200);
-          driver.refresh();
-        }),
-      }
-    ),
-    stepForDynamicElement(
-      "profile-edit-form",
-      () => document.querySelector('[data-tour="profile-edit-form"]'),
-      "Edit your details",
-      "Update your first name, last name, display name, phone, and mailing address. Display name is what others see in the sidebar.",
-      "left",
-      {
-        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
-          actions.openProfileDrawer();
-          actions.setProfileEditMode(true);
-          await waitMs(350);
-          const form = document.querySelector('[data-tour="profile-edit-form"]');
-          if (form) scrollTourTargetIntoView(form);
-          driver.refresh();
-        }),
-      }
-    ),
-    stepForDynamicElement(
-      "profile-edit-email",
-      () => document.querySelector('[data-tour="profile-edit-email"]'),
-      "Sign-in email",
-      "If your organization allows it, you can request a verification code to change the email you use to sign in.",
-      "left",
-      {
-        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
-          actions.openProfileDrawer();
-          actions.setProfileEditMode(true);
-          await waitMs(300);
-          const block = document.querySelector('[data-tour="profile-edit-email"]');
-          if (block) scrollTourTargetIntoView(block);
-          driver.refresh();
-        }),
-      }
-    ),
-    stepForDynamicElement(
-      "profile-edit-photo",
-      () => document.querySelector('[data-tour="profile-edit-photo"]'),
-      "Profile photo",
-      "Upload or remove your profile photo here (JPEG, PNG, WebP, or GIF — max 1 MB).",
-      "left",
-      {
-        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
-          actions.openProfileDrawer();
-          actions.setProfileEditMode(true);
-          await waitMs(300);
-          const block = document.querySelector('[data-tour="profile-edit-photo"]');
-          if (block) scrollTourTargetIntoView(block);
-          driver.refresh();
-        }),
-      }
-    ),
-    stepForDynamicElement(
-      "profile-save-actions",
-      () => document.querySelector('[data-tour="profile-save-actions"]'),
-      "Save or cancel",
-      "Use Save to apply your changes, or Cancel to discard edits and return to the profile summary.",
-      "left",
-      {
-        onHighlightStarted: highlightHook(actions, async (_el, _step, { driver }) => {
-          actions.openProfileDrawer();
-          actions.setProfileEditMode(true);
-          await waitMs(250);
-          driver.refresh();
-        }),
-        onNextClick: async (_el, _step, { driver }) => {
-          actions.setProfileEditMode(false);
-          actions.closeProfileDrawer();
-          await waitMs(300);
-          driver.refresh();
-          driver.moveNext();
-        },
-      }
+      sidebarHook
     ),
     stepForSelector(
       "sidebar-sign-out",
@@ -440,7 +319,7 @@ export function buildMainDashboardTourEntries(
       "header-tour-help",
       '[data-tour="header-tour-help"]',
       "Tour help",
-      "Tap the question mark anytime to continue the guided tour for sections you have not seen yet.",
+      "Tap the question mark anytime to restart the guided tour for the section you are on.",
       "bottom"
     )
   );

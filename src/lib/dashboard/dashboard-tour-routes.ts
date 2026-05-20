@@ -37,13 +37,6 @@ export function pathnameToTourModuleKey(
 
 const PROFILE_AND_CHROME_STEP_IDS = [
   "sidebar-profile",
-  "profile-drawer",
-  "profile-view",
-  "profile-edit-button",
-  "profile-edit-form",
-  "profile-edit-email",
-  "profile-edit-photo",
-  "profile-save-actions",
   "sidebar-sign-out",
   "header-notifications",
   "header-tour-help",

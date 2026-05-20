@@ -188,8 +188,7 @@ export function DashboardTourProvider({
   );
 
   const cleanupTourUi = useCallback(() => {
-    setProfileEditModeRef.current(false);
-    closeProfileDrawerRef.current();
+    /** Tour no longer opens the profile drawer, so nothing to clean up here. */
   }, []);
 
   useEffect(() => {
