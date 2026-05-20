@@ -993,7 +993,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       <Box
         component="main"
-        data-tour="main-content"
         sx={{
           pt: `calc(${theme.spacing(7)} + ${maintenanceTop})`,
           px: { xs: 2, sm: 3 },

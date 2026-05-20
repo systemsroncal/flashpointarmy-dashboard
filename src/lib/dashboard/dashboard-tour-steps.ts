@@ -147,13 +147,6 @@ export type TourStepEntry = { id: string; step: DriveStep };
 
 type StepSide = "left" | "right" | "bottom" | "top" | "over";
 
-function mainWorkspaceCopy(label: string): { title: string; description: string } {
-  return {
-    title: `${label} workspace`,
-    description: `This area shows the ${label} screen. Use the left menu to open other sections anytime.`,
-  };
-}
-
 function highlightHook(
   actions: DashboardTourActions,
   extra?: DriverHook
@@ -268,17 +261,6 @@ export function buildMainDashboardTourEntries(
     entries.push(
       stepForSelector(`nav-${item.module}`, NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook)
     );
-    const mainCopy = mainWorkspaceCopy(copy.title);
-    entries.push(
-      stepForSelector(
-        `main-${item.module}`,
-        '[data-tour="main-content"]',
-        mainCopy.title,
-        mainCopy.description,
-        "top",
-        sidebarHook
-      )
-    );
   }
 
   if (input.settingsNav.length > 0) {
@@ -297,17 +279,6 @@ export function buildMainDashboardTourEntries(
       if (!copy) continue;
       entries.push(
         stepForSelector(`nav-${item.module}`, NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook)
-      );
-      const mainCopy = mainWorkspaceCopy(copy.title);
-      entries.push(
-        stepForSelector(
-          `main-${item.module}`,
-          '[data-tour="main-content"]',
-          mainCopy.title,
-          mainCopy.description,
-          "top",
-          sidebarHook
-        )
       );
     }
   }

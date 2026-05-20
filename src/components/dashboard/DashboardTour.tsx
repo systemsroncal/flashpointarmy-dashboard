@@ -166,10 +166,14 @@ export function DashboardTourProvider({
     setProfileEditModeRef.current = setProfileEditMode;
   });
 
-  const navItemsForRoutes = useMemo(
-    () => [...buildInput.visibleNav, ...buildInput.settingsNav],
-    [buildInput.visibleNav, buildInput.settingsNav]
-  );
+  /** Keep latest nav items in a ref so the auto-tour effect can read them without re-running on every render. */
+  const navItemsForRoutesRef = useRef<typeof buildInput.visibleNav>([]);
+  useEffect(() => {
+    navItemsForRoutesRef.current = [
+      ...buildInput.visibleNav,
+      ...buildInput.settingsNav,
+    ];
+  }, [buildInput.visibleNav, buildInput.settingsNav]);
 
   /** Stable tourActions that read from refs to avoid identity churn between renders. */
   const tourActions = useMemo<DashboardTourActions>(
@@ -232,7 +236,7 @@ export function DashboardTourProvider({
 
   /** Help button: restart the tour from zero for the user's current module. */
   const startTour = useCallback(() => {
-    const moduleKey = pathnameToTourModuleKey(pathname, navItemsForRoutes);
+    const moduleKey = pathnameToTourModuleKey(pathname, navItemsForRoutesRef.current);
     if (!moduleKey) return;
     const all = allEntriesRef.current;
     if (all.length === 0) return;
@@ -244,7 +248,7 @@ export function DashboardTourProvider({
     if (entries.length === 0) return;
 
     void runTourEntries({ entries });
-  }, [navItemsForRoutes, pathname, runTourEntries, userId]);
+  }, [pathname, runTourEntries, userId]);
 
   const contextValue = useMemo(() => ({ startTour }), [startTour]);
 
@@ -254,7 +258,7 @@ export function DashboardTourProvider({
     if (pathname.startsWith("/dashboard/mobilize")) return;
     if (lastModuleTourPathRef.current === pathname) return;
 
-    const moduleKey = pathnameToTourModuleKey(pathname, navItemsForRoutes);
+    const moduleKey = pathnameToTourModuleKey(pathname, navItemsForRoutesRef.current);
     if (!moduleKey) return;
 
     const isHome = pathname === "/dashboard" || pathname === "/dashboard/";
@@ -294,7 +298,7 @@ export function DashboardTourProvider({
     return () => {
       cancelled = true;
     };
-  }, [autoStartMainTour, driverReady, navItemsForRoutes, pathname, runTourEntries, userId]);
+  }, [autoStartMainTour, driverReady, pathname, runTourEntries, userId]);
 
   useEffect(() => {
     return () => {

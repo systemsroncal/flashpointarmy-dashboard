@@ -51,7 +51,7 @@ const PROFILE_AND_CHROME_STEP_IDS = [
 
 /** Step ids to offer when the user opens this module route. */
 export function stepIdsForModuleVisit(moduleKey: string): string[] {
-  const ids = [`nav-${moduleKey}`, `main-${moduleKey}`];
+  const ids = [`nav-${moduleKey}`];
   if (moduleKey === MODULE_SLUGS.nationalOverview) {
     return ["welcome", "sidebar-toggle", ...ids, ...PROFILE_AND_CHROME_STEP_IDS];
   }
