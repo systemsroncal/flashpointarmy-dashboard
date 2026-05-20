@@ -24,7 +24,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type Props = {
@@ -52,15 +52,36 @@ export function DonatePageClient({ presets, stripeEnabled }: Props) {
 
   const selected = enabledPresets.find((p) => p.id === selectedId) ?? null;
 
-  const availableIntervals = useMemo(() => {
-    if (!selected || paymentMode !== "recurring") return [];
+  const recurringOptionsForSelected = useMemo(() => {
+    if (!selected) return [];
     return DONATION_RECURRENCE_OPTIONS.filter((opt) =>
       presetAllowsMode(selected, "recurring", opt.value)
     );
-  }, [selected, paymentMode]);
+  }, [selected]);
+
+  const availableIntervals =
+    paymentMode === "recurring" ? recurringOptionsForSelected : [];
 
   const canOneTime = selected ? presetAllowsMode(selected, "one_time") : false;
-  const canRecurring = availableIntervals.length > 0;
+  const canRecurring = recurringOptionsForSelected.length > 0;
+
+  /** Keep the interval valid for the currently selected preset. */
+  useEffect(() => {
+    if (recurringOptionsForSelected.length === 0) return;
+    if (!recurringOptionsForSelected.some((opt) => opt.value === interval)) {
+      setInterval(recurringOptionsForSelected[0].value);
+    }
+  }, [interval, recurringOptionsForSelected]);
+
+  /** If the user picks a preset that only allows recurring, switch payment mode automatically. */
+  useEffect(() => {
+    if (!selected) return;
+    if (paymentMode === "one_time" && !canOneTime && canRecurring) {
+      setPaymentMode("recurring");
+    } else if (paymentMode === "recurring" && !canRecurring && canOneTime) {
+      setPaymentMode("one_time");
+    }
+  }, [canOneTime, canRecurring, paymentMode, selected]);
 
   const displayAmount = useMemo(() => {
     if (!selected) return null;

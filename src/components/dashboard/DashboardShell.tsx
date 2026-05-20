@@ -213,6 +213,12 @@ const NAV: NavItem[] = [
     icon: <EventIcon />,
   },
   {
+    label: "Donate",
+    href: "/dashboard/donate",
+    module: MODULE_SLUGS.donate,
+    icon: <VolunteerActivismOutlinedIcon />,
+  },
+  {
     label: "Mobilize",
     href: MOBILIZE_HOME,
     module: MODULE_SLUGS.movilization,
