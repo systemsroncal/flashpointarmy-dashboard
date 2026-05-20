@@ -47,6 +47,7 @@
     "react-dropzone": "^14.4.1",
     "react-leaflet": "^5.0.0",
     "react-simple-maps": "^3.0.0",
+    "stripe": "^22.1.1",
     "tinymce": "^8.4.0",
     "xlsx": "^0.18.5"
   },

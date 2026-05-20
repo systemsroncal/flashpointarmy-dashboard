@@ -23,7 +23,10 @@ import SchoolIcon from "@mui/icons-material/School";
 import SecurityIcon from "@mui/icons-material/Security";
 import EmailIcon from "@mui/icons-material/Email";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SettingsIcon from "@mui/icons-material/Settings";
+import VolunteerActivismOutlinedIcon from "@mui/icons-material/VolunteerActivismOutlined";
 import {
   AppBar,
   Avatar,
@@ -138,6 +141,16 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
       pathname.startsWith("/dashboard/communications/")
     );
   }
+  if (item.href === "/dashboard/orders") {
+    return (
+      pathname === "/dashboard/orders" ||
+      (pathname.startsWith("/dashboard/orders/") &&
+        !pathname.startsWith("/dashboard/orders/subscriptions"))
+    );
+  }
+  if (item.href === "/dashboard/orders/subscriptions") {
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
@@ -150,7 +163,23 @@ const SETTINGS_MODULES = new Set<string>([
   MODULE_SLUGS.adminRoles,
   MODULE_SLUGS.courses,
   MODULE_SLUGS.reports,
+  MODULE_SLUGS.donations,
 ]);
+
+const ORDERS_DRAWER_NAV_BASE: NavItem[] = [
+  {
+    label: "Orders",
+    href: "/dashboard/orders",
+    module: MODULE_SLUGS.orders,
+    icon: <ReceiptLongIcon />,
+  },
+  {
+    label: "Subscriptions",
+    href: "/dashboard/orders/subscriptions",
+    module: MODULE_SLUGS.orders,
+    icon: <AutorenewIcon />,
+  },
+];
 
 const NAV: NavItem[] = [
   {
@@ -232,6 +261,12 @@ const NAV: NavItem[] = [
     icon: <AssessmentIcon />,
   },
   {
+    label: "Donations",
+    href: "/dashboard/donations",
+    module: MODULE_SLUGS.donations,
+    icon: <VolunteerActivismOutlinedIcon />,
+  },
+  {
     label: "Roles & permissions",
     href: "/dashboard/admin/roles",
     module: MODULE_SLUGS.adminRoles,
@@ -270,6 +305,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const permissions = usePermissions();
@@ -320,7 +356,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     ? allVisibleNav.filter((item) => SETTINGS_MODULES.has(item.module))
     : [];
   const visibleNav = allVisibleNav.filter((item) => !SETTINGS_MODULES.has(item.module));
+  const ordersNav = ORDERS_DRAWER_NAV_BASE.filter((item) => can(permissions, item.module, "read"));
   const settingsHasActive = settingsNav.some((item) => isNavItemSelected(item, pathname));
+  const ordersHasActive = ordersNav.some((item) => isNavItemSelected(item, pathname));
   const showSystemNotificationBell =
     user.role_names.includes("admin") || user.role_names.includes("super_admin");
 
@@ -367,6 +405,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (settingsHasActive) setSettingsOpen(true);
   }, [settingsHasActive]);
+
+  useEffect(() => {
+    if (ordersHasActive) setOrdersOpen(true);
+  }, [ordersHasActive]);
 
   async function handleSignOut() {
     try {
@@ -549,6 +591,117 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             );
           })
         )}
+        {!isMobilize && ordersNav.length > 0 ? (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => setOrdersOpen((prev) => !prev)}
+                selected={ordersHasActive}
+                data-tour="nav-orders-group"
+                sx={{
+                  py: 0.75,
+                  "&.Mui-selected": redNavAccent
+                    ? {
+                        borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                        bgcolor: "rgba(195, 32, 32, 0.1)",
+                      }
+                    : {
+                        borderLeft: "3px solid",
+                        borderColor: "primary.main",
+                        bgcolor: "rgba(255,215,0,0.08)",
+                      },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: ordersHasActive
+                      ? redNavAccent
+                        ? MOVILIZATION_RED
+                        : "primary.main"
+                      : "rgba(255,255,255,0.92)",
+                    minWidth: 38,
+                  }}
+                >
+                  <ReceiptLongIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Orders"
+                  primaryTypographyProps={{
+                    variant: "body2",
+                    fontWeight: 600,
+                    fontSize: "calc(0.82rem + 3px)",
+                    color: ordersHasActive
+                      ? redNavAccent
+                        ? MOVILIZATION_RED
+                        : "primary.main"
+                      : "rgba(255,255,255,0.88)",
+                  }}
+                />
+                {ordersOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              </ListItemButton>
+            </ListItem>
+            <Collapse in={ordersOpen} timeout="auto" unmountOnExit>
+              <List disablePadding>
+                {ordersNav.map((item) => {
+                  const selected = isNavItemSelected(item, pathname);
+                  return (
+                    <ListItem key={item.href} disablePadding>
+                      <ListItemButton
+                        component={Link}
+                        href={item.href}
+                        selected={selected}
+                        data-tour={`nav-${item.href.replace(/\//g, "-")}`}
+                        onClick={() => {
+                          if (!desktop) setMobileDrawerOpen(false);
+                        }}
+                        sx={{
+                          py: 0.65,
+                          pl: 4.5,
+                          "&.Mui-selected": redNavAccent
+                            ? {
+                                borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                                bgcolor: "rgba(195, 32, 32, 0.1)",
+                              }
+                            : {
+                                borderLeft: "3px solid",
+                                borderColor: "primary.main",
+                                bgcolor: "rgba(255,215,0,0.08)",
+                              },
+                        }}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            color: selected
+                              ? redNavAccent
+                                ? MOVILIZATION_RED
+                                : "primary.main"
+                              : "rgba(255,255,255,0.92)",
+                            minWidth: 36,
+                          }}
+                        >
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.label}
+                          primaryTypographyProps={{
+                            variant: "body2",
+                            fontWeight: 500,
+                            fontSize: "calc(0.8rem + 3px)",
+                            color: selected
+                              ? redNavAccent
+                                ? MOVILIZATION_RED
+                                : "primary.main"
+                              : "rgba(255,255,255,0.88)",
+                          }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </Collapse>
+          </>
+        ) : null}
         {!isMobilize && settingsNav.length > 0 ? (
           <>
             <ListItem disablePadding>

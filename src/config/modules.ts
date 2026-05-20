@@ -22,6 +22,12 @@ export const MODULE_SLUGS = {
   movilization: "movilization",
   /** Analytics & charts (Settings area). */
   reports: "reports",
+  /** Donation amount presets (admin / super_admin). */
+  donations: "donations",
+  /** Donation orders & subscriptions (admin / super_admin). */
+  orders: "orders",
+  /** Public donate page (all authenticated users). */
+  donate: "donate",
 } as const;
 
 export type ModuleSlug = (typeof MODULE_SLUGS)[keyof typeof MODULE_SLUGS];
