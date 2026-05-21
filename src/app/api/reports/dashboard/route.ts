@@ -1,5 +1,6 @@
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { listRoleNamesByUserIds } from "@/lib/admin/dashboard-user-queries";
 import {
   buildSeriesForTimestamps,
   parseRange,
@@ -81,11 +82,14 @@ export async function GET(req: Request) {
     }
 
     /**
-     * Per-course completion comparison: for each published course count users who
-     * (a) started — have at least one progress row — and (b) completed every session.
-     * Completion is defined as "distinct completed sessions == total sessions for
-     * the course". This is the snapshot definition (not date-range filtered) so the
-     * comparison reflects the current state of training.
+     * Per-course completion comparison broken down by role bucket
+     * (Local leaders vs. Members). For each published course we count:
+     *   - started   = users with at least one progress row in any session
+     *   - completed = users whose distinct completed sessions == totalSessions
+     * Each user is classified once: anyone with `local_leader` counts as a
+     * leader, otherwise anyone with `member` counts as a member, otherwise
+     * `other` (excluded from the comparison so admins/staff don't skew it).
+     * This is a current-state snapshot, not date-range filtered.
      */
     const courseRows = (coursesRes.data ?? []) as { id: string; title: string }[];
     const sessionRows =
@@ -109,9 +113,11 @@ export async function GET(req: Request) {
     /** courseId -> userId -> set of completed sessionIds. */
     const completedByCourseUser = new Map<string, Map<string, Set<string>>>();
     const startedByCourseUser = new Map<string, Set<string>>();
+    const allProgressUsers = new Set<string>();
     for (const p of progressRows) {
       const courseId = courseBySession.get(p.session_id);
       if (!courseId) continue;
+      allProgressUsers.add(p.user_id);
       const startedSet = startedByCourseUser.get(courseId) ?? new Set<string>();
       startedSet.add(p.user_id);
       startedByCourseUser.set(courseId, startedSet);
@@ -124,29 +130,69 @@ export async function GET(req: Request) {
       completedByCourseUser.set(courseId, byUser);
     }
 
+    /** Single-pass role classification (leader > member > other). */
+    type RoleBucket = "leader" | "member" | "other";
+    const roleBucketByUser = new Map<string, RoleBucket>();
+    if (allProgressUsers.size > 0) {
+      const roleMap = await listRoleNamesByUserIds(admin, [...allProgressUsers]);
+      for (const uid of allProgressUsers) {
+        const slugs = roleMap.get(uid) ?? [];
+        const set = new Set(slugs);
+        if (set.has("local_leader")) roleBucketByUser.set(uid, "leader");
+        else if (set.has("member")) roleBucketByUser.set(uid, "member");
+        else roleBucketByUser.set(uid, "other");
+      }
+    }
+
     const courseCompletion = courseRows
       .map((c) => {
         const total = sessionsByCourse.get(c.id)?.size ?? 0;
-        const started = startedByCourseUser.get(c.id)?.size ?? 0;
-        let completed = 0;
+        const startedSet = startedByCourseUser.get(c.id) ?? new Set<string>();
         const byUser = completedByCourseUser.get(c.id);
+
+        let leaderStarted = 0;
+        let memberStarted = 0;
+        let leaderCompleted = 0;
+        let memberCompleted = 0;
+
+        for (const uid of startedSet) {
+          const bucket = roleBucketByUser.get(uid) ?? "other";
+          if (bucket === "leader") leaderStarted += 1;
+          else if (bucket === "member") memberStarted += 1;
+        }
+
         if (byUser && total > 0) {
-          for (const [, sessions] of byUser) {
-            if (sessions.size >= total) completed += 1;
+          for (const [uid, sessions] of byUser) {
+            if (sessions.size < total) continue;
+            const bucket = roleBucketByUser.get(uid) ?? "other";
+            if (bucket === "leader") leaderCompleted += 1;
+            else if (bucket === "member") memberCompleted += 1;
           }
         }
-        const percent = started > 0 ? Math.round((completed / started) * 100) : 0;
+
+        const leaderPercent =
+          leaderStarted > 0 ? Math.round((leaderCompleted / leaderStarted) * 100) : 0;
+        const memberPercent =
+          memberStarted > 0 ? Math.round((memberCompleted / memberStarted) * 100) : 0;
+
         return {
           courseId: c.id,
           title: c.title,
           totalSessions: total,
-          startedUsers: started,
-          completedUsers: completed,
-          percent,
+          leaderStarted,
+          leaderCompleted,
+          memberStarted,
+          memberCompleted,
+          leaderPercent,
+          memberPercent,
         };
       })
-      /** Sort by raw completed count desc so the most-finished courses lead the chart. */
-      .sort((a, b) => b.completedUsers - a.completedUsers || b.startedUsers - a.startedUsers);
+      /** Most finished first (sum across both buckets) so the default-selected course is meaningful. */
+      .sort(
+        (a, b) =>
+          b.leaderCompleted + b.memberCompleted - (a.leaderCompleted + a.memberCompleted) ||
+          b.leaderStarted + b.memberStarted - (a.leaderStarted + a.memberStarted)
+      );
 
     return NextResponse.json({
       range: { from: fromIso, to: toIso },

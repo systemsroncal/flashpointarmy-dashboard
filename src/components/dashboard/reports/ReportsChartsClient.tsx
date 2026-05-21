@@ -40,9 +40,12 @@ type CourseCompletionRow = {
   courseId: string;
   title: string;
   totalSessions: number;
-  startedUsers: number;
-  completedUsers: number;
-  percent: number;
+  leaderStarted: number;
+  leaderCompleted: number;
+  memberStarted: number;
+  memberCompleted: number;
+  leaderPercent: number;
+  memberPercent: number;
 };
 
 type ReportsPayload = {
@@ -90,6 +93,8 @@ export function ReportsChartsClient() {
   const [data, setData] = useState<ReportsPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  /** courseId selected for the "Course completion comparison" widget. */
+  const [selectedCourseId, setSelectedCourseId] = useState<string | "">("");
 
   const computeRange = useCallback((): { from: Date; to: Date } => {
     const to = new Date();
@@ -224,30 +229,48 @@ export function ReportsChartsClient() {
     [data]
   );
 
+  /** Pick a default course as soon as data lands; keep the user's choice across refreshes when possible. */
+  useEffect(() => {
+    if (courseCompletionRows.length === 0) {
+      setSelectedCourseId("");
+      return;
+    }
+    setSelectedCourseId((cur) => {
+      if (cur && courseCompletionRows.some((c) => c.courseId === cur)) return cur;
+      return courseCompletionRows[0]?.courseId ?? "";
+    });
+  }, [courseCompletionRows]);
+
+  const selectedCourse = useMemo<CourseCompletionRow | null>(
+    () => courseCompletionRows.find((c) => c.courseId === selectedCourseId) ?? null,
+    [courseCompletionRows, selectedCourseId]
+  );
+
   /**
-   * Grouped bar comparing, per course, how many users have started vs. how many
-   * have fully completed. The percent value is rendered separately in the table.
+   * For the selected course, grouped bar comparing local leaders vs. members:
+   * one group is Started, the other is Completed. Two series (Leaders / Members).
    */
   const courseCompletionOpts = useMemo((): ApexOptions => {
+    const courseLabel = selectedCourse?.title ?? "course";
     return {
       ...baseOpts,
       chart: { ...baseOpts.chart, id: "course-completion", type: "bar", stacked: false },
-      plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "65%" } },
+      plotOptions: { bar: { horizontal: false, borderRadius: 4, columnWidth: "55%" } },
       xaxis: {
-        categories: courseCompletionRows.map((c) => c.title || c.courseId.slice(0, 6)),
-        title: { text: "Users" },
-        min: 0,
+        categories: ["Started", "Completed"],
+        title: { text: undefined },
       },
-      yaxis: { title: { text: undefined } },
-      colors: ["#4cc9f0", "#2a9d8f"],
+      yaxis: { min: 0, decimalsInFloat: 0, title: { text: "Users" } },
+      colors: ["#4cc9f0", "#e9c46a"],
       legend: { position: "top" },
       title: {
-        text: "Course completion comparison (current snapshot)",
+        text: `Leaders vs. Members — ${courseLabel}`,
         style: { color: "#90be6d" },
       },
       tooltip: { shared: true, intersect: false },
+      dataLabels: { enabled: true },
     };
-  }, [courseCompletionRows]);
+  }, [selectedCourse]);
 
   const pieSeriesRoles = data?.rolesPie.series ?? [];
   const pieSeriesChapter = data?.chapterStatusPie.series ?? [];
@@ -420,21 +443,29 @@ export function ReportsChartsClient() {
                   Course completion comparison
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Current snapshot of published courses: how many users started vs. how many finished every session.
+                  Snapshot for a single course: how many local leaders vs. members started and how many finished every session.
                 </Typography>
               </Box>
               {courseCompletionRows.length > 0 ? (
-                <Chip
-                  size="small"
-                  label={`${courseCompletionRows.length} ${
-                    courseCompletionRows.length === 1 ? "course" : "courses"
-                  }`}
-                  sx={{ alignSelf: "flex-start" }}
-                />
+                <FormControl size="small" sx={{ minWidth: 240 }}>
+                  <InputLabel id="course-completion-course-label">Course</InputLabel>
+                  <Select
+                    labelId="course-completion-course-label"
+                    label="Course"
+                    value={selectedCourseId}
+                    onChange={(e) => setSelectedCourseId(String(e.target.value))}
+                  >
+                    {courseCompletionRows.map((c) => (
+                      <MenuItem key={c.courseId} value={c.courseId}>
+                        {c.title || c.courseId.slice(0, 6)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               ) : null}
             </Stack>
 
-            {courseCompletionRows.length === 0 ? (
+            {courseCompletionRows.length === 0 || !selectedCourse ? (
               <Box sx={{ py: 4, textAlign: "center" }}>
                 <Typography color="text.secondary">
                   No published courses with student progress yet.
@@ -442,17 +473,37 @@ export function ReportsChartsClient() {
               </Box>
             ) : (
               <Stack spacing={2}>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    label={`Leaders: ${selectedCourse.leaderCompleted} / ${selectedCourse.leaderStarted} (${selectedCourse.leaderPercent}%)`}
+                  />
+                  <Chip
+                    size="small"
+                    color="warning"
+                    variant="outlined"
+                    label={`Members: ${selectedCourse.memberCompleted} / ${selectedCourse.memberStarted} (${selectedCourse.memberPercent}%)`}
+                  />
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`Sessions in course: ${selectedCourse.totalSessions}`}
+                  />
+                </Stack>
+
                 <Chart
                   type="bar"
-                  height={Math.max(220, courseCompletionRows.length * 56)}
+                  height={320}
                   series={[
                     {
-                      name: "Started",
-                      data: courseCompletionRows.map((c) => c.startedUsers),
+                      name: "Local leaders",
+                      data: [selectedCourse.leaderStarted, selectedCourse.leaderCompleted],
                     },
                     {
-                      name: "Completed",
-                      data: courseCompletionRows.map((c) => c.completedUsers),
+                      name: "Members",
+                      data: [selectedCourse.memberStarted, selectedCourse.memberCompleted],
                     },
                   ]}
                   options={courseCompletionOpts}
@@ -462,16 +513,32 @@ export function ReportsChartsClient() {
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell>Course</TableCell>
-                        <TableCell align="right">Sessions</TableCell>
+                        <TableCell>Role bucket</TableCell>
                         <TableCell align="right">Started</TableCell>
                         <TableCell align="right">Completed</TableCell>
-                        <TableCell sx={{ minWidth: 200 }}>Completion</TableCell>
+                        <TableCell sx={{ minWidth: 220 }}>Completion</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {courseCompletionRows.map((c) => {
-                        const pct = c.percent;
+                      {(
+                        [
+                          {
+                            key: "leader",
+                            label: "Local leaders",
+                            started: selectedCourse.leaderStarted,
+                            completed: selectedCourse.leaderCompleted,
+                            pct: selectedCourse.leaderPercent,
+                          },
+                          {
+                            key: "member",
+                            label: "Members",
+                            started: selectedCourse.memberStarted,
+                            completed: selectedCourse.memberCompleted,
+                            pct: selectedCourse.memberPercent,
+                          },
+                        ] as const
+                      ).map((row) => {
+                        const pct = row.pct;
                         const tone =
                           pct >= 75
                             ? "#2a9d8f"
@@ -481,13 +548,12 @@ export function ReportsChartsClient() {
                                 ? "#f4a261"
                                 : "#e63946";
                         return (
-                          <TableRow key={c.courseId}>
-                            <TableCell>{c.title}</TableCell>
-                            <TableCell align="right">{c.totalSessions}</TableCell>
-                            <TableCell align="right">{c.startedUsers}</TableCell>
-                            <TableCell align="right">{c.completedUsers}</TableCell>
+                          <TableRow key={row.key}>
+                            <TableCell>{row.label}</TableCell>
+                            <TableCell align="right">{row.started}</TableCell>
+                            <TableCell align="right">{row.completed}</TableCell>
                             <TableCell>
-                              <Stack spacing={0.5} sx={{ minWidth: 180 }}>
+                              <Stack spacing={0.5} sx={{ minWidth: 200 }}>
                                 <Box
                                   sx={{
                                     position: "relative",
@@ -515,7 +581,9 @@ export function ReportsChartsClient() {
                                   variant="caption"
                                   sx={{ color: tone, fontVariantNumeric: "tabular-nums" }}
                                 >
-                                  {pct}% of started users completed
+                                  {row.started === 0
+                                    ? "No users started"
+                                    : `${pct}% of started ${row.label.toLowerCase()} completed`}
                                 </Typography>
                               </Stack>
                             </TableCell>
