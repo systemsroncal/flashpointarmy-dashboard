@@ -4,6 +4,7 @@ import DeleteOutline from "@mui/icons-material/DeleteOutline";
 import Edit from "@mui/icons-material/Edit";
 import { PasswordTextField } from "@/components/auth/PasswordTextField";
 import Search from "@mui/icons-material/Search";
+import SwitchAccount from "@mui/icons-material/SwitchAccount";
 import Upgrade from "@mui/icons-material/Upgrade";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -306,6 +307,11 @@ export function CommunitySection({
   const [promoteSubmitting, setPromoteSubmitting] = useState(false);
   const [superPromoteSubmitting, setSuperPromoteSubmitting] = useState(false);
 
+  /** Impersonation: super_admin signs in as the target user via a magic-link token. */
+  const [impersonateUser, setImpersonateUser] = useState<CommunityUserRow | null>(null);
+  const [impersonateSubmitting, setImpersonateSubmitting] = useState(false);
+  const [impersonateError, setImpersonateError] = useState<string | null>(null);
+
   const [orderBy, setOrderBy] = useState<CommunitySortKey>("joined");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
 
@@ -506,6 +512,47 @@ export function CommunitySection({
       router.refresh();
     } finally {
       setSuperPromoteSubmitting(false);
+    }
+  }
+
+  /**
+   * Display name for the impersonation confirm dialog: prefer first+last, fall
+   * back to display name or email so we always render something readable.
+   */
+  function displayNameFor(u: CommunityUserRow): string {
+    const full = [u.first_name, u.last_name].filter(Boolean).join(" ").trim();
+    return full || u.display_name?.trim() || u.email;
+  }
+
+  /** POST to /api/admin/impersonate and reload as the target user. */
+  async function runImpersonate(u: CommunityUserRow) {
+    setImpersonateError(null);
+    setImpersonateSubmitting(true);
+    try {
+      const res = await fetch("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: u.id }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        redirectTo?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.ok) {
+        setImpersonateError(data.error || "Could not start the impersonated session.");
+        return;
+      }
+      /**
+       * Full reload so the browser uses the new auth cookies that the
+       * endpoint set in this response (in-memory Supabase client caches
+       * would otherwise still hold the old session).
+       */
+      window.location.assign(data.redirectTo || "/dashboard");
+    } catch (e) {
+      setImpersonateError(e instanceof Error ? e.message : "Network error.");
+    } finally {
+      setImpersonateSubmitting(false);
     }
   }
 
@@ -1159,7 +1206,7 @@ export function CommunitySection({
               label="Search"
               placeholder={
                 remoteMode
-                  ? "Email, name, phone, city, state, ZIP. Suggestions while typing — press Enter, the search icon, or click outside to run."
+                  ? "Email, name, phone, address, city, state, ZIP. Suggestions while typing — press Enter, the search icon, or click outside to run."
                   : "Email, name, phone, address, city, state, ZIP, role. Press Enter, the search icon, or click outside to filter."
               }
               value={searchInput}
@@ -1374,6 +1421,23 @@ export function CommunitySection({
                   >
                     <Visibility fontSize="small" />
                   </IconButton>
+                  {isSuperAdmin && u.id !== currentUserId ? (
+                    <Tooltip title="Sign in as this user">
+                      <span>
+                        <IconButton
+                          size="small"
+                          color="info"
+                          aria-label="Sign in as this user"
+                          onClick={() => {
+                            setImpersonateError(null);
+                            setImpersonateUser(u);
+                          }}
+                        >
+                          <SwitchAccount fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  ) : null}
                   {isAdmins && isSuperAdmin && eligibleForSuperAdminPromotionFromAdminsList(u) ? (
                     <Tooltip title="Make super administrator">
                       <span>
@@ -2002,6 +2066,64 @@ export function CommunitySection({
             disabled={editSaving || editRoleSaving || chapterOptions.length === 0}
           >
             {editSaving ? "Saving…" : "Save changes"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={!!impersonateUser}
+        onClose={() => {
+          if (impersonateSubmitting) return;
+          setImpersonateUser(null);
+          setImpersonateError(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Sign in as this user</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            {impersonateError ? <Alert severity="error">{impersonateError}</Alert> : null}
+            <Alert severity="warning">
+              You are about to start a session as another user. Your current super
+              administrator session will end. To return to your account, sign out
+              and sign back in with your own credentials.
+            </Alert>
+            {impersonateUser ? (
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  Target account
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  {displayNameFor(impersonateUser)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {impersonateUser.email}
+                </Typography>
+              </Box>
+            ) : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              if (impersonateSubmitting) return;
+              setImpersonateUser(null);
+              setImpersonateError(null);
+            }}
+            disabled={impersonateSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="info"
+            variant="contained"
+            disabled={impersonateSubmitting || !impersonateUser}
+            onClick={() => {
+              if (impersonateUser) void runImpersonate(impersonateUser);
+            }}
+          >
+            {impersonateSubmitting ? "Signing in…" : "Sign in as user"}
           </Button>
         </DialogActions>
       </Dialog>

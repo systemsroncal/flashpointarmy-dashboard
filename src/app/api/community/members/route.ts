@@ -195,8 +195,15 @@ export async function GET(req: Request) {
   if (selectedUserId) {
     query = query.eq("id", selectedUserId);
   } else if (q.length >= 2) {
+    /**
+     * Search across user-facing fields AND the mirrored mailing address columns
+     * (address_line / city / state / zip_code) so the placeholder hint
+     * "city, state, ZIP" actually returns matches. Profiles-level address
+     * tweaks are eventually mirrored to `dashboard_users` by the maintenance
+     * sync, so this query is the right surface to filter against.
+     */
     query = query.or(
-      `email.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%,display_name.ilike.%${q}%,phone.ilike.%${q}%`
+      `email.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%,display_name.ilike.%${q}%,phone.ilike.%${q}%,address_line.ilike.%${q}%,city.ilike.%${q}%,state.ilike.%${q}%,zip_code.ilike.%${q}%`
     );
   }
 

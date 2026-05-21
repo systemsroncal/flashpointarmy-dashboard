@@ -147,7 +147,11 @@ export async function listCommunityMembersFallback(
         (u.first_name ?? "").toLowerCase().includes(ql) ||
         (u.last_name ?? "").toLowerCase().includes(ql) ||
         (u.display_name ?? "").toLowerCase().includes(ql) ||
-        (u.phone ?? "").toLowerCase().includes(ql)
+        (u.phone ?? "").toLowerCase().includes(ql) ||
+        (u.address_line ?? "").toLowerCase().includes(ql) ||
+        (u.city ?? "").toLowerCase().includes(ql) ||
+        (u.state ?? "").toLowerCase().includes(ql) ||
+        (u.zip_code ?? "").toLowerCase().includes(ql)
     );
   }
 
