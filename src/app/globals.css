@@ -40,9 +40,11 @@ body {
 .fp-dashboard-tour-popover.driver-popover {
   background-color: #141418;
   color: #f3f4f6;
-  border: 1px solid rgba(255, 215, 0, 0.35);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 215, 0, 0.6);
+  border-radius: 10px;
   max-width: min(360px, calc(100vw - 32px));
+  /* Extra right padding keeps the title clear of the Skip pill anchored top-right. */
+  padding: 18px 60px 16px 18px;
 }
 
 .fp-dashboard-tour-popover .driver-popover-title {
@@ -81,19 +83,90 @@ body {
   color: #111;
 }
 
+/* Compact "Skip" pill, inset from the corner so it no longer grazes the rounded edge. */
 .fp-dashboard-tour-popover .driver-popover-close-btn {
-  color: #9ca3af;
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: auto;
+  height: auto;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 215, 0, 0.75);
+  background-color: transparent;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 999px;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.fp-dashboard-tour-popover .driver-popover-close-btn:hover {
-  color: #f3f4f6;
+.fp-dashboard-tour-popover .driver-popover-close-btn:hover,
+.fp-dashboard-tour-popover .driver-popover-close-btn:focus {
+  color: #111;
+  background-color: #ffd700;
+  border-color: #ffd700;
 }
 
-.fp-dashboard-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow,
-.fp-dashboard-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow,
-.fp-dashboard-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow,
+/*
+ * Outlined triangular arrow: the existing driver.js arrow becomes the yellow
+ * "outline" triangle, and a slightly smaller, slightly shifted ::before
+ * pseudo-element draws the dark fill on top. Together they read as a triangle
+ * with a yellow border that matches the popover border.
+ */
+.fp-dashboard-tour-popover .driver-popover-arrow {
+  border-width: 9px;
+}
+
+.fp-dashboard-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow {
+  border-color: transparent;
+  border-left-color: rgba(255, 215, 0, 0.85);
+}
+.fp-dashboard-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow {
+  border-color: transparent;
+  border-right-color: rgba(255, 215, 0, 0.85);
+}
+.fp-dashboard-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow {
+  border-color: transparent;
+  border-top-color: rgba(255, 215, 0, 0.85);
+}
 .fp-dashboard-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow {
-  border-color: #141418;
+  border-color: transparent;
+  border-bottom-color: rgba(255, 215, 0, 0.85);
+}
+
+.fp-dashboard-tour-popover .driver-popover-arrow::before {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  pointer-events: none;
+}
+.fp-dashboard-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow::before {
+  top: -8px;
+  left: -9px;
+  border-left-color: #141418;
+}
+.fp-dashboard-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow::before {
+  top: -8px;
+  right: -9px;
+  border-right-color: #141418;
+}
+.fp-dashboard-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow::before {
+  left: -8px;
+  top: -9px;
+  border-top-color: #141418;
+}
+.fp-dashboard-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow::before {
+  left: -8px;
+  bottom: -9px;
+  border-bottom-color: #141418;
 }
 
 /* Login page — single-step driver.js highlight */
