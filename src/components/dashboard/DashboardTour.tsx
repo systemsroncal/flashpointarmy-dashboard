@@ -13,10 +13,8 @@ import {
   pathnameToTourModuleKey,
   pickAllEntriesForModuleVisit,
   pickEntriesForModuleVisit,
-  stepIdsForModuleVisit,
 } from "@/lib/dashboard/dashboard-tour-routes";
 import {
-  clearSeenTourStepIds,
   getSeenTourStepIds,
   markTourStepSeen,
 } from "@/lib/dashboard/dashboard-tour-storage";
@@ -71,22 +69,34 @@ function noopOverlayClick(): void {
   /* Ignore overlay clicks — tour closes only via Skip / X. */
 }
 
+/**
+ * "auto" = automatic tour shown on page visit. Marks each step as seen as the
+ *   user advances so the next module visit only shows what is unseen.
+ * "help" = manual restart via the (?) header button. Does NOT mutate the
+ *   per-step seen state, so it cannot interfere with the automatic tour.
+ */
+type RunMode = "auto" | "help";
+
 type RunTourOptions = {
   entries: TourStepEntry[];
+  mode: RunMode;
 };
 
 function createDriverInstance(
   driverModule: typeof import("driver.js"),
   entries: TourStepEntry[],
   userId: string,
+  mode: RunMode,
   onCleanup: () => void
 ): Driver {
   const { driver } = driverModule;
   const steps = entries.map((e) => e.step);
   let activeStepId: string | null = null;
 
+  const shouldPersistSeen = mode === "auto";
+
   const markActiveSeen = () => {
-    if (activeStepId) markTourStepSeen(userId, activeStepId);
+    if (shouldPersistSeen && activeStepId) markTourStepSeen(userId, activeStepId);
   };
 
   return driver({
@@ -117,7 +127,7 @@ function createDriverInstance(
       const idx = drv.getActiveIndex();
       if (idx == null || idx < 0) return;
       const nextId = entries[idx]?.id;
-      if (activeStepId && activeStepId !== nextId) {
+      if (shouldPersistSeen && activeStepId && activeStepId !== nextId) {
         markTourStepSeen(userId, activeStepId);
       }
       activeStepId = nextId ?? null;
@@ -200,8 +210,26 @@ export function DashboardTourProvider({
   }, [buildInput, tourActions]);
 
   const runTourEntries = useCallback(
-    async ({ entries }: RunTourOptions) => {
-      if (runningRef.current || entries.length === 0) return;
+    async ({ entries, mode }: RunTourOptions) => {
+      if (entries.length === 0) return;
+      /**
+       * Help-driven tours always take precedence: if anything is running we
+       * tear it down first so the (?) button can never be blocked by a
+       * lingering auto-tour instance.
+       */
+      if (runningRef.current) {
+        if (mode === "help") {
+          try {
+            driverRef.current?.destroy();
+          } catch {
+            /* ignore */
+          }
+          driverRef.current = null;
+          runningRef.current = false;
+        } else {
+          return;
+        }
+      }
       runningRef.current = true;
 
       try {
@@ -214,7 +242,7 @@ export function DashboardTourProvider({
         const driverModule = await loadDriver();
         driverRef.current?.destroy();
 
-        const instance = createDriverInstance(driverModule, entries, userId, () => {
+        const instance = createDriverInstance(driverModule, entries, userId, mode, () => {
           driverRef.current = null;
           runningRef.current = false;
           cleanupTourUi();
@@ -233,21 +261,23 @@ export function DashboardTourProvider({
     [buildInput.settingsNav.length, cleanupTourUi, tourActions, userId]
   );
 
-  /** Help button: restart the tour from zero for the user's current module. */
+  /**
+   * Help button: shows ALL tour steps for the current module, every time.
+   * This runs independently of the automatic tour — it does NOT clear or
+   * write the "seen" state, so the auto-tour keeps its progress across
+   * modules untouched.
+   */
   const startTour = useCallback(() => {
     const moduleKey = pathnameToTourModuleKey(pathname, navItemsForRoutesRef.current);
     if (!moduleKey) return;
     const all = allEntriesRef.current;
     if (all.length === 0) return;
 
-    const ids = stepIdsForModuleVisit(moduleKey);
-    clearSeenTourStepIds(userId, ids);
-
     const entries = pickAllEntriesForModuleVisit(moduleKey, all);
     if (entries.length === 0) return;
 
-    void runTourEntries({ entries });
-  }, [pathname, runTourEntries, userId]);
+    void runTourEntries({ entries, mode: "help" });
+  }, [pathname, runTourEntries]);
 
   const contextValue = useMemo(() => ({ startTour }), [startTour]);
 
@@ -291,7 +321,7 @@ export function DashboardTourProvider({
       );
       if (entries.length === 0) return;
 
-      await runTourEntries({ entries });
+      await runTourEntries({ entries, mode: "auto" });
     })();
 
     return () => {

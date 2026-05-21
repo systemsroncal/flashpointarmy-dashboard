@@ -189,20 +189,32 @@ function stepForSelector(
   side: StepSide = "right",
   hooks?: { onHighlightStarted?: DriverHook; onNextClick?: DriverHook }
 ): TourStepEntry {
-  return {
-    id,
-    step: {
-      element: selector,
-      popover: {
-        title,
-        description,
-        side,
-        align: "start",
-        onNextClick: hooks?.onNextClick,
-      },
-      onHighlightStarted: hooks?.onHighlightStarted,
-    },
+  /**
+   * IMPORTANT: never set `onNextClick` / `onPrevClick` / `onCloseClick` to `undefined`
+   * on the popover. driver.js v1.4 spreads the user's `popover` AT THE END of its
+   * internal merged config (see `driver.js.mjs` `v()` function). A property whose
+   * value is `undefined` still overrides driver.js' default handler, which causes
+   * the Next button to silently do nothing (`L("nextClick")` has no registered
+   * listener). We therefore only attach the property when a real function is
+   * provided.
+   */
+  const popover: DriveStep["popover"] = {
+    title,
+    description,
+    side,
+    align: "start",
   };
+  if (hooks?.onNextClick) {
+    popover.onNextClick = hooks.onNextClick;
+  }
+  const step: DriveStep = {
+    element: selector,
+    popover,
+  };
+  if (hooks?.onHighlightStarted) {
+    step.onHighlightStarted = hooks.onHighlightStarted;
+  }
+  return { id, step };
 }
 
 export function filterEntriesWithDom(entries: TourStepEntry[]): TourStepEntry[] {
