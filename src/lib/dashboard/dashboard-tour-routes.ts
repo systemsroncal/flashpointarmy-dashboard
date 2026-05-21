@@ -42,13 +42,41 @@ const PROFILE_AND_CHROME_STEP_IDS = [
   "header-tour-help",
 ] as const;
 
-/** Step ids to offer when the user opens this module route. */
-export function stepIdsForModuleVisit(moduleKey: string): string[] {
-  const ids = [`nav-${moduleKey}`];
+const PROFILE_AND_CHROME_SET = new Set<string>(PROFILE_AND_CHROME_STEP_IDS);
+
+/**
+ * Predicate matching which step ids belong to a given module visit.
+ *
+ * - On a module page (e.g. `/dashboard/chapters`) we only highlight the
+ *   matching `nav-${moduleKey}` step.
+ * - On the home dashboard (`nationalOverview`) we show the FULL tour:
+ *   welcome, sidebar toggle, every `nav-*` entry the user can see (including
+ *   the `nav-settings-group` row and every settings child), plus the profile
+ *   and header chrome steps. This is why entries between `nav-nationalOverview`
+ *   and `sidebar-profile` were being skipped — the previous version only
+ *   listed `nav-${moduleKey}` instead of all `nav-*` ids.
+ */
+function isStepIdForModuleVisit(moduleKey: string, id: string): boolean {
   if (moduleKey === MODULE_SLUGS.nationalOverview) {
-    return ["welcome", "sidebar-toggle", ...ids, ...PROFILE_AND_CHROME_STEP_IDS];
+    if (id === "welcome" || id === "sidebar-toggle") return true;
+    if (id.startsWith("nav-")) return true;
+    if (PROFILE_AND_CHROME_SET.has(id)) return true;
+    return false;
   }
-  return ids;
+  return id === `nav-${moduleKey}`;
+}
+
+/** Step ids the home tour considers (used for the help-button restart bookkeeping). */
+export function stepIdsForModuleVisit(moduleKey: string): string[] {
+  if (moduleKey !== MODULE_SLUGS.nationalOverview) return [`nav-${moduleKey}`];
+  /** Order matches `buildMainDashboardTourEntries`. */
+  return [
+    "welcome",
+    "sidebar-toggle",
+    /** Generic marker — `pickAllEntriesForModuleVisit` / `pickEntriesForModuleVisit` use
+     * the predicate to include every visible `nav-*` entry. */
+    ...PROFILE_AND_CHROME_STEP_IDS,
+  ];
 }
 
 /** Unseen steps to show when the user opens a module route. */
@@ -57,8 +85,9 @@ export function pickEntriesForModuleVisit(
   allEntries: TourStepEntry[],
   seen: Set<string>
 ): TourStepEntry[] {
-  const wanted = new Set(stepIdsForModuleVisit(moduleKey));
-  return filterEntriesWithDom(allEntries.filter((e) => wanted.has(e.id) && !seen.has(e.id)));
+  return filterEntriesWithDom(
+    allEntries.filter((e) => isStepIdForModuleVisit(moduleKey, e.id) && !seen.has(e.id))
+  );
 }
 
 /** All steps for a module route, ignoring the "seen" state (used when restarting from zero). */
@@ -66,11 +95,7 @@ export function pickAllEntriesForModuleVisit(
   moduleKey: string,
   allEntries: TourStepEntry[]
 ): TourStepEntry[] {
-  const wanted = new Set(stepIdsForModuleVisit(moduleKey));
-  const order = stepIdsForModuleVisit(moduleKey);
-  const byId = new Map(allEntries.map((e) => [e.id, e] as const));
-  const ordered = order
-    .map((id) => byId.get(id))
-    .filter((e): e is TourStepEntry => Boolean(e && wanted.has(e.id)));
-  return filterEntriesWithDom(ordered);
+  return filterEntriesWithDom(
+    allEntries.filter((e) => isStepIdForModuleVisit(moduleKey, e.id))
+  );
 }
