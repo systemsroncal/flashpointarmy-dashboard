@@ -37,12 +37,24 @@ export async function GET(req: Request) {
     const fromIso = from.toISOString();
     const toIso = to.toISOString();
 
-    const [userDates, chapterDates, gatheringDates, roleRes, chapterStatusRes] = await Promise.all([
+    const [
+      userDates,
+      chapterDates,
+      gatheringDates,
+      roleRes,
+      chapterStatusRes,
+      coursesRes,
+      sessionsRes,
+      progressRes,
+    ] = await Promise.all([
       fetchCreatedAtInRange(admin, "dashboard_users", fromIso, toIso),
       fetchCreatedAtInRange(admin, "chapters", fromIso, toIso),
       fetchCreatedAtInRange(admin, "gatherings", fromIso, toIso),
       admin.from("user_roles").select("roles(name)"),
       admin.from("chapters").select("status"),
+      admin.from("courses").select("id, title, published").eq("published", true),
+      admin.from("course_sessions").select("id, course_id"),
+      admin.from("course_session_progress").select("user_id, session_id, completed_at"),
     ]);
 
     const firstErr = roleRes.error || chapterStatusRes.error;
@@ -68,6 +80,74 @@ export async function GET(req: Request) {
       chapterStatusCounts.set(st, (chapterStatusCounts.get(st) ?? 0) + 1);
     }
 
+    /**
+     * Per-course completion comparison: for each published course count users who
+     * (a) started — have at least one progress row — and (b) completed every session.
+     * Completion is defined as "distinct completed sessions == total sessions for
+     * the course". This is the snapshot definition (not date-range filtered) so the
+     * comparison reflects the current state of training.
+     */
+    const courseRows = (coursesRes.data ?? []) as { id: string; title: string }[];
+    const sessionRows =
+      (sessionsRes.data ?? []) as { id: string; course_id: string }[];
+    const progressRows =
+      (progressRes.data ?? []) as {
+        user_id: string;
+        session_id: string;
+        completed_at: string | null;
+      }[];
+
+    const sessionsByCourse = new Map<string, Set<string>>();
+    for (const s of sessionRows) {
+      const set = sessionsByCourse.get(s.course_id) ?? new Set<string>();
+      set.add(s.id);
+      sessionsByCourse.set(s.course_id, set);
+    }
+    const courseBySession = new Map<string, string>();
+    for (const s of sessionRows) courseBySession.set(s.id, s.course_id);
+
+    /** courseId -> userId -> set of completed sessionIds. */
+    const completedByCourseUser = new Map<string, Map<string, Set<string>>>();
+    const startedByCourseUser = new Map<string, Set<string>>();
+    for (const p of progressRows) {
+      const courseId = courseBySession.get(p.session_id);
+      if (!courseId) continue;
+      const startedSet = startedByCourseUser.get(courseId) ?? new Set<string>();
+      startedSet.add(p.user_id);
+      startedByCourseUser.set(courseId, startedSet);
+      if (!p.completed_at) continue;
+      const byUser =
+        completedByCourseUser.get(courseId) ?? new Map<string, Set<string>>();
+      const seenSessions = byUser.get(p.user_id) ?? new Set<string>();
+      seenSessions.add(p.session_id);
+      byUser.set(p.user_id, seenSessions);
+      completedByCourseUser.set(courseId, byUser);
+    }
+
+    const courseCompletion = courseRows
+      .map((c) => {
+        const total = sessionsByCourse.get(c.id)?.size ?? 0;
+        const started = startedByCourseUser.get(c.id)?.size ?? 0;
+        let completed = 0;
+        const byUser = completedByCourseUser.get(c.id);
+        if (byUser && total > 0) {
+          for (const [, sessions] of byUser) {
+            if (sessions.size >= total) completed += 1;
+          }
+        }
+        const percent = started > 0 ? Math.round((completed / started) * 100) : 0;
+        return {
+          courseId: c.id,
+          title: c.title,
+          totalSessions: total,
+          startedUsers: started,
+          completedUsers: completed,
+          percent,
+        };
+      })
+      /** Sort by raw completed count desc so the most-finished courses lead the chart. */
+      .sort((a, b) => b.completedUsers - a.completedUsers || b.startedUsers - a.startedUsers);
+
     return NextResponse.json({
       range: { from: fromIso, to: toIso },
       bucket,
@@ -82,6 +162,7 @@ export async function GET(req: Request) {
         labels: [...chapterStatusCounts.keys()],
         series: [...chapterStatusCounts.values()],
       },
+      courseCompletion,
     });
   } catch (e) {
     return NextResponse.json(

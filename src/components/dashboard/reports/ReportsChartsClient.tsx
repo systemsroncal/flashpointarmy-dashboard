@@ -7,12 +7,20 @@ import {
   Box,
   Button,
   ButtonGroup,
+  Chip,
   FormControl,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Paper,
   Select,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -28,6 +36,15 @@ type SeriesBlock = { categories: string[]; data: number[] };
 
 type PieBlock = { labels: string[]; series: number[] };
 
+type CourseCompletionRow = {
+  courseId: string;
+  title: string;
+  totalSessions: number;
+  startedUsers: number;
+  completedUsers: number;
+  percent: number;
+};
+
 type ReportsPayload = {
   range: { from: string; to: string };
   bucket: Bucket;
@@ -36,6 +53,7 @@ type ReportsPayload = {
   gatheringsByBucket: SeriesBlock;
   rolesPie: PieBlock;
   chapterStatusPie: PieBlock;
+  courseCompletion?: CourseCompletionRow[];
 };
 
 const baseOpts: ApexOptions = {
@@ -201,6 +219,36 @@ export function ReportsChartsClient() {
     };
   }, [data]);
 
+  const courseCompletionRows = useMemo<CourseCompletionRow[]>(
+    () => data?.courseCompletion ?? [],
+    [data]
+  );
+
+  /**
+   * Grouped bar comparing, per course, how many users have started vs. how many
+   * have fully completed. The percent value is rendered separately in the table.
+   */
+  const courseCompletionOpts = useMemo((): ApexOptions => {
+    return {
+      ...baseOpts,
+      chart: { ...baseOpts.chart, id: "course-completion", type: "bar", stacked: false },
+      plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "65%" } },
+      xaxis: {
+        categories: courseCompletionRows.map((c) => c.title || c.courseId.slice(0, 6)),
+        title: { text: "Users" },
+        min: 0,
+      },
+      yaxis: { title: { text: undefined } },
+      colors: ["#4cc9f0", "#2a9d8f"],
+      legend: { position: "top" },
+      title: {
+        text: "Course completion comparison (current snapshot)",
+        style: { color: "#90be6d" },
+      },
+      tooltip: { shared: true, intersect: false },
+    };
+  }, [courseCompletionRows]);
+
   const pieSeriesRoles = data?.rolesPie.series ?? [];
   const pieSeriesChapter = data?.chapterStatusPie.series ?? [];
 
@@ -358,6 +406,128 @@ export function ReportsChartsClient() {
               )}
             </Paper>
           </Stack>
+
+          <Paper sx={{ p: 2 }}>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              alignItems={{ md: "center" }}
+              justifyContent="space-between"
+              spacing={1}
+              sx={{ mb: 2 }}
+            >
+              <Box>
+                <Typography variant="h6" sx={{ color: "#90be6d" }}>
+                  Course completion comparison
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Current snapshot of published courses: how many users started vs. how many finished every session.
+                </Typography>
+              </Box>
+              {courseCompletionRows.length > 0 ? (
+                <Chip
+                  size="small"
+                  label={`${courseCompletionRows.length} ${
+                    courseCompletionRows.length === 1 ? "course" : "courses"
+                  }`}
+                  sx={{ alignSelf: "flex-start" }}
+                />
+              ) : null}
+            </Stack>
+
+            {courseCompletionRows.length === 0 ? (
+              <Box sx={{ py: 4, textAlign: "center" }}>
+                <Typography color="text.secondary">
+                  No published courses with student progress yet.
+                </Typography>
+              </Box>
+            ) : (
+              <Stack spacing={2}>
+                <Chart
+                  type="bar"
+                  height={Math.max(220, courseCompletionRows.length * 56)}
+                  series={[
+                    {
+                      name: "Started",
+                      data: courseCompletionRows.map((c) => c.startedUsers),
+                    },
+                    {
+                      name: "Completed",
+                      data: courseCompletionRows.map((c) => c.completedUsers),
+                    },
+                  ]}
+                  options={courseCompletionOpts}
+                />
+
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Course</TableCell>
+                        <TableCell align="right">Sessions</TableCell>
+                        <TableCell align="right">Started</TableCell>
+                        <TableCell align="right">Completed</TableCell>
+                        <TableCell sx={{ minWidth: 200 }}>Completion</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {courseCompletionRows.map((c) => {
+                        const pct = c.percent;
+                        const tone =
+                          pct >= 75
+                            ? "#2a9d8f"
+                            : pct >= 50
+                              ? "#e9c46a"
+                              : pct >= 25
+                                ? "#f4a261"
+                                : "#e63946";
+                        return (
+                          <TableRow key={c.courseId}>
+                            <TableCell>{c.title}</TableCell>
+                            <TableCell align="right">{c.totalSessions}</TableCell>
+                            <TableCell align="right">{c.startedUsers}</TableCell>
+                            <TableCell align="right">{c.completedUsers}</TableCell>
+                            <TableCell>
+                              <Stack spacing={0.5} sx={{ minWidth: 180 }}>
+                                <Box
+                                  sx={{
+                                    position: "relative",
+                                    width: "100%",
+                                    height: 10,
+                                    borderRadius: 999,
+                                    bgcolor: "rgba(255,255,255,0.08)",
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <LinearProgress
+                                    variant="determinate"
+                                    value={pct}
+                                    sx={{
+                                      height: "100%",
+                                      bgcolor: "transparent",
+                                      "& .MuiLinearProgress-bar": {
+                                        bgcolor: tone,
+                                        borderRadius: 999,
+                                      },
+                                    }}
+                                  />
+                                </Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: tone, fontVariantNumeric: "tabular-nums" }}
+                                >
+                                  {pct}% of started users completed
+                                </Typography>
+                              </Stack>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Stack>
+            )}
+          </Paper>
         </Stack>
       ) : null}
     </Stack>

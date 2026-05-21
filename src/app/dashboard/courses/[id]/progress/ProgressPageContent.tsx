@@ -7,7 +7,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Box, Paper, Typography } from "@mui/material";
 import { CourseProgressUsersTable } from "@/components/dashboard/courses/CourseProgressUsersTable";
-import { listDashboardUsersByIds, listRoleNamesByUserIds } from "@/lib/admin/dashboard-user-queries";
+import {
+  listDashboardUsersByIds,
+  listProfilesByIds,
+  listRoleNamesByUserIds,
+} from "@/lib/admin/dashboard-user-queries";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -131,6 +135,13 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
 
   const roleByUser = userIds.length ? await listRoleNamesByUserIds(admin, userIds) : new Map<string, string[]>();
 
+  /** Avatar comes from `profiles.avatar_url`; mirror table (`dashboard_users`) does not store it. */
+  const avatarById = new Map<string, string | null>();
+  if (userIds.length) {
+    const profileRows = await listProfilesByIds(admin, userIds);
+    for (const p of profileRows) avatarById.set(p.id, p.avatar_url ?? null);
+  }
+
   const rows = userIds
     .map((uid) => {
       const du = duById.get(uid);
@@ -142,6 +153,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
       return {
         uid,
         label: name,
+        avatarUrl: avatarById.get(uid) ?? null,
         city: du?.city?.trim() || null,
         state: du?.state?.trim() || null,
         roleLabel: progressRoleLabel(roleByUser.get(uid) ?? []),
