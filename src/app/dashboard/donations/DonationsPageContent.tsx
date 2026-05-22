@@ -26,11 +26,15 @@ export default async function DonationsPageContent() {
   }
 
   const canEdit = can(permissions, MODULE_SLUGS.donations, "update");
+  const canCreate = can(permissions, MODULE_SLUGS.donations, "create");
+  const canDelete = can(permissions, MODULE_SLUGS.donations, "delete");
 
   return (
     <DonationsSettingsClient
       initialPresets={(presets ?? []) as DonationAmountPreset[]}
       canEdit={canEdit}
+      canCreate={canCreate}
+      canDelete={canDelete}
     />
   );
 }

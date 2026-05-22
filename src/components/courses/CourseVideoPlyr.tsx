@@ -18,8 +18,27 @@ const RESUME_REWIND_SECONDS = 10;
 const MIN_SAVED_SECONDS_TO_AUTO_RESUME = 15;
 /** Persist at most every N seconds during playback (also on pause/seek). */
 const TIMEUPDATE_PERSIST_INTERVAL_SEC = 8;
-/** Mark video complete when within this many seconds of the end (Vimeo sometimes skips `ended`). */
-const NEAR_END_SECONDS = 45;
+/**
+ * Mark video complete when within this many seconds of the end. Vimeo and some
+ * iframe providers occasionally skip `ended`, and users often pause/leave just
+ * before the credits — this provides a generous absolute fallback for any
+ * non-trivial duration.
+ */
+const NEAR_END_SECONDS = 60;
+/**
+ * Relative completion threshold. Once playback has reached this fraction of the
+ * total duration, treat the video as fully watched even if `ended` never fires.
+ * Combined with {@link NEAR_END_SECONDS}, whichever triggers first wins.
+ */
+const FULLY_WATCHED_FRACTION = 0.92;
+/**
+ * If the saved/initial position is already at or above this fraction of total
+ * duration when the player loads, mark the video as fully watched immediately
+ * (without requiring the user to scrub through the closing minute again).
+ * Strictly between {@link FULLY_WATCHED_FRACTION} so that any persisted
+ * position that previously satisfied the live threshold also satisfies this.
+ */
+const INITIAL_FULLY_WATCHED_FRACTION = 0.9;
 
 function setPlayerTime(player: PlyrLike, seconds: number): boolean {
   if (seconds <= 0) return true;
@@ -131,6 +150,7 @@ export function CourseVideoPlyr({
   autoplayMuted = false,
   omitPlayLargeControl = false,
   onVideoFullyWatched,
+  onProgress,
   suppressResumePrompt = false,
 }: {
   videoUrl: string;
@@ -140,6 +160,13 @@ export function CourseVideoPlyr({
   autoplayMuted?: boolean;
   omitPlayLargeControl?: boolean;
   onVideoFullyWatched?: () => void;
+  /**
+   * Lightweight progress reporter: fires on play, pause, seek, and periodic
+   * ticks with the latest known current time and duration. Used by the parent
+   * session player to render a manual "I have finished watching" override once
+   * the learner has watched a meaningful portion of the video.
+   */
+  onProgress?: (currentSeconds: number, durationSeconds: number) => void;
   /** When true (e.g. learner already finished), skip auto-resume on load. */
   suppressResumePrompt?: boolean;
 }) {
@@ -155,6 +182,8 @@ export function CourseVideoPlyr({
   persistHandlerRef.current = onPersistSeconds;
   const onFullyWatchedRef = useRef(onVideoFullyWatched);
   onFullyWatchedRef.current = onVideoFullyWatched;
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
 
   const [savedSeconds, setSavedSeconds] = useState(0);
   const [autoResumed, setAutoResumed] = useState(false);
@@ -305,10 +334,72 @@ export function CourseVideoPlyr({
         if (storageKey) writeLs(storageKey, floored);
       };
 
+      const reportProgress = (t: number, dur: number) => {
+        try {
+          onProgressRef.current?.(t, dur);
+        } catch {
+          /* ignore */
+        }
+      };
+
+      const readDuration = (): number => {
+        const d = typeof player.duration === "number" ? player.duration : 0;
+        return Number.isFinite(d) && d > 0 ? d : 0;
+      };
+
+      const isFullyWatchedZone = (t: number, dur: number, fraction: number): boolean => {
+        if (dur <= 0) return false;
+        return t >= Math.max(0, dur - NEAR_END_SECONDS) || t / dur >= fraction;
+      };
+
+      const maybeMarkNearEnd = () => {
+        if (fullyWatchedFiredRef.current) return;
+        const t = readCurrentTime(player);
+        const dur = readDuration();
+        if (dur > 0 && isFullyWatchedZone(t, dur, FULLY_WATCHED_FRACTION)) {
+          fullyWatchedFiredRef.current = true;
+          try {
+            onFullyWatchedRef.current?.();
+          } catch {
+            /* ignore */
+          }
+        }
+      };
+
+      /**
+       * On player load, if the saved/initial position is already deep enough,
+       * mark the video as fully watched right away. This unblocks learners who
+       * previously watched (almost) to the end on another device or session
+       * where the localStorage `done` flag never made it back, without forcing
+       * them to scrub to the final seconds again.
+       */
+      const maybeMarkFromInitialPosition = () => {
+        if (fullyWatchedFiredRef.current) return;
+        const dur = readDuration();
+        if (dur <= 0) return;
+        const t = readCurrentTime(player);
+        /**
+         * Use the freshest persisted value rather than React state, which may
+         * not have flushed yet when this effect initializes the player.
+         */
+        const ls = storageKey ? readLs(storageKey) : 0;
+        const reference = Math.max(t, ls, initialSeconds);
+        if (isFullyWatchedZone(reference, dur, INITIAL_FULLY_WATCHED_FRACTION)) {
+          fullyWatchedFiredRef.current = true;
+          try {
+            onFullyWatchedRef.current?.();
+          } catch {
+            /* ignore */
+          }
+        }
+        reportProgress(t, dur);
+      };
+
       player.on("ready", () => {
         if (pendingSeekRef.current != null && pendingSeekRef.current > 0) {
           applyPendingSeek(player);
         }
+        maybeMarkFromInitialPosition();
         if (autoplayMuted) {
           void Promise.resolve((player as { play?: () => void | Promise<void> }).play?.()).catch(() => {
             /* autoplay blocked */
@@ -319,26 +410,15 @@ export function CourseVideoPlyr({
       for (const evt of ["loadeddata", "canplay", "playing"] as const) {
         player.on(evt, () => {
           if (pendingSeekRef.current != null) applyPendingSeek(player);
+          maybeMarkFromInitialPosition();
         });
       }
 
-      const maybeMarkNearEnd = () => {
-        if (fullyWatchedFiredRef.current) return;
-        const t = readCurrentTime(player);
-        const dur = typeof player.duration === "number" && player.duration > 0 ? player.duration : 0;
-        if (dur > 0 && t >= Math.max(0, dur - NEAR_END_SECONDS)) {
-          fullyWatchedFiredRef.current = true;
-          try {
-            onFullyWatchedRef.current?.();
-          } catch {
-            /* ignore */
-          }
-        }
-      };
-
       const snapshot = () => {
         const t = readCurrentTime(player);
+        const dur = readDuration();
         persist(t);
+        reportProgress(t, dur);
         maybeMarkNearEnd();
       };
 
@@ -346,12 +426,17 @@ export function CourseVideoPlyr({
       player.on("seeked", snapshot);
 
       let lastTimeupdatePersist = 0;
+      let lastProgressReport = 0;
       player.on("timeupdate", () => {
         const t = readCurrentTime(player);
         if (t < 1) return;
         if (t - lastTimeupdatePersist >= TIMEUPDATE_PERSIST_INTERVAL_SEC) {
           lastTimeupdatePersist = t;
           persist(t);
+        }
+        if (t - lastProgressReport >= 1) {
+          lastProgressReport = t;
+          reportProgress(t, readDuration());
         }
         maybeMarkNearEnd();
       });

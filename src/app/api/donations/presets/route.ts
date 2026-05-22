@@ -1,9 +1,18 @@
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { MODULE_SLUGS } from "@/config/modules";
+import {
+  DONATION_MAX_CUSTOM_CENTS,
+  DONATION_MIN_CUSTOM_CENTS,
+} from "@/lib/donations/constants";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { NextResponse } from "next/server";
+
+function formatCentsLabel(cents: number): string {
+  const dollars = cents / 100;
+  return `$${dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(2)}`;
+}
 
 export async function GET() {
   try {
@@ -30,6 +39,96 @@ export async function GET() {
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to load presets" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Create a new fixed-amount donation preset. Custom-amount presets are
+ * intentionally not creatable from this endpoint: migration 045 enforces a
+ * unique partial index that guarantees there is at most one row with
+ * `is_custom_amount = true`, and the seed inserts it.
+ */
+export async function POST(req: Request) {
+  try {
+    const authResult = await requireApiAuth();
+    if ("response" in authResult) return authResult.response;
+    const { supabase, user } = authResult;
+
+    const permissions = await loadModulePermissions(supabase, user.id);
+    if (!can(permissions, MODULE_SLUGS.donations, "create")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = (await req.json()) as {
+      amount_cents?: number;
+      label?: string;
+      is_enabled?: boolean;
+      allow_one_time?: boolean;
+      allow_monthly?: boolean;
+      allow_bimonthly?: boolean;
+      allow_quarterly?: boolean;
+      allow_yearly?: boolean;
+    };
+
+    if (
+      typeof body.amount_cents !== "number" ||
+      !Number.isFinite(body.amount_cents) ||
+      body.amount_cents < DONATION_MIN_CUSTOM_CENTS ||
+      body.amount_cents > DONATION_MAX_CUSTOM_CENTS
+    ) {
+      return NextResponse.json(
+        {
+          error: `amount_cents must be between ${DONATION_MIN_CUSTOM_CENTS} and ${DONATION_MAX_CUSTOM_CENTS}.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const amountCents = Math.round(body.amount_cents);
+    const label =
+      typeof body.label === "string" && body.label.trim().length > 0
+        ? body.label.trim()
+        : formatCentsLabel(amountCents);
+
+    const admin = createAdminClient();
+
+    /** Place new fixed presets just before the custom row (sort_order = 99). */
+    const { data: maxFixed } = await admin
+      .from("donation_amount_presets")
+      .select("sort_order")
+      .eq("is_custom_amount", false)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextSort = Math.min(98, (maxFixed?.sort_order ?? 0) + 1);
+
+    const { data, error } = await admin
+      .from("donation_amount_presets")
+      .insert({
+        label,
+        amount_cents: amountCents,
+        is_custom_amount: false,
+        sort_order: nextSort,
+        is_enabled: body.is_enabled ?? true,
+        allow_one_time: body.allow_one_time ?? true,
+        allow_monthly: body.allow_monthly ?? false,
+        allow_bimonthly: body.allow_bimonthly ?? false,
+        allow_quarterly: body.allow_quarterly ?? false,
+        allow_yearly: body.allow_yearly ?? false,
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ preset: data });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to create preset" },
       { status: 500 }
     );
   }
