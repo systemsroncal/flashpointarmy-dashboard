@@ -17,6 +17,7 @@
 # `git reset --hard` before deploy — the script already resets to origin.
 #
 # PM2 user: always run deploy as the SAME user that owns PM2 (root *or* admin — never mix).
+# Root on Hestia (repo owned by admin): script auto-runs `git config --global --add safe.directory`.
 # Examples:
 #   Prod (root PM2):  cd .../app.fparmychapters.com/public_html && bash scripts/deploy-from-github.sh
 #   Dev (root PM2):   cd .../dev.fparmychapters.com/public_html && GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
@@ -74,6 +75,22 @@ warn_if_env_tracked() {
   if git ls-files --error-unmatch "$ENV_FILE" >/dev/null 2>&1; then
     echo "[deploy] WARNING: ${ENV_FILE} is tracked in git — secrets may be overwritten by reset. Remove it from the repo and keep it only on the VPS." >&2
   fi
+}
+
+# Root deploy on Hestia clones owned by `admin` triggers git "dubious ownership".
+ensure_git_safe_directory() {
+  if git status >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "[deploy] git blocked (dubious ownership?) — adding safe.directory for: $ROOT"
+  git config --global --add safe.directory "$ROOT" 2>/dev/null || true
+  if git status >/dev/null 2>&1; then
+    echo "[deploy] OK: git safe.directory configured for this clone"
+    return 0
+  fi
+  echo "[deploy] ERROR: git still blocked. Run as repo owner or:" >&2
+  echo "  git config --global --add safe.directory $ROOT" >&2
+  exit 1
 }
 
 port_holders() {
@@ -165,6 +182,7 @@ fi
 
 echo "[deploy] $(pwd) branch=$BRANCH PORT=$PORT pm2=$PM2_NAME user=$(whoami)"
 
+ensure_git_safe_directory
 warn_if_env_tracked
 backup_env_files
 
