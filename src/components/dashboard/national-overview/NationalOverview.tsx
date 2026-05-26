@@ -254,7 +254,7 @@ export function NationalOverview({
           icon: AssignmentIndOutlined,
         },
         {
-          label: "Happening Now (24h)",
+          label: "Happening Now",
           value: stats.happeningNow,
           color: "#ef4444",
           icon: BoltOutlined,
@@ -438,7 +438,24 @@ export function NationalOverview({
             <Typography variant="caption" color="error.main" sx={{ display: "block", mb: 0.5 }}>
               Last 25 activities · past 24 hours
             </Typography>
-            <Box sx={{ maxHeight: 380, overflow: "auto", mx: -0.5 }}>
+            <Box
+              sx={{
+                maxHeight: 380,
+                overflow: "auto",
+                mx: -0.5,
+                scrollbarWidth: "thin",
+                scrollbarColor: "rgba(255,215,0,0.22) rgba(0,0,0,0.35)",
+                "&::-webkit-scrollbar": { width: 6 },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "rgba(255,215,0,0.16)",
+                  borderRadius: 3,
+                  border: "1px solid rgba(0,0,0,0.2)",
+                },
+                "&::-webkit-scrollbar-track": {
+                  backgroundColor: "rgba(0,0,0,0.28)",
+                },
+              }}
+            >
               <CommunityInActionFeed items={feed} />
             </Box>
           </Paper>
