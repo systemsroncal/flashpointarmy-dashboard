@@ -346,9 +346,9 @@ export function NationalOverview({
         })}
       </Box>
 
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-start" }}>
-        <Box sx={{ flex: "1 1 380px", minWidth: 280 }}>
-          <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.4)" }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "stretch" }}>
+        <Box sx={{ flex: "1 1 380px", minWidth: 280, display: "flex", flexDirection: "column" }}>
+          <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.4)", flex: 1, display: "flex", flexDirection: "column" }}>
             <Typography variant="h6" sx={{ mb: 1, color: "primary.main" }}>
               Live chapter activity map
             </Typography>
@@ -429,9 +429,20 @@ export function NationalOverview({
             maxWidth: 345,
             minWidth: 285,
             flex: "0 0 auto",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <Paper sx={{ p: 1.75, bgcolor: "rgba(0,0,0,0.4)" }}>
+          <Paper
+            sx={{
+              p: 1.75,
+              bgcolor: "rgba(0,0,0,0.4)",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
+          >
             <Typography variant="h6" sx={{ mb: 0.25, color: "primary.main", fontSize: "1rem" }}>
               Community in Action
             </Typography>
@@ -440,7 +451,8 @@ export function NationalOverview({
             </Typography>
             <Box
               sx={{
-                maxHeight: 380,
+                flex: 1,
+                minHeight: 0,
                 overflow: "auto",
                 mx: -0.5,
                 scrollbarWidth: "thin",
