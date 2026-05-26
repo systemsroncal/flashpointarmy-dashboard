@@ -7,6 +7,10 @@ import { Box, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
 import { findAllVideoMarkers } from "./announcement-video-markers";
 
+/** Pale gold used for links in dashboard rich text (matches GatheringDescriptionEditor dark surface). */
+const DASHBOARD_LINK_COLOR = "#f5d547";
+const DASHBOARD_LINK_HOVER = "#FFD700";
+
 export { ANNOUNCEMENT_PLYR_BLOCK_CLASS, announcementPlainTextPreview } from "./announcement-video-markers";
 
 type Part = { kind: "html"; html: string } | { kind: "video"; url: string };
@@ -53,9 +57,14 @@ const darkHtmlSx = {
   "& h1, & h2, & h3, & h4": {
     color: "grey.100 !important",
   },
-  "& a": {
-    color: "primary.light !important",
+  "& a, & a:visited": {
+    color: `${DASHBOARD_LINK_COLOR} !important`,
+    textDecorationColor: "rgba(245, 213, 71, 0.55)",
     wordBreak: "break-word",
+    "&:hover": {
+      color: `${DASHBOARD_LINK_HOVER} !important`,
+      textDecorationColor: DASHBOARD_LINK_HOVER,
+    },
   },
 } as const;
 
