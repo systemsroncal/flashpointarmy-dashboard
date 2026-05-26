@@ -1,3 +1,4 @@
+import { CourseProgressPageClient } from "@/components/dashboard/courses/CourseProgressPageClient";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
@@ -5,14 +6,18 @@ import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { requireServerUser } from "@/lib/auth/server-session";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Box, Paper, Typography } from "@mui/material";
-import { CourseProgressUsersTable } from "@/components/dashboard/courses/CourseProgressUsersTable";
+import { Paper, Typography } from "@mui/material";
 import {
   listDashboardUsersByIds,
   listProfilesByIds,
   listRoleNamesByUserIds,
+  preferNonEmptyAddr,
 } from "@/lib/admin/dashboard-user-queries";
 import { graduateBadgeRoleFromRoles } from "@/lib/courses/course-completion";
+import {
+  computeCourseCompletionRow,
+  progressRoleBucketFromSlugs,
+} from "@/lib/courses/course-completion-stats";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -50,7 +55,11 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
     );
   }
 
-  const { data: course } = await supabase.from("courses").select("id, title, slug, applies_grades").eq("id", courseId).maybeSingle();
+  const { data: course } = await supabase
+    .from("courses")
+    .select("id, title, slug, applies_grades")
+    .eq("id", courseId)
+    .maybeSingle();
   if (!course) notFound();
 
   if (!hasSupabaseAdminEnv()) {
@@ -66,6 +75,11 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
   }
 
   const admin = createAdminClient();
+
+  const { count: totalRegisteredUsers } = await admin
+    .from("dashboard_users")
+    .select("id", { count: "exact", head: true });
+
   const { data: sessions } = await admin.from("course_sessions").select("id").eq("course_id", courseId);
   const sessionIds = (sessions ?? []).map((s) => s.id as string);
   const totalSessions = sessionIds.length;
@@ -84,6 +98,19 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
     .select("user_id, session_id, completed_at")
     .in("session_id", sessionIds);
 
+  const progressRows = (prog ?? []) as Array<{
+    user_id: string;
+    session_id: string;
+    completed_at: string | null;
+  }>;
+
+  const completionRow = await computeCourseCompletionRow(
+    admin,
+    { id: courseId, title: course.title as string },
+    sessionIds,
+    progressRows
+  );
+
   const { data: quizEls } = await admin
     .from("course_elements")
     .select("id")
@@ -93,12 +120,12 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
   const quizIds = (quizEls ?? []).map((e) => e.id as string);
 
   const byUser = new Map<string, { done: number; ids: Set<string> }>();
-  for (const row of prog ?? []) {
-    const uid = row.user_id as string;
+  for (const row of progressRows) {
+    const uid = row.user_id;
     if (!byUser.has(uid)) byUser.set(uid, { done: 0, ids: new Set() });
     if (row.completed_at) {
       const u = byUser.get(uid)!;
-      u.ids.add(row.session_id as string);
+      u.ids.add(row.session_id);
     }
   }
   for (const [, v] of byUser) v.done = v.ids.size;
@@ -119,7 +146,17 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
   }
 
   const userIds = [...byUser.keys()];
-  const duById = new Map<string, { city: string | null; state: string | null; email: string; display_name: string | null; first_name: string | null; last_name: string | null }>();
+  const duById = new Map<
+    string,
+    {
+      city: string | null;
+      state: string | null;
+      email: string;
+      display_name: string | null;
+      first_name: string | null;
+      last_name: string | null;
+    }
+  >();
   if (userIds.length) {
     const duRows = await listDashboardUsersByIds(admin, userIds);
     for (const u of duRows) {
@@ -134,18 +171,27 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
     }
   }
 
-  const roleByUser = userIds.length ? await listRoleNamesByUserIds(admin, userIds) : new Map<string, string[]>();
-
-  /** Avatar comes from `profiles.avatar_url`; mirror table (`dashboard_users`) does not store it. */
-  const avatarById = new Map<string, string | null>();
+  const profileById = new Map<
+    string,
+    { avatar_url: string | null; city: string | null; state: string | null }
+  >();
   if (userIds.length) {
     const profileRows = await listProfilesByIds(admin, userIds);
-    for (const p of profileRows) avatarById.set(p.id, p.avatar_url ?? null);
+    for (const p of profileRows) {
+      profileById.set(p.id, {
+        avatar_url: p.avatar_url ?? null,
+        city: p.city,
+        state: p.state,
+      });
+    }
   }
+
+  const roleByUser = userIds.length ? await listRoleNamesByUserIds(admin, userIds) : new Map<string, string[]>();
 
   const rows = userIds
     .map((uid) => {
       const du = duById.get(uid);
+      const profile = profileById.get(uid);
       const name =
         du?.display_name?.trim() ||
         [du?.first_name, du?.last_name].filter(Boolean).join(" ").trim() ||
@@ -156,10 +202,11 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
       return {
         uid,
         label: name,
-        avatarUrl: avatarById.get(uid) ?? null,
-        city: du?.city?.trim() || null,
-        state: du?.state?.trim() || null,
+        avatarUrl: profile?.avatar_url ?? null,
+        city: preferNonEmptyAddr(profile?.city, du?.city),
+        state: preferNonEmptyAddr(profile?.state, du?.state),
         roleLabel: progressRoleLabel(slugs),
+        roleBucket: progressRoleBucketFromSlugs(slugs),
         graduateBadge:
           totalSessions > 0 && doneCount >= totalSessions
             ? graduateBadgeRoleFromRoles(slugs)
@@ -171,19 +218,17 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
     .sort((a, b) => a.label.localeCompare(b.label));
 
   return (
-    <Box>
-      <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
-        Progress — {course.title as string}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Public URL: /dashboard/course/{course.slug as string}
-      </Typography>
-      <CourseProgressUsersTable rows={rows} totalSessions={totalSessions} quizCount={quizIds.length} />
-      {Boolean(course.applies_grades) ? null : (
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-          This course has grades disabled; quiz scores are still listed per attempt when quizzes exist.
-        </Typography>
-      )}
-    </Box>
+    <CourseProgressPageClient
+      courseTitle={course.title as string}
+      courseSlug={course.slug as string}
+      courseId={courseId}
+      rows={rows}
+      totalSessions={totalSessions}
+      quizCount={quizIds.length}
+      appliesGrades={Boolean(course.applies_grades)}
+      completionRow={completionRow}
+      totalRegisteredUsers={totalRegisteredUsers ?? 0}
+      totalWithProgress={userIds.length}
+    />
   );
 }

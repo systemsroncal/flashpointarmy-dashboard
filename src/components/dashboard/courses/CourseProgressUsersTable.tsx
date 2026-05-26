@@ -1,6 +1,11 @@
 "use client";
 
 import {
+  AvatarWithGraduateIcon,
+} from "@/components/dashboard/training/CourseGraduateBadge";
+import type { ProgressRoleBucket } from "@/lib/courses/course-completion-stats";
+import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
+import {
   Box,
   LinearProgress,
   Paper,
@@ -11,31 +16,26 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  TableSortLabel,
   Typography,
 } from "@mui/material";
-import { AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
-import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import { useMemo, useState } from "react";
 
 export type CourseProgressRow = {
   uid: string;
   label: string;
-  /** Optional avatar from `profiles.avatar_url`. Falls back to initials. */
   avatarUrl?: string | null;
   city: string | null;
   state: string | null;
-  /** Human-readable primary role for reporting (e.g. Member, Local leader). */
   roleLabel: string;
+  roleBucket: ProgressRoleBucket;
   graduateBadge?: TrainingGraduateBadgeRole | null;
   done: number;
   quiz: { best: number; max: number } | null;
 };
 
-/**
- * Color buckets for the per-user completion progress bar.
- * Matches the verbal scale "rojo, naranja, amarillo, verde" requested for
- * fast scanning of who is behind / on-track.
- */
+export type CourseProgressSortKey = "user" | "city" | "state" | "role" | "done" | "progress";
+
 function progressColor(pct: number): { color: string; label: string } {
   if (pct >= 75) return { color: "#2a9d8f", label: "On track" };
   if (pct >= 50) return { color: "#e9c46a", label: "Halfway" };
@@ -51,6 +51,45 @@ function initialsFromLabel(label: string): string {
   return (first + last).toUpperCase() || "?";
 }
 
+function pctForRow(r: CourseProgressRow, totalSessions: number): number {
+  if (totalSessions <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((r.done / totalSessions) * 100)));
+}
+
+function compareRows(
+  a: CourseProgressRow,
+  b: CourseProgressRow,
+  key: CourseProgressSortKey,
+  asc: boolean,
+  totalSessions: number
+): number {
+  let cmp = 0;
+  switch (key) {
+    case "user":
+      cmp = a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+      break;
+    case "city":
+      cmp = (a.city ?? "").localeCompare(b.city ?? "", undefined, { sensitivity: "base" });
+      break;
+    case "state":
+      cmp = (a.state ?? "").localeCompare(b.state ?? "", undefined, { sensitivity: "base" });
+      break;
+    case "role":
+      cmp = a.roleLabel.localeCompare(b.roleLabel, undefined, { sensitivity: "base" });
+      break;
+    case "done":
+      cmp = a.done - b.done;
+      break;
+    case "progress":
+      cmp = pctForRow(a, totalSessions) - pctForRow(b, totalSessions);
+      break;
+    default:
+      cmp = 0;
+  }
+  if (cmp === 0) cmp = a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+  return asc ? cmp : -cmp;
+}
+
 export function CourseProgressUsersTable({
   rows,
   totalSessions,
@@ -62,11 +101,33 @@ export function CourseProgressUsersTable({
 }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [sortKey, setSortKey] = useState<CourseProgressSortKey>("user");
+  const [sortAsc, setSortAsc] = useState(true);
+
+  const sorted = useMemo(
+    () => [...rows].sort((a, b) => compareRows(a, b, sortKey, sortAsc, totalSessions)),
+    [rows, sortKey, sortAsc, totalSessions]
+  );
 
   const paged = useMemo(() => {
-    if (rowsPerPage < 0) return rows;
-    return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [rows, page, rowsPerPage]);
+    if (rowsPerPage < 0) return sorted;
+    return sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [sorted, page, rowsPerPage]);
+
+  const toggleSort = (key: CourseProgressSortKey) => {
+    if (sortKey === key) setSortAsc((v) => !v);
+    else {
+      setSortKey(key);
+      setSortAsc(key === "user" || key === "city" || key === "state" || key === "role");
+    }
+    setPage(0);
+  };
+
+  const sortProps = (key: CourseProgressSortKey) => ({
+    active: sortKey === key,
+    direction: (sortKey === key ? (sortAsc ? "asc" : "desc") : "asc") as "asc" | "desc",
+    onClick: () => toggleSort(key),
+  });
 
   return (
     <Paper sx={{ bgcolor: "rgba(0,0,0,0.45)", overflow: "auto" }}>
@@ -74,12 +135,26 @@ export function CourseProgressUsersTable({
         <TableHead>
           <TableRow>
             <TableCell sx={{ width: 56 }} />
-            <TableCell>User</TableCell>
-            <TableCell>City</TableCell>
-            <TableCell>State</TableCell>
-            <TableCell>Role</TableCell>
-            <TableCell align="right">Sessions completed</TableCell>
-            <TableCell sx={{ minWidth: 180 }}>Progress</TableCell>
+            <TableCell sortDirection={sortKey === "user" ? (sortAsc ? "asc" : "desc") : false}>
+              <TableSortLabel {...sortProps("user")}>User</TableSortLabel>
+            </TableCell>
+            <TableCell sortDirection={sortKey === "city" ? (sortAsc ? "asc" : "desc") : false}>
+              <TableSortLabel {...sortProps("city")}>City</TableSortLabel>
+            </TableCell>
+            <TableCell sortDirection={sortKey === "state" ? (sortAsc ? "asc" : "desc") : false}>
+              <TableSortLabel {...sortProps("state")}>State</TableSortLabel>
+            </TableCell>
+            <TableCell sortDirection={sortKey === "role" ? (sortAsc ? "asc" : "desc") : false}>
+              <TableSortLabel {...sortProps("role")}>Role</TableSortLabel>
+            </TableCell>
+            <TableCell align="right" sortDirection={sortKey === "done" ? (sortAsc ? "asc" : "desc") : false}>
+              <TableSortLabel {...sortProps("done")} sx={{ flexDirection: "row-reverse" }}>
+                Sessions completed
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ minWidth: 180 }} sortDirection={sortKey === "progress" ? (sortAsc ? "asc" : "desc") : false}>
+              <TableSortLabel {...sortProps("progress")}>Progress</TableSortLabel>
+            </TableCell>
             <TableCell align="right">Quiz (best attempt)</TableCell>
           </TableRow>
         </TableHead>
@@ -87,15 +162,12 @@ export function CourseProgressUsersTable({
           {rows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={8}>
-                <Typography color="text.secondary">No progress recorded yet.</Typography>
+                <Typography color="text.secondary">No progress recorded yet for this filter.</Typography>
               </TableCell>
             </TableRow>
           ) : (
             paged.map((r) => {
-              const pct =
-                totalSessions > 0
-                  ? Math.max(0, Math.min(100, Math.round((r.done / totalSessions) * 100)))
-                  : 0;
+              const pct = pctForRow(r, totalSessions);
               const tone = progressColor(pct);
               return (
                 <TableRow key={r.uid}>
