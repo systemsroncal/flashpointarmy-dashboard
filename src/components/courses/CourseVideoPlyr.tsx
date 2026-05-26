@@ -1,7 +1,16 @@
 "use client";
 
 import { resolveVideoForPlyr, type ResolvedPlyrVideo } from "@/lib/media/resolve-plyr-video";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type PlyrLike = {
@@ -19,26 +28,14 @@ const MIN_SAVED_SECONDS_TO_AUTO_RESUME = 15;
 /** Persist at most every N seconds during playback (also on pause/seek). */
 const TIMEUPDATE_PERSIST_INTERVAL_SEC = 8;
 /**
- * Mark video complete when within this many seconds of the end. Vimeo and some
- * iframe providers occasionally skip `ended`, and users often pause/leave just
- * before the credits — this provides a generous absolute fallback for any
- * non-trivial duration.
+ * Mark video complete when playback naturally reaches within this many seconds
+ * of the end (not when the user scrubs the progress bar).
  */
-const NEAR_END_SECONDS = 60;
-/**
- * Relative completion threshold. Once playback has reached this fraction of the
- * total duration, treat the video as fully watched even if `ended` never fires.
- * Combined with {@link NEAR_END_SECONDS}, whichever triggers first wins.
- */
-const FULLY_WATCHED_FRACTION = 0.92;
-/**
- * If the saved/initial position is already at or above this fraction of total
- * duration when the player loads, mark the video as fully watched immediately
- * (without requiring the user to scrub through the closing minute again).
- * Strictly between {@link FULLY_WATCHED_FRACTION} so that any persisted
- * position that previously satisfied the live threshold also satisfies this.
- */
-const INITIAL_FULLY_WATCHED_FRACTION = 0.9;
+const NEAR_END_SECONDS = 2;
+/** Relative completion threshold — only while playing, never after a seek jump. */
+const FULLY_WATCHED_FRACTION = 0.995;
+/** Ignore near-end checks for this long after the user seeks (scrub). */
+const SEEK_COMPLETION_COOLDOWN_MS = 2500;
 
 function setPlayerTime(player: PlyrLike, seconds: number): boolean {
   if (seconds <= 0) return true;
@@ -187,6 +184,7 @@ export function CourseVideoPlyr({
 
   const [savedSeconds, setSavedSeconds] = useState(0);
   const [autoResumed, setAutoResumed] = useState(false);
+  const [resumePromptOpen, setResumePromptOpen] = useState(false);
   const fullyWatchedFiredRef = useRef(false);
 
   useEffect(() => {
@@ -195,16 +193,17 @@ export function CourseVideoPlyr({
     setSavedSeconds(saved);
     fullyWatchedFiredRef.current = false;
     setAutoResumed(false);
+    pendingSeekRef.current = null;
     if (
       !autoplayMuted &&
       !suppressResumeRef.current &&
       saved >= MIN_SAVED_SECONDS_TO_AUTO_RESUME
     ) {
-      pendingSeekRef.current = Math.max(0, saved - RESUME_REWIND_SECONDS);
+      setResumePromptOpen(true);
     } else {
-      pendingSeekRef.current = null;
+      setResumePromptOpen(false);
     }
-  }, [storageKey, autoplayMuted, videoUrl, suppressResumePrompt]);
+  }, [storageKey, autoplayMuted, videoUrl, suppressResumePrompt, initialSeconds]);
 
   useEffect(() => {
     const ls = storageKey ? readLs(storageKey) : 0;
@@ -246,7 +245,19 @@ export function CourseVideoPlyr({
     }
   }, []);
 
+  const handleContinueWatching = useCallback(() => {
+    setResumePromptOpen(false);
+    const target = Math.max(0, savedSeconds - RESUME_REWIND_SECONDS);
+    pendingSeekRef.current = target;
+    setAutoResumed(true);
+    const player = playerRef.current;
+    if (player && target > 0) {
+      applyPendingSeek(player);
+    }
+  }, [savedSeconds, applyPendingSeek]);
+
   const handleStartOver = useCallback(() => {
+    setResumePromptOpen(false);
     pendingSeekRef.current = null;
     setAutoResumed(false);
     const player = playerRef.current;
@@ -352,8 +363,14 @@ export function CourseVideoPlyr({
         return t >= Math.max(0, dur - NEAR_END_SECONDS) || t / dur >= fraction;
       };
 
+      let isPlaying = false;
+      let seekCooldownUntil = 0;
+      let lastTimeupdateSec = 0;
+
       const maybeMarkNearEnd = () => {
         if (fullyWatchedFiredRef.current) return;
+        if (!isPlaying) return;
+        if (Date.now() < seekCooldownUntil) return;
         const t = readCurrentTime(player);
         const dur = readDuration();
         if (dur > 0 && isFullyWatchedZone(t, dur, FULLY_WATCHED_FRACTION)) {
@@ -366,40 +383,28 @@ export function CourseVideoPlyr({
         }
       };
 
-      /**
-       * On player load, if the saved/initial position is already deep enough,
-       * mark the video as fully watched right away. This unblocks learners who
-       * previously watched (almost) to the end on another device or session
-       * where the localStorage `done` flag never made it back, without forcing
-       * them to scrub to the final seconds again.
-       */
-      const maybeMarkFromInitialPosition = () => {
-        if (fullyWatchedFiredRef.current) return;
-        const dur = readDuration();
-        if (dur <= 0) return;
+      player.on("play", () => {
+        isPlaying = true;
+      });
+
+      const snapshot = (checkNearEnd: boolean) => {
         const t = readCurrentTime(player);
-        /**
-         * Use the freshest persisted value rather than React state, which may
-         * not have flushed yet when this effect initializes the player.
-         */
-        const ls = storageKey ? readLs(storageKey) : 0;
-        const reference = Math.max(t, ls, initialSeconds);
-        if (isFullyWatchedZone(reference, dur, INITIAL_FULLY_WATCHED_FRACTION)) {
-          fullyWatchedFiredRef.current = true;
-          try {
-            onFullyWatchedRef.current?.();
-          } catch {
-            /* ignore */
-          }
-        }
+        const dur = readDuration();
+        persist(t);
         reportProgress(t, dur);
+        if (checkNearEnd) maybeMarkNearEnd();
       };
+
+      player.on("pause", () => {
+        isPlaying = false;
+        snapshot(false);
+      });
 
       player.on("ready", () => {
         if (pendingSeekRef.current != null && pendingSeekRef.current > 0) {
           applyPendingSeek(player);
         }
-        maybeMarkFromInitialPosition();
+        reportProgress(readCurrentTime(player), readDuration());
         if (autoplayMuted) {
           void Promise.resolve((player as { play?: () => void | Promise<void> }).play?.()).catch(() => {
             /* autoplay blocked */
@@ -410,26 +415,25 @@ export function CourseVideoPlyr({
       for (const evt of ["loadeddata", "canplay", "playing"] as const) {
         player.on(evt, () => {
           if (pendingSeekRef.current != null) applyPendingSeek(player);
-          maybeMarkFromInitialPosition();
         });
       }
 
-      const snapshot = () => {
-        const t = readCurrentTime(player);
-        const dur = readDuration();
-        persist(t);
-        reportProgress(t, dur);
-        maybeMarkNearEnd();
-      };
-
-      player.on("pause", snapshot);
-      player.on("seeked", snapshot);
+      player.on("seeked", () => {
+        seekCooldownUntil = Date.now() + SEEK_COMPLETION_COOLDOWN_MS;
+        lastTimeupdateSec = readCurrentTime(player);
+        snapshot(false);
+      });
 
       let lastTimeupdatePersist = 0;
       let lastProgressReport = 0;
       player.on("timeupdate", () => {
         const t = readCurrentTime(player);
         if (t < 1) return;
+        const jumped = Math.abs(t - lastTimeupdateSec) > 4;
+        lastTimeupdateSec = t;
+        if (jumped) {
+          seekCooldownUntil = Date.now() + SEEK_COMPLETION_COOLDOWN_MS;
+        }
         if (t - lastTimeupdatePersist >= TIMEUPDATE_PERSIST_INTERVAL_SEC) {
           lastTimeupdatePersist = t;
           persist(t);
@@ -441,7 +445,7 @@ export function CourseVideoPlyr({
         maybeMarkNearEnd();
       });
       player.on("ended", () => {
-        snapshot();
+        snapshot(false);
         if (!fullyWatchedFiredRef.current) {
           fullyWatchedFiredRef.current = true;
           try {
@@ -452,9 +456,9 @@ export function CourseVideoPlyr({
         }
       });
 
-      tickRef.current = setInterval(snapshot, 3000);
+      tickRef.current = setInterval(() => snapshot(false), 3000);
 
-      const onPageHide = () => snapshot();
+      const onPageHide = () => snapshot(false);
       const onVis = () => {
         if (document.visibilityState === "hidden") onPageHide();
       };
@@ -505,11 +509,11 @@ export function CourseVideoPlyr({
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={1}
-          alignItems={{ xs: "flex-start", sm: "center" }}
-          justifyContent="space-between"
+          alignItems="center"
+          justifyContent="center"
           sx={{ mt: 1 }}
         >
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
             Resumed near your last saved position. Use the timeline to rewind or skip ahead — your progress
             is saved automatically.
           </Typography>
@@ -518,10 +522,41 @@ export function CourseVideoPlyr({
           </Button>
         </Stack>
       ) : (
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          display="block"
+          sx={{ mt: 1, textAlign: "center" }}
+        >
           Use the progress bar to rewind or skip ahead. Your position is saved while you watch.
         </Typography>
       )}
+
+      <Dialog
+        open={resumePromptOpen}
+        onClose={() => setResumePromptOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        aria-labelledby="course-video-resume-title"
+      >
+        <DialogTitle id="course-video-resume-title" sx={{ color: "primary.main", fontWeight: 700 }}>
+          Continue watching?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            You were partway through this video. Would you like to pick up where you left off, or start
+            from the beginning?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, flexDirection: "column", gap: 1, alignItems: "stretch" }}>
+          <Button variant="contained" color="primary" onClick={handleContinueWatching}>
+            Continue where I left off
+          </Button>
+          <Button color="inherit" onClick={handleStartOver}>
+            Start from beginning
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

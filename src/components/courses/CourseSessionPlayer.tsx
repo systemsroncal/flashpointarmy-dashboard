@@ -47,19 +47,13 @@ export type SessionElementRow = {
   sort_order: number;
 };
 
-/**
- * Once a learner has watched at least this much of a video, expose a manual
- * "I have finished watching" button as a safety hatch. The automatic detection
- * in {@link CourseVideoPlyr} handles the common case; this exists for users
- * whose player never reaches the near-end threshold (provider hiccups,
- * non-standard durations, accessibility tools, etc.).
- */
-const MANUAL_FULLY_WATCHED_FRACTION = 0.75;
-
 /** Keys inside `course_session_progress.video_positions` that mark a video as fully watched. */
 function videoDoneStorageKey(elementId: string): string {
   return `__done__${elementId}`;
 }
+
+/** Saved position must reach this fraction before a persisted "done" flag is trusted. */
+const TRUST_DONE_FLAG_MIN_FRACTION = 0.95;
 
 function isVideoDoneFlag(value: unknown): boolean {
   return value === 1 || value === true;
@@ -132,6 +126,10 @@ export function CourseSessionPlayer({
       const next = { ...base };
       for (const [k, v] of Object.entries(patch)) {
         const n = Math.max(0, Number(v) || 0);
+        if (k.startsWith("__done__") && n === 0) {
+          delete next[k];
+          continue;
+        }
         next[k] = Math.max(next[k] ?? 0, n);
       }
       return next;
@@ -183,35 +181,9 @@ export function CourseSessionPlayer({
     readVideoFullyWatched(videoElementIds, initialVideoPositions)
   );
   const [markCompleteDialogOpen, setMarkCompleteDialogOpen] = useState(false);
-
-  /**
-   * Latest playback progress per video element ({@link CourseVideoPlyr}'s
-   * `onProgress`). Drives the manual "I have finished" override button, which
-   * appears once a learner has watched at least
-   * {@link MANUAL_FULLY_WATCHED_FRACTION} of the video — a generous fallback
-   * for the rare cases where neither the time-based threshold nor `ended`
-   * fires (some Vimeo embeds, network hiccups, etc.).
-   */
-  const [videoProgressById, setVideoProgressById] = useState<
-    Record<string, { current: number; duration: number }>
-  >({});
-  const [manualMarkTarget, setManualMarkTarget] = useState<string | null>(null);
-
-  const onVideoProgress = useCallback(
-    (elementId: string, current: number, duration: number) => {
-      setVideoProgressById((prev) => {
-        const existing = prev[elementId];
-        if (
-          existing &&
-          Math.abs(existing.current - current) < 0.5 &&
-          existing.duration === duration
-        ) {
-          return prev;
-        }
-        return { ...prev, [elementId]: { current, duration } };
-      });
-    },
-    []
+  const prevAllVideosWatchedRef = useRef(
+    videoElementIds.length === 0 ||
+      videoElementIds.every((id) => readVideoFullyWatched(videoElementIds, initialVideoPositions)[id])
   );
 
   useEffect(() => {
@@ -295,6 +267,44 @@ export function CourseSessionPlayer({
     [supabase, user.id, sessionId, mergeVideoPositionMaps]
   );
 
+  const clearVideoDoneFlag = useCallback(
+    (elementId: string) => {
+      try {
+        localStorage.removeItem(`coursevid-done:${user.id}:${sessionId}:${elementId}`);
+      } catch {
+        /* ignore */
+      }
+      const doneKey = videoDoneStorageKey(elementId);
+      setVideoPositions((prev) => {
+        if (prev[doneKey] == null) return prev;
+        const next = { ...prev };
+        delete next[doneKey];
+        videoPositionsRef.current = next;
+        return next;
+      });
+      setVideoFullyWatchedById((prev) => {
+        if (!prev[elementId]) return prev;
+        return { ...prev, [elementId]: false };
+      });
+      void mergePersist({ video_positions: { [doneKey]: 0 } });
+    },
+    [user.id, sessionId, mergePersist]
+  );
+
+  const onVideoProgress = useCallback(
+    (elementId: string, current: number, duration: number) => {
+      if (duration <= 0) return;
+      const saved = Math.max(
+        current,
+        numericVideoPositions(videoPositionsRef.current)[elementId] ?? 0
+      );
+      if (saved / duration < TRUST_DONE_FLAG_MIN_FRACTION && videoFullyWatchedById[elementId]) {
+        clearVideoDoneFlag(elementId);
+      }
+    },
+    [clearVideoDoneFlag, videoFullyWatchedById]
+  );
+
   const onVideoSeconds = useCallback(
     (elementId: string, sec: number) => {
       const n = Math.max(0, sec);
@@ -363,11 +373,17 @@ export function CourseSessionPlayer({
   useEffect(() => {
     if (completed) {
       setMarkCompleteDialogOpen(false);
+      prevAllVideosWatchedRef.current = true;
       return;
     }
-    if (videoElementIds.length > 0 && allVideosFullyWatched) {
+    if (
+      videoElementIds.length > 0 &&
+      allVideosFullyWatched &&
+      !prevAllVideosWatchedRef.current
+    ) {
       setMarkCompleteDialogOpen(true);
     }
+    prevAllVideosWatchedRef.current = allVideosFullyWatched;
   }, [completed, allVideosFullyWatched, videoElementIds.length]);
 
   const onVideoFullyWatched = useCallback(
@@ -470,13 +486,6 @@ export function CourseSessionPlayer({
                 if (resolveVideoForPlyr(videoUrl).kind === "none") return null;
                 const numericPositions = numericVideoPositions(videoPositions);
                 const savedSec = numericPositions[el.id] ?? 0;
-                const progress = videoProgressById[el.id];
-                const duration = progress?.duration ?? 0;
-                const current = Math.max(progress?.current ?? 0, savedSec);
-                const fraction = duration > 0 ? current / duration : 0;
-                const showManualMark =
-                  !videoFullyWatchedById[el.id] &&
-                  fraction >= MANUAL_FULLY_WATCHED_FRACTION;
                 return (
               <Box
                 sx={{
@@ -497,29 +506,6 @@ export function CourseSessionPlayer({
                   suppressResumePrompt={Boolean(videoFullyWatchedById[el.id])}
                   onVideoFullyWatched={() => onVideoFullyWatched(el.id)}
                 />
-                {showManualMark ? (
-                  <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={1}
-                    alignItems={{ xs: "stretch", sm: "center" }}
-                    justifyContent="space-between"
-                    sx={{ mt: 1.25 }}
-                  >
-                    <Typography variant="caption" color="text.secondary">
-                      Already watched this video? You can mark it as watched and continue.
-                    </Typography>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="success"
-                      startIcon={<CheckCircleOutlineIcon />}
-                      onClick={() => setManualMarkTarget(el.id)}
-                      sx={{ flexShrink: 0 }}
-                    >
-                      Mark video as watched
-                    </Button>
-                  </Stack>
-                ) : null}
               </Box>
                 );
               })()
@@ -634,9 +620,7 @@ export function CourseSessionPlayer({
 
       <Dialog
         open={markCompleteDialogOpen && markCompleteAllowed && !completed}
-        onClose={(_, reason) => {
-          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
-        }}
+        onClose={() => setMarkCompleteDialogOpen(false)}
         maxWidth="xs"
         fullWidth
         aria-labelledby="mark-complete-video-title"
@@ -651,7 +635,7 @@ export function CourseSessionPlayer({
               : "You have finished watching this video. Tap the button below to mark this session as completed."}
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2, justifyContent: "center" }}>
+        <DialogActions sx={{ px: 3, pb: 2, flexDirection: "column", gap: 1, alignItems: "stretch" }}>
           <Button
             variant="contained"
             color="success"
@@ -665,40 +649,8 @@ export function CourseSessionPlayer({
           >
             Mark as complete
           </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(manualMarkTarget)}
-        onClose={() => setManualMarkTarget(null)}
-        maxWidth="xs"
-        fullWidth
-        aria-labelledby="manual-mark-video-title"
-      >
-        <DialogTitle id="manual-mark-video-title" sx={{ color: "primary.main", fontWeight: 700 }}>
-          Mark video as watched?
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            Use this if you have already finished watching this video. We&apos;ll record it
-            as watched so you can complete the session and continue with the course.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button color="inherit" onClick={() => setManualMarkTarget(null)}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={<CheckCircleOutlineIcon />}
-            onClick={() => {
-              const targetId = manualMarkTarget;
-              setManualMarkTarget(null);
-              if (targetId) onVideoFullyWatched(targetId);
-            }}
-          >
-            Yes, mark as watched
+          <Button color="inherit" onClick={() => setMarkCompleteDialogOpen(false)}>
+            Close
           </Button>
         </DialogActions>
       </Dialog>

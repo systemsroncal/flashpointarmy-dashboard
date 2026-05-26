@@ -17,6 +17,7 @@ import {
 } from "@/lib/community/community-table-sort";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+import { loadTrainingGraduateBadgesForUsers } from "@/lib/courses/course-completion";
 
 type RoleRelation = { name: string } | { name: string }[] | null;
 type UserRoleRow = { user_id: string; roles: RoleRelation };
@@ -86,6 +87,19 @@ async function mergeProfilesAndRoles(admin: ReturnType<typeof createAdminClient>
       role_names: (roleByUser.get(u.id) ?? []).sort(),
     };
   });
+}
+
+async function attachTrainingGraduateBadges<
+  T extends { id: string; role_names: string[] },
+>(admin: ReturnType<typeof createAdminClient>, rows: T[]) {
+  const badges = await loadTrainingGraduateBadgesForUsers(
+    admin,
+    rows.map((r) => r.id)
+  );
+  return rows.map((row) => ({
+    ...row,
+    training_graduate_badge: badges.get(row.id) ?? null,
+  }));
 }
 
 export async function GET(req: Request) {
@@ -226,8 +240,9 @@ export async function GET(req: Request) {
         sortAsc,
       });
       const merged = await mergeProfilesAndRoles(admin, rows);
+      const withBadges = await attachTrainingGraduateBadges(admin, merged);
       return NextResponse.json({
-        rows: merged,
+        rows: withBadges,
         total: fbCount,
         page,
         perPage,
@@ -246,9 +261,10 @@ export async function GET(req: Request) {
 
   const rows = (data ?? []) as BaseRow[];
   const merged = await mergeProfilesAndRoles(admin, rows);
+  const withBadges = await attachTrainingGraduateBadges(admin, merged);
 
   return NextResponse.json({
-    rows: merged,
+    rows: withBadges,
     total: count ?? 0,
     page,
     perPage,

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 
 /** Row in public.dashboard_users (mirrors auth.users in Supabase dev). */
 export type DashboardUser = {
@@ -17,6 +18,8 @@ export type DashboardUser = {
   updated_at: string;
   /** Role slugs from `user_roles` + `roles` (e.g. member, local_leader, admin). */
   role_names: string[];
+  /** Shown when user completed Biblical Citizenship and is a member or local leader. */
+  training_graduate_badge?: TrainingGraduateBadgeRole | null;
 };
 
 export async function loadDashboardUser(

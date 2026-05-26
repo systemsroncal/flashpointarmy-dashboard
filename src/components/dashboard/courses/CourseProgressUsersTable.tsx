@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Avatar,
   Box,
   LinearProgress,
   Paper,
@@ -14,6 +13,8 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import { AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
+import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import { useMemo, useState } from "react";
 
 export type CourseProgressRow = {
@@ -25,6 +26,7 @@ export type CourseProgressRow = {
   state: string | null;
   /** Human-readable primary role for reporting (e.g. Member, Local leader). */
   roleLabel: string;
+  graduateBadge?: TrainingGraduateBadgeRole | null;
   done: number;
   quiz: { best: number; max: number } | null;
 };
@@ -98,19 +100,18 @@ export function CourseProgressUsersTable({
               return (
                 <TableRow key={r.uid}>
                   <TableCell sx={{ pr: 0 }}>
-                    <Avatar
+                    <AvatarWithGraduateIcon
+                      graduateRole={r.graduateBadge}
+                      size={36}
                       src={r.avatarUrl ?? undefined}
                       alt={r.label}
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        fontSize: "0.8rem",
+                      avatarSx={{
                         bgcolor: "rgba(233,196,106,0.18)",
                         color: "primary.main",
                       }}
                     >
                       {initialsFromLabel(r.label)}
-                    </Avatar>
+                    </AvatarWithGraduateIcon>
                   </TableCell>
                   <TableCell>{r.label}</TableCell>
                   <TableCell>{r.city?.trim() || "—"}</TableCell>

@@ -1,6 +1,7 @@
 "use client";
 
 import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
+import { CourseGraduateBadge } from "@/components/dashboard/training/CourseGraduateBadge";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { validateAvatarFile } from "@/lib/upload/validate-image";
@@ -302,6 +303,11 @@ export function UserProfileDrawer({
               <Typography variant="body2" color="text.secondary">
                 {du.email}
               </Typography>
+              {du.training_graduate_badge ? (
+                <Box sx={{ mt: 1 }}>
+                  <CourseGraduateBadge role={du.training_graduate_badge} />
+                </Box>
+              ) : null}
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
                 Role in dashboard
               </Typography>

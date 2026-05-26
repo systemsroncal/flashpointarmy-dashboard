@@ -12,6 +12,7 @@ import {
   listProfilesByIds,
   listRoleNamesByUserIds,
 } from "@/lib/admin/dashboard-user-queries";
+import { graduateBadgeRoleFromRoles } from "@/lib/courses/course-completion";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -150,14 +151,20 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
         [du?.first_name, du?.last_name].filter(Boolean).join(" ").trim() ||
         du?.email ||
         uid;
+      const slugs = roleByUser.get(uid) ?? [];
+      const doneCount = byUser.get(uid)?.done ?? 0;
       return {
         uid,
         label: name,
         avatarUrl: avatarById.get(uid) ?? null,
         city: du?.city?.trim() || null,
         state: du?.state?.trim() || null,
-        roleLabel: progressRoleLabel(roleByUser.get(uid) ?? []),
-        done: byUser.get(uid)?.done ?? 0,
+        roleLabel: progressRoleLabel(slugs),
+        graduateBadge:
+          totalSessions > 0 && doneCount >= totalSessions
+            ? graduateBadgeRoleFromRoles(slugs)
+            : null,
+        done: doneCount,
         quiz: quizByUser.get(uid) ?? null,
       };
     })

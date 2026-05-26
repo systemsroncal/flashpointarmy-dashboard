@@ -11,7 +11,6 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import {
   Alert,
   Autocomplete,
-  Avatar,
   Box,
   Button,
   Checkbox,
@@ -44,7 +43,9 @@ import {
   Typography,
 } from "@mui/material";
 import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
+import { CourseGraduateBadge, AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import { ChapterSearchAutocomplete } from "@/components/forms/ChapterSearchAutocomplete";
+import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { parseUploadFile } from "@/lib/import/parse-upload";
@@ -69,6 +70,8 @@ export type CommunityUserRow = {
   zip_code: string | null;
   /** Role slugs from `public.roles.name` (e.g. member, local_leader). */
   role_names: string[];
+  /** Biblical Citizenship graduate badge, when applicable. */
+  training_graduate_badge?: TrainingGraduateBadgeRole | null;
 };
 
 export type ChapterOption = {
@@ -1395,12 +1398,13 @@ export function CommunitySection({
           {paged.map((u) => (
             <TableRow key={u.id}>
               <TableCell>
-                <Avatar
+                <AvatarWithGraduateIcon
+                  graduateRole={u.training_graduate_badge}
+                  size={30}
                   src={u.avatar_url ? publicAssetSrc(u.avatar_url) : undefined}
-                  sx={{ width: 30, height: 30 }}
                 >
                   {(u.display_name || u.email || "U").slice(0, 1).toUpperCase()}
-                </Avatar>
+                </AvatarWithGraduateIcon>
               </TableCell>
               <TableCell>{u.first_name ?? "—"}</TableCell>
               <TableCell>{u.last_name ?? "—"}</TableCell>
@@ -1738,6 +1742,11 @@ export function CommunitySection({
               <Typography>
                 <strong>Email:</strong> {viewUser.email}
               </Typography>
+              {viewUser.training_graduate_badge ? (
+                <Box>
+                  <CourseGraduateBadge role={viewUser.training_graduate_badge} />
+                </Box>
+              ) : null}
               <Typography>
                 <strong>Phone:</strong> {viewUser.phone?.trim() || "—"}
               </Typography>

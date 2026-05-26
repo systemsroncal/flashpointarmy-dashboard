@@ -66,6 +66,7 @@ import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
+import { CourseGraduateBadge } from "@/components/dashboard/training/CourseGraduateBadge";
 import { UserProfileDrawer } from "./UserProfileDrawer";
 import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
@@ -860,6 +861,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <Typography variant="caption" color="text.secondary" display="block" noWrap>
               {user.email}
             </Typography>
+            {user.training_graduate_badge ? (
+              <Box sx={{ mt: 0.75 }}>
+                <CourseGraduateBadge role={user.training_graduate_badge} />
+              </Box>
+            ) : null}
           </Box>
         </Box>
         <ListItemButton

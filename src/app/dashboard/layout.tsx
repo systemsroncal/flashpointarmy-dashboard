@@ -4,6 +4,7 @@ import { DashboardUserProvider } from "@/contexts/DashboardUserContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { loadDashboardUser } from "@/lib/auth/dashboard-user";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { loadTrainingGraduateBadge } from "@/lib/courses/course-completion";
 import {
   ensureDashboardUserMirror,
   ensureMemberRoleIfUserHasNoRoles,
@@ -80,6 +81,13 @@ export default async function DashboardLayout({
   }
 
   const permissions = await loadModulePermissions(supabase, user.id);
+
+  const trainingGraduateBadge = await loadTrainingGraduateBadge(
+    supabase,
+    dashboardUser.id,
+    dashboardUser.role_names
+  );
+  dashboardUser = { ...dashboardUser, training_graduate_badge: trainingGraduateBadge };
 
   return (
     <DashboardUserProvider user={dashboardUser}>
