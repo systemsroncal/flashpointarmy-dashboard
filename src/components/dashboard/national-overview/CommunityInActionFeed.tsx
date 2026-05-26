@@ -192,29 +192,29 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
         display: "flex",
         alignItems: "stretch",
         gap: 1.25,
-        minHeight: 72,
+        minHeight: 64,
         py: 0.75,
         borderBottom: "1px solid rgba(255,215,0,0.1)",
       }}
     >
       <Box
         sx={{
-          width: 48,
+          width: 40,
           alignSelf: "stretch",
-          minHeight: 64,
+          minHeight: 56,
           flexShrink: 0,
           borderRadius: 1,
           bgcolor: visual.railBg,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          boxShadow: `0 0 16px ${visual.glow}`,
+          boxShadow: `0 0 12px ${visual.glow}`,
           border: "1px solid rgba(255,255,255,0.06)",
           "& svg": {
-            width: "80%",
-            height: "80%",
-            maxWidth: 40,
-            maxHeight: 40,
+            width: "72%",
+            height: "72%",
+            maxWidth: 28,
+            maxHeight: 28,
           },
         }}
       >
@@ -222,30 +222,62 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
       </Box>
 
       <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", py: 0.25 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "common.white", lineHeight: 1.3 }}>
-            {row.title}
-          </Typography>
-          {state ? (
-            <Chip
-              label={state}
-              size="small"
-              sx={{
-                height: 22,
-                fontSize: "0.7rem",
-                fontWeight: 700,
-                bgcolor: "rgba(0,0,0,0.45)",
-                color: "grey.300",
-                border: "1px solid rgba(255,255,255,0.12)",
-              }}
-            />
-          ) : null}
-        </Box>
-        {showSubtitle ? (
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
-            {row.subtitle}
-          </Typography>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            width: "100%",
+            fontWeight: 700,
+            color: "common.white",
+            lineHeight: 1.35,
+            fontSize: "12px",
+          }}
+        >
+          {row.title}
+        </Typography>
+        {state ? (
+          <Chip
+            label={state}
+            size="small"
+            sx={{
+              alignSelf: "flex-start",
+              mt: 0.35,
+              height: 20,
+              fontSize: "0.65rem",
+              fontWeight: 700,
+              bgcolor: "rgba(0,0,0,0.45)",
+              color: "grey.300",
+              border: "1px solid rgba(255,255,255,0.12)",
+            }}
+          />
         ) : null}
+        {showSubtitle ? (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 1,
+              mt: 0.35,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" sx={{ flex: 1, minWidth: 0, lineHeight: 1.4 }}>
+              {row.subtitle}
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ flexShrink: 0, fontSize: "0.75rem", lineHeight: 1.4 }}
+            >
+              {formatFeedDate(row.created_at)}
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.35 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+              {formatFeedDate(row.created_at)}
+            </Typography>
+          </Box>
+        )}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.35 }}>
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
             {categoryDisplay}
@@ -256,21 +288,6 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
           </Typography>
         </Box>
       </Box>
-
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{
-          alignSelf: "center",
-          flexShrink: 0,
-          minWidth: 52,
-          textAlign: "right",
-          fontSize: "0.75rem",
-          pr: 0.25,
-        }}
-      >
-        {formatFeedDate(row.created_at)}
-      </Typography>
     </Box>
   );
 }
