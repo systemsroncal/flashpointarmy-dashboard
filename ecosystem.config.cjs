@@ -13,9 +13,10 @@
  *      sudo bash scripts/free-next-host-ports.sh
  *    Or let `scripts/deploy-from-github.sh` handle it (stop → delete → free port → start).
  * 3) Build each site: `npm ci && npm run build` in each `public_html`.
- * 4) PM2 (manual) or use deploy script:
+ * 4) PM2 (manual bootstrap) or routine deploy script (one app at a time):
  *      cd /home/admin/web/dev.fparmychapters.com/public_html
  *      GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
+ *    deploy-from-github.sh does NOT load this file (avoids stopping the other site).
  *
  * Edit `cwd` if your Hestia paths differ.
  */

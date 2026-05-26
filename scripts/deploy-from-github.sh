@@ -23,7 +23,8 @@
 #   Dev (root PM2):   cd .../dev.fparmychapters.com/public_html && GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
 #   Dev (admin PM2):  sudo -u admin bash -lc 'cd .../dev.../public_html && GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh'
 #
-# Two apps on one host: ports are pinned in ecosystem.config.cjs + scripts/pm2-next-start.sh.
+# Two apps on one host: each deploy only recycles its own PM2 name + port (3000 prod, 3001 dev).
+# Use ecosystem.config.cjs manually once to register both apps; routine deploy uses pm2-next-start.sh only.
 
 set -euo pipefail
 
@@ -94,26 +95,24 @@ ensure_git_safe_directory() {
 }
 
 port_holders() {
-  ss -ltnp 2>/dev/null | awk -v p=":${APP_PORT}" '$4 ~ p { print $0 }'
+  ss -ltnp "sport = :${APP_PORT}" 2>/dev/null || true
 }
 
 port_in_use() {
-  ss -ltnp 2>/dev/null | grep -q ":${APP_PORT} "
+  ss -ltnp "sport = :${APP_PORT}" 2>/dev/null | grep -q LISTEN
 }
 
 free_listen_port() {
   local port="$1"
-  echo "[deploy] Freeing port ${port} (listeners before):"
-  ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { print $0 }' || true
+  echo "[deploy] Freeing port ${port} only (listeners before):"
+  ss -ltnp "sport = :${port}" 2>/dev/null || true
 
-  if [[ -x scripts/free-next-host-ports.sh ]] || [[ -f scripts/free-next-host-ports.sh ]]; then
-    bash scripts/free-next-host-ports.sh "$port" || true
-  elif command -v fuser >/dev/null 2>&1; then
+  if command -v fuser >/dev/null 2>&1; then
     fuser -k "${port}/tcp" 2>/dev/null || true
     sleep 2
   fi
 
-  if ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { exit 0 } END { exit 1 }'; then
+  if ss -ltnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
     if command -v sudo >/dev/null 2>&1; then
       echo "[deploy] Port ${port} still busy — trying sudo fuser (orphaned next-server)..."
       sudo fuser -k "${port}/tcp" 2>/dev/null || true
@@ -121,17 +120,17 @@ free_listen_port() {
     fi
   fi
 
-  if ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { exit 0 } END { exit 1 }'; then
+  if ss -ltnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
     echo "[deploy] WARNING: Port ${port} still in use — killing PIDs from ss..." >&2
-    ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p {
+    ss -ltnp "sport = :${port}" 2>/dev/null | awk '{
       while (match($0, /pid=([0-9]+)/, a)) { system("kill -9 " a[1] " 2>/dev/null"); $0=substr($0, RSTART+RLENGTH) }
     }' || true
     sleep 2
   fi
 
-  if ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { exit 0 } END { exit 1 }'; then
-    echo "[deploy] ERROR: Port ${port} is still in use. Run: sudo bash scripts/free-next-host-ports.sh ${port}" >&2
-    ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { print $0 }' || true
+  if ss -ltnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
+    echo "[deploy] ERROR: Port ${port} is still in use. Run: sudo fuser -k ${port}/tcp" >&2
+    ss -ltnp "sport = :${port}" 2>/dev/null || true
     return 1
   fi
   echo "[deploy] OK: port ${port} is free"
@@ -152,16 +151,12 @@ start_pm2_app() {
   pm2 delete "$name" 2>/dev/null || true
   free_listen_port "$port"
 
-  if [[ -f ecosystem.config.cjs ]]; then
-    echo "[deploy] pm2 start ecosystem.config.cjs --only ${name}"
-    NODE_ENV=production pm2 start ecosystem.config.cjs --only "$name"
-  else
-    echo "[deploy] pm2 start scripts/pm2-next-start.sh ${port}"
-    NODE_ENV=production pm2 start scripts/pm2-next-start.sh --name "$name" --interpreter bash -- "$port"
-  fi
+  # Always start this app alone — do NOT use ecosystem.config.cjs here (loads prod+dev and can stop the other site).
+  echo "[deploy] pm2 start scripts/pm2-next-start.sh ${port} (name: ${name})"
+  NODE_ENV=production pm2 start scripts/pm2-next-start.sh --name "$name" --interpreter bash -- "$port"
 
   pm2 save
-  echo "[deploy] PM2 saved process list"
+  echo "[deploy] PM2 saved process list (other PM2 apps on this host were not touched)"
 
   sleep 3
   if ! port_in_use; then
@@ -171,7 +166,7 @@ start_pm2_app() {
   fi
 
   echo "[deploy] OK: ${name} listening on ${port}"
-  ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { print $0 }' || true
+  ss -ltnp "sport = :${port}" 2>/dev/null || true
 }
 
 if [[ "${SKIP_DEPLOY_ENV_WARN:-}" != "1" ]]; then
