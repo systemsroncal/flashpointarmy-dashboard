@@ -175,6 +175,10 @@ function formatFeedTime(iso: string) {
   });
 }
 
+const FEED_TITLE_FONT_SIZE = "13px";
+const FEED_DESC_FONT_SIZE = "12px";
+const FEED_META_FONT_SIZE = "0.72rem";
+
 function FeedRow({ row }: { row: ActivityFeedRow }) {
   const visual = resolveFeedVisual(row);
   const Icon = visual.Icon;
@@ -229,7 +233,7 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
             fontWeight: 700,
             color: "common.white",
             lineHeight: 1.35,
-            fontSize: "12px",
+            fontSize: FEED_TITLE_FONT_SIZE,
           }}
         >
           {row.title}
@@ -260,30 +264,43 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
               mt: 0.35,
             }}
           >
-            <Typography variant="caption" color="text.secondary" sx={{ flex: 1, minWidth: 0, lineHeight: 1.4 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ flex: 1, minWidth: 0, lineHeight: 1.4, fontSize: FEED_DESC_FONT_SIZE }}
+            >
               {row.subtitle}
             </Typography>
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ flexShrink: 0, fontSize: "0.75rem", lineHeight: 1.4 }}
+              sx={{
+                flexShrink: 0,
+                fontSize: FEED_META_FONT_SIZE,
+                lineHeight: 1.4,
+                pr: 0.75,
+              }}
             >
               {formatFeedDate(row.created_at)}
             </Typography>
           </Box>
         ) : (
           <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.35 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: FEED_META_FONT_SIZE, pr: 0.75 }}
+            >
               {formatFeedDate(row.created_at)}
             </Typography>
           </Box>
         )}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.35 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: FEED_META_FONT_SIZE }}>
             {categoryDisplay}
           </Typography>
           <AccessTime sx={{ fontSize: 13, color: "text.secondary", opacity: 0.85 }} />
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: FEED_META_FONT_SIZE }}>
             {formatFeedTime(row.created_at)}
           </Typography>
         </Box>
