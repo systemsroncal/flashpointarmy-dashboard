@@ -38,6 +38,7 @@ export async function getAuthUser(
       await clearStaleAuthSession(supabase);
       return { user: null, staleSessionCleared: true };
     }
-    throw err;
+    /* Network / config glitches must not surface as the generic "Under Maintenance" error page. */
+    return { user: null, staleSessionCleared: false };
   }
 }

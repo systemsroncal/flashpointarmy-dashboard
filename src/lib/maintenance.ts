@@ -23,7 +23,7 @@ export const MAINTENANCE_ETA_ET = "3:00 PM Eastern Time";
 export const MAINTENANCE_MESSAGE =
   "FlashPoint is under maintenance. We expect to be back by 3:00 PM Eastern Time. Thank you for your patience.";
 
-/** Top banner (login + dashboard). Off when MAINTENANCE_BANNER=0 in .env.production. */
+/** Top banner (login + dashboard). Off when MAINTENANCE_BANNER=0 in .env.production (runtime; PM2 restart is enough). */
 export function isMaintenanceBannerEnabled(): boolean {
   const v = (process.env.MAINTENANCE_BANNER ?? "1").trim().toLowerCase();
   return v !== "0" && v !== "false" && v !== "no";
