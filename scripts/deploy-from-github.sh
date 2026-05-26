@@ -117,6 +117,9 @@ npm run build
 test -f .next/BUILD_ID && echo "[deploy] BUILD OK"
 
 if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
+  pm2 stop "$PM2_NAME" 2>/dev/null || true
+  sleep 1
+
   # Free APP_PORT before bind: `ss` can miss short-lived listeners; fuser clears stale Node/Next.
   echo "[deploy] Checking port ${APP_PORT} (listeners, if any):"
   port_holders || true
@@ -129,15 +132,30 @@ if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
     exit 1
   fi
 
-  echo "[deploy] PM2 will bind PORT=$PORT for process name: $PM2_NAME"
+  if [[ -n "$(port_holders)" ]]; then
+    echo "[deploy] WARNING: Port ${APP_PORT} still in use after fuser — killing listener PIDs from ss..." >&2
+    ss -ltnp 2>/dev/null | awk -v p=":${APP_PORT}" '$4 ~ p { print $0 }' || true
+    ss -ltnp 2>/dev/null | awk -v p=":${APP_PORT}" '$4 ~ p {
+      while (match($0, /pid=([0-9]+)/, a)) { system("kill -9 " a[1]); $0=substr($0, RSTART+RLENGTH) }
+    }' || true
+    sleep 2
+  fi
+
+  PM2_START=(bash scripts/pm2-next-start.sh "$APP_PORT")
+  echo "[deploy] PM2 will run: ${PM2_START[*]} (name: $PM2_NAME)"
 
   if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
-    PORT="$APP_PORT" NODE_ENV=production pm2 restart "$PM2_NAME" --update-env
-    echo "[deploy] PM2 restarted: $PM2_NAME"
-  else
-    PORT="$APP_PORT" NODE_ENV=production pm2 start npm --name "$PM2_NAME" -- start
-    echo "[deploy] PM2 started: $PM2_NAME"
+    pm2 delete "$PM2_NAME" 2>/dev/null || true
   fi
+  NODE_ENV=production pm2 start scripts/pm2-next-start.sh --name "$PM2_NAME" --interpreter bash -- "$APP_PORT"
+  echo "[deploy] PM2 started: $PM2_NAME on port ${APP_PORT}"
+
+  sleep 2
+  if ! ss -ltnp 2>/dev/null | grep -q ":${APP_PORT} "; then
+    echo "[deploy] ERROR: Nothing listening on ${APP_PORT} after PM2 start. Check: pm2 logs $PM2_NAME --lines 30 --nostream" >&2
+    exit 1
+  fi
+  echo "[deploy] OK: port ${APP_PORT} is listening"
 else
   echo "[deploy] SKIP_PM2=1 or pm2 not found — restart your app manually."
 fi
