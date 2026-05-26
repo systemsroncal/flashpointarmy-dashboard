@@ -25,6 +25,20 @@ import { UsaChapterActivityMap } from "./UsaChapterActivityMap";
 
 type ChapterRow = { id: string; name: string; state: string };
 
+const drawerLikeScrollbarSx = {
+  scrollbarWidth: "thin" as const,
+  scrollbarColor: "rgba(255,215,0,0.22) rgba(0,0,0,0.35)",
+  "&::-webkit-scrollbar": { width: 6 },
+  "&::-webkit-scrollbar-thumb": {
+    backgroundColor: "rgba(255,215,0,0.16)",
+    borderRadius: 3,
+    border: "1px solid rgba(0,0,0,0.2)",
+  },
+  "&::-webkit-scrollbar-track": {
+    backgroundColor: "rgba(0,0,0,0.28)",
+  },
+} as const;
+
 export function NationalOverview({
   initialStats,
   initialFeed,
@@ -52,6 +66,8 @@ export function NationalOverview({
 
   const popupOpenRef = useRef(popupOpen);
   const popupStateRef = useRef(popupState);
+  const mapColumnRef = useRef<HTMLDivElement>(null);
+  const [feedPanelHeight, setFeedPanelHeight] = useState<number | null>(null);
   useEffect(() => {
     popupOpenRef.current = popupOpen;
   }, [popupOpen]);
@@ -70,6 +86,23 @@ export function NationalOverview({
   useEffect(() => {
     setChapterRows(chapters);
   }, [chapters]);
+
+  /** Match Community in Action card height to the map column (map sets the height; feed scrolls inside). */
+  useEffect(() => {
+    const el = mapColumnRef.current;
+    if (!el) return;
+    const syncHeight = () => {
+      setFeedPanelHeight(el.getBoundingClientRect().height);
+    };
+    syncHeight();
+    const ro = new ResizeObserver(syncHeight);
+    ro.observe(el);
+    window.addEventListener("resize", syncHeight);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", syncHeight);
+    };
+  }, []);
 
   const chapterCountByState = useMemo(() => {
     const m = new Map<string, number>();
@@ -346,9 +379,9 @@ export function NationalOverview({
         })}
       </Box>
 
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "stretch" }}>
-        <Box sx={{ flex: "1 1 380px", minWidth: 280, display: "flex", flexDirection: "column" }}>
-          <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.4)", flex: 1, display: "flex", flexDirection: "column" }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-start" }}>
+        <Box ref={mapColumnRef} sx={{ flex: "1 1 380px", minWidth: 280 }}>
+          <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.4)" }}>
             <Typography variant="h6" sx={{ mb: 1, color: "primary.main" }}>
               Live chapter activity map
             </Typography>
@@ -431,6 +464,7 @@ export function NationalOverview({
             flex: "0 0 auto",
             display: "flex",
             flexDirection: "column",
+            ...(feedPanelHeight != null ? { height: feedPanelHeight } : {}),
           }}
         >
           <Paper
@@ -441,6 +475,7 @@ export function NationalOverview({
               display: "flex",
               flexDirection: "column",
               minHeight: 0,
+              overflow: "hidden",
             }}
           >
             <Typography variant="h6" sx={{ mb: 0.25, color: "primary.main", fontSize: "1rem" }}>
@@ -455,17 +490,7 @@ export function NationalOverview({
                 minHeight: 0,
                 overflow: "auto",
                 mx: -0.5,
-                scrollbarWidth: "thin",
-                scrollbarColor: "rgba(255,215,0,0.22) rgba(0,0,0,0.35)",
-                "&::-webkit-scrollbar": { width: 6 },
-                "&::-webkit-scrollbar-thumb": {
-                  backgroundColor: "rgba(255,215,0,0.16)",
-                  borderRadius: 3,
-                  border: "1px solid rgba(0,0,0,0.2)",
-                },
-                "&::-webkit-scrollbar-track": {
-                  backgroundColor: "rgba(0,0,0,0.28)",
-                },
+                ...drawerLikeScrollbarSx,
               }}
             >
               <CommunityInActionFeed items={feed} />
