@@ -196,29 +196,29 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
         display: "flex",
         alignItems: "stretch",
         gap: 1.25,
-        minHeight: 64,
+        minHeight: 52,
         py: 0.75,
         borderBottom: "1px solid rgba(255,215,0,0.1)",
       }}
     >
       <Box
         sx={{
-          width: 40,
+          width: 32,
           alignSelf: "stretch",
-          minHeight: 56,
+          minHeight: 45,
           flexShrink: 0,
           borderRadius: 1,
           bgcolor: visual.railBg,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          boxShadow: `0 0 12px ${visual.glow}`,
+          boxShadow: `0 0 10px ${visual.glow}`,
           border: "1px solid rgba(255,255,255,0.06)",
           "& svg": {
             width: "72%",
             height: "72%",
-            maxWidth: 28,
-            maxHeight: 28,
+            maxWidth: 22,
+            maxHeight: 22,
           },
         }}
       >
