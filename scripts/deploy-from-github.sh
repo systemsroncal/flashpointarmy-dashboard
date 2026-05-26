@@ -16,11 +16,13 @@
 # `git clean -fdx` manually (that removes ignored files). Prefer this script over a manual
 # `git reset --hard` before deploy — the script already resets to origin.
 #
-# Examples (Hestia: run as the shell user that owns the site, from the clone directory):
-#   Producción:  bash scripts/deploy-from-github.sh
-#   Dev:         GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
+# PM2 user: always run deploy as the SAME user that owns PM2 (root *or* admin — never mix).
+# Examples:
+#   Prod (root PM2):  cd .../app.fparmychapters.com/public_html && bash scripts/deploy-from-github.sh
+#   Dev (root PM2):   cd .../dev.fparmychapters.com/public_html && GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
+#   Dev (admin PM2):  sudo -u admin bash -lc 'cd .../dev.../public_html && GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh'
 #
-# Two apps on one host: pin PORT (see ecosystem.config.cjs in repo root) so prod never shares 3000 with dev.
+# Two apps on one host: ports are pinned in ecosystem.config.cjs + scripts/pm2-next-start.sh.
 
 set -euo pipefail
 
@@ -34,7 +36,6 @@ export PORT="${APP_PORT}"
 
 ENV_FILE=".env.production"
 ENV_BACKUP=""
-# Also protect optional local overrides if present on the host (never in git).
 EXTRA_ENV_FILES=(".env.local")
 
 backup_env_files() {
@@ -75,24 +76,100 @@ warn_if_env_tracked() {
   fi
 }
 
+port_holders() {
+  ss -ltnp 2>/dev/null | awk -v p=":${APP_PORT}" '$4 ~ p { print $0 }'
+}
+
+port_in_use() {
+  ss -ltnp 2>/dev/null | grep -q ":${APP_PORT} "
+}
+
+free_listen_port() {
+  local port="$1"
+  echo "[deploy] Freeing port ${port} (listeners before):"
+  ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { print $0 }' || true
+
+  if [[ -x scripts/free-next-host-ports.sh ]] || [[ -f scripts/free-next-host-ports.sh ]]; then
+    bash scripts/free-next-host-ports.sh "$port" || true
+  elif command -v fuser >/dev/null 2>&1; then
+    fuser -k "${port}/tcp" 2>/dev/null || true
+    sleep 2
+  fi
+
+  if ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { exit 0 } END { exit 1 }'; then
+    if command -v sudo >/dev/null 2>&1; then
+      echo "[deploy] Port ${port} still busy — trying sudo fuser (orphaned next-server)..."
+      sudo fuser -k "${port}/tcp" 2>/dev/null || true
+      sleep 2
+    fi
+  fi
+
+  if ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { exit 0 } END { exit 1 }'; then
+    echo "[deploy] WARNING: Port ${port} still in use — killing PIDs from ss..." >&2
+    ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p {
+      while (match($0, /pid=([0-9]+)/, a)) { system("kill -9 " a[1] " 2>/dev/null"); $0=substr($0, RSTART+RLENGTH) }
+    }' || true
+    sleep 2
+  fi
+
+  if ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { exit 0 } END { exit 1 }'; then
+    echo "[deploy] ERROR: Port ${port} is still in use. Run: sudo bash scripts/free-next-host-ports.sh ${port}" >&2
+    ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { print $0 }' || true
+    return 1
+  fi
+  echo "[deploy] OK: port ${port} is free"
+}
+
+start_pm2_app() {
+  local name="$1"
+  local port="$2"
+
+  if ! command -v pm2 >/dev/null 2>&1; then
+    echo "[deploy] pm2 not found — start the app manually on port ${port}." >&2
+    return 0
+  fi
+
+  echo "[deploy] PM2 recycle: ${name} on port ${port} (user: $(whoami))"
+
+  pm2 stop "$name" 2>/dev/null || true
+  pm2 delete "$name" 2>/dev/null || true
+  free_listen_port "$port"
+
+  if [[ -f ecosystem.config.cjs ]]; then
+    echo "[deploy] pm2 start ecosystem.config.cjs --only ${name}"
+    NODE_ENV=production pm2 start ecosystem.config.cjs --only "$name"
+  else
+    echo "[deploy] pm2 start scripts/pm2-next-start.sh ${port}"
+    NODE_ENV=production pm2 start scripts/pm2-next-start.sh --name "$name" --interpreter bash -- "$port"
+  fi
+
+  pm2 save
+  echo "[deploy] PM2 saved process list"
+
+  sleep 3
+  if ! port_in_use; then
+    echo "[deploy] ERROR: Nothing listening on ${port} after PM2 start." >&2
+    pm2 logs "$name" --lines 40 --nostream 2>/dev/null || true
+    return 1
+  fi
+
+  echo "[deploy] OK: ${name} listening on ${port}"
+  ss -ltnp 2>/dev/null | awk -v p=":${port}" '$4 ~ p { print $0 }' || true
+}
+
 if [[ "${SKIP_DEPLOY_ENV_WARN:-}" != "1" ]]; then
   if [[ ! -f "$ENV_FILE" ]]; then
     echo "[deploy] WARNING: ${ENV_FILE} not found in $(pwd). next build/next start expect Supabase vars there (or export them before this script)." >&2
   fi
 fi
 
-echo "[deploy] $(pwd) branch=$BRANCH PORT=$PORT pm2=$PM2_NAME"
+echo "[deploy] $(pwd) branch=$BRANCH PORT=$PORT pm2=$PM2_NAME user=$(whoami)"
 
 warn_if_env_tracked
 backup_env_files
 
-port_holders() {
-  ss -ltnp 2>/dev/null | awk -v p=":${APP_PORT}" '$4 ~ p { print $0 }'
-}
-
 if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
   pm2 stop "$PM2_NAME" 2>/dev/null || true
-  # Let the old Node process release the TCP port (avoids EADDRINUSE on immediate restart).
   sleep 2
 fi
 
@@ -101,14 +178,10 @@ git fetch origin
 if [[ "${DEPLOY_SOFT_PULL:-}" == "1" ]]; then
   git pull origin "$BRANCH"
 else
-  # Match the remote exactly: avoids "untracked working tree files would be overwritten by merge"
-  # (e.g. manual copies under public/). Ignored files (node_modules, .env.production) are kept.
-  # Never use `git clean -fdx` — that deletes ignored env files on the VPS.
   git reset --hard "origin/${BRANCH}"
   git clean -fd -e .env.production -e .env.local -e .env
 fi
 
-# Always restore .env.production backup after any git sync (reset or pull).
 restore_env_files
 
 npm ci
@@ -116,46 +189,8 @@ npm run build
 
 test -f .next/BUILD_ID && echo "[deploy] BUILD OK"
 
-if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
-  pm2 stop "$PM2_NAME" 2>/dev/null || true
-  sleep 1
-
-  # Free APP_PORT before bind: `ss` can miss short-lived listeners; fuser clears stale Node/Next.
-  echo "[deploy] Checking port ${APP_PORT} (listeners, if any):"
-  port_holders || true
-  if command -v fuser >/dev/null 2>&1; then
-    echo "[deploy] Clearing any process on ${APP_PORT}/tcp (fuser)..."
-    fuser -k "${APP_PORT}/tcp" 2>/dev/null || true
-    sleep 2
-  elif [[ -n "$(port_holders)" ]]; then
-    echo "[deploy] ERROR: Port ${APP_PORT} is in use and fuser is not installed. Install package psmisc, or stop the other process manually." >&2
-    exit 1
-  fi
-
-  if [[ -n "$(port_holders)" ]]; then
-    echo "[deploy] WARNING: Port ${APP_PORT} still in use after fuser — killing listener PIDs from ss..." >&2
-    ss -ltnp 2>/dev/null | awk -v p=":${APP_PORT}" '$4 ~ p { print $0 }' || true
-    ss -ltnp 2>/dev/null | awk -v p=":${APP_PORT}" '$4 ~ p {
-      while (match($0, /pid=([0-9]+)/, a)) { system("kill -9 " a[1]); $0=substr($0, RSTART+RLENGTH) }
-    }' || true
-    sleep 2
-  fi
-
-  PM2_START=(bash scripts/pm2-next-start.sh "$APP_PORT")
-  echo "[deploy] PM2 will run: ${PM2_START[*]} (name: $PM2_NAME)"
-
-  if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
-    pm2 delete "$PM2_NAME" 2>/dev/null || true
-  fi
-  NODE_ENV=production pm2 start scripts/pm2-next-start.sh --name "$PM2_NAME" --interpreter bash -- "$APP_PORT"
-  echo "[deploy] PM2 started: $PM2_NAME on port ${APP_PORT}"
-
-  sleep 2
-  if ! ss -ltnp 2>/dev/null | grep -q ":${APP_PORT} "; then
-    echo "[deploy] ERROR: Nothing listening on ${APP_PORT} after PM2 start. Check: pm2 logs $PM2_NAME --lines 30 --nostream" >&2
-    exit 1
-  fi
-  echo "[deploy] OK: port ${APP_PORT} is listening"
+if [[ "${SKIP_PM2:-}" != "1" ]]; then
+  start_pm2_app "$PM2_NAME" "$APP_PORT"
 else
-  echo "[deploy] SKIP_PM2=1 or pm2 not found — restart your app manually."
+  echo "[deploy] SKIP_PM2=1 — restart your app manually."
 fi

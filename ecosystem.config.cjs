@@ -11,11 +11,11 @@
  *      git config --global --add safe.directory /home/admin/web/dev.fparmychapters.com/public_html
  * 2) Kill orphaned `next-server` on 3000/3001 (they are NOT stopped by `pm2 delete`):
  *      sudo bash scripts/free-next-host-ports.sh
- *    Or: `sudo ss -ltnp | grep -E ':3000|:3001'` then `sudo kill <pid>`.
+ *    Or let `scripts/deploy-from-github.sh` handle it (stop → delete → free port → start).
  * 3) Build each site: `npm ci && npm run build` in each `public_html`.
- * 4) PM2:
- *      pm2 delete app-fparmychapters dev-fparmychapters 2>/dev/null || true
- *      cd /home/admin/web/app.fparmychapters.com/public_html && pm2 start ecosystem.config.cjs && pm2 save
+ * 4) PM2 (manual) or use deploy script:
+ *      cd /home/admin/web/dev.fparmychapters.com/public_html
+ *      GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
  *
  * Edit `cwd` if your Hestia paths differ.
  */
