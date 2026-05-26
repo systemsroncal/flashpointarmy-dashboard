@@ -134,11 +134,11 @@ export async function loadOverviewStats(
     }
   }
 
-  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   let happeningQuery = supabase
     .from("community_activity")
     .select("id", { count: "exact", head: true })
-    .gte("created_at", fiveMinAgo);
+    .gte("created_at", twentyFourHoursAgo);
   if (stateFilter) {
     happeningQuery = happeningQuery.eq("state_code", stateFilter);
   }

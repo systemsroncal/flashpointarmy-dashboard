@@ -8,6 +8,7 @@ import {
 } from "@/lib/donors/aggregate-donors-by-state";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
+import { loadCommunityActivityFeed } from "@/lib/community/community-activity-feed";
 import { loadOverviewStats } from "@/lib/stats/overview-stats";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
@@ -60,23 +61,9 @@ export default async function DashboardHomeContent() {
     };
   }
 
-  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-  let feed: {
-    id: string;
-    feed_category: string;
-    title: string;
-    subtitle: string | null;
-    state_code: string | null;
-    created_at: string;
-    icon_key: string | null;
-  }[] = [];
+  let feed: Awaited<ReturnType<typeof loadCommunityActivityFeed>> = [];
   try {
-    const { data } = await supabase
-      .from("community_activity")
-      .select("id, feed_category, title, subtitle, state_code, created_at, icon_key")
-      .gte("created_at", fiveMinAgo)
-      .order("created_at", { ascending: false });
-    feed = (data ?? []).map((r) => ({ ...r, icon_key: r.icon_key ?? null }));
+    feed = await loadCommunityActivityFeed(supabase);
   } catch {
     feed = [];
   }

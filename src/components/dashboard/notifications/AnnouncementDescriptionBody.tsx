@@ -27,9 +27,37 @@ function splitParts(html: string): Part[] {
   return parts;
 }
 
-function sanitizeHtmlFragment(fragment: string): string {
-  return DOMPurify.sanitize(fragment, { USE_PROFILES: { html: true } });
+/** TinyMCE often saves light-theme inline colors; strip them so dark dashboard cards stay readable. */
+function stripInlineTextColors(html: string): string {
+  const withoutStyleColors = html.replace(/\sstyle=(["'])([\s\S]*?)\1/gi, (_, quote, styles: string) => {
+    const kept = styles
+      .split(";")
+      .map((s) => s.trim())
+      .filter((s) => s && !/^color\s*:/i.test(s));
+    if (!kept.length) return "";
+    return ` style=${quote}${kept.join("; ")}${quote}`;
+  });
+  return withoutStyleColors.replace(/(<font\b[^>]*)\scolor=(["'])[^"']*\2/gi, "$1");
 }
+
+function sanitizeHtmlFragment(fragment: string): string {
+  const safe = DOMPurify.sanitize(fragment, { USE_PROFILES: { html: true } });
+  return stripInlineTextColors(safe);
+}
+
+const darkHtmlSx = {
+  color: "grey.300",
+  "& p, & span, & div, & li, & td, & th, & font, & em, & strong, & b, & i, & u, & blockquote": {
+    color: "grey.300 !important",
+  },
+  "& h1, & h2, & h3, & h4": {
+    color: "grey.100 !important",
+  },
+  "& a": {
+    color: "primary.light !important",
+    wordBreak: "break-word",
+  },
+} as const;
 
 type Props = {
   html: string;
@@ -78,11 +106,11 @@ export function AnnouncementDescriptionBody({ html, compact }: Props) {
               typography: "body2",
               lineHeight: 1.65,
               ...(plainFragment ? { whiteSpace: "pre-wrap" as const } : {}),
+              ...darkHtmlSx,
               "& p": { mb: 1.25 },
               "& p:last-child": { mb: 0 },
               "& ul, & ol": { pl: 3, my: 1 },
-              "& h1, & h2, & h3": { mt: 1.5, mb: 1, fontWeight: 700, color: "grey.100" },
-              "& a": { color: "primary.light", wordBreak: "break-word" },
+              "& h1, & h2, & h3": { mt: 1.5, mb: 1, fontWeight: 700 },
               "& img": { maxWidth: "100%", height: "auto", borderRadius: 1 },
               "& table": { width: "100%", borderCollapse: "collapse", my: 1 },
               "& th, & td": { border: 1, borderColor: "divider", p: 0.75 },

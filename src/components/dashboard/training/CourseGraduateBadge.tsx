@@ -138,7 +138,7 @@ export function AvatarWithGraduateIcon({
         sx={{
           width: size,
           height: size,
-          fontSize: Math.max(0.65, size * 0.36) + "rem",
+          fontSize: `${Math.round(size * 0.38)}px`,
           ...avatarSx,
         }}
       >

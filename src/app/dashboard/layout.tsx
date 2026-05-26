@@ -82,11 +82,16 @@ export default async function DashboardLayout({
 
   const permissions = await loadModulePermissions(supabase, user.id);
 
-  const trainingGraduateBadge = await loadTrainingGraduateBadge(
-    supabase,
-    dashboardUser.id,
-    dashboardUser.role_names
-  );
+  let trainingGraduateBadge: Awaited<ReturnType<typeof loadTrainingGraduateBadge>> = null;
+  try {
+    trainingGraduateBadge = await loadTrainingGraduateBadge(
+      supabase,
+      dashboardUser.id,
+      dashboardUser.role_names
+    );
+  } catch {
+    /* Badge is optional — never block dashboard render if course tables are unavailable. */
+  }
   dashboardUser = { ...dashboardUser, training_graduate_badge: trainingGraduateBadge };
 
   return (

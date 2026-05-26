@@ -19,6 +19,7 @@ import {
   sumReferenceTotals,
   type CitiesDonorsJson,
 } from "@/lib/donors/aggregate-donors-by-state";
+import { loadCommunityActivityFeed } from "@/lib/community/community-activity-feed";
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
 import { UsaChapterActivityMap } from "./UsaChapterActivityMap";
 
@@ -125,13 +126,8 @@ export function NationalOverview({
       });
       setStats(next);
 
-      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { data: feedData } = await supabase
-        .from("community_activity")
-        .select("id, feed_category, title, subtitle, state_code, created_at, icon_key")
-        .gte("created_at", fiveMinAgo)
-        .order("created_at", { ascending: false });
-      setFeed((feedData ?? []).map((r) => ({ ...r, icon_key: r.icon_key ?? null })));
+      const feedData = await loadCommunityActivityFeed(supabase);
+      setFeed(feedData);
 
       if (popupOpenRef.current && popupStateRef.current) {
         const popup = await loadStatePopupStats(supabase, popupStateRef.current);
@@ -258,7 +254,7 @@ export function NationalOverview({
           icon: AssignmentIndOutlined,
         },
         {
-          label: "Happening Now",
+          label: "Happening Now (24h)",
           value: stats.happeningNow,
           color: "#ef4444",
           icon: BoltOutlined,
@@ -440,7 +436,7 @@ export function NationalOverview({
               Community in Action
             </Typography>
             <Typography variant="caption" color="error.main" sx={{ display: "block", mb: 0.5 }}>
-              LIVE · last 5 minutes
+              Last 25 activities · past 24 hours
             </Typography>
             <Box sx={{ maxHeight: 380, overflow: "auto", mx: -0.5 }}>
               <CommunityInActionFeed items={feed} />

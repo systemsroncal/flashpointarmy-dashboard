@@ -143,8 +143,6 @@ export function TrainingCommandLanding({
               videoUrl={trimmedIntro}
               initialSeconds={0}
               onPersistSeconds={() => {}}
-              autoplayMuted
-              omitPlayLargeControl
             />
           ) : (
             <Box
@@ -170,23 +168,6 @@ export function TrainingCommandLanding({
           )}
         </Box>
 
-        <Button
-          component={Link}
-          href={primaryCourseHref}
-          variant="contained"
-          fullWidth
-          sx={{
-            py: 1.25,
-            fontWeight: 800,
-            color: "#0a0a0a",
-            bgcolor: "primary.main",
-            "&:hover": { bgcolor: "primary.light" },
-            mb: 3,
-          }}
-        >
-          Begin Your Training
-        </Button>
-
         <Typography
           sx={{
             fontWeight: 900,
@@ -194,6 +175,7 @@ export function TrainingCommandLanding({
             color: "#fff",
             fontSize: { xs: "1.5rem", sm: "1.75rem" },
             mb: 0.5,
+            mt: 3,
           }}
         >
           THE MISSION

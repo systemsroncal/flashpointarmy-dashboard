@@ -279,7 +279,7 @@ export function CommunityInActionFeed({ items }: { items: ActivityFeedRow[] }) {
   if (items.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ py: 1 }}>
-        No activity in the last 5 minutes.
+        No community activity to show yet.
       </Typography>
     );
   }
