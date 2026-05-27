@@ -102,37 +102,54 @@ port_in_use() {
   ss -ltnp "sport = :${APP_PORT}" 2>/dev/null | grep -q LISTEN
 }
 
+# Portable PID list from `ss` (avoid gawk-only match(..., arr) in free_listen_port).
+pids_listening_on_port() {
+  local port="$1"
+  ss -ltnp "sport = :${port}" 2>/dev/null \
+    | grep -oE 'pid=[0-9]+' \
+    | cut -d= -f2 \
+    | sort -u
+}
+
+kill_pids_on_port() {
+  local port="$1"
+  local pid
+  local killed=0
+  while read -r pid; do
+    [[ -n "$pid" ]] || continue
+    kill -9 "$pid" 2>/dev/null || sudo kill -9 "$pid" 2>/dev/null || true
+    killed=1
+  done < <(pids_listening_on_port "$port")
+  [[ "$killed" -eq 1 ]]
+}
+
 free_listen_port() {
   local port="$1"
+  local attempt
   echo "[deploy] Freeing port ${port} only (listeners before):"
   ss -ltnp "sport = :${port}" 2>/dev/null || true
 
-  if command -v fuser >/dev/null 2>&1; then
-    fuser -k "${port}/tcp" 2>/dev/null || true
-    sleep 2
-  fi
-
-  if ss -ltnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
-    if command -v sudo >/dev/null 2>&1; then
-      echo "[deploy] Port ${port} still busy — trying sudo fuser (orphaned next-server)..."
-      sudo fuser -k "${port}/tcp" 2>/dev/null || true
-      sleep 2
+  for attempt in 1 2 3; do
+    if ! ss -ltnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
+      echo "[deploy] OK: port ${port} is free"
+      return 0
     fi
-  fi
 
-  if ss -ltnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
-    echo "[deploy] WARNING: Port ${port} still in use — killing PIDs from ss..." >&2
-    ss -ltnp "sport = :${port}" 2>/dev/null | awk '{
-      while (match($0, /pid=([0-9]+)/, a)) { system("kill -9 " a[1] " 2>/dev/null"); $0=substr($0, RSTART+RLENGTH) }
-    }' || true
+    if command -v fuser >/dev/null 2>&1; then
+      fuser -k "${port}/tcp" 2>/dev/null || sudo fuser -k "${port}/tcp" 2>/dev/null || true
+    fi
+    kill_pids_on_port "$port" || true
     sleep 2
-  fi
+  done
 
   if ss -ltnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
-    echo "[deploy] ERROR: Port ${port} is still in use. Run: sudo fuser -k ${port}/tcp" >&2
+    echo "[deploy] ERROR: Port ${port} is still in use after 3 attempts." >&2
+    echo "[deploy] Check for a second PM2 user (root vs admin): pm2 list && sudo -u admin pm2 list" >&2
+    echo "[deploy] Manual fix: sudo fuser -k ${port}/tcp && sudo kill -9 \$(ss -ltnp 'sport = :${port}' | grep -oE 'pid=[0-9]+' | cut -d= -f2)" >&2
     ss -ltnp "sport = :${port}" 2>/dev/null || true
     return 1
   fi
+
   echo "[deploy] OK: port ${port} is free"
 }
 
