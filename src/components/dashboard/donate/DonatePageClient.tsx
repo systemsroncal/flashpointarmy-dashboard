@@ -37,9 +37,9 @@ function cardPalette(style: DonationAmountPreset["card_style"]) {
   }
   if (style === "dark") {
     return {
-      bgcolor: "#1a1a1e",
+      bgcolor: "#26262b",
       color: "#fff",
-      border: "1px solid rgba(255,255,255,0.55)",
+      border: "1px solid rgba(255,255,255,0.45)",
       buttonBg: "#facc15",
       buttonColor: "#111",
       buttonHover: "#fde047",
@@ -48,7 +48,7 @@ function cardPalette(style: DonationAmountPreset["card_style"]) {
   return {
     bgcolor: "#fff",
     color: "#111",
-    border: "1px solid rgba(0,0,0,0.08)",
+    border: "1px solid transparent",
     buttonBg: "#facc15",
     buttonColor: "#111",
     buttonHover: "#fde047",
@@ -64,46 +64,41 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
     <Box
       sx={{
         position: "relative",
-        borderRadius: 3,
+        borderRadius: "14px",
         border: palette.border,
         bgcolor: palette.bgcolor,
         color: palette.color,
-        px: { xs: 1.75, sm: 2.75 },
-        py: recommended ? { xs: 4.5, sm: 6.5 } : { xs: 2.75, sm: 3.25 },
+        px: { xs: 2, sm: 3 },
+        pt: recommended ? { xs: 3, sm: 3.5 } : { xs: 3, sm: 3.5 },
+        pb: recommended ? { xs: 4.5, sm: 5.5 } : { xs: 3, sm: 3.5 },
         display: "flex",
         flexDirection: "column",
         alignItems: "stretch",
-        minHeight: recommended ? { xs: 360, sm: 420 } : { xs: 280, sm: 300 },
-        boxShadow:
-          preset.card_style === "accent"
-            ? "0 12px 32px rgba(250,204,21,0.18)"
-            : preset.card_style === "dark"
-              ? "none"
-              : "0 8px 24px rgba(0,0,0,0.12)",
+        width: "100%",
+        minHeight: recommended ? { xs: 390, sm: 470 } : { xs: 300, sm: 330 },
+        boxShadow: preset.card_style === "accent" ? "none" : preset.card_style === "dark" ? "none" : "none",
       }}
     >
       {recommended ? (
         <Typography
           sx={{
             textAlign: "center",
-            fontSize: { xs: "0.72rem", sm: "0.8rem" },
+            fontSize: { xs: "0.75rem", sm: "0.82rem" },
             fontStyle: "italic",
-            opacity: 0.85,
-            mb: 1.5,
+            fontWeight: 500,
+            mb: 2,
           }}
         >
           † Recommended
         </Typography>
-      ) : (
-        <Box sx={{ height: { xs: 18, sm: 22 }, mb: 0.5, flexShrink: 0 }} aria-hidden />
-      )}
+      ) : null}
 
       <Typography
         sx={{
           fontWeight: 800,
-          fontSize: { xs: "0.92rem", sm: "1.05rem" },
+          fontSize: { xs: "0.95rem", sm: "1.08rem" },
           textAlign: "center",
-          mb: 1.5,
+          mb: 1.25,
           lineHeight: 1.25,
         }}
       >
@@ -113,22 +108,31 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
       <Typography
         sx={{
           textAlign: "center",
-          fontSize: { xs: "0.82rem", sm: "0.92rem" },
-          lineHeight: 1.45,
-          opacity: preset.card_style === "dark" ? 0.88 : 0.72,
-          mb: 2.5,
+          fontSize: { xs: "0.84rem", sm: "0.92rem" },
+          lineHeight: 1.5,
+          color: preset.card_style === "dark" ? "rgba(255,255,255,0.82)" : "rgba(17,17,17,0.68)",
+          mb: 2,
           flexGrow: 1,
+          px: 0.5,
         }}
       >
         {preset.description?.trim() || "Support the FlashPoint Army mission."}
       </Typography>
 
-      <Typography sx={{ textAlign: "center", fontWeight: 800, mb: 2 }}>
-        <Box component="span" sx={{ fontSize: { xs: "1.65rem", sm: "2rem" }, lineHeight: 1 }}>
+      <Typography sx={{ textAlign: "center", fontWeight: 800, mb: 2.25, lineHeight: 1 }}>
+        <Box component="span" sx={{ fontSize: { xs: "1.85rem", sm: "2.15rem" } }}>
           {amountLabel}
         </Box>
-        <Box component="span" sx={{ fontSize: { xs: "0.85rem", sm: "0.95rem" }, fontWeight: 600, ml: 0.35 }}>
-          {" "}/month
+        <Box
+          component="span"
+          sx={{
+            fontSize: { xs: "0.9rem", sm: "1rem" },
+            fontWeight: 600,
+            ml: 0.35,
+            color: preset.card_style === "dark" ? "rgba(255,255,255,0.92)" : "rgba(17,17,17,0.88)",
+          }}
+        >
+          /month
         </Box>
       </Typography>
 
@@ -140,17 +144,18 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
         variant="contained"
         disableElevation
         sx={{
-          alignSelf: "stretch",
-          width: "100%",
-          minHeight: 46,
+          alignSelf: "center",
+          minWidth: { xs: 132, sm: 148 },
+          minHeight: 44,
           borderRadius: 999,
-          px: { xs: 2, sm: 3 },
+          px: 3,
           fontWeight: 800,
-          fontSize: { xs: "0.85rem", sm: "0.95rem" },
+          fontSize: { xs: "0.88rem", sm: "0.95rem" },
           bgcolor: palette.buttonBg,
           color: palette.buttonColor,
           touchAction: "manipulation",
           boxShadow: "none",
+          textTransform: "none",
           "&:hover": { bgcolor: palette.buttonHover, boxShadow: "none" },
         }}
       >
@@ -240,15 +245,15 @@ export function DonatePageClient({ presets }: Props) {
       </Container>
 
       {/* Packages */}
-      <Box sx={{ bgcolor: "#101014", py: { xs: 4, md: 5 } }}>
-        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+      <Box sx={{ bgcolor: "#0b0b0d", py: { xs: 4, md: 6 } }}>
+        <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
           <Typography
             component="h2"
             sx={{
               textAlign: "center",
               fontWeight: 800,
-              letterSpacing: "0.08em",
-              fontSize: { xs: "1.5rem", md: "1.85rem" },
+              letterSpacing: "0.06em",
+              fontSize: { xs: "1.55rem", md: "2rem" },
               mb: 1.5,
             }}
           >
@@ -258,10 +263,11 @@ export function DonatePageClient({ presets }: Props) {
             sx={{
               textAlign: "center",
               color: "rgba(255,255,255,0.72)",
-              maxWidth: 760,
+              maxWidth: 820,
               mx: "auto",
-              mb: 4,
+              mb: { xs: 3.5, md: 5 },
               lineHeight: 1.65,
+              fontSize: { xs: "0.95rem", md: "1rem" },
             }}
           >
             Your partnership helps sustain the infrastructure, training, and mobilization efforts that equip
@@ -278,11 +284,11 @@ export function DonatePageClient({ presets }: Props) {
                 display: "grid",
                 gridTemplateColumns: {
                   xs: "repeat(2, minmax(0, 1fr))",
-                  lg: "repeat(4, minmax(0, 1fr))",
+                  md: "repeat(4, minmax(0, 1fr))",
                 },
-                gap: { xs: 1.5, sm: 2.5 },
+                gap: { xs: 1.5, sm: 2, md: 2.5 },
                 alignItems: "flex-end",
-                maxWidth: 1120,
+                maxWidth: 1180,
                 mx: "auto",
               }}
             >
