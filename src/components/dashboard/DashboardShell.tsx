@@ -26,6 +26,7 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SettingsIcon from "@mui/icons-material/Settings";
+import StarOutlineIcon from "@mui/icons-material/StarOutline";
 import VolunteerActivismOutlinedIcon from "@mui/icons-material/VolunteerActivismOutlined";
 import {
   AppBar,
@@ -214,12 +215,6 @@ const NAV: NavItem[] = [
     icon: <EventIcon />,
   },
   {
-    label: "Donate",
-    href: "/dashboard/donate",
-    module: MODULE_SLUGS.donate,
-    icon: <VolunteerActivismOutlinedIcon />,
-  },
-  {
     label: "Mobilize",
     href: MOBILIZE_HOME,
     module: MODULE_SLUGS.movilization,
@@ -394,6 +389,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const ordersHasActive = ordersNav.some((item) => isNavItemSelected(item, pathname));
   const showSystemNotificationBell =
     user.role_names.includes("admin") || user.role_names.includes("super_admin");
+  const showBecomePartner = can(permissions, MODULE_SLUGS.donate, "read");
+  const becomePartnerSelected =
+    pathname === "/dashboard/donate" || pathname.startsWith("/dashboard/donate/");
 
   const tourBuildInput = useMemo(
     () => ({
@@ -863,27 +861,79 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </>
         ) : null}
       </List>
-      <Divider />
-      <Box
-        data-tour="sidebar-profile"
-        sx={{
-          flexShrink: 0,
-          p: 1.5,
-          pb: "calc(12px + env(safe-area-inset-bottom, 0px))",
-          cursor: "pointer",
-          touchAction: "manipulation",
-          "&:hover": { bgcolor: "rgba(255,215,0,0.05)" },
-        }}
-        onClick={() => setProfileOpen(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setProfileOpen(true);
-          }
-        }}
-      >
+      <Box sx={{ flexShrink: 0 }}>
+        {showBecomePartner ? (
+          <ListItemButton
+            component={Link}
+            href="/dashboard/donate"
+            selected={becomePartnerSelected}
+            data-tour="nav-donate"
+            onClick={closeMobileDrawer}
+            sx={{
+              ...NAV_ITEM_TOUCH_SX,
+              px: 2,
+              py: 1.25,
+              "&.Mui-selected": redNavAccent
+                ? {
+                    borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                    bgcolor: "rgba(195, 32, 32, 0.1)",
+                  }
+                : {
+                    borderLeft: "3px solid",
+                    borderColor: "primary.main",
+                    bgcolor: "rgba(255,215,0,0.08)",
+                  },
+            }}
+          >
+            <ListItemIcon
+              sx={{
+                color: becomePartnerSelected
+                  ? redNavAccent
+                    ? MOVILIZATION_RED
+                    : "primary.main"
+                  : "rgba(255,255,255,0.92)",
+                minWidth: 32,
+              }}
+            >
+              <StarOutlineIcon sx={{ fontSize: 20 }} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Become a Partner"
+              primaryTypographyProps={{
+                variant: "body2",
+                fontWeight: 800,
+                fontSize: "0.72rem",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: becomePartnerSelected
+                  ? redNavAccent
+                    ? MOVILIZATION_RED
+                    : "primary.main"
+                  : "rgba(255,255,255,0.95)",
+              }}
+            />
+          </ListItemButton>
+        ) : null}
+        <Divider sx={{ borderColor: redNavAccent ? "rgba(195,32,32,0.22)" : "rgba(255,215,0,0.2)" }} />
+        <Box
+          data-tour="sidebar-profile"
+          sx={{
+            p: 1.5,
+            pb: "calc(12px + env(safe-area-inset-bottom, 0px))",
+            cursor: "pointer",
+            touchAction: "manipulation",
+            "&:hover": { bgcolor: "rgba(255,215,0,0.05)" },
+          }}
+          onClick={() => setProfileOpen(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setProfileOpen(true);
+            }
+          }}
+        >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
           <Avatar
             src={user.avatar_url ? publicAssetSrc(user.avatar_url) : undefined}
@@ -928,6 +978,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             primaryTypographyProps={{ variant: "body2", fontSize: "calc(0.875rem + 3px)" }}
           />
         </ListItemButton>
+        </Box>
       </Box>
     </Box>
   );
