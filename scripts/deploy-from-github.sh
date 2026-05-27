@@ -114,13 +114,35 @@ pids_listening_on_port() {
 kill_pids_on_port() {
   local port="$1"
   local pid
+  local ppid
   local killed=0
   while read -r pid; do
     [[ -n "$pid" ]] || continue
+    ppid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
+    pkill -9 -P "$pid" 2>/dev/null || sudo pkill -9 -P "$pid" 2>/dev/null || true
     kill -9 "$pid" 2>/dev/null || sudo kill -9 "$pid" 2>/dev/null || true
+    if [[ -n "${ppid:-}" && "$ppid" != "1" ]]; then
+      kill -9 "$ppid" 2>/dev/null || sudo kill -9 "$ppid" 2>/dev/null || true
+    fi
     killed=1
   done < <(pids_listening_on_port "$port")
   [[ "$killed" -eq 1 ]]
+}
+
+kill_next_on_port() {
+  local port="$1"
+  pkill -9 -f "next start -p ${port}" 2>/dev/null || sudo pkill -9 -f "next start -p ${port}" 2>/dev/null || true
+}
+
+# Hestia hosts often have PM2 under root AND admin — stop both or the other user respawns the port.
+stop_pm2_app_everywhere() {
+  local name="$1"
+  pm2 stop "$name" 2>/dev/null || true
+  pm2 delete "$name" 2>/dev/null || true
+  if id admin >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+    sudo -u admin pm2 stop "$name" 2>/dev/null || true
+    sudo -u admin pm2 delete "$name" 2>/dev/null || true
+  fi
 }
 
 free_listen_port() {
@@ -129,23 +151,26 @@ free_listen_port() {
   echo "[deploy] Freeing port ${port} only (listeners before):"
   ss -ltnp "sport = :${port}" 2>/dev/null || true
 
-  for attempt in 1 2 3; do
+  for attempt in 1 2 3 4 5; do
     if ! ss -ltnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
-      echo "[deploy] OK: port ${port} is free"
+      echo "[deploy] OK: port ${port} is free (attempt ${attempt})"
       return 0
     fi
 
+    echo "[deploy] Port ${port} busy — attempt ${attempt}/5"
     if command -v fuser >/dev/null 2>&1; then
       fuser -k "${port}/tcp" 2>/dev/null || sudo fuser -k "${port}/tcp" 2>/dev/null || true
     fi
+    kill_next_on_port "$port"
     kill_pids_on_port "$port" || true
     sleep 2
   done
 
   if ss -ltnp "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
-    echo "[deploy] ERROR: Port ${port} is still in use after 3 attempts." >&2
-    echo "[deploy] Check for a second PM2 user (root vs admin): pm2 list && sudo -u admin pm2 list" >&2
-    echo "[deploy] Manual fix: sudo fuser -k ${port}/tcp && sudo kill -9 \$(ss -ltnp 'sport = :${port}' | grep -oE 'pid=[0-9]+' | cut -d= -f2)" >&2
+    echo "[deploy] ERROR: Port ${port} is still in use after 5 attempts." >&2
+    echo "[deploy] Run manually:" >&2
+    echo "  sudo -u admin pm2 delete ${PM2_NAME} 2>/dev/null; pm2 delete ${PM2_NAME} 2>/dev/null" >&2
+    echo "  sudo fuser -k ${port}/tcp; sudo pkill -9 -f 'next start -p ${port}'" >&2
     ss -ltnp "sport = :${port}" 2>/dev/null || true
     return 1
   fi
@@ -164,8 +189,8 @@ start_pm2_app() {
 
   echo "[deploy] PM2 recycle: ${name} on port ${port} (user: $(whoami))"
 
-  pm2 stop "$name" 2>/dev/null || true
-  pm2 delete "$name" 2>/dev/null || true
+  stop_pm2_app_everywhere "$name"
+  sleep 1
   free_listen_port "$port"
 
   # Always start this app alone — do NOT use ecosystem.config.cjs here (loads prod+dev and can stop the other site).
@@ -199,7 +224,7 @@ warn_if_env_tracked
 backup_env_files
 
 if [[ "${SKIP_PM2:-}" != "1" ]] && command -v pm2 >/dev/null 2>&1; then
-  pm2 stop "$PM2_NAME" 2>/dev/null || true
+  stop_pm2_app_everywhere "$PM2_NAME"
   sleep 2
 fi
 
