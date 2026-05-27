@@ -39,7 +39,7 @@ function cardPalette(style: DonationAmountPreset["card_style"]) {
     return {
       bgcolor: "#1a1a1e",
       color: "#fff",
-      border: "1px solid rgba(255,255,255,0.35)",
+      border: "1px solid rgba(255,255,255,0.55)",
       buttonBg: "#facc15",
       buttonColor: "#111",
       buttonHover: "#fde047",
@@ -64,21 +64,22 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
     <Box
       sx={{
         position: "relative",
-        height: "100%",
-        borderRadius: 2,
+        borderRadius: 3,
         border: palette.border,
         bgcolor: palette.bgcolor,
         color: palette.color,
-        px: { xs: 1.5, sm: 2.5 },
-        py: recommended ? { xs: 4, sm: 5.5 } : { xs: 2.5, sm: 3 },
+        px: { xs: 1.75, sm: 2.75 },
+        py: recommended ? { xs: 4.5, sm: 6.5 } : { xs: 2.75, sm: 3.25 },
         display: "flex",
         flexDirection: "column",
         alignItems: "stretch",
-        minHeight: recommended ? { xs: 340, sm: 380 } : { xs: 300, sm: 320 },
+        minHeight: recommended ? { xs: 360, sm: 420 } : { xs: 280, sm: 300 },
         boxShadow:
           preset.card_style === "accent"
             ? "0 12px 32px rgba(250,204,21,0.18)"
-            : "0 8px 24px rgba(0,0,0,0.18)",
+            : preset.card_style === "dark"
+              ? "none"
+              : "0 8px 24px rgba(0,0,0,0.12)",
       }}
     >
       {recommended ? (
@@ -91,7 +92,7 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
             mb: 1.5,
           }}
         >
-          ✝ Recommended
+          † Recommended
         </Typography>
       ) : (
         <Box sx={{ height: { xs: 18, sm: 22 }, mb: 0.5, flexShrink: 0 }} aria-hidden />
@@ -126,8 +127,8 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
         <Box component="span" sx={{ fontSize: { xs: "1.65rem", sm: "2rem" }, lineHeight: 1 }}>
           {amountLabel}
         </Box>
-        <Box component="span" sx={{ fontSize: { xs: "0.85rem", sm: "0.95rem" }, fontWeight: 600, ml: 0.5 }}>
-          /month
+        <Box component="span" sx={{ fontSize: { xs: "0.85rem", sm: "0.95rem" }, fontWeight: 600, ml: 0.35 }}>
+          {" "}/month
         </Box>
       </Typography>
 
@@ -139,9 +140,9 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
         variant="contained"
         disableElevation
         sx={{
-          alignSelf: "center",
-          minWidth: { xs: 120, sm: 148 },
-          minHeight: 44,
+          alignSelf: "stretch",
+          width: "100%",
+          minHeight: 46,
           borderRadius: 999,
           px: { xs: 2, sm: 3 },
           fontWeight: 800,
@@ -149,7 +150,8 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
           bgcolor: palette.buttonBg,
           color: palette.buttonColor,
           touchAction: "manipulation",
-          "&:hover": { bgcolor: palette.buttonHover },
+          boxShadow: "none",
+          "&:hover": { bgcolor: palette.buttonHover, boxShadow: "none" },
         }}
       >
         Join Now
@@ -278,8 +280,10 @@ export function DonatePageClient({ presets }: Props) {
                   xs: "repeat(2, minmax(0, 1fr))",
                   lg: "repeat(4, minmax(0, 1fr))",
                 },
-                gap: { xs: 1.5, sm: 2 },
-                alignItems: "stretch",
+                gap: { xs: 1.5, sm: 2.5 },
+                alignItems: "flex-end",
+                maxWidth: 1120,
+                mx: "auto",
               }}
             >
               {packages.map((preset) => (
