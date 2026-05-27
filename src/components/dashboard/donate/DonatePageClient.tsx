@@ -69,13 +69,11 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
         bgcolor: palette.bgcolor,
         color: palette.color,
         px: { xs: 2, sm: 3 },
-        pt: recommended ? { xs: 3, sm: 3.5 } : { xs: 3, sm: 3.5 },
-        pb: recommended ? { xs: 4.5, sm: 5.5 } : { xs: 3, sm: 3.5 },
+        py: recommended ? { xs: 3.25, sm: 3.75 } : { xs: 3, sm: 3.25 },
         display: "flex",
         flexDirection: "column",
         alignItems: "stretch",
         width: "100%",
-        minHeight: recommended ? { xs: 390, sm: 470 } : { xs: 300, sm: 330 },
         boxShadow: preset.card_style === "accent" ? "none" : preset.card_style === "dark" ? "none" : "none",
       }}
     >
@@ -287,7 +285,7 @@ export function DonatePageClient({ presets }: Props) {
                   md: "repeat(4, minmax(0, 1fr))",
                 },
                 gap: { xs: 1.5, sm: 2, md: 2.5 },
-                alignItems: "flex-end",
+                alignItems: "center",
                 maxWidth: 1180,
                 mx: "auto",
               }}
