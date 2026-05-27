@@ -199,6 +199,8 @@ export function TrainingCommandLanding({
           fullWidth
           sx={{
             py: 1.25,
+            minHeight: 48,
+            touchAction: "manipulation",
             fontWeight: 800,
             color: "#0a0a0a",
             bgcolor: "primary.main",

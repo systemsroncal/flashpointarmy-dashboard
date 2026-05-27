@@ -48,6 +48,7 @@ export function NotificationsDrawerUnreadCount() {
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
+        pointerEvents: "none",
       }}
     >
       {label}

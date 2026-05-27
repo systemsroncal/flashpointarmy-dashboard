@@ -1,298 +1,368 @@
 "use client";
 
-import { DONATION_RECURRENCE_OPTIONS, DONATION_MIN_CUSTOM_CENTS } from "@/lib/donations/constants";
-import { formatUsdFromCents, parseDollarsToCents } from "@/lib/donations/format";
-import { presetAllowsMode } from "@/lib/donations/presets";
-import { flashpointYellow } from "@/theme/flashpoint-theme";
-import type {
-  DonationAmountPreset,
-  DonationPaymentMode,
-  DonationRecurrenceInterval,
-} from "@/types/donations";
-import VolunteerActivismOutlinedIcon from "@mui/icons-material/VolunteerActivismOutlined";
 import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Divider,
-  InputAdornment,
-  Paper,
-  Stack,
-  TextField,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-} from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+  DONATION_DEFAULT_CHECKOUT_URL,
+  DONATION_PARTNER_HERO_IMAGE,
+  DONATION_PARTNER_INTRO_IMAGE,
+} from "@/lib/donations/constants";
+import { formatUsdFromCents } from "@/lib/donations/format";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import type { DonationAmountPreset } from "@/types/donations";
+import { Box, Button, Container, Stack, Typography } from "@mui/material";
+import Image from "next/image";
+import { useMemo } from "react";
 
 type Props = {
   presets: DonationAmountPreset[];
-  stripeEnabled: boolean;
 };
 
-export function DonatePageClient({ presets, stripeEnabled }: Props) {
-  const searchParams = useSearchParams();
-  const statusParam = searchParams.get("status");
+function packageTitle(p: DonationAmountPreset): string {
+  return p.title?.trim() || p.label;
+}
 
-  const enabledPresets = useMemo(
-    () => presets.filter((p) => p.is_enabled).sort((a, b) => a.sort_order - b.sort_order),
+function packageUrl(p: DonationAmountPreset): string {
+  const url = p.checkout_url?.trim();
+  return url || DONATION_DEFAULT_CHECKOUT_URL;
+}
+
+function cardPalette(style: DonationAmountPreset["card_style"]) {
+  if (style === "accent") {
+    return {
+      bgcolor: "#facc15",
+      color: "#111",
+      border: "1px solid #facc15",
+      buttonBg: "#fff",
+      buttonColor: "#111",
+      buttonHover: "#f3f4f6",
+    };
+  }
+  if (style === "dark") {
+    return {
+      bgcolor: "#1a1a1e",
+      color: "#fff",
+      border: "1px solid rgba(255,255,255,0.35)",
+      buttonBg: "#facc15",
+      buttonColor: "#111",
+      buttonHover: "#fde047",
+    };
+  }
+  return {
+    bgcolor: "#fff",
+    color: "#111",
+    border: "1px solid rgba(0,0,0,0.08)",
+    buttonBg: "#facc15",
+    buttonColor: "#111",
+    buttonHover: "#fde047",
+  };
+}
+
+function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
+  const palette = cardPalette(preset.card_style);
+  const amountLabel = formatUsdFromCents(preset.amount_cents);
+
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        flex: "1 1 220px",
+        minWidth: { xs: "100%", sm: 220 },
+        maxWidth: { xs: "100%", lg: 280 },
+        borderRadius: 2,
+        border: palette.border,
+        bgcolor: palette.bgcolor,
+        color: palette.color,
+        px: 2.5,
+        py: 3,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        minHeight: 320,
+        boxShadow:
+          preset.card_style === "accent"
+            ? "0 12px 32px rgba(250,204,21,0.18)"
+            : "0 8px 24px rgba(0,0,0,0.18)",
+      }}
+    >
+      {preset.is_recommended ? (
+        <Typography
+          sx={{
+            position: "absolute",
+            top: 14,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            fontSize: "0.8rem",
+            fontStyle: "italic",
+            opacity: 0.85,
+          }}
+        >
+          ✝ Recommended
+        </Typography>
+      ) : null}
+
+      <Typography
+        sx={{
+          fontWeight: 800,
+          fontSize: "1.05rem",
+          textAlign: "center",
+          mt: preset.is_recommended ? 2.5 : 0,
+          mb: 1.5,
+          lineHeight: 1.25,
+        }}
+      >
+        {packageTitle(preset)}
+      </Typography>
+
+      <Typography
+        sx={{
+          textAlign: "center",
+          fontSize: "0.92rem",
+          lineHeight: 1.45,
+          opacity: preset.card_style === "dark" ? 0.88 : 0.72,
+          mb: 2.5,
+          flexGrow: 1,
+        }}
+      >
+        {preset.description?.trim() || "Support the FlashPoint Army mission."}
+      </Typography>
+
+      <Typography sx={{ textAlign: "center", fontWeight: 800, mb: 2 }}>
+        <Box component="span" sx={{ fontSize: "2rem", lineHeight: 1 }}>
+          {amountLabel}
+        </Box>
+        <Box component="span" sx={{ fontSize: "0.95rem", fontWeight: 600, ml: 0.5 }}>
+          /month
+        </Box>
+      </Typography>
+
+      <Button
+        component="a"
+        href={packageUrl(preset)}
+        target="_blank"
+        rel="noopener noreferrer"
+        variant="contained"
+        disableElevation
+        sx={{
+          alignSelf: "center",
+          minWidth: 148,
+          minHeight: 48,
+          borderRadius: 999,
+          px: 3,
+          fontWeight: 800,
+          bgcolor: palette.buttonBg,
+          color: palette.buttonColor,
+          touchAction: "manipulation",
+          "&:hover": { bgcolor: palette.buttonHover },
+        }}
+      >
+        Join Now
+      </Button>
+    </Box>
+  );
+}
+
+export function DonatePageClient({ presets }: Props) {
+  const packages = useMemo(
+    () =>
+      presets
+        .filter((p) => p.is_enabled && !p.is_custom_amount)
+        .sort((a, b) => a.sort_order - b.sort_order),
     [presets]
   );
 
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => enabledPresets.find((p) => !p.is_custom_amount)?.id ?? enabledPresets[0]?.id ?? null
-  );
-  const [customDollars, setCustomDollars] = useState("");
-  const [paymentMode, setPaymentMode] = useState<DonationPaymentMode>("one_time");
-  const [interval, setInterval] = useState<DonationRecurrenceInterval>("monthly");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const selected = enabledPresets.find((p) => p.id === selectedId) ?? null;
-
-  const recurringOptionsForSelected = useMemo(() => {
-    if (!selected) return [];
-    return DONATION_RECURRENCE_OPTIONS.filter((opt) =>
-      presetAllowsMode(selected, "recurring", opt.value)
-    );
-  }, [selected]);
-
-  const availableIntervals =
-    paymentMode === "recurring" ? recurringOptionsForSelected : [];
-
-  const canOneTime = selected ? presetAllowsMode(selected, "one_time") : false;
-  const canRecurring = recurringOptionsForSelected.length > 0;
-
-  /** Keep the interval valid for the currently selected preset. */
-  useEffect(() => {
-    if (recurringOptionsForSelected.length === 0) return;
-    if (!recurringOptionsForSelected.some((opt) => opt.value === interval)) {
-      setInterval(recurringOptionsForSelected[0].value);
-    }
-  }, [interval, recurringOptionsForSelected]);
-
-  /** If the user picks a preset that only allows recurring, switch payment mode automatically. */
-  useEffect(() => {
-    if (!selected) return;
-    if (paymentMode === "one_time" && !canOneTime && canRecurring) {
-      setPaymentMode("recurring");
-    } else if (paymentMode === "recurring" && !canRecurring && canOneTime) {
-      setPaymentMode("one_time");
-    }
-  }, [canOneTime, canRecurring, paymentMode, selected]);
-
-  const displayAmount = useMemo(() => {
-    if (!selected) return null;
-    if (selected.is_custom_amount) {
-      const cents = parseDollarsToCents(customDollars);
-      return cents ? formatUsdFromCents(cents) : null;
-    }
-    return formatUsdFromCents(selected.amount_cents);
-  }, [selected, customDollars]);
-
-  async function handleDonate() {
-    if (!selected || !stripeEnabled) return;
-    setError(null);
-    setLoading(true);
-    try {
-      const customAmountCents = selected.is_custom_amount
-        ? parseDollarsToCents(customDollars)
-        : undefined;
-
-      if (selected.is_custom_amount && (!customAmountCents || customAmountCents < DONATION_MIN_CUSTOM_CENTS)) {
-        throw new Error(`Enter at least $${DONATION_MIN_CUSTOM_CENTS / 100}`);
-      }
-
-      const res = await fetch("/api/donations/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          presetId: selected.id,
-          customAmountCents,
-          paymentMode,
-          recurrenceInterval: paymentMode === "recurring" ? interval : null,
-        }),
-      });
-      const data = (await res.json()) as { checkoutUrl?: string; error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Could not start checkout");
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-      throw new Error("No checkout URL returned");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Checkout failed");
-      setLoading(false);
-    }
-  }
-
   return (
-    <Box sx={{ maxWidth: 720, mx: "auto" }}>
-      <Stack spacing={3} alignItems="stretch">
-        <Stack direction="row" spacing={2} alignItems="center">
-          <VolunteerActivismOutlinedIcon sx={{ fontSize: 40, color: flashpointYellow }} />
-          <Box>
-            <Typography variant="h4" sx={{ letterSpacing: "0.08em", fontWeight: 700 }}>
-              Donate
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Support Flashpoint with a one-time or recurring gift.
-            </Typography>
-          </Box>
-        </Stack>
-
-        {statusParam === "success" ? (
-          <Alert severity="success">Thank you — your donation was received.</Alert>
-        ) : null}
-        {statusParam === "cancelled" ? (
-          <Alert severity="info">Checkout was cancelled. You can try again anytime.</Alert>
-        ) : null}
-        {!stripeEnabled ? (
-          <Alert severity="warning">
-            Online payments are not configured yet. An administrator must set up Stripe.
-          </Alert>
-        ) : null}
-        {error ? (
-          <Alert severity="error" onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        ) : null}
-
-        <Paper
-          elevation={0}
+    <Box sx={{ bgcolor: "#0b0b0d", color: "#fff", mx: { xs: -2, sm: -3 }, mb: -4 }}>
+      {/* Hero */}
+      <Box sx={{ position: "relative", minHeight: { xs: 280, md: 360 }, overflow: "hidden" }}>
+        <Image
+          src={publicAssetSrc(DONATION_PARTNER_HERO_IMAGE)}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          style={{ objectFit: "cover" }}
+          unoptimized
+        />
+        <Box
           sx={{
-            p: { xs: 2.5, sm: 3.5 },
-            border: "1px solid",
-            borderColor: "rgba(255, 215, 0, 0.25)",
-            background: "linear-gradient(145deg, rgba(255,215,0,0.06) 0%, rgba(0,0,0,0) 55%)",
+            position: "absolute",
+            inset: 0,
+            bgcolor: "rgba(0,0,0,0.42)",
+          }}
+        />
+        <Container
+          maxWidth="lg"
+          sx={{
+            position: "relative",
+            zIndex: 1,
+            minHeight: { xs: 280, md: 360 },
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            px: 2,
+            py: 4,
           }}
         >
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, letterSpacing: "0.12em" }}>
-            CHOOSE AN AMOUNT
+          <Box sx={{ mb: 1.5 }}>
+            <Image
+              src="/logos/Dashboard-Logo.svg"
+              alt="FP Army Chapters"
+              width={72}
+              height={72}
+              unoptimized
+            />
+          </Box>
+          <Typography sx={{ letterSpacing: "0.35em", fontWeight: 700, fontSize: "0.95rem" }}>
+            FP ARMY
           </Typography>
+          <Typography sx={{ letterSpacing: "0.45em", fontSize: "0.72rem", opacity: 0.85, mb: 2 }}>
+            CHAPTERS
+          </Typography>
+          <Typography
+            component="h1"
+            sx={{
+              fontFamily: '"Segoe Script", "Brush Script MT", cursive',
+              fontSize: { xs: "3rem", md: "4.5rem" },
+              lineHeight: 1,
+              fontWeight: 400,
+              mb: 1,
+            }}
+          >
+            Partnership
+          </Typography>
+          <Typography sx={{ opacity: 0.9, fontSize: "1rem" }}>Advance the mission.</Typography>
+        </Container>
+      </Box>
 
+      {/* Intro */}
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, px: { xs: 2, sm: 3 } }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "minmax(260px, 360px) 1fr" },
+            gap: { xs: 3, md: 5 },
+            alignItems: "start",
+          }}
+        >
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "repeat(3, 1fr)", sm: "repeat(4, 1fr)" },
-              gap: 1.25,
+              position: "relative",
+              width: "100%",
+              aspectRatio: "4/5",
+              maxWidth: 360,
+              mx: { xs: "auto", md: 0 },
+              borderRadius: 2,
+              overflow: "hidden",
+              boxShadow: "0 16px 40px rgba(0,0,0,0.35)",
             }}
           >
-            {enabledPresets.map((preset) => {
-              const active = preset.id === selectedId;
-              const label = preset.is_custom_amount
-                ? "Custom"
-                : formatUsdFromCents(preset.amount_cents);
-              return (
-                <Button
-                  key={preset.id}
-                  fullWidth
-                  variant={active ? "contained" : "outlined"}
-                  color={active ? "primary" : "inherit"}
-                  onClick={() => {
-                    setSelectedId(preset.id);
-                    setError(null);
-                  }}
-                  sx={{
-                    py: 1.5,
-                    fontWeight: 700,
-                    fontSize: "1rem",
-                    borderColor: active ? "primary.main" : "rgba(255,255,255,0.2)",
-                  }}
-                >
-                  {label}
-                </Button>
-              );
-            })}
-          </Box>
-
-          {selected?.is_custom_amount ? (
-            <TextField
-              fullWidth
-              label="Custom amount (USD)"
-              value={customDollars}
-              onChange={(e) => setCustomDollars(e.target.value)}
-              sx={{ mt: 2.5 }}
-              slotProps={{
-                input: {
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                },
-              }}
-              helperText={`Minimum $${DONATION_MIN_CUSTOM_CENTS / 100}`}
+            <Image
+              src={publicAssetSrc(DONATION_PARTNER_INTRO_IMAGE)}
+              alt=""
+              fill
+              sizes="(max-width: 900px) 100vw, 360px"
+              style={{ objectFit: "cover" }}
+              unoptimized
             />
-          ) : null}
+          </Box>
+          <Stack spacing={2.25} sx={{ pt: { md: 1 } }}>
+            <Typography
+              component="h2"
+              sx={{ fontWeight: 800, letterSpacing: "0.04em", fontSize: { xs: "1.35rem", md: "1.55rem" } }}
+            >
+              THIS IS WHERE COMMITMENT BEGINS.
+            </Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.82)", lineHeight: 1.75 }}>
+              This platform was built for those who refuse to sit on the sidelines. It exists for believers who
+              understand that faith without action is incomplete — and that the hour we are living in demands more
+              than casual participation.
+            </Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.82)", lineHeight: 1.75 }}>
+              This is not a spectator platform. It is a training ground. A mobilization hub. A place where
+              conviction becomes movement — and movement becomes impact.
+            </Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.82)", lineHeight: 1.75 }}>
+              Partnership starts at just $1 per month. Every level exists to strengthen the infrastructure that
+              supports training, mobilization, and discipleship across the nation.
+            </Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: "1.05rem" }}>
+              Strengthen the foundation. Become a partner today.
+            </Typography>
+          </Stack>
+        </Box>
+      </Container>
 
-          <Divider sx={{ my: 3, borderColor: "rgba(255,255,255,0.08)" }} />
-
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5, letterSpacing: "0.12em" }}>
-            PAYMENT TYPE
+      {/* Packages */}
+      <Box sx={{ bgcolor: "#101014", py: { xs: 4, md: 5 } }}>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+          <Typography
+            component="h2"
+            sx={{
+              textAlign: "center",
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              fontSize: { xs: "1.5rem", md: "1.85rem" },
+              mb: 1.5,
+            }}
+          >
+            BE PART OF THE MISSION
+          </Typography>
+          <Typography
+            sx={{
+              textAlign: "center",
+              color: "rgba(255,255,255,0.72)",
+              maxWidth: 760,
+              mx: "auto",
+              mb: 4,
+              lineHeight: 1.65,
+            }}
+          >
+            Your partnership helps sustain the infrastructure, training, and mobilization efforts that equip
+            believers to stand firm in this generation.
           </Typography>
 
-          <ToggleButtonGroup
-            exclusive
-            value={paymentMode}
-            onChange={(_, v) => {
-              if (v) setPaymentMode(v as DonationPaymentMode);
-            }}
-            fullWidth
-            sx={{ mb: 2 }}
-          >
-            <ToggleButton value="one_time" disabled={!canOneTime}>
-              One-time
-            </ToggleButton>
-            <ToggleButton value="recurring" disabled={!canRecurring}>
-              Recurring
-            </ToggleButton>
-          </ToggleButtonGroup>
-
-          {paymentMode === "recurring" && availableIntervals.length > 0 ? (
-            <ToggleButtonGroup
-              exclusive
-              value={interval}
-              onChange={(_, v) => {
-                if (v) setInterval(v as DonationRecurrenceInterval);
-              }}
-              size="small"
-              sx={{ flexWrap: "wrap", gap: 0.5, mb: 2 }}
-            >
-              {availableIntervals.map((opt) => (
-                <ToggleButton key={opt.value} value={opt.value}>
-                  {opt.label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          ) : null}
-
-          {displayAmount ? (
-            <Typography variant="h5" sx={{ mb: 2, color: flashpointYellow, fontWeight: 700 }}>
-              {displayAmount}
-              {paymentMode === "recurring" ? ` · ${availableIntervals.find((o) => o.value === interval)?.label ?? interval}` : ""}
+          {packages.length === 0 ? (
+            <Typography color="text.secondary" textAlign="center">
+              Partnership packages are being configured. Please check back soon.
             </Typography>
-          ) : null}
+          ) : (
+            <Stack
+              direction={{ xs: "column", lg: "row" }}
+              spacing={2}
+              useFlexGap
+              sx={{ justifyContent: "center", alignItems: "stretch" }}
+            >
+              {packages.map((preset) => (
+                <PartnershipCard key={preset.id} preset={preset} />
+              ))}
+            </Stack>
+          )}
 
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            fullWidth
-            disabled={
-              loading ||
-              !stripeEnabled ||
-              !selected ||
-              (paymentMode === "one_time" && !canOneTime) ||
-              (paymentMode === "recurring" && !canRecurring) ||
-              (selected.is_custom_amount && !parseDollarsToCents(customDollars))
-            }
-            onClick={() => void handleDonate()}
-            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+          <Typography
+            sx={{
+              textAlign: "center",
+              color: "rgba(255,255,255,0.55)",
+              fontSize: "0.82rem",
+              mt: 4,
+              lineHeight: 1.6,
+            }}
           >
-            {loading ? "Redirecting to checkout…" : "Continue to secure checkout"}
-          </Button>
-        </Paper>
-      </Stack>
+            Partnership levels simply allow each individual to support the mission at the level they feel led and
+            able to contribute.
+          </Typography>
+        </Container>
+      </Box>
+
+      {/* Tax footer */}
+      <Container maxWidth="md" sx={{ py: 5, px: { xs: 2, sm: 3 } }}>
+        <Typography sx={{ fontWeight: 800, mb: 1.5 }}>Tax &amp; Contribution information</Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.68)", lineHeight: 1.7, fontSize: "0.92rem" }}>
+          FlashPoint Army is a registered 501(c)(3) nonprofit organization. Contributions are tax-deductible to
+          the extent allowed by law. Please consult your tax advisor regarding your specific situation.
+        </Typography>
+      </Container>
     </Box>
   );
 }

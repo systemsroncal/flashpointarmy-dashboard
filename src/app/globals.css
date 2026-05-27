@@ -6,6 +6,18 @@ body {
   min-height: 100%;
 }
 
+/* Mobile browsers: avoid 300ms tap delay on interactive controls */
+@media (hover: none) and (pointer: coarse) {
+  a,
+  button,
+  [role="button"],
+  [role="link"],
+  .MuiListItemButton-root,
+  .MuiButtonBase-root {
+    touch-action: manipulation;
+  }
+}
+
 /* nprogress top bar */
 #nprogress {
   pointer-events: none;

@@ -9,6 +9,11 @@ export type DonationSubscriptionStatus = "active" | "paused" | "cancelled" | "pa
 export type DonationAmountPreset = {
   id: string;
   label: string;
+  title: string | null;
+  description: string | null;
+  checkout_url: string | null;
+  is_recommended: boolean;
+  card_style: "light" | "accent" | "dark";
   amount_cents: number;
   is_custom_amount: boolean;
   sort_order: number;

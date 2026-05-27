@@ -1,7 +1,6 @@
 import { AccessDenied } from "@/components/dashboard/AccessDenied";
 import { DonatePageClient } from "@/components/dashboard/donate/DonatePageClient";
 import { MODULE_SLUGS } from "@/config/modules";
-import { isStripeConfigured } from "@/lib/donations/stripe";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import type { DonationAmountPreset } from "@/types/donations";
@@ -26,9 +25,6 @@ export default async function DonatePageContent() {
   }
 
   return (
-    <DonatePageClient
-      presets={(presets ?? []) as DonationAmountPreset[]}
-      stripeEnabled={isStripeConfigured()}
-    />
+    <DonatePageClient presets={(presets ?? []) as DonationAmountPreset[]} />
   );
 }

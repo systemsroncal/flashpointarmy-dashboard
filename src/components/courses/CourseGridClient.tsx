@@ -7,6 +7,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { Box, Button, Paper, Typography } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export type SessionCardModel = {
   id: string;
@@ -16,6 +17,159 @@ export type SessionCardModel = {
   sort_order: number;
   locked: boolean;
 };
+
+const SESSION_CARD_TOUCH_SX = {
+  touchAction: "manipulation",
+  WebkitTapHighlightColor: "rgba(255,215,0,0.22)",
+  userSelect: "none",
+  "& *": {
+    pointerEvents: "none",
+  },
+} as const;
+
+function SessionCard({
+  session,
+  courseSlug,
+  authorLabel,
+}: {
+  session: SessionCardModel;
+  courseSlug: string;
+  authorLabel: string;
+}) {
+  const router = useRouter();
+  const href = `/dashboard/course/${courseSlug}/session/${session.slug}`;
+
+  const openSession = () => {
+    if (session.locked) return;
+    router.push(href);
+  };
+
+  const cardBody = (
+    <>
+      <Box
+        sx={{
+          position: "relative",
+          height: { xs: 108, sm: 120 },
+          bgcolor: session.locked ? "#b8860b" : "#e6b422",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundImage: session.cover_image_url
+            ? `url(${publicAssetSrc(session.cover_image_url)})`
+            : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {!session.cover_image_url ? (
+          <Box
+            sx={{
+              position: "relative",
+              width: "72%",
+              maxWidth: 160,
+              height: 72,
+              mx: "auto",
+            }}
+          >
+            <Image
+              src="/logos/Dashboard-Logo.svg"
+              alt=""
+              fill
+              sizes="160px"
+              style={{ objectFit: "contain" }}
+              unoptimized
+            />
+          </Box>
+        ) : null}
+        {session.locked ? (
+          <LockIcon
+            sx={{
+              position: "absolute",
+              color: "#fff",
+              fontSize: 40,
+              filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.6))",
+            }}
+          />
+        ) : null}
+      </Box>
+      <Box sx={{ bgcolor: "#000", px: 1, py: 1.25, minHeight: 72 }}>
+        <Typography sx={{ fontWeight: 800, fontSize: "0.85rem", color: "#fff", lineHeight: 1.25 }}>
+          {session.title}
+        </Typography>
+      </Box>
+      <Box
+        sx={{
+          bgcolor: "#000",
+          px: 1,
+          pb: 1,
+          pt: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)" }}>
+          <Box component="span" sx={{ color: "primary.main", mr: 0.5 }}>
+            ●
+          </Box>
+          {authorLabel}
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, color: "#fff" }}>
+          <Typography variant="caption" sx={{ fontWeight: 700 }}>
+            {session.locked ? "LOCKED" : "PLAY"}
+          </Typography>
+          {session.locked ? (
+            <LockIcon sx={{ fontSize: 16, color: "#fff" }} />
+          ) : (
+            <PlayArrowIcon sx={{ fontSize: 20, color: "primary.main" }} />
+          )}
+        </Box>
+      </Box>
+    </>
+  );
+
+  const cardSx = {
+    ...SESSION_CARD_TOUCH_SX,
+    textDecoration: "none",
+    color: "inherit",
+    overflow: "hidden",
+    borderRadius: 1,
+    border: "1px solid rgba(255,255,255,0.08)",
+    display: "block",
+    opacity: session.locked ? 0.72 : 1,
+    cursor: session.locked ? "not-allowed" : "pointer",
+    minHeight: 44,
+    "&:hover": session.locked
+      ? {}
+      : { borderColor: "rgba(255,215,0,0.45)", boxShadow: "0 0 0 1px rgba(255,215,0,0.12)" },
+  };
+
+  if (session.locked) {
+    return (
+      <Paper sx={cardSx} aria-disabled="true">
+        {cardBody}
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper
+      sx={cardSx}
+      role="link"
+      tabIndex={0}
+      aria-label={`Open session ${session.title}`}
+      onClick={openSession}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openSession();
+        }
+      }}
+    >
+      {cardBody}
+    </Paper>
+  );
+}
 
 export function CourseGridClient({
   courseSlug,
@@ -45,7 +199,7 @@ export function CourseGridClient({
             size="small"
             variant="outlined"
             startIcon={<EditIcon fontSize="small" />}
-            sx={{ flexShrink: 0 }}
+            sx={{ flexShrink: 0, minHeight: 44, touchAction: "manipulation" }}
           >
             Edit course
           </Button>
@@ -67,120 +221,12 @@ export function CourseGridClient({
               sm: "repeat(3, minmax(0, 1fr))",
               md: "repeat(4, minmax(0, 1fr))",
             },
-            gap: 1.5,
+            gap: { xs: 1.25, sm: 1.5 },
           }}
         >
-          {sorted.map((s) => {
-            const href = s.locked ? "#" : `/dashboard/course/${courseSlug}/session/${s.slug}`;
-            const inner = (
-              <Paper
-                sx={{
-                  textDecoration: "none",
-                  color: "inherit",
-                  overflow: "hidden",
-                  borderRadius: 1,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  display: "block",
-                  opacity: s.locked ? 0.72 : 1,
-                  cursor: s.locked ? "not-allowed" : "pointer",
-                  "&:hover": s.locked
-                    ? {}
-                    : { borderColor: "rgba(255,215,0,0.45)", boxShadow: "0 0 0 1px rgba(255,215,0,0.12)" },
-                }}
-              >
-                  <Box
-                    sx={{
-                      position: "relative",
-                      height: 120,
-                      bgcolor: s.locked ? "#b8860b" : "#e6b422",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundImage: s.cover_image_url
-                        ? `url(${publicAssetSrc(s.cover_image_url)})`
-                        : undefined,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  >
-                    {!s.cover_image_url ? (
-                      <Box
-                        sx={{
-                          position: "relative",
-                          width: "72%",
-                          maxWidth: 160,
-                          height: 72,
-                          mx: "auto",
-                        }}
-                      >
-                        <Image
-                          src="/logos/Dashboard-Logo.svg"
-                          alt=""
-                          fill
-                          sizes="160px"
-                          style={{ objectFit: "contain" }}
-                          unoptimized
-                        />
-                      </Box>
-                    ) : null}
-                    {s.locked ? (
-                      <LockIcon
-                        sx={{
-                          position: "absolute",
-                          color: "#fff",
-                          fontSize: 40,
-                          filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.6))",
-                        }}
-                      />
-                    ) : null}
-                  </Box>
-                  <Box sx={{ bgcolor: "#000", px: 1, py: 1.25, minHeight: 72 }}>
-                    <Typography sx={{ fontWeight: 800, fontSize: "0.85rem", color: "#fff", lineHeight: 1.25 }}>
-                      {s.title}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      bgcolor: "#000",
-                      px: 1,
-                      pb: 1,
-                      pt: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)" }}>
-                      <Box component="span" sx={{ color: "primary.main", mr: 0.5 }}>
-                        ●
-                      </Box>
-                      {authorLabel}
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, color: "#fff" }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                        PLAY
-                      </Typography>
-                      {s.locked ? (
-                        <LockIcon sx={{ fontSize: 16, color: "#fff" }} />
-                      ) : (
-                        <PlayArrowIcon sx={{ fontSize: 20, color: "primary.main" }} />
-                      )}
-                    </Box>
-                  </Box>
-              </Paper>
-            );
-            return (
-              <Box key={s.id}>
-                {s.locked ? (
-                  inner
-                ) : (
-                  <Link href={href} style={{ textDecoration: "none", color: "inherit" }}>
-                    {inner}
-                  </Link>
-                )}
-              </Box>
-            );
-          })}
+          {sorted.map((s) => (
+            <SessionCard key={s.id} session={s} courseSlug={courseSlug} authorLabel={authorLabel} />
+          ))}
         </Box>
       </Paper>
     </Box>

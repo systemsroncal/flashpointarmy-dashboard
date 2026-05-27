@@ -2,6 +2,7 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { MODULE_SLUGS } from "@/config/modules";
 import {
+  DONATION_DEFAULT_CHECKOUT_URL,
   DONATION_MAX_CUSTOM_CENTS,
   DONATION_MIN_CUSTOM_CENTS,
 } from "@/lib/donations/constants";
@@ -12,6 +13,20 @@ import { NextResponse } from "next/server";
 function formatCentsLabel(cents: number): string {
   const dollars = cents / 100;
   return `$${dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(2)}`;
+}
+
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function normalizeCardStyle(value: unknown): "light" | "accent" | "dark" {
+  if (value === "accent" || value === "dark") return value;
+  return "light";
 }
 
 export async function GET() {
@@ -44,12 +59,7 @@ export async function GET() {
   }
 }
 
-/**
- * Create a new fixed-amount donation preset. Custom-amount presets are
- * intentionally not creatable from this endpoint: migration 045 enforces a
- * unique partial index that guarantees there is at most one row with
- * `is_custom_amount = true`, and the seed inserts it.
- */
+/** Create a partnership package (SecureGive URL — no Stripe checkout). */
 export async function POST(req: Request) {
   try {
     const authResult = await requireApiAuth();
@@ -62,15 +72,19 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as {
+      title?: string;
+      description?: string | null;
       amount_cents?: number;
-      label?: string;
+      checkout_url?: string;
       is_enabled?: boolean;
-      allow_one_time?: boolean;
-      allow_monthly?: boolean;
-      allow_bimonthly?: boolean;
-      allow_quarterly?: boolean;
-      allow_yearly?: boolean;
+      is_recommended?: boolean;
+      card_style?: string;
     };
+
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    if (!title) {
+      return NextResponse.json({ error: "title is required." }, { status: 400 });
+    }
 
     if (
       typeof body.amount_cents !== "number" ||
@@ -86,37 +100,50 @@ export async function POST(req: Request) {
       );
     }
 
+    const checkoutUrl =
+      typeof body.checkout_url === "string" && body.checkout_url.trim().length > 0
+        ? body.checkout_url.trim()
+        : DONATION_DEFAULT_CHECKOUT_URL;
+    if (!isValidHttpUrl(checkoutUrl)) {
+      return NextResponse.json({ error: "checkout_url must be a valid http(s) URL." }, { status: 400 });
+    }
+
     const amountCents = Math.round(body.amount_cents);
-    const label =
-      typeof body.label === "string" && body.label.trim().length > 0
-        ? body.label.trim()
-        : formatCentsLabel(amountCents);
+    const label = formatCentsLabel(amountCents);
+    const description =
+      typeof body.description === "string" && body.description.trim().length > 0
+        ? body.description.trim()
+        : null;
 
     const admin = createAdminClient();
 
-    /** Place new fixed presets just before the custom row (sort_order = 99). */
-    const { data: maxFixed } = await admin
+    const { data: maxSort } = await admin
       .from("donation_amount_presets")
       .select("sort_order")
       .eq("is_custom_amount", false)
       .order("sort_order", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const nextSort = Math.min(98, (maxFixed?.sort_order ?? 0) + 1);
+    const nextSort = (maxSort?.sort_order ?? 0) + 1;
 
     const { data, error } = await admin
       .from("donation_amount_presets")
       .insert({
         label,
+        title,
+        description,
+        checkout_url: checkoutUrl,
         amount_cents: amountCents,
         is_custom_amount: false,
         sort_order: nextSort,
         is_enabled: body.is_enabled ?? true,
-        allow_one_time: body.allow_one_time ?? true,
-        allow_monthly: body.allow_monthly ?? false,
-        allow_bimonthly: body.allow_bimonthly ?? false,
-        allow_quarterly: body.allow_quarterly ?? false,
-        allow_yearly: body.allow_yearly ?? false,
+        is_recommended: body.is_recommended ?? false,
+        card_style: normalizeCardStyle(body.card_style),
+        allow_one_time: false,
+        allow_monthly: true,
+        allow_bimonthly: false,
+        allow_quarterly: false,
+        allow_yearly: false,
       })
       .select("*")
       .single();
@@ -148,14 +175,14 @@ export async function PATCH(req: Request) {
     const body = (await req.json()) as {
       presets?: Array<{
         id: string;
+        title?: string;
+        description?: string | null;
+        checkout_url?: string;
         amount_cents?: number;
         label?: string;
         is_enabled?: boolean;
-        allow_one_time?: boolean;
-        allow_monthly?: boolean;
-        allow_bimonthly?: boolean;
-        allow_quarterly?: boolean;
-        allow_yearly?: boolean;
+        is_recommended?: boolean;
+        card_style?: string;
         sort_order?: number;
       }>;
     };
@@ -177,19 +204,36 @@ export async function PATCH(req: Request) {
     );
 
     for (const row of body.presets) {
+      if (isCustomById.get(row.id)) continue;
+
       const update: Record<string, unknown> = {
         is_enabled: row.is_enabled,
-        allow_one_time: row.allow_one_time,
-        allow_monthly: row.allow_monthly,
-        allow_bimonthly: row.allow_bimonthly,
-        allow_quarterly: row.allow_quarterly,
-        allow_yearly: row.allow_yearly,
+        is_recommended: row.is_recommended,
+        card_style: normalizeCardStyle(row.card_style),
         sort_order: row.sort_order,
         updated_at: new Date().toISOString(),
       };
 
-      const isCustom = isCustomById.get(row.id) ?? false;
-      if (!isCustom && typeof row.amount_cents === "number") {
+      if (typeof row.title === "string" && row.title.trim().length > 0) {
+        update.title = row.title.trim();
+      }
+
+      if (row.description === null || typeof row.description === "string") {
+        update.description =
+          typeof row.description === "string" && row.description.trim().length > 0
+            ? row.description.trim()
+            : null;
+      }
+
+      if (typeof row.checkout_url === "string") {
+        const url = row.checkout_url.trim();
+        if (!isValidHttpUrl(url)) {
+          return NextResponse.json({ error: "checkout_url must be a valid http(s) URL." }, { status: 400 });
+        }
+        update.checkout_url = url;
+      }
+
+      if (typeof row.amount_cents === "number") {
         if (!Number.isFinite(row.amount_cents) || row.amount_cents <= 0) {
           return NextResponse.json(
             { error: "amount_cents must be a positive integer" },
@@ -197,12 +241,10 @@ export async function PATCH(req: Request) {
           );
         }
         update.amount_cents = Math.round(row.amount_cents);
-        if (typeof row.label !== "string" || row.label.trim().length === 0) {
-          const dollars = Math.round(row.amount_cents) / 100;
-          update.label = `$${dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(2)}`;
-        } else {
-          update.label = row.label.trim();
-        }
+        update.label =
+          typeof row.label === "string" && row.label.trim().length > 0
+            ? row.label.trim()
+            : formatCentsLabel(Math.round(row.amount_cents));
       }
 
       const { error } = await admin

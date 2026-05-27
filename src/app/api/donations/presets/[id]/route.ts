@@ -52,7 +52,7 @@ export async function DELETE(
     }
     if (target.is_custom_amount) {
       return NextResponse.json(
-        { error: "The custom-amount row cannot be deleted." },
+        { error: "The legacy custom-amount row cannot be deleted." },
         { status: 400 }
       );
     }

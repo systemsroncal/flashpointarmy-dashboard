@@ -1,24 +1,31 @@
 "use client";
 
-import { DONATION_RECURRENCE_OPTIONS } from "@/lib/donations/constants";
+import {
+  DONATION_DEFAULT_CHECKOUT_URL,
+  type DonationPackageCardStyle,
+} from "@/lib/donations/constants";
 import { parseDollarsToCents } from "@/lib/donations/format";
 import type { DonationAmountPreset } from "@/types/donations";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControl,
   IconButton,
   InputAdornment,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Switch,
   Table,
@@ -39,17 +46,22 @@ type Props = {
   canDelete: boolean;
 };
 
-type DraftPreset = DonationAmountPreset & { amountDollars: string };
+type DraftPreset = DonationAmountPreset & {
+  amountDollars: string;
+  titleDraft: string;
+  descriptionDraft: string;
+  checkoutUrlDraft: string;
+};
 
 function presetToDraft(p: DonationAmountPreset): DraftPreset {
   const dollars = p.amount_cents / 100;
   return {
     ...p,
-    amountDollars: p.is_custom_amount
-      ? ""
-      : dollars % 1 === 0
-        ? dollars.toFixed(0)
-        : dollars.toFixed(2),
+    titleDraft: p.title?.trim() ?? "",
+    descriptionDraft: p.description?.trim() ?? "",
+    checkoutUrlDraft: p.checkout_url?.trim() ?? DONATION_DEFAULT_CHECKOUT_URL,
+    amountDollars:
+      dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(2),
   };
 }
 
@@ -58,22 +70,31 @@ function formatCentsLabel(cents: number): string {
   return `$${dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(2)}`;
 }
 
-type NewPresetDraft = {
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+type NewPackageDraft = {
+  title: string;
+  description: string;
   amountDollars: string;
-  allow_one_time: boolean;
-  allow_monthly: boolean;
-  allow_bimonthly: boolean;
-  allow_quarterly: boolean;
-  allow_yearly: boolean;
+  checkoutUrl: string;
+  card_style: DonationPackageCardStyle;
+  is_recommended: boolean;
 };
 
-const EMPTY_NEW_PRESET: NewPresetDraft = {
+const EMPTY_NEW_PACKAGE: NewPackageDraft = {
+  title: "",
+  description: "",
   amountDollars: "",
-  allow_one_time: true,
-  allow_monthly: false,
-  allow_bimonthly: false,
-  allow_quarterly: false,
-  allow_yearly: false,
+  checkoutUrl: DONATION_DEFAULT_CHECKOUT_URL,
+  card_style: "light",
+  is_recommended: false,
 };
 
 export function DonationsSettingsClient({
@@ -83,18 +104,14 @@ export function DonationsSettingsClient({
   canDelete,
 }: Props) {
   const [presets, setPresets] = useState<DraftPreset[]>(() =>
-    initialPresets.map(presetToDraft)
+    initialPresets.filter((p) => !p.is_custom_amount).map(presetToDraft)
   );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  /** Delete-confirmation dialog state. */
   const [deleteTarget, setDeleteTarget] = useState<DraftPreset | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  /** Add-new-preset dialog state. */
   const [addOpen, setAddOpen] = useState(false);
-  const [newPreset, setNewPreset] = useState<NewPresetDraft>(EMPTY_NEW_PRESET);
+  const [newPackage, setNewPackage] = useState<NewPackageDraft>(EMPTY_NEW_PACKAGE);
   const [creating, setCreating] = useState(false);
 
   const updatePreset = useCallback((id: string, patch: Partial<DraftPreset>) => {
@@ -103,9 +120,12 @@ export function DonationsSettingsClient({
 
   const invalidRow = useMemo(
     () =>
-      presets.find(
-        (p) => !p.is_custom_amount && parseDollarsToCents(p.amountDollars) == null
-      ),
+      presets.find((p) => {
+        if (!p.titleDraft.trim()) return true;
+        if (parseDollarsToCents(p.amountDollars) == null) return true;
+        if (!isValidHttpUrl(p.checkoutUrlDraft)) return true;
+        return false;
+      }),
     [presets]
   );
 
@@ -113,7 +133,7 @@ export function DonationsSettingsClient({
     if (invalidRow) {
       setMessage({
         type: "error",
-        text: `Enter a valid amount greater than $0 (row: ${invalidRow.label}).`,
+        text: `Check title, amount, and checkout URL for "${invalidRow.titleDraft || invalidRow.label}".`,
       });
       return;
     }
@@ -122,18 +142,17 @@ export function DonationsSettingsClient({
     setMessage(null);
     try {
       const payload = presets.map((p) => {
-        const amountCents = p.is_custom_amount
-          ? p.amount_cents
-          : (parseDollarsToCents(p.amountDollars) ?? p.amount_cents);
+        const amountCents = parseDollarsToCents(p.amountDollars) ?? p.amount_cents;
         return {
           id: p.id,
+          title: p.titleDraft.trim(),
+          description: p.descriptionDraft.trim() || null,
+          checkout_url: p.checkoutUrlDraft.trim(),
           amount_cents: amountCents,
+          label: formatCentsLabel(amountCents),
           is_enabled: p.is_enabled,
-          allow_one_time: p.allow_one_time,
-          allow_monthly: p.allow_monthly,
-          allow_bimonthly: p.allow_bimonthly,
-          allow_quarterly: p.allow_quarterly,
-          allow_yearly: p.allow_yearly,
+          is_recommended: p.is_recommended,
+          card_style: p.card_style,
           sort_order: p.sort_order,
         };
       });
@@ -149,14 +168,20 @@ export function DonationsSettingsClient({
 
       setPresets((prev) =>
         prev.map((p) => {
-          if (p.is_custom_amount) return p;
           const cents = parseDollarsToCents(p.amountDollars);
           if (cents == null) return p;
-          return { ...p, amount_cents: cents, label: formatCentsLabel(cents) };
+          return {
+            ...p,
+            amount_cents: cents,
+            label: formatCentsLabel(cents),
+            title: p.titleDraft.trim(),
+            description: p.descriptionDraft.trim() || null,
+            checkout_url: p.checkoutUrlDraft.trim(),
+          };
         })
       );
 
-      setMessage({ type: "success", text: "Donation options saved." });
+      setMessage({ type: "success", text: "Partnership packages saved." });
     } catch (e) {
       setMessage({
         type: "error",
@@ -179,7 +204,7 @@ export function DonationsSettingsClient({
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Delete failed");
       setPresets((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-      setMessage({ type: "success", text: `Removed ${deleteTarget.label}.` });
+      setMessage({ type: "success", text: `Removed ${deleteTarget.titleDraft || deleteTarget.label}.` });
       setDeleteTarget(null);
     } catch (e) {
       setMessage({
@@ -191,11 +216,15 @@ export function DonationsSettingsClient({
     }
   }
 
-  const newAmountCents = parseDollarsToCents(newPreset.amountDollars);
-  const newAmountValid = newAmountCents != null && newAmountCents > 0;
+  const newAmountCents = parseDollarsToCents(newPackage.amountDollars);
+  const newPackageValid =
+    newPackage.title.trim().length > 0 &&
+    newAmountCents != null &&
+    newAmountCents > 0 &&
+    isValidHttpUrl(newPackage.checkoutUrl);
 
   async function handleCreate() {
-    if (!newAmountValid || newAmountCents == null) return;
+    if (!newPackageValid || newAmountCents == null) return;
     setCreating(true);
     setMessage(null);
     try {
@@ -204,12 +233,12 @@ export function DonationsSettingsClient({
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          title: newPackage.title.trim(),
+          description: newPackage.description.trim() || null,
           amount_cents: newAmountCents,
-          allow_one_time: newPreset.allow_one_time,
-          allow_monthly: newPreset.allow_monthly,
-          allow_bimonthly: newPreset.allow_bimonthly,
-          allow_quarterly: newPreset.allow_quarterly,
-          allow_yearly: newPreset.allow_yearly,
+          checkout_url: newPackage.checkoutUrl.trim(),
+          card_style: newPackage.card_style,
+          is_recommended: newPackage.is_recommended,
         }),
       });
       const data = (await res.json()) as {
@@ -219,19 +248,10 @@ export function DonationsSettingsClient({
       if (!res.ok || !data.preset) throw new Error(data.error ?? "Create failed");
 
       const draft = presetToDraft(data.preset);
-      setPresets((prev) => {
-        const next = [...prev, draft];
-        return next.sort((a, b) => {
-          if (a.is_custom_amount !== b.is_custom_amount) {
-            return a.is_custom_amount ? 1 : -1;
-          }
-          return (a.sort_order ?? 0) - (b.sort_order ?? 0);
-        });
-      });
-
-      setMessage({ type: "success", text: `Added ${draft.label}.` });
+      setPresets((prev) => [...prev, draft].sort((a, b) => a.sort_order - b.sort_order));
+      setMessage({ type: "success", text: `Added ${draft.titleDraft || draft.label}.` });
       setAddOpen(false);
-      setNewPreset(EMPTY_NEW_PRESET);
+      setNewPackage(EMPTY_NEW_PACKAGE);
     } catch (e) {
       setMessage({
         type: "error",
@@ -246,10 +266,15 @@ export function DonationsSettingsClient({
     <Stack spacing={3}>
       <Box>
         <Typography variant="h4" sx={{ letterSpacing: "0.06em", mb: 0.5 }}>
-          Donation options
+          Partnership packages
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Configure predefined amounts and which payment types are available for each (one-time or recurring).
+          Manage the packages shown on{" "}
+          <Box component="span" sx={{ color: "primary.light" }}>
+            /dashboard/donate
+          </Box>
+          . Each package links to SecureGive (or another checkout URL). Payments are handled externally — not
+          through Stripe in the dashboard.
         </Typography>
       </Box>
 
@@ -266,11 +291,11 @@ export function DonationsSettingsClient({
             color="primary"
             startIcon={<AddIcon />}
             onClick={() => {
-              setNewPreset(EMPTY_NEW_PRESET);
+              setNewPackage(EMPTY_NEW_PACKAGE);
               setAddOpen(true);
             }}
           >
-            Add donation option
+            Add package
           </Button>
         </Box>
       ) : null}
@@ -279,14 +304,14 @@ export function DonationsSettingsClient({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ minWidth: 150 }}>Amount (USD)</TableCell>
+              <TableCell sx={{ minWidth: 160 }}>Title</TableCell>
+              <TableCell sx={{ minWidth: 220 }}>Description</TableCell>
+              <TableCell sx={{ minWidth: 110 }}>Amount</TableCell>
+              <TableCell sx={{ minWidth: 280 }}>Checkout URL</TableCell>
+              <TableCell>Style</TableCell>
+              <TableCell align="center">Recommended</TableCell>
               <TableCell align="center">Enabled</TableCell>
-              <TableCell align="center">One-time</TableCell>
-              {DONATION_RECURRENCE_OPTIONS.map((opt) => (
-                <TableCell key={opt.value} align="center">
-                  {opt.label}
-                </TableCell>
-              ))}
+              <TableCell align="center">Order</TableCell>
               {canDelete ? <TableCell align="center">Actions</TableCell> : null}
             </TableRow>
           </TableHead>
@@ -294,33 +319,98 @@ export function DonationsSettingsClient({
             {presets.map((preset) => (
               <TableRow key={preset.id} sx={{ opacity: preset.is_enabled ? 1 : 0.55 }}>
                 <TableCell>
-                  {preset.is_custom_amount ? (
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Typography fontWeight={600}>Custom amount</Typography>
-                      <Chip size="small" label="Variable" variant="outlined" />
-                    </Stack>
-                  ) : (
+                  <TextField
+                    size="small"
+                    value={preset.titleDraft}
+                    disabled={!canEdit || saving}
+                    onChange={(e) => updatePreset(preset.id, { titleDraft: e.target.value })}
+                    placeholder="Founding Supporter"
+                    fullWidth
+                  />
+                </TableCell>
+                <TableCell>
+                  <TextField
+                    size="small"
+                    value={preset.descriptionDraft}
+                    disabled={!canEdit || saving}
+                    onChange={(e) => updatePreset(preset.id, { descriptionDraft: e.target.value })}
+                    placeholder="Short description"
+                    fullWidth
+                    multiline
+                    minRows={2}
+                  />
+                </TableCell>
+                <TableCell>
+                  <TextField
+                    size="small"
+                    value={preset.amountDollars}
+                    disabled={!canEdit || saving}
+                    onChange={(e) => updatePreset(preset.id, { amountDollars: e.target.value })}
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      },
+                    }}
+                    error={
+                      preset.amountDollars.length > 0 &&
+                      parseDollarsToCents(preset.amountDollars) == null
+                    }
+                    sx={{ width: 110 }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.5} alignItems="flex-start">
                     <TextField
                       size="small"
-                      value={preset.amountDollars}
+                      value={preset.checkoutUrlDraft}
                       disabled={!canEdit || saving}
-                      onChange={(e) =>
-                        updatePreset(preset.id, { amountDollars: e.target.value })
-                      }
-                      slotProps={{
-                        input: {
-                          startAdornment: (
-                            <InputAdornment position="start">$</InputAdornment>
-                          ),
-                        },
-                      }}
+                      onChange={(e) => updatePreset(preset.id, { checkoutUrlDraft: e.target.value })}
                       error={
-                        preset.amountDollars.length > 0 &&
-                        parseDollarsToCents(preset.amountDollars) == null
+                        preset.checkoutUrlDraft.length > 0 &&
+                        !isValidHttpUrl(preset.checkoutUrlDraft)
                       }
-                      sx={{ width: 140 }}
+                      fullWidth
                     />
-                  )}
+                    {isValidHttpUrl(preset.checkoutUrlDraft) ? (
+                      <Tooltip title="Open URL">
+                        <IconButton
+                          size="small"
+                          component="a"
+                          href={preset.checkoutUrlDraft.trim()}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <OpenInNewIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    ) : null}
+                  </Stack>
+                </TableCell>
+                <TableCell>
+                  <FormControl size="small" sx={{ minWidth: 110 }} disabled={!canEdit || saving}>
+                    <InputLabel id={`style-${preset.id}`}>Style</InputLabel>
+                    <Select
+                      labelId={`style-${preset.id}`}
+                      label="Style"
+                      value={preset.card_style}
+                      onChange={(e) =>
+                        updatePreset(preset.id, {
+                          card_style: e.target.value as DonationPackageCardStyle,
+                        })
+                      }
+                    >
+                      <MenuItem value="light">Light</MenuItem>
+                      <MenuItem value="accent">Accent (yellow)</MenuItem>
+                      <MenuItem value="dark">Dark</MenuItem>
+                    </Select>
+                  </FormControl>
+                </TableCell>
+                <TableCell align="center">
+                  <Switch
+                    checked={preset.is_recommended}
+                    disabled={!canEdit}
+                    onChange={(_, v) => updatePreset(preset.id, { is_recommended: v })}
+                  />
                 </TableCell>
                 <TableCell align="center">
                   <Switch
@@ -330,60 +420,32 @@ export function DonationsSettingsClient({
                   />
                 </TableCell>
                 <TableCell align="center">
-                  <Switch
-                    checked={preset.allow_one_time}
-                    disabled={!canEdit || !preset.is_enabled}
-                    onChange={(_, v) => updatePreset(preset.id, { allow_one_time: v })}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <Switch
-                    checked={preset.allow_monthly}
-                    disabled={!canEdit || !preset.is_enabled}
-                    onChange={(_, v) => updatePreset(preset.id, { allow_monthly: v })}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <Switch
-                    checked={preset.allow_bimonthly}
-                    disabled={!canEdit || !preset.is_enabled}
-                    onChange={(_, v) => updatePreset(preset.id, { allow_bimonthly: v })}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <Switch
-                    checked={preset.allow_quarterly}
-                    disabled={!canEdit || !preset.is_enabled}
-                    onChange={(_, v) => updatePreset(preset.id, { allow_quarterly: v })}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <Switch
-                    checked={preset.allow_yearly}
-                    disabled={!canEdit || !preset.is_enabled}
-                    onChange={(_, v) => updatePreset(preset.id, { allow_yearly: v })}
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={preset.sort_order}
+                    disabled={!canEdit || saving}
+                    onChange={(e) =>
+                      updatePreset(preset.id, { sort_order: Number(e.target.value) || 0 })
+                    }
+                    sx={{ width: 72 }}
+                    inputProps={{ min: 0, step: 1 }}
                   />
                 </TableCell>
                 {canDelete ? (
                   <TableCell align="center">
-                    {preset.is_custom_amount ? (
-                      <Typography variant="caption" color="text.disabled">
-                        —
-                      </Typography>
-                    ) : (
-                      <Tooltip title="Delete option">
-                        <span>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            disabled={saving || deleting}
-                            onClick={() => setDeleteTarget(preset)}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    )}
+                    <Tooltip title="Delete package">
+                      <span>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          disabled={saving || deleting}
+                          onClick={() => setDeleteTarget(preset)}
+                        >
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   </TableCell>
                 ) : null}
               </TableRow>
@@ -394,7 +456,7 @@ export function DonationsSettingsClient({
 
       {!canEdit ? (
         <Typography variant="caption" color="text.secondary">
-          You have read-only access to donation settings.
+          You have read-only access to partnership packages.
         </Typography>
       ) : (
         <Box>
@@ -410,125 +472,111 @@ export function DonationsSettingsClient({
         </Box>
       )}
 
-      {/* Add new preset dialog */}
       <Dialog
         open={addOpen}
         onClose={() => (creating ? undefined : setAddOpen(false))}
-        maxWidth="xs"
+        maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Add donation option</DialogTitle>
+        <DialogTitle>Add partnership package</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <TextField
               autoFocus
               size="small"
-              label="Amount (USD)"
-              value={newPreset.amountDollars}
-              onChange={(e) =>
-                setNewPreset((prev) => ({ ...prev, amountDollars: e.target.value }))
-              }
+              label="Title"
+              value={newPackage.title}
+              onChange={(e) => setNewPackage((prev) => ({ ...prev, title: e.target.value }))}
+              fullWidth
+            />
+            <TextField
+              size="small"
+              label="Description"
+              value={newPackage.description}
+              onChange={(e) => setNewPackage((prev) => ({ ...prev, description: e.target.value }))}
+              fullWidth
+              multiline
+              minRows={2}
+            />
+            <TextField
+              size="small"
+              label="Amount (USD / month display)"
+              value={newPackage.amountDollars}
+              onChange={(e) => setNewPackage((prev) => ({ ...prev, amountDollars: e.target.value }))}
               slotProps={{
                 input: {
                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                 },
               }}
-              error={newPreset.amountDollars.length > 0 && !newAmountValid}
-              helperText={
-                newPreset.amountDollars.length > 0 && !newAmountValid
-                  ? "Enter a valid amount greater than $0."
-                  : undefined
-              }
-              FormHelperTextProps={
-                newPreset.amountDollars.length > 0 && !newAmountValid
-                  ? undefined
-                  : { sx: { display: "none", m: 0, minHeight: 0 } }
-              }
+              error={newPackage.amountDollars.length > 0 && !newAmountCents}
             />
-            <Typography variant="caption" color="text.secondary">
-              Choose which payment modes this option supports:
-            </Typography>
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Typography variant="body2">One-time</Typography>
-              <Switch
-                checked={newPreset.allow_one_time}
-                onChange={(_, v) =>
-                  setNewPreset((prev) => ({ ...prev, allow_one_time: v }))
+            <TextField
+              size="small"
+              label="Checkout URL"
+              value={newPackage.checkoutUrl}
+              onChange={(e) => setNewPackage((prev) => ({ ...prev, checkoutUrl: e.target.value }))}
+              error={newPackage.checkoutUrl.length > 0 && !isValidHttpUrl(newPackage.checkoutUrl)}
+              helperText="SecureGive or other external checkout link"
+              fullWidth
+            />
+            <FormControl size="small" fullWidth>
+              <InputLabel id="new-package-style">Card style</InputLabel>
+              <Select
+                labelId="new-package-style"
+                label="Card style"
+                value={newPackage.card_style}
+                onChange={(e) =>
+                  setNewPackage((prev) => ({
+                    ...prev,
+                    card_style: e.target.value as DonationPackageCardStyle,
+                  }))
                 }
+              >
+                <MenuItem value="light">Light</MenuItem>
+                <MenuItem value="accent">Accent (yellow)</MenuItem>
+                <MenuItem value="dark">Dark</MenuItem>
+              </Select>
+            </FormControl>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography variant="body2">Show “Recommended” badge</Typography>
+              <Switch
+                checked={newPackage.is_recommended}
+                onChange={(_, v) => setNewPackage((prev) => ({ ...prev, is_recommended: v }))}
               />
             </Stack>
-            {DONATION_RECURRENCE_OPTIONS.map((opt) => (
-              <Stack
-                key={opt.value}
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-              >
-                <Typography variant="body2">{opt.label}</Typography>
-                <Switch
-                  checked={
-                    newPreset[
-                      `allow_${opt.value}` as keyof Pick<
-                        NewPresetDraft,
-                        | "allow_monthly"
-                        | "allow_bimonthly"
-                        | "allow_quarterly"
-                        | "allow_yearly"
-                      >
-                    ]
-                  }
-                  onChange={(_, v) =>
-                    setNewPreset((prev) => ({
-                      ...prev,
-                      [`allow_${opt.value}`]: v,
-                    }))
-                  }
-                />
-              </Stack>
-            ))}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setAddOpen(false)}
-            disabled={creating}
-            color="inherit"
-          >
+          <Button onClick={() => setAddOpen(false)} disabled={creating} color="inherit">
             Cancel
           </Button>
           <Button
             variant="contained"
             color="primary"
             onClick={() => void handleCreate()}
-            disabled={creating || !newAmountValid}
+            disabled={creating || !newPackageValid}
             startIcon={creating ? <CircularProgress size={16} color="inherit" /> : null}
           >
-            {creating ? "Adding…" : "Add option"}
+            {creating ? "Adding…" : "Add package"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete confirmation dialog */}
       <Dialog
         open={Boolean(deleteTarget)}
         onClose={() => (deleting ? undefined : setDeleteTarget(null))}
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>Delete donation option?</DialogTitle>
+        <DialogTitle>Delete package?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Remove <strong>{deleteTarget?.label}</strong>? Past orders and subscriptions
-            tied to this amount keep their records; only the option itself is removed
-            from the Donate page.
+            Remove <strong>{deleteTarget?.titleDraft || deleteTarget?.label}</strong>? It will no longer appear
+            on the Donate page.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setDeleteTarget(null)}
-            disabled={deleting}
-            color="inherit"
-          >
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} color="inherit">
             Cancel
           </Button>
           <Button

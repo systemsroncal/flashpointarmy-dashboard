@@ -48,7 +48,7 @@ import {
 import type { Theme } from "@mui/material/styles";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardTourHelpButton, DashboardTourProvider } from "@/components/dashboard/DashboardTour";
 import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
@@ -304,6 +304,29 @@ const drawerPaperSx = (theme: Theme) => ({
   }),
 });
 
+/** Full viewport height on mobile browsers (Safari/Chrome address bar). */
+function drawerViewportHeightCss(maintenanceTop: string) {
+  return {
+    height: `calc(100vh - ${maintenanceTop})`,
+    "@supports (height: 100dvh)": {
+      height: `calc(100dvh - ${maintenanceTop})`,
+    },
+  };
+}
+
+/**
+ * iOS/Android: taps must hit the row, not only label/icon children.
+ * 48px min height matches common touch-target guidance.
+ */
+const NAV_ITEM_TOUCH_SX = {
+  minHeight: 48,
+  touchAction: "manipulation",
+  WebkitTapHighlightColor: "transparent",
+  "& .MuiListItemIcon-root, & .MuiListItemText-root": {
+    pointerEvents: "none",
+  },
+} as const;
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   const desktop = useMediaQuery(theme.breakpoints.up("md"));
@@ -314,7 +337,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   const permissions = usePermissions();
   const user = useDashboardUser();
   const isMobilize = pathname.startsWith(MOBILIZE_PREFIX);
@@ -337,6 +359,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const sidebarOpen = desktop ? desktopDrawerOpen : mobileDrawerOpen;
   const setSidebarOpen = desktop ? setDesktopDrawerOpen : setMobileDrawerOpen;
+
+  const closeMobileDrawer = useCallback(() => {
+    if (!desktop) setMobileDrawerOpen(false);
+  }, [desktop]);
 
   const allVisibleNav = NAV.filter((item) => {
     if (item.module === MODULE_SLUGS.movilization) {
@@ -494,7 +520,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </Box>
       </Box>
       <Divider sx={{ borderColor: redNavAccent ? "rgba(195,32,32,0.22)" : "rgba(255,215,0,0.2)" }} />
-      <List sx={{ flex: 1, py: 1, overflowY: "auto" }} data-tour="sidebar-nav-scroll">
+      <List
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          py: 1,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          overscrollBehavior: "contain",
+        }}
+        data-tour="sidebar-nav-scroll"
+      >
         {isMobilize ? (
           <>
             {mobilizeDrawerNav.map((item) => {
@@ -506,10 +542,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     selected={selected}
                     data-tour={mobilizeNavTourAttr(item.href)}
-                    onClick={() => {
-                      if (!desktop) setMobileDrawerOpen(false);
-                    }}
+                    onClick={closeMobileDrawer}
                     sx={{
+                      ...NAV_ITEM_TOUCH_SX,
                       py: 0.75,
                       "&.Mui-selected": {
                         borderLeft: `3px solid ${MOVILIZATION_RED}`,
@@ -549,10 +584,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   selected={selected}
                   data-tour={`nav-${item.module}`}
-                  onClick={() => {
-                    if (!desktop) setMobileDrawerOpen(false);
-                  }}
+                  onClick={closeMobileDrawer}
                   sx={{
+                    ...NAV_ITEM_TOUCH_SX,
                     py: 0.75,
                     display: "flex",
                     alignItems: "center",
@@ -614,6 +648,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 selected={ordersHasActive}
                 data-tour="nav-orders-group"
                 sx={{
+                  ...NAV_ITEM_TOUCH_SX,
                   py: 0.75,
                   "&.Mui-selected": redNavAccent
                     ? {
@@ -666,10 +701,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         href={item.href}
                         selected={selected}
                         data-tour={`nav-${item.href.replace(/\//g, "-")}`}
-                        onClick={() => {
-                          if (!desktop) setMobileDrawerOpen(false);
-                        }}
+                        onClick={closeMobileDrawer}
                         sx={{
+                          ...NAV_ITEM_TOUCH_SX,
                           py: 0.65,
                           pl: 4.5,
                           "&.Mui-selected": redNavAccent
@@ -725,6 +759,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 selected={settingsHasActive}
                 data-tour="nav-settings-group"
                 sx={{
+                  ...NAV_ITEM_TOUCH_SX,
                   py: 0.75,
                   "&.Mui-selected": redNavAccent
                     ? {
@@ -777,10 +812,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         href={item.href}
                         selected={selected}
                         data-tour={`nav-${item.module}`}
-                        onClick={() => {
-                          if (!desktop) setMobileDrawerOpen(false);
-                        }}
+                        onClick={closeMobileDrawer}
                         sx={{
+                          ...NAV_ITEM_TOUCH_SX,
                           py: 0.65,
                           pl: 4.5,
                           "&.Mui-selected": redNavAccent
@@ -833,8 +867,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Box
         data-tour="sidebar-profile"
         sx={{
+          flexShrink: 0,
           p: 1.5,
+          pb: "calc(12px + env(safe-area-inset-bottom, 0px))",
           cursor: "pointer",
+          touchAction: "manipulation",
           "&:hover": { bgcolor: "rgba(255,215,0,0.05)" },
         }}
         onClick={() => setProfileOpen(true)}
@@ -876,12 +913,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           onClick={(e) => {
             e.stopPropagation();
             if (isMobilize) {
-              if (!desktop) setMobileDrawerOpen(false);
+              closeMobileDrawer();
               return;
             }
             void handleSignOut();
           }}
-          sx={{ mt: 0.5, borderRadius: 1 }}
+          sx={{ mt: 0.5, borderRadius: 1, ...NAV_ITEM_TOUCH_SX }}
         >
           <ListItemIcon sx={{ minWidth: 38, color: "rgba(255,255,255,0.92)" }}>
             <ExitToAppIcon fontSize="small" />
@@ -966,6 +1003,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         variant={desktop ? "persistent" : "temporary"}
         open={desktop ? desktopDrawerOpen : mobileDrawerOpen}
         onClose={() => setMobileDrawerOpen(false)}
+        disableScrollLock={!desktop}
         ModalProps={{ keepMounted: true }}
         sx={{
           flexShrink: 0,
@@ -982,7 +1020,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     : {}),
                   position: "fixed",
                   top: maintenanceTop,
-                  height: `calc(100vh - ${maintenanceTop})`,
+                  ...drawerViewportHeightCss(maintenanceTop),
                 },
               }
             : {
@@ -995,7 +1033,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       }
                     : {}),
                   top: maintenanceTop,
-                  height: `calc(100vh - ${maintenanceTop})`,
+                  ...drawerViewportHeightCss(maintenanceTop),
+                  touchAction: "pan-y",
                 },
               }),
         }}
@@ -1008,7 +1047,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         sx={{
           pt: `calc(${theme.spacing(7)} + ${maintenanceTop})`,
           px: { xs: 2, sm: 3 },
-          pb: 4,
+          pb: "calc(32px + env(safe-area-inset-bottom, 0px))",
           ml: { md: desktopDrawerOpen ? `${DRAWER_WIDTH}px` : 0 },
           minHeight: "100vh",
           color: "grey.100",

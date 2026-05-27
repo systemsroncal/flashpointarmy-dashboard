@@ -17,10 +17,12 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Divider,
   Drawer,
   IconButton,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
@@ -294,12 +296,100 @@ export function UserProfileDrawer({
         ) : (
           <>
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 2 }}>
-              <Avatar
-                src={avatarSrc}
-                sx={{ width: 96, height: 96, mb: 1, bgcolor: "primary.dark", fontSize: "2rem" }}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadAvatarFile(f);
+                }}
+              />
+              <Box
+                role="button"
+                tabIndex={0}
+                aria-label="Change profile photo"
+                onClick={() => {
+                  if (!avatarUploading && !saving) fileInputRef.current?.click();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    if (!avatarUploading && !saving) fileInputRef.current?.click();
+                  }
+                }}
+                sx={{
+                  position: "relative",
+                  display: "inline-flex",
+                  mb: 1,
+                  cursor: avatarUploading || saving ? "default" : "pointer",
+                  borderRadius: "50%",
+                  "&:hover .profile-avatar-edit": {
+                    opacity: 1,
+                  },
+                }}
               >
-                {initial.slice(0, 2).toUpperCase()}
-              </Avatar>
+                <Avatar
+                  src={avatarSrc}
+                  sx={{
+                    width: 96,
+                    height: 96,
+                    bgcolor: "primary.dark",
+                    fontSize: "2rem",
+                    opacity: avatarUploading ? 0.55 : 1,
+                    transition: "opacity 0.2s ease",
+                  }}
+                >
+                  {initial.slice(0, 2).toUpperCase()}
+                </Avatar>
+                {avatarUploading ? (
+                  <CircularProgress
+                    size={28}
+                    sx={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      mt: "-14px",
+                      ml: "-14px",
+                    }}
+                  />
+                ) : null}
+                <Tooltip title="Change profile photo">
+                  <IconButton
+                    className="profile-avatar-edit"
+                    data-tour="profile-avatar-edit"
+                    aria-label="Change profile photo"
+                    disabled={avatarUploading || saving}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    sx={{
+                      position: "absolute",
+                      right: -4,
+                      bottom: -4,
+                      width: 34,
+                      height: 34,
+                      bgcolor: "primary.main",
+                      color: "primary.contrastText",
+                      border: "2px solid",
+                      borderColor: "background.paper",
+                      opacity: { xs: 1, sm: 0.92 },
+                      transition: "opacity 0.2s ease, background-color 0.2s ease",
+                      "&:hover": {
+                        bgcolor: "primary.light",
+                        opacity: 1,
+                      },
+                    }}
+                  >
+                    <EditOutlinedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
+                JPEG, PNG, WebP, or GIF — max 1 MB
+              </Typography>
               <Typography variant="body2" color="text.secondary">
                 {du.email}
               </Typography>
@@ -450,18 +540,8 @@ export function UserProfileDrawer({
 
                 <Box data-tour="profile-edit-photo">
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-                    Profile photo (JPEG, PNG, WebP, or GIF — max 1 MB)
+                    Profile photo
                   </Typography>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    hidden
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) void uploadAvatarFile(f);
-                    }}
-                  />
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
                     <Button
                       type="button"

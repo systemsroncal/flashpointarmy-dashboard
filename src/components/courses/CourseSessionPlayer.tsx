@@ -558,11 +558,12 @@ export function CourseSessionPlayer({
         sx={{ mb: 2, pt: { xs: 1, sm: 0.5 } }}
       >
         <Button
-          component={Link}
-          href={prevSlug ? `/dashboard/course/${courseSlug}/session/${prevSlug}` : "#"}
+          component={prevSlug ? Link : "button"}
+          href={prevSlug ? `/dashboard/course/${courseSlug}/session/${prevSlug}` : undefined}
           disabled={!prevSlug}
           variant="outlined"
           startIcon={<ArrowBackIcon />}
+          sx={{ minHeight: 48, touchAction: "manipulation" }}
         >
           Previous
         </Button>
@@ -603,11 +604,14 @@ export function CourseSessionPlayer({
           )}
         </Box>
         <Button
-          component={Link}
-          href={nextSlug && !nextLocked ? `/dashboard/course/${courseSlug}/session/${nextSlug}` : "#"}
+          component={nextSlug && !nextLocked ? Link : "button"}
+          href={
+            nextSlug && !nextLocked ? `/dashboard/course/${courseSlug}/session/${nextSlug}` : undefined
+          }
           disabled={!nextSlug || nextLocked}
           variant="outlined"
           endIcon={<ArrowForwardIcon />}
+          sx={{ minHeight: 48, touchAction: "manipulation" }}
         >
           Next
         </Button>
