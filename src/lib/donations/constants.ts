@@ -18,6 +18,6 @@ export const DONATION_DEFAULT_CHECKOUT_URL =
   "https://app.securegive.com/FlashpointArmy/Flashpoint/donate/category";
 
 export const DONATION_PARTNER_HERO_IMAGE = "/uploads/content/Become-a-Partner-Hero-Banner.png";
-export const DONATION_PARTNER_INTRO_IMAGE = "/uploads/content/Become-a-Partner-Left-IMG.png";
+export const DONATION_PARTNER_INTRO_IMAGE = "/uploads/content/Become-a-Partner-Left-IMG-2.png";
 
 export type DonationPackageCardStyle = "light" | "accent" | "dark";
