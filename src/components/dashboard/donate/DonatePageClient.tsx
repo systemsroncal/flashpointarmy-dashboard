@@ -96,7 +96,7 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
           fontWeight: 800,
           fontSize: { xs: "0.95rem", sm: "1.08rem" },
           textAlign: "center",
-          mb: 1.25,
+          mb: { xs: 2, sm: 2.5 },
           lineHeight: 1.25,
         }}
       >
@@ -117,22 +117,24 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
         {preset.description?.trim() || "Support the FlashPoint Army mission."}
       </Typography>
 
-      <Typography sx={{ textAlign: "center", fontWeight: 800, mb: 2.25, lineHeight: 1 }}>
-        <Box component="span" sx={{ fontSize: { xs: "1.85rem", sm: "2.15rem" } }}>
-          {amountLabel}
-        </Box>
-        <Box
-          component="span"
-          sx={{
-            fontSize: { xs: "0.9rem", sm: "1rem" },
-            fontWeight: 600,
-            ml: 0.35,
-            color: preset.card_style === "dark" ? "rgba(255,255,255,0.92)" : "rgba(17,17,17,0.88)",
-          }}
-        >
-          /month
-        </Box>
-      </Typography>
+      <Box sx={{ py: { xs: 1.75, sm: 2.25 }, textAlign: "center" }}>
+        <Typography sx={{ fontWeight: 800, lineHeight: 1 }}>
+          <Box component="span" sx={{ fontSize: { xs: "1.85rem", sm: "2.15rem" } }}>
+            {amountLabel}
+          </Box>
+          <Box
+            component="span"
+            sx={{
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+              fontWeight: 600,
+              ml: 0.35,
+              color: preset.card_style === "dark" ? "rgba(255,255,255,0.92)" : "rgba(17,17,17,0.88)",
+            }}
+          >
+            /month
+          </Box>
+        </Typography>
+      </Box>
 
       <Button
         component="a"
