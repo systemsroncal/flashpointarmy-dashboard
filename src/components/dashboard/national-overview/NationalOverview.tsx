@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
+import { isChapterMapInviteCtaEnabled } from "@/lib/config/chapter-map-invite-cta";
 import {
   aggregateReferenceLeaderMemberByState,
   sumReferenceTotals,
@@ -455,7 +456,7 @@ export function NationalOverview({
                 )}
               </Box>
             </UsaChapterActivityMap>
-            <ChapterMapInviteCta />
+            {isChapterMapInviteCtaEnabled() ? <ChapterMapInviteCta /> : null}
           </Paper>
         </Box>
         <Box
