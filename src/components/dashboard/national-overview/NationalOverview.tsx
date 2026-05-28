@@ -21,6 +21,7 @@ import {
 } from "@/lib/donors/aggregate-donors-by-state";
 import { loadCommunityActivityFeed } from "@/lib/community/community-activity-feed";
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
+import { ChapterMapInviteCta } from "./ChapterMapInviteCta";
 import { UsaChapterActivityMap } from "./UsaChapterActivityMap";
 
 type ChapterRow = { id: string; name: string; state: string };
@@ -454,6 +455,7 @@ export function NationalOverview({
                 )}
               </Box>
             </UsaChapterActivityMap>
+            <ChapterMapInviteCta />
           </Paper>
         </Box>
         <Box
