@@ -56,6 +56,7 @@ import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
+import { isElevatedRole } from "@/lib/auth/user-roles";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
@@ -361,7 +362,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const allVisibleNav = NAV.filter((item) => {
     if (item.module === MODULE_SLUGS.movilization) {
-      return user.role_names.includes("super_admin");
+      return isElevatedRole(user.role_names) && can(permissions, MODULE_SLUGS.movilization, "read");
     }
     /** Dashboard announcements: all signed-in users (not gated by communications module). */
     if (item.href === "/dashboard/notifications") {

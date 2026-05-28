@@ -224,7 +224,9 @@ export function CommunitySection({
     if (remoteMode) return;
     setUsers(initialUsers);
   }, [remoteMode, initialUsers]);
-  const [filterChapterId, setFilterChapterId] = useState<string>("all");
+  const [filterChapterId, setFilterChapterId] = useState<string>(() =>
+    isLocalLeader && localChapterId ? localChapterId : "all"
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
