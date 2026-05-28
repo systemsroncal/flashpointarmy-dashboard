@@ -55,6 +55,26 @@ function cardPalette(style: DonationAmountPreset["card_style"]) {
   };
 }
 
+function cardHoverSx(style: DonationAmountPreset["card_style"]) {
+  if (style === "accent") {
+    return {
+      boxShadow: "0 14px 36px rgba(250,204,21,0.28)",
+      transform: "translateY(-6px)",
+    };
+  }
+  if (style === "dark") {
+    return {
+      boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
+      borderColor: "rgba(255,255,255,0.72)",
+      transform: "translateY(-6px)",
+    };
+  }
+  return {
+    boxShadow: "0 16px 40px rgba(0,0,0,0.16)",
+    transform: "translateY(-6px)",
+  };
+}
+
 function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
   const palette = cardPalette(preset.card_style);
   const amountLabel = formatUsdFromCents(preset.amount_cents);
@@ -74,7 +94,22 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
         flexDirection: "column",
         alignItems: "stretch",
         width: "100%",
-        boxShadow: preset.card_style === "accent" ? "none" : preset.card_style === "dark" ? "none" : "none",
+        boxShadow: "none",
+        transform: "translateY(0)",
+        transition: "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease, border-color 0.28s ease",
+        willChange: "transform",
+        "@media (hover: hover)": {
+          "&:hover": cardHoverSx(preset.card_style),
+        },
+        "@media (prefers-reduced-motion: reduce)": {
+          transition: "box-shadow 0.2s ease, border-color 0.2s ease",
+          "@media (hover: hover)": {
+            "&:hover": {
+              ...cardHoverSx(preset.card_style),
+              transform: "none",
+            },
+          },
+        },
       }}
     >
       {recommended ? (
@@ -117,7 +152,13 @@ function PartnershipCard({ preset }: { preset: DonationAmountPreset }) {
         {preset.description?.trim() || "Support the FlashPoint Army mission."}
       </Typography>
 
-      <Box sx={{ py: { xs: 1.75, sm: 2.25 }, textAlign: "center" }}>
+      <Box
+        sx={{
+          pt: { xs: 1.75, sm: 2.25 },
+          pb: { xs: 3.5, sm: 4.5 },
+          textAlign: "center",
+        }}
+      >
         <Typography sx={{ fontWeight: 800, lineHeight: 1 }}>
           <Box component="span" sx={{ fontSize: { xs: "1.85rem", sm: "2.15rem" } }}>
             {amountLabel}
