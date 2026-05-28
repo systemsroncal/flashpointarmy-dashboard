@@ -1,9 +1,12 @@
 "use client";
 
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
+import TelegramIcon from "@mui/icons-material/Telegram";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import XIcon from "@mui/icons-material/X";
 import {
   Box,
@@ -18,38 +21,70 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
-const SHARE_TITLE = "Join FlashPoint Army Chapters — train, mobilize, and stand firm together.";
+const SHARE_URL = "https://fparmychapters.com/join-a-chapter/";
 
-function shareHref(platform: "facebook" | "x" | "linkedin", url: string, title: string): string {
-  const u = encodeURIComponent(url);
-  const t = encodeURIComponent(title);
-  if (platform === "facebook") return `https://www.facebook.com/sharer/sharer.php?u=${u}`;
-  if (platform === "linkedin") return `https://www.linkedin.com/sharing/share-offsite/?url=${u}`;
-  return `https://twitter.com/intent/tweet?url=${u}&text=${t}`;
+const SHARE_SUBJECT = "Join a FlashPoint Army Chapter near you";
+
+const SHARE_MESSAGE =
+  "Believers across America are gathering to stand firm, serve their communities, and advance the mission of God. Join a FlashPoint Army Chapter near you:";
+
+function shareText() {
+  return `${SHARE_MESSAGE}\n\n${SHARE_URL}`;
 }
+
+type SharePlatform = "whatsapp" | "facebook" | "x" | "linkedin" | "telegram" | "email";
+
+function shareHref(platform: SharePlatform, url: string, message: string, subject: string): string {
+  const u = encodeURIComponent(url);
+  const t = encodeURIComponent(message);
+  const full = encodeURIComponent(`${message} ${url}`);
+
+  switch (platform) {
+    case "whatsapp":
+      return `https://wa.me/?text=${full}`;
+    case "facebook":
+      return `https://www.facebook.com/sharer/sharer.php?u=${u}&quote=${t}`;
+    case "linkedin":
+      return `https://www.linkedin.com/sharing/share-offsite/?url=${u}`;
+    case "telegram":
+      return `https://t.me/share/url?url=${u}&text=${t}`;
+    case "email":
+      return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${message}\n\n${url}`)}`;
+    default:
+      return `https://twitter.com/intent/tweet?url=${u}&text=${t}`;
+  }
+}
+
+const SOCIAL_BUTTONS: {
+  platform: SharePlatform;
+  label: string;
+  color?: string;
+  hoverBg?: string;
+  icon: React.ReactNode;
+}[] = [
+  { platform: "whatsapp", label: "WhatsApp", color: "#25d366", hoverBg: "rgba(37,211,102,0.16)", icon: <WhatsAppIcon /> },
+  { platform: "facebook", label: "Facebook", color: "#1877f2", hoverBg: "rgba(24,119,242,0.16)", icon: <FacebookIcon /> },
+  { platform: "x", label: "X", icon: <XIcon /> },
+  { platform: "linkedin", label: "LinkedIn", color: "#0a66c2", hoverBg: "rgba(10,102,194,0.16)", icon: <LinkedInIcon /> },
+  { platform: "telegram", label: "Telegram", color: "#229ed9", hoverBg: "rgba(34,158,217,0.16)", icon: <TelegramIcon /> },
+  { platform: "email", label: "Email", icon: <EmailOutlinedIcon /> },
+];
 
 export function ChapterMapInviteCta() {
   const [open, setOpen] = useState(false);
-  const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    setShareUrl(`${window.location.origin}/register`);
-  }, []);
-
-  const copyUrl = useCallback(async () => {
-    if (!shareUrl) return;
+  const copyInvite = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(shareText());
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => setCopied(false), 2500);
     } catch {
       setCopied(false);
     }
-  }, [shareUrl]);
+  }, []);
 
   return (
     <>
@@ -61,10 +96,20 @@ export function ChapterMapInviteCta() {
           textAlign: "center",
         }}
       >
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25, lineHeight: 1.65 }}>
-          The movement is growing across the nation. Know someone who should be part of it? Invite them to
-          join FlashPoint Army Chapters.
-        </Typography>
+        <Stack spacing={0.75} sx={{ mb: 1.75, maxWidth: 420, mx: "auto" }}>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+            God is raising up believers in every state.
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ lineHeight: 1.7, fontWeight: 700, color: "rgba(255,255,255,0.92)" }}
+          >
+            Know someone who should be part of it?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+            Invite them to find or join a chapter near them.
+          </Typography>
+        </Stack>
         <Button
           variant="outlined"
           color="primary"
@@ -78,14 +123,14 @@ export function ChapterMapInviteCta() {
             textTransform: "none",
           }}
         >
-          Invite others to join
+          Invite someone to join
         </Button>
       </Box>
 
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        maxWidth="xs"
+        maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: {
@@ -95,73 +140,61 @@ export function ChapterMapInviteCta() {
           },
         }}
       >
-        <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>Share the mission</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>Share this invitation</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.65 }}>
-            Send this link so others can register and join a chapter near them.
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.7 }}>
+            {SHARE_MESSAGE}
           </Typography>
 
-          <Stack direction="row" spacing={1} justifyContent="center" sx={{ mb: 2.5 }}>
-            <Tooltip title="Share on X">
-              <IconButton
-                component="a"
-                href={shareUrl ? shareHref("x", shareUrl, SHARE_TITLE) : undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                disabled={!shareUrl}
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.06)",
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
-                }}
-              >
-                <XIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Share on Facebook">
-              <IconButton
-                component="a"
-                href={shareUrl ? shareHref("facebook", shareUrl, SHARE_TITLE) : undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                disabled={!shareUrl}
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.06)",
-                  color: "#1877f2",
-                  "&:hover": { bgcolor: "rgba(24,119,242,0.16)" },
-                }}
-              >
-                <FacebookIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Share on LinkedIn">
-              <IconButton
-                component="a"
-                href={shareUrl ? shareHref("linkedin", shareUrl, SHARE_TITLE) : undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                disabled={!shareUrl}
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.06)",
-                  color: "#0a66c2",
-                  "&:hover": { bgcolor: "rgba(10,102,194,0.16)" },
-                }}
-              >
-                <LinkedInIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: 1.25,
+              mb: 2.5,
+            }}
+          >
+            {SOCIAL_BUTTONS.map(({ platform, label, color, hoverBg, icon }) => (
+              <Tooltip key={platform} title={label}>
+                <Button
+                  component="a"
+                  href={shareHref(platform, SHARE_URL, SHARE_MESSAGE, SHARE_SUBJECT)}
+                  target={platform === "email" ? undefined : "_blank"}
+                  rel={platform === "email" ? undefined : "noopener noreferrer"}
+                  variant="outlined"
+                  size="small"
+                  startIcon={icon}
+                  sx={{
+                    justifyContent: "center",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.78rem",
+                    color: color ?? "inherit",
+                    borderColor: "rgba(255,255,255,0.14)",
+                    py: 1,
+                    "&:hover": {
+                      borderColor: color ?? "primary.main",
+                      bgcolor: hoverBg ?? "rgba(255,255,255,0.06)",
+                    },
+                  }}
+                >
+                  {label}
+                </Button>
+              </Tooltip>
+            ))}
+          </Box>
 
           <TextField
             fullWidth
             size="small"
-            label="Registration link"
-            value={shareUrl}
+            label="Invitation link"
+            value={SHARE_URL}
             InputProps={{
               readOnly: true,
               endAdornment: (
                 <InputAdornment position="end">
-                  <Tooltip title={copied ? "Copied!" : "Copy link"}>
-                    <IconButton onClick={() => void copyUrl()} edge="end" disabled={!shareUrl}>
+                  <Tooltip title={copied ? "Copied!" : "Copy invitation"}>
+                    <IconButton onClick={() => void copyInvite()} edge="end">
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -171,9 +204,13 @@ export function ChapterMapInviteCta() {
           />
           {copied ? (
             <Typography variant="caption" color="primary.main" sx={{ display: "block", mt: 1 }}>
-              Link copied to clipboard.
+              Invitation copied — ready to share by text, Instagram, or anywhere else.
             </Typography>
-          ) : null}
+          ) : (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, lineHeight: 1.5 }}>
+              Copy includes the message and link. Paste it in Instagram DMs or any app.
+            </Typography>
+          )}
         </DialogContent>
       </Dialog>
     </>
