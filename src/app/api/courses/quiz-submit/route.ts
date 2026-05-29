@@ -33,6 +33,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Quiz not found." }, { status: 404 });
   }
 
+  const sessionId = el.session_id as string | null;
+  if (!sessionId) {
+    return NextResponse.json({ error: "Quiz session not found." }, { status: 404 });
+  }
+
+  const { data: sessionProg } = await supabase
+    .from("course_session_progress")
+    .select("completed_at")
+    .eq("user_id", user.id)
+    .eq("session_id", sessionId)
+    .maybeSingle();
+
+  if (!sessionProg?.completed_at) {
+    return NextResponse.json(
+      { error: "Complete this session before submitting the quiz." },
+      { status: 403 }
+    );
+  }
+
   const payload = el.payload as QuizElementPayload;
   if (!payload || typeof payload !== "object" || !Array.isArray(payload.questions)) {
     return NextResponse.json({ error: "Invalid quiz configuration." }, { status: 400 });

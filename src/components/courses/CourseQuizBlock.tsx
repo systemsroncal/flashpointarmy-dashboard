@@ -1,7 +1,9 @@
 "use client";
 
 import type { QuizElementPayload } from "@/types/course-content";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
@@ -20,10 +22,14 @@ export function CourseQuizBlock({
   elementId,
   payload,
   existingScore,
+  locked = false,
+  lockMessage = "Complete this session to unlock the quiz.",
 }: {
   elementId: string;
   payload: QuizElementPayload;
   existingScore: { score: number; maxScore: number } | null;
+  locked?: boolean;
+  lockMessage?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -70,6 +76,20 @@ export function CourseQuizBlock({
         <Typography color="text.secondary">
           Score: <strong>{localScore.score}</strong> / {localScore.maxScore}
         </Typography>
+      </Box>
+    );
+  }
+
+  if (locked) {
+    return (
+      <Box sx={{ p: 2, borderRadius: 1, border: "1px solid rgba(255,215,0,0.18)", bgcolor: "rgba(0,0,0,0.35)" }}>
+        <Typography fontWeight={800} sx={{ mb: 1, display: "flex", alignItems: "center", gap: 0.75 }}>
+          <LockOutlinedIcon fontSize="small" />
+          Quiz locked
+        </Typography>
+        <Alert severity="info" sx={{ bgcolor: "rgba(0,0,0,0.25)" }}>
+          {lockMessage}
+        </Alert>
       </Box>
     );
   }

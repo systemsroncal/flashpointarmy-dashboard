@@ -542,6 +542,12 @@ export function CourseSessionPlayer({
                 elementId={el.id}
                 payload={el.payload as QuizElementPayload}
                 existingScore={quizScores[el.id] ?? null}
+                locked={!completed}
+                lockMessage={
+                  nextSlug
+                    ? "Complete this session (watch all videos and mark as completed) to unlock the quiz."
+                    : "Complete this session to finish the course and unlock the quiz."
+                }
               />
             ) : null}
           </Paper>
