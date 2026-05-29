@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function CommunicationsRedirectPage() {
-  redirect("/dashboard/notifications");
+export default function CommunicationsHubPage() {
+  redirect("/dashboard/communications/send");
 }

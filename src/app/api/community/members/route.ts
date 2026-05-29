@@ -8,7 +8,7 @@ import {
 } from "@/lib/community/community-members-data";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
-import { preferNonEmptyAddr } from "@/lib/admin/dashboard-user-queries";
+import { preferNonEmptyAddr, listRoleNamesByUserIds } from "@/lib/admin/dashboard-user-queries";
 import { can } from "@/types/permissions";
 import {
   communityMemberSortDbColumn,
@@ -19,8 +19,6 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { loadTrainingGraduateBadgesForUsers } from "@/lib/courses/course-completion";
 
-type RoleRelation = { name: string } | { name: string }[] | null;
-type UserRoleRow = { user_id: string; roles: RoleRelation };
 type ProfileRow = {
   id: string;
   avatar_url: string | null;
@@ -57,22 +55,11 @@ async function mergeProfilesAndRoles(admin: ReturnType<typeof createAdminClient>
   if (profileErr) {
     throw new Error(`mergeProfilesAndRoles profiles: ${profileErr.message}`);
   }
-  const { data: roleRows } = userIds.length
-    ? await admin.from("user_roles").select("user_id, roles(name)").in("user_id", userIds)
-    : { data: [] as UserRoleRow[] };
+
+  const roleByUser = await listRoleNamesByUserIds(admin, userIds);
 
   const profileById = new Map<string, ProfileRow>();
   for (const p of (profileRows ?? []) as ProfileRow[]) profileById.set(String(p.id), p);
-  const roleByUser = new Map<string, string[]>();
-  for (const r of (roleRows ?? []) as UserRoleRow[]) {
-    const uid = String(r.user_id);
-    const rel = r.roles;
-    const roleName = Array.isArray(rel) ? rel[0]?.name : rel?.name;
-    if (!roleName) continue;
-    const arr = roleByUser.get(uid) ?? [];
-    if (!arr.includes(roleName)) arr.push(roleName);
-    roleByUser.set(uid, arr);
-  }
 
   return rows.map((u) => {
     const p = profileById.get(u.id);

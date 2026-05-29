@@ -145,10 +145,11 @@ export default async function AdminsPageContent() {
     const roleByUser = await listRoleNamesByUserIds(admin, userIds);
     merged = merged.map((u) => {
       const m = mailById.get(u.id);
+      const fromDb = [...(roleByUser.get(u.id) ?? [])].sort();
       return {
         ...u,
         avatar_url: avatarById.get(u.id) ?? null,
-        role_names: (roleByUser.get(u.id) ?? []).sort(),
+        role_names: fromDb.length > 0 ? fromDb : ["admin"],
         primary_chapter_id: m?.primary_chapter_id ?? u.primary_chapter_id,
         phone: preferNonEmptyAddr(m?.phone, u.phone),
         address_line: preferNonEmptyAddr(m?.address_line, u.address_line),

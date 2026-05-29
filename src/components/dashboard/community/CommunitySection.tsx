@@ -100,6 +100,41 @@ function communityPrimaryRole(roleNames: string[] | undefined): "member" | "loca
   return null;
 }
 
+/** Role slug used in edit Select — respects page context so the value matches a MenuItem. */
+function editableRoleFromUser(
+  u: CommunityUserRow,
+  variant: "community" | "leaders" | "admins"
+): EditableRole {
+  const names = u.role_names ?? [];
+  if (variant === "admins") {
+    if (names.includes("sub_admin")) return "sub_admin";
+    return "admin";
+  }
+  if (variant === "leaders") {
+    if (names.includes("sub_admin")) return "sub_admin";
+    if (names.includes("admin")) return "admin";
+    if (names.includes("local_leader")) return "local_leader";
+    return "local_leader";
+  }
+  if (names.includes("sub_admin")) return "sub_admin";
+  if (names.includes("admin")) return "admin";
+  if (names.includes("local_leader")) return "local_leader";
+  return "member";
+}
+
+function roleLabelsFromUser(
+  u: CommunityUserRow,
+  variant: "community" | "leaders" | "admins"
+): string {
+  const names = u.role_names ?? [];
+  if (names.length > 0) {
+    return [...names].sort().map(formatRoleLabel).join(", ");
+  }
+  if (variant === "leaders") return "Local leader";
+  if (variant === "admins") return "—";
+  return "Member";
+}
+
 function tableRoleLabel(
   u: CommunityUserRow,
   variant: "community" | "leaders" | "admins"
@@ -375,14 +410,6 @@ export function CommunitySection({
     const names = u.role_names ?? [];
     if (names.includes("super_admin") || names.includes("admin") || names.includes("sub_admin")) return false;
     return names.includes("member") || names.includes("local_leader");
-  }
-
-  function editableRoleFromUser(u: CommunityUserRow): EditableRole {
-    const names = u.role_names ?? [];
-    if (names.includes("sub_admin")) return "sub_admin";
-    if (names.includes("admin")) return "admin";
-    if (names.includes("local_leader")) return "local_leader";
-    return "member";
   }
 
   function canEditRoleInForm(u: CommunityUserRow): boolean {
@@ -734,11 +761,15 @@ export function CommunitySection({
       setRoleChangeError(null);
       return;
     }
-    setRoleChangeDraft(
-      viewUser.role_names?.includes("local_leader") ? "local_leader" : "member"
-    );
+    const primary = communityPrimaryRole(viewUser.role_names);
+    setRoleChangeDraft(primary ?? "member");
     setRoleChangeError(null);
   }, [viewUser]);
+
+  useEffect(() => {
+    if (!editUser) return;
+    setEditRoleDraft(editableRoleFromUser(editUser, variant));
+  }, [editUser, variant]);
 
   function handleRequestSort(property: CommunitySortKey) {
     const isAsc = orderBy === property && order === "asc";
@@ -824,7 +855,7 @@ export function CommunitySection({
     setEditChapterId(u.primary_chapter_id ?? chapterOptions[0]?.id ?? "");
     setEditError(null);
     setEditRoleError(null);
-    setEditRoleDraft(editableRoleFromUser(u));
+    setEditRoleDraft(editableRoleFromUser(u, variant));
     setEditNewPassword("");
     setEditPasswordVisible(false);
   }
@@ -906,7 +937,7 @@ export function CommunitySection({
           )
         );
       }
-      if (editUser && canEditRoleInForm(editUser) && editableRoleFromUser(editUser) !== editRoleDraft) {
+      if (editUser && canEditRoleInForm(editUser) && editableRoleFromUser(editUser, variant) !== editRoleDraft) {
         let roleSaved = true;
         if (isAdmins && (editRoleDraft === "admin" || editRoleDraft === "sub_admin")) {
           roleSaved = await applyStaffRoleSwitch(editUser, editRoleDraft, "edit");
@@ -2226,40 +2257,48 @@ export function CommunitySection({
                 />
               </Box>
             ) : null}
-            {editUser && canEditRoleInForm(editUser) ? (
+            {editUser ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {editRoleError ? <Alert severity="error">{editRoleError}</Alert> : null}
+                <Typography variant="subtitle2" sx={{ color: "primary.main" }}>
+                  Dashboard role
+                </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Super admin: choose the role for this user.
+                  Current: <strong>{roleLabelsFromUser(editUser, variant)}</strong>
                 </Typography>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
-                  <FormControl size="small" sx={{ minWidth: 200 }}>
-                    <InputLabel id="edit-primary-role">Dashboard role</InputLabel>
-                    <Select
-                      labelId="edit-primary-role"
-                      label="Dashboard role"
-                      value={editRoleDraft}
-                      onChange={(e) => setEditRoleDraft(e.target.value as EditableRole)}
-                    >
-                      {isAdmins ? (
-                        <>
-                          <MenuItem value="admin">Administrator</MenuItem>
-                          <MenuItem value="sub_admin">Sub administrator</MenuItem>
-                        </>
-                      ) : (
-                        <>
-                          <MenuItem value="member">Member</MenuItem>
-                          <MenuItem value="local_leader">Local leader</MenuItem>
-                          <MenuItem value="admin">Administrator</MenuItem>
-                          <MenuItem value="sub_admin">Sub administrator</MenuItem>
-                        </>
-                      )}
-                    </Select>
-                  </FormControl>
-                </Stack>
-                <Typography variant="caption" color="text.secondary">
-                  This role is applied when you click <strong>Save changes</strong>.
-                </Typography>
+                {canEditRoleInForm(editUser) ? (
+                  <>
+                    {editRoleError ? <Alert severity="error">{editRoleError}</Alert> : null}
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
+                      <FormControl size="small" sx={{ minWidth: 200 }}>
+                        <InputLabel id="edit-primary-role">Change role to</InputLabel>
+                        <Select
+                          labelId="edit-primary-role"
+                          label="Change role to"
+                          value={editRoleDraft}
+                          onChange={(e) => setEditRoleDraft(e.target.value as EditableRole)}
+                          disabled={editSaving || editRoleSaving}
+                        >
+                          {isAdmins ? (
+                            <>
+                              <MenuItem value="admin">Administrator</MenuItem>
+                              <MenuItem value="sub_admin">Sub administrator</MenuItem>
+                            </>
+                          ) : (
+                            <>
+                              <MenuItem value="member">Member</MenuItem>
+                              <MenuItem value="local_leader">Local leader</MenuItem>
+                              <MenuItem value="admin">Administrator</MenuItem>
+                              <MenuItem value="sub_admin">Sub administrator</MenuItem>
+                            </>
+                          )}
+                        </Select>
+                      </FormControl>
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      Applied when you click <strong>Save changes</strong>.
+                    </Typography>
+                  </>
+                ) : null}
               </Box>
             ) : null}
             {chapterOptions.length > 0 ? (
