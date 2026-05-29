@@ -26,7 +26,7 @@ import {
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
-import { matchesStateChapterFilter } from "@/lib/chapters/chapter-search";
+import { matchesStateChapterFilter, type ChapterSearchRow } from "@/lib/chapters/chapter-search";
 
 export type ProgressRoleFilter = "all" | "member" | "leader";
 
