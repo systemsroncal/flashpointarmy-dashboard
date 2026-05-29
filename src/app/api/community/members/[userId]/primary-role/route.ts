@@ -41,7 +41,7 @@ export async function POST(
   const admin = createAdminClient();
   const targetRoles = await loadUserRoleNames(admin, userId);
 
-  if (targetRoles.includes("super_admin") || targetRoles.includes("admin")) {
+  if (targetRoles.includes("super_admin") || targetRoles.includes("admin") || targetRoles.includes("sub_admin")) {
     return NextResponse.json(
       { error: "Cannot change roles for administrators from this action." },
       { status: 400 }

@@ -16,7 +16,7 @@ import { loadAuthUsersByEmail, syncExistingUserFromFluentForm } from "@/lib/impo
 import { findOrCreateChapterByImportRow } from "@/lib/import/chapter-import";
 import { userMailingAddressFromImportRow } from "@/lib/import/user-mailing-address";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
-import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
   const permissions = await loadModulePermissions(supabase, user.id);
   const roles = await loadUserRoleNames(supabase, user.id);
-  if (!can(permissions, MODULE_SLUGS.leaders, "create") || !isElevatedRole(roles)) {
+  if (!can(permissions, MODULE_SLUGS.leaders, "create") || !isChapterStaffRole(roles)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

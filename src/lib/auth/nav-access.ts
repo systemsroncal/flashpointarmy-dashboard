@@ -1,5 +1,5 @@
 import { MODULE_SLUGS } from "@/config/modules";
-import { isElevatedRole } from "@/lib/auth/user-roles";
+import { isElevatedRole, isSubAdminUser } from "@/lib/auth/user-roles";
 
 /** Member (no admin / super_admin / local_leader): restricted sidebar. */
 export function isRestrictedMemberNav(roleNames: string[]): boolean {
@@ -18,6 +18,18 @@ const LOCAL_LEADER_HIDDEN_MODULES = new Set<string>([
   MODULE_SLUGS.courses,
 ]);
 
+/** Sub admin: operational modules only (no Mobilize, no Settings). */
+const SUB_ADMIN_NAV_MODULES = new Set<string>([
+  MODULE_SLUGS.nationalOverview,
+  MODULE_SLUGS.dashboard,
+  MODULE_SLUGS.chapters,
+  MODULE_SLUGS.leaders,
+  MODULE_SLUGS.community,
+  MODULE_SLUGS.gatherings,
+  MODULE_SLUGS.training,
+  MODULE_SLUGS.communications,
+]);
+
 /** Modules a pure member may see in the sidebar (plus permission checks). */
 const MEMBER_NAV_MODULES = new Set<string>([
   MODULE_SLUGS.nationalOverview,
@@ -34,6 +46,9 @@ const MEMBER_NAV_MODULES = new Set<string>([
  */
 export function isNavModuleAllowedForRoles(moduleSlug: string, roleNames: string[]): boolean {
   if (isElevatedRole(roleNames)) return true;
+  if (isSubAdminUser(roleNames)) {
+    return SUB_ADMIN_NAV_MODULES.has(moduleSlug);
+  }
   if (isRestrictedMemberNav(roleNames)) {
     return MEMBER_NAV_MODULES.has(moduleSlug);
   }

@@ -7,7 +7,7 @@ import {
   listRoleNamesByUserIds,
   preferNonEmptyAddr,
 } from "@/lib/admin/dashboard-user-queries";
-import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
@@ -30,13 +30,12 @@ export default async function LeadersPageContent() {
   }
 
   const roles = await loadUserRoleNames(supabase, user.id);
-  const elevated = isElevatedRole(roles);
+  const chapterStaff = isChapterStaffRole(roles);
   const isSuperAdmin = roles.includes("super_admin");
   const isLocalLeader = roles.includes("local_leader");
-  const create =
-    can(permissions, MODULE_SLUGS.leaders, "create") && elevated;
-  const updatePerm = can(permissions, MODULE_SLUGS.leaders, "update") && elevated;
-  const deletePerm = can(permissions, MODULE_SLUGS.leaders, "delete") && elevated;
+  const create = can(permissions, MODULE_SLUGS.leaders, "create") && chapterStaff;
+  const updatePerm = can(permissions, MODULE_SLUGS.leaders, "update") && chapterStaff;
+  const deletePerm = can(permissions, MODULE_SLUGS.leaders, "delete") && chapterStaff;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -75,7 +74,7 @@ export default async function LeadersPageContent() {
     leaderUserIds = [...new Set((urRows ?? []).map((r: { user_id: string }) => r.user_id))];
   }
 
-  if (!elevated && isLocalLeader && localChapterId && leaderUserIds.length > 0) {
+  if (!chapterStaff && isLocalLeader && localChapterId && leaderUserIds.length > 0) {
     const allowed = new Set<string>();
     for (const part of chunkIdsForInQuery(leaderUserIds, PROFILE_ID_IN_CHUNK)) {
       const { data: inChapter } = await admin
@@ -88,7 +87,7 @@ export default async function LeadersPageContent() {
     leaderUserIds = leaderUserIds.filter((id) => allowed.has(id));
   }
 
-  if (!elevated && isLocalLeader && !leaderUserIds.includes(user.id)) {
+  if (!chapterStaff && isLocalLeader && !leaderUserIds.includes(user.id)) {
     leaderUserIds = [...leaderUserIds, user.id];
   }
 
@@ -187,7 +186,7 @@ export default async function LeadersPageContent() {
       .from("chapters")
       .select("id, name, city, state, zip_code, address_line")
       .order("name");
-    if (elevated || !isLocalLeader) {
+    if (chapterStaff || !isLocalLeader) {
       chapterOptions = (allCh ?? []) as ChapterRow[];
     } else if (localChapterId) {
       chapterOptions = ((allCh ?? []) as ChapterRow[]).filter((c) => c.id === localChapterId);
@@ -197,7 +196,7 @@ export default async function LeadersPageContent() {
   }
 
   const subtitle =
-    elevated || !isLocalLeader
+    chapterStaff || !isLocalLeader
       ? "Users with the Local leader role."
       : "Local leaders assigned to your primary chapter.";
 
@@ -210,7 +209,7 @@ export default async function LeadersPageContent() {
       canUpdate={updatePerm}
       canDelete={deletePerm}
       currentUserId={user.id}
-      elevated={elevated}
+      elevated={chapterStaff}
       isLocalLeader={isLocalLeader}
       localChapterId={localChapterId}
       subtitle={subtitle}

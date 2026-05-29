@@ -19,7 +19,7 @@ import { resolveChapterForMemberImport, type ChapterRow } from "@/lib/import/cha
 import { mailingForUserMetadata, userMailingAddressFromImportRow } from "@/lib/import/user-mailing-address";
 import { DEFAULT_EXTERNAL_USER_PASSWORD, withExternalPasswordChangeFlag } from "@/lib/auth/default-external-user-password";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
-import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   }
 
   const callerRoles = await loadUserRoleNames(supabase, user.id);
-  if (!isElevatedRole(callerRoles)) {
+  if (!isChapterStaffRole(callerRoles)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

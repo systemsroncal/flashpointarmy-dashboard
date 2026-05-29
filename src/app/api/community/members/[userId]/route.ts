@@ -3,7 +3,7 @@ import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import {
   isAdminButNotSuper,
-  isElevatedRole,
+  isChapterStaffRole,
   isSuperAdminUser,
   loadUserRoleNames,
 } from "@/lib/auth/user-roles";
@@ -52,7 +52,9 @@ export async function PATCH(
     loadUserRoleNames(supabase, user.id),
   ]);
   const targetIsAdminDirectory =
-    targetRoles.includes("admin") || targetRoles.includes("super_admin");
+    targetRoles.includes("admin") ||
+    targetRoles.includes("super_admin") ||
+    targetRoles.includes("sub_admin");
 
   const canPatchCommunity =
     can(permissions, MODULE_SLUGS.community, "update") ||
@@ -73,7 +75,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  if (!targetIsAdminDirectory && !isElevatedRole(callerRoles)) {
+  if (!targetIsAdminDirectory && !isChapterStaffRole(callerRoles)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -89,12 +91,23 @@ export async function PATCH(
   const newPassword = newPasswordProvided ? String(body.newPassword).trim() : "";
 
   if (newPasswordProvided) {
-    if (!isElevatedRole(callerRoles)) {
+    if (!isChapterStaffRole(callerRoles)) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
     if (isSuperAdminUser(targetRoles) && !isSuperAdminUser(callerRoles)) {
       return NextResponse.json(
         { error: "Only super admins can change this user's password." },
+        { status: 403 }
+      );
+    }
+    if (
+      !isSuperAdminUser(callerRoles) &&
+      (targetRoles.includes("admin") ||
+        targetRoles.includes("sub_admin") ||
+        targetRoles.includes("super_admin"))
+    ) {
+      return NextResponse.json(
+        { error: "Only super admins can change administrator passwords." },
         { status: 403 }
       );
     }
@@ -308,7 +321,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 
-    if (!targetIsAdminDirectory && !isElevatedRole(callerRoles)) {
+    if (!targetIsAdminDirectory && !isChapterStaffRole(callerRoles)) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 

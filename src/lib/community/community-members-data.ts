@@ -4,7 +4,7 @@ import {
   sortCommunityMemberBaseRows,
 } from "@/lib/community/community-table-sort";
 
-/** User IDs that have `member` and none of `local_leader` / `admin` / `super_admin` (same logic as `dashboard_community_members` view). */
+/** User IDs that have `member` and none of `local_leader` / `admin` / `super_admin` / `sub_admin` (same logic as `dashboard_community_members` view). */
 export async function listCommunityMemberUserIds(
   admin: SupabaseClient
 ): Promise<string[]> {
@@ -14,7 +14,7 @@ export async function listCommunityMemberUserIds(
   const { data: badRoles } = await admin
     .from("roles")
     .select("id")
-    .in("name", ["local_leader", "admin", "super_admin"]);
+    .in("name", ["local_leader", "admin", "super_admin", "sub_admin"]);
   const badRoleIds = (badRoles ?? []).map((r: { id: string }) => r.id);
 
   const { data: elevatedUr } =

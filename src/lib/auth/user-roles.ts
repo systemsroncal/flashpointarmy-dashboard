@@ -19,8 +19,19 @@ export async function loadUserRoleNames(
   return names;
 }
 
+export const SUB_ADMIN_ROLE = "sub_admin";
+
 export function isElevatedRole(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "super_admin" || n === "admin");
+}
+
+export function isSubAdminUser(roleNames: string[]): boolean {
+  return roleNames.includes(SUB_ADMIN_ROLE);
+}
+
+/** Chapters, community, leaders, gatherings — admin, sub admin, or super admin. */
+export function isChapterStaffRole(roleNames: string[]): boolean {
+  return isElevatedRole(roleNames) || isSubAdminUser(roleNames);
 }
 
 /** Platform owner */

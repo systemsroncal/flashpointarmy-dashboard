@@ -1,6 +1,6 @@
 import { CommunitySection } from "@/components/dashboard/community/CommunitySection";
 import { MODULE_SLUGS } from "@/config/modules";
-import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
@@ -20,10 +20,10 @@ export default async function CommunityPageContent() {
   }
 
   const roles = await loadUserRoleNames(supabase, user.id);
-  const elevated = isElevatedRole(roles);
-  const create = can(permissions, MODULE_SLUGS.community, "create") && elevated;
-  const updatePerm = can(permissions, MODULE_SLUGS.community, "update") && elevated;
-  const deletePerm = can(permissions, MODULE_SLUGS.community, "delete") && elevated;
+  const chapterStaff = isChapterStaffRole(roles);
+  const create = can(permissions, MODULE_SLUGS.community, "create") && chapterStaff;
+  const updatePerm = can(permissions, MODULE_SLUGS.community, "update") && chapterStaff;
+  const deletePerm = can(permissions, MODULE_SLUGS.community, "delete") && chapterStaff;
   const isSuperAdmin = roles.includes("super_admin");
   const isLocalLeader = roles.includes("local_leader");
 
@@ -71,7 +71,7 @@ export default async function CommunityPageContent() {
       .from("chapters")
       .select("id, name, city, state, zip_code, address_line")
       .order("name");
-    if (elevated || !isLocalLeader) {
+    if (chapterStaff || !isLocalLeader) {
       chapterOptions = (allCh ?? []) as ChapterRow[];
     } else if (localChapterId) {
       chapterOptions = ((allCh ?? []) as ChapterRow[]).filter((c) => c.id === localChapterId);
@@ -81,7 +81,7 @@ export default async function CommunityPageContent() {
   }
 
   const subtitle =
-    elevated || !isLocalLeader
+    chapterStaff || !isLocalLeader
       ? "Members only (excludes local leaders and administrators)."
       : "Members in your primary chapter (excludes local leaders and administrators).";
 
@@ -93,7 +93,7 @@ export default async function CommunityPageContent() {
       canUpdate={updatePerm}
       canDelete={deletePerm}
       currentUserId={user.id}
-      elevated={elevated}
+      elevated={chapterStaff}
       isLocalLeader={isLocalLeader}
       localChapterId={localChapterId}
       subtitle={subtitle}

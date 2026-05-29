@@ -7,7 +7,7 @@ import {
   listCommunityMembersFallback,
 } from "@/lib/community/community-members-data";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
-import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { preferNonEmptyAddr } from "@/lib/admin/dashboard-user-queries";
 import { can } from "@/types/permissions";
 import {
@@ -123,7 +123,7 @@ export async function GET(req: Request) {
   const sortAsc = parseCommunityMemberSortAscending(url.searchParams.get("order"));
 
   const roles = await loadUserRoleNames(supabase, user.id);
-  const elevated = isElevatedRole(roles);
+  const chapterStaff = isChapterStaffRole(roles);
   const isLocalLeader = roles.includes("local_leader");
 
   const { data: profile } = await supabase
@@ -145,7 +145,7 @@ export async function GET(req: Request) {
       )
       .order("email")
       .limit(20);
-    if (!elevated && isLocalLeader && localChapterId) {
+    if (!chapterStaff && isLocalLeader && localChapterId) {
       lookup = lookup.eq("primary_chapter_id", localChapterId);
     }
     if (chapterId !== "all") {
@@ -157,7 +157,7 @@ export async function GET(req: Request) {
         const options = await communityMembersAutocompleteFallback(admin, {
           q,
           chapterId,
-          elevated,
+          elevated: chapterStaff,
           isLocalLeader,
           localChapterId,
         });
@@ -200,7 +200,7 @@ export async function GET(req: Request) {
     )
     .order(communityMemberSortDbColumn(sortKey), { ascending: sortAsc })
     .order("id", { ascending: true });
-  if (!elevated && isLocalLeader && localChapterId) {
+  if (!chapterStaff && isLocalLeader && localChapterId) {
     query = query.eq("primary_chapter_id", localChapterId);
   }
   if (chapterId !== "all") {
@@ -232,7 +232,7 @@ export async function GET(req: Request) {
         perPage,
         chapterId,
         q,
-        elevated,
+        elevated: chapterStaff,
         isLocalLeader,
         localChapterId,
         selectedUserId,

@@ -1,5 +1,5 @@
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
-import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { MODULE_SLUGS } from "@/config/modules";
 import { sendTemplatedEmail } from "@/lib/mail/send-templated-email";
 import { can } from "@/types/permissions";
@@ -64,14 +64,14 @@ export async function POST(req: Request) {
 
     const permissions = await loadModulePermissions(supabase, caller.id);
     const callerRoles = await loadUserRoleNames(supabase, caller.id);
-    const elevated = isElevatedRole(callerRoles);
+    const chapterStaff = isChapterStaffRole(callerRoles);
     const isLocalLeader = callerRoles.includes("local_leader");
 
     if (context === "community") {
       if (!can(permissions, MODULE_SLUGS.community, "create")) {
         return NextResponse.json({ error: "Forbidden." }, { status: 403 });
       }
-      if (!elevated) {
+      if (!chapterStaff) {
         return NextResponse.json(
           { error: "Only administrators can add users from this directory." },
           { status: 403 }
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
       if (!can(permissions, MODULE_SLUGS.leaders, "create")) {
         return NextResponse.json({ error: "Forbidden." }, { status: 403 });
       }
-      if (!elevated) {
+      if (!chapterStaff) {
         return NextResponse.json(
           { error: "Only admins can add leaders from this screen." },
           { status: 403 }
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (roleToAssign === "local_leader" && !elevated) {
+    if (roleToAssign === "local_leader" && !chapterStaff) {
       return NextResponse.json(
         { error: "Only admins can invite Local leaders." },
         { status: 403 }
@@ -104,9 +104,9 @@ export async function POST(req: Request) {
 
     const localChapterId = profile?.primary_chapter_id ?? null;
     const assignChapter =
-      isLocalLeader && localChapterId && context !== "community" && !elevated ? localChapterId : chapterRaw;
+      isLocalLeader && localChapterId && context !== "community" && !chapterStaff ? localChapterId : chapterRaw;
 
-    if (context !== "community" && isLocalLeader && !elevated && chapterRaw !== localChapterId) {
+    if (context !== "community" && isLocalLeader && !chapterStaff && chapterRaw !== localChapterId) {
       return NextResponse.json(
         { error: "You can only invite users to your primary chapter." },
         { status: 403 }

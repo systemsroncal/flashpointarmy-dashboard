@@ -7,6 +7,7 @@ import {
 import { isLocalLeaderNonElevated, isRestrictedMemberNav } from "@/lib/auth/nav-access";
 import {
   isElevatedRole,
+  isSubAdminUser,
   isSuperAdminUser,
 } from "@/lib/auth/user-roles";
 import type { DriveStep, DriverHook } from "driver.js";
@@ -35,9 +36,10 @@ export function mobilizeNavTourAttr(href: string): string {
   return `mobilize-${part.replace(/\//g, "-")}`;
 }
 
-function roleProfile(roleNames: string[]): "super_admin" | "admin" | "local_leader" | "member" | "other" {
+function roleProfile(roleNames: string[]): "super_admin" | "admin" | "sub_admin" | "local_leader" | "member" | "other" {
   if (isSuperAdminUser(roleNames)) return "super_admin";
   if (roleNames.includes("admin")) return "admin";
+  if (isSubAdminUser(roleNames)) return "sub_admin";
   if (isLocalLeaderNonElevated(roleNames)) return "local_leader";
   if (isRestrictedMemberNav(roleNames)) return "member";
   return "other";
@@ -55,6 +57,11 @@ function welcomeCopy(profile: ReturnType<typeof roleProfile>, displayName: strin
       return {
         title: "Welcome, administrator",
         description: `Hi ${name}. You can manage chapters, leaders, community members, events, training content, and system settings. This tour highlights only the menu items available to your role.`,
+      };
+    case "sub_admin":
+      return {
+        title: "Welcome, sub administrator",
+        description: `Hi ${name}. You can manage chapters, leaders, community members, events, and training. Mobilize and Settings are not available to your role. This tour highlights the menu items you can use.`,
       };
     case "local_leader":
       return {

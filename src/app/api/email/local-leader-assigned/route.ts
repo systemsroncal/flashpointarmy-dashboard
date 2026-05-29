@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
-import { loadUserRoleNames, isElevatedRole } from "@/lib/auth/user-roles";
+import { loadUserRoleNames, isChapterStaffRole } from "@/lib/auth/user-roles";
 import { sendTemplatedEmail } from "@/lib/mail/send-templated-email";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     }
 
     const callerRoles = await loadUserRoleNames(supabase, user.id);
-    const elevated = isElevatedRole(callerRoles);
+    const chapterStaff = isChapterStaffRole(callerRoles);
     const isLeader = callerRoles.includes("local_leader");
 
     const { data: targetProfile } = await supabase
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       .eq("id", targetUserId)
       .maybeSingle();
 
-    if (!elevated && isLeader) {
+    if (!chapterStaff && isLeader) {
       let allowed = false;
       if (chapterIdFromBody) {
         const { data: link } = await supabase
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       if (!allowed) {
         return NextResponse.json({ error: "Not allowed" }, { status: 403 });
       }
-    } else if (!elevated) {
+    } else if (!chapterStaff) {
       return NextResponse.json({ error: "Not allowed" }, { status: 403 });
     }
 

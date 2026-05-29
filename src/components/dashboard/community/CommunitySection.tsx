@@ -109,6 +109,7 @@ function tableRoleLabel(
   }
   if (names.includes("super_admin")) return formatRoleLabel("super_admin");
   if (names.includes("admin")) return formatRoleLabel("admin");
+  if (names.includes("sub_admin")) return "Sub Admin";
   const pr = communityPrimaryRole(names);
   return pr ? formatRoleLabel(pr) : "—";
 }
@@ -339,7 +340,7 @@ export function CommunitySection({
       const names = u.role_names ?? [];
       return names.includes("admin") && !names.includes("super_admin");
     }
-    if (restrictDeletesForPeerAdmin && u.role_names?.includes("admin")) return false;
+    if (restrictDeletesForPeerAdmin && (u.role_names?.includes("admin") || u.role_names?.includes("sub_admin"))) return false;
     return true;
   }
 

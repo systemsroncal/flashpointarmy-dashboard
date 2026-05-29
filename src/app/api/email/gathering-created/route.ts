@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
-import { loadUserRoleNames, isElevatedRole } from "@/lib/auth/user-roles";
+import { loadUserRoleNames, isChapterStaffRole } from "@/lib/auth/user-roles";
 import { sendTemplatedEmail } from "@/lib/mail/send-templated-email";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -39,9 +39,9 @@ export async function POST(req: Request) {
     }
 
     const roles = await loadUserRoleNames(supabase, user.id);
-    const elevated = isElevatedRole(roles);
+    const chapterStaff = isChapterStaffRole(roles);
     const isLeader = roles.includes("local_leader");
-    if (!elevated && !isLeader) {
+    if (!chapterStaff && !isLeader) {
       return NextResponse.json({ error: "Not allowed" }, { status: 403 });
     }
 
@@ -55,14 +55,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    if (ev.created_by !== user.id && !elevated) {
+    if (ev.created_by !== user.id && !chapterStaff) {
       return NextResponse.json({ error: "Not allowed" }, { status: 403 });
     }
 
     const admin = createAdminClient();
     let recipientRows: { id: string; email: string }[] = [];
 
-    if (!elevated) {
+    if (!chapterStaff) {
       if (!ev.chapter_id) {
         return NextResponse.json({ ok: true, skipped: true });
       }

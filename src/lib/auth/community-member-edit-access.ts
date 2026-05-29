@@ -1,6 +1,6 @@
 import { MODULE_SLUGS } from "@/config/modules";
 import {
-  isElevatedRole,
+  isChapterStaffRole,
   isSuperAdminUser,
   loadUserRoleNames,
 } from "@/lib/auth/user-roles";
@@ -26,7 +26,9 @@ export async function assertCommunityMemberEditAccess(
   ]);
 
   const targetIsAdminDirectory =
-    targetRoles.includes("admin") || targetRoles.includes("super_admin");
+    targetRoles.includes("admin") ||
+    targetRoles.includes("super_admin") ||
+    targetRoles.includes("sub_admin");
 
   const canPatchCommunity =
     can(permissions, MODULE_SLUGS.community, "update") ||
@@ -50,7 +52,7 @@ export async function assertCommunityMemberEditAccess(
     return { ok: false, response: NextResponse.json({ error: "Forbidden." }, { status: 403 }) };
   }
 
-  if (!targetIsAdminDirectory && !isElevatedRole(callerRoles)) {
+  if (!targetIsAdminDirectory && !isChapterStaffRole(callerRoles)) {
     return { ok: false, response: NextResponse.json({ error: "Forbidden." }, { status: 403 }) };
   }
 

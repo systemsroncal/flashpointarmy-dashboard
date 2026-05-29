@@ -2,7 +2,7 @@ import { ChaptersSection } from "@/components/dashboard/chapters/ChaptersSection
 import { MODULE_SLUGS } from "@/config/modules";
 import { listDashboardUsersByIdsWithAuthFallback } from "@/lib/admin/dashboard-user-queries";
 import { can } from "@/types/permissions";
-import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -22,8 +22,8 @@ export default async function ChaptersPageContent() {
   const del = can(permissions, MODULE_SLUGS.chapters, "delete");
 
   const roleNames = await loadUserRoleNames(supabase, user.id);
-  const elevated = isElevatedRole(roleNames);
-  const showChapterRowActions = elevated || !roleNames.includes("local_leader");
+  const chapterStaff = isChapterStaffRole(roleNames);
+  const showChapterRowActions = chapterStaff || !roleNames.includes("local_leader");
 
   let rows: {
     id: string;
@@ -49,7 +49,7 @@ export default async function ChaptersPageContent() {
   const isLocalLeader = roleNames.includes("local_leader");
   /** Members (role `member`, not a local leader, not admin) only see their assigned chapter (`profiles.primary_chapter_id`). */
   const restrictToAssignedChapter =
-    !elevated && !isLocalLeader && roleNames.includes("member");
+    !chapterStaff && !isLocalLeader && roleNames.includes("member");
 
   if (restrictToAssignedChapter) {
     const { data: prof } = await supabase
@@ -64,7 +64,7 @@ export default async function ChaptersPageContent() {
   let leaderOptions: { id: string; label: string }[] = [];
   let leadersByChapter: Record<string, string> = {};
 
-  if (elevated) {
+  if (chapterStaff) {
   try {
     const admin = createAdminClient();
     /** Anyone with the local_leader role OR already linked in chapter_leaders (covers legacy / partial role sync). */
@@ -170,7 +170,7 @@ export default async function ChaptersPageContent() {
       canUpdate={update}
       canDelete={del}
       showRowActions={showChapterRowActions}
-      showLeadersColumn={elevated}
+      showLeadersColumn={chapterStaff}
     />
   );
 }

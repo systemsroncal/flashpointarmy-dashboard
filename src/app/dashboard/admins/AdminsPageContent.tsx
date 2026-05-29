@@ -87,7 +87,7 @@ export default async function AdminsPageContent() {
   const { data: adminRoleRows } = await admin
     .from("roles")
     .select("id, name")
-    .in("name", ["admin", "super_admin"]);
+    .in("name", ["admin", "super_admin", "sub_admin"]);
 
   const roleIds = (adminRoleRows ?? []).map((r: { id: string }) => r.id).filter(Boolean);
 
@@ -182,7 +182,7 @@ export default async function AdminsPageContent() {
   }
 
   const subtitle =
-    "Dashboard users with the Administrator or Super administrator role.";
+    "Dashboard users with the Administrator, Sub Admin, or Super administrator role.";
 
   return (
     <>
