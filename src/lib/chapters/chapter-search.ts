@@ -17,6 +17,12 @@ export function chapterOptionLabel(c: ChapterSearchRow): string {
   return loc ? `${c.name} — ${loc}` : c.name;
 }
 
+/** Filter control: state — chapter name */
+export function chapterFilterOptionLabel(c: ChapterSearchRow): string {
+  const st = (c.state ?? "").trim().toUpperCase();
+  return st ? `${st} — ${c.name}` : c.name;
+}
+
 function chapterSearchBlob(c: ChapterSearchRow, includeNameAndAddress: boolean): string {
   const st = (c.state ?? "").trim().toUpperCase();
   const stateName = usStateByCode(st)?.name ?? "";

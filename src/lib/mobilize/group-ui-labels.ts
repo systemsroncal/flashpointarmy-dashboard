@@ -6,5 +6,7 @@ export function labelEventCreatePolicy(policy: string): string {
 }
 
 export function labelWallPostPolicy(policy: string): string {
-  return policy === "leaders_only" ? "Wall: leaders only" : "Wall: all members";
+  return policy === "leaders_only"
+    ? "Announcements: leaders only"
+    : "Announcements: all members";
 }

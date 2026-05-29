@@ -35,6 +35,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
@@ -159,7 +160,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     event_create_policy: "any_member" as "any_member" | "leader_only",
     cover_image_url: "",
     wall_post_policy: "all_approved" as "all_approved" | "leaders_only",
+    created_by: "",
   });
+  const [ownerCandidates, setOwnerCandidates] = useState<{ userId: string; label: string }[]>([]);
   const [msgEdit, setMsgEdit] = useState<{
     id: string;
     content: string;
@@ -214,6 +217,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   const isApproved = membership?.membership_status === "approved";
   const isLeader = membership?.member_role === "leader" && isApproved;
+  const isSuperAdmin = me.role_names.includes("super_admin");
 
   function canManageEvent(e: EventRow) {
     return isLeader || e.created_by === me.id;
@@ -436,7 +440,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       event_create_policy: group.event_create_policy === "leader_only" ? "leader_only" : "any_member",
       cover_image_url: group.cover_image_url?.trim() ?? "",
       wall_post_policy: group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved",
+      created_by: group.created_by,
     });
+    if (isSuperAdmin) {
+      void fetch(`/api/mobilize/groups/${groupId}/owner-candidates`)
+        .then((r) => r.json())
+        .then((json: { candidates?: { userId: string; label: string }[] }) => {
+          setOwnerCandidates(json.candidates ?? []);
+        })
+        .catch(() => setOwnerCandidates([]));
+    }
     setEditOpen(true);
   }
 
@@ -494,6 +507,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           event_create_policy: editForm.event_create_policy,
           cover_image_url: cover,
           wall_post_policy: editForm.wall_post_policy,
+          ...(isSuperAdmin && editForm.created_by ? { created_by: editForm.created_by } : {}),
         }),
       });
       const json = await res.json();
@@ -579,8 +593,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           </Typography>
         ) : null}
         {showJoin ? (
-          <Button variant="contained" sx={{ mt: 2 }} onClick={() => void joinRequest()}>
-            Request to join
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<PersonAddIcon />}
+            sx={{ mt: 2 }}
+            onClick={() => void joinRequest()}
+          >
+            Join
           </Button>
         ) : null}
         {membership?.membership_status === "pending" ? (
@@ -596,7 +616,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     return <Skeleton height={320} />;
   }
 
-  const canEditGroup = isLeader || group.created_by === me.id;
+  const canEditGroup = isLeader || group.created_by === me.id || isSuperAdmin;
   const gridSx = {
     display: "grid",
     gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
@@ -618,7 +638,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       {header}
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab label="Wall" disabled={!isApproved} />
+        <Tab label="Announcements" disabled={!isApproved} />
         <Tab label="Events" disabled={!isApproved} />
         <Tab label="Members" disabled={!isApproved} />
       </Tabs>
@@ -638,7 +658,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               {isLeader ? (
                 <FormControl component="fieldset" sx={{ mt: 1.5 }} variant="standard">
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-                    Who can comment on this post (leaders only — not shown to members on the wall)
+                    Who can comment on this post (leaders only — not shown to members on announcements)
                   </Typography>
                   <RadioGroup
                     row
@@ -656,7 +676,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             </>
           ) : (
             <Typography color="text.secondary" sx={{ mb: 2 }}>
-              Only leaders can post on this wall.
+              Only leaders can post announcements.
             </Typography>
           )}
           <Box sx={{ mt: 2 }}>
@@ -1141,6 +1161,23 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             <Button variant="outlined" onClick={() => void geocodeEditAddress()}>
               Geocode address
             </Button>
+            {isSuperAdmin ? (
+              <FormControl fullWidth>
+                <InputLabel id="owner">Group owner</InputLabel>
+                <Select
+                  labelId="owner"
+                  label="Group owner"
+                  value={editForm.created_by}
+                  onChange={(e) => setEditForm((f) => ({ ...f, created_by: e.target.value }))}
+                >
+                  {ownerCandidates.map((c) => (
+                    <MenuItem key={c.userId} value={c.userId}>
+                      {c.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : null}
             <FormControl fullWidth>
               <InputLabel id="ev">Visibility</InputLabel>
               <Select
@@ -1171,10 +1208,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               </Select>
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel id="wpp">Who can post on the wall</InputLabel>
+              <InputLabel id="wpp">Who can post announcements</InputLabel>
               <Select
                 labelId="wpp"
-                label="Who can post on the wall"
+                label="Who can post announcements"
                 value={editForm.wall_post_policy}
                 onChange={(e) =>
                   setEditForm((f) => ({
@@ -1200,7 +1237,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       </Dialog>
 
       <Dialog open={!!msgEdit} onClose={() => setMsgEdit(null)} fullWidth maxWidth="sm">
-        <DialogTitle>Edit wall post</DialogTitle>
+        <DialogTitle>Edit announcement</DialogTitle>
         <DialogContent>
           {msgEdit ? (
             <Stack spacing={2} sx={{ mt: 1 }}>

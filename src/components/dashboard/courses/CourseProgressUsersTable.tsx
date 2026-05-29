@@ -27,6 +27,7 @@ export type CourseProgressRow = {
   avatarUrl?: string | null;
   city: string | null;
   state: string | null;
+  primaryChapterId?: string | null;
   roleLabel: string;
   roleBucket: ProgressRoleBucket;
   graduateBadge?: TrainingGraduateBadgeRole | null;

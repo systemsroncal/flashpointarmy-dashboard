@@ -45,6 +45,7 @@ import {
 import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
 import { CourseGraduateBadge, AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import { ChapterSearchAutocomplete } from "@/components/forms/ChapterSearchAutocomplete";
+import { ChapterFilterControl } from "@/components/forms/ChapterFilterControl";
 import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
@@ -1491,33 +1492,12 @@ export function CommunitySection({
             ) : null}
           </Box>
           {showChapterFilter ? (
-            <FormControl size="small" sx={{ minWidth: 220 }}>
-              <InputLabel
-                id={
-                  isAdmins ? "admins-ch-filter" : isLeaders ? "leaders-ch-filter" : "comm-ch-filter"
-                }
-              >
-                Chapter
-              </InputLabel>
-              <Select
-                id={
-                  isAdmins ? "fp-chapter-filter-admins" : isLeaders ? "fp-chapter-filter-leaders" : "fp-chapter-filter-community"
-                }
-                labelId={
-                  isAdmins ? "admins-ch-filter" : isLeaders ? "leaders-ch-filter" : "comm-ch-filter"
-                }
-                label="Chapter"
-                value={filterChapterId}
-                onChange={(e) => setFilterChapterId(e.target.value)}
-              >
-                <MenuItem value="all">All chapters</MenuItem>
-                {chapterOptions.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {c.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <ChapterFilterControl
+              chapters={chapterOptions}
+              valueId={filterChapterId}
+              onChangeId={setFilterChapterId}
+              allowNameAndAddressSearch={allowChapterNameSearch}
+            />
           ) : null}
         </Stack>
       </Box>

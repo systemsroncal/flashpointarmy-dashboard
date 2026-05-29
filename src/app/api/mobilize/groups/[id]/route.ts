@@ -1,3 +1,4 @@
+import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { NextResponse } from "next/server";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
@@ -50,6 +51,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const { data: group } = await auth.admin.from("mobilize_groups").select("created_by").eq("id", id).maybeSingle();
   if (!group) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
+  const roleNames = await loadUserRoleNames(auth.admin, auth.userId);
+  const isSuperAdmin = roleNames.includes("super_admin");
+
   const { data: leader } = await auth.admin
     .from("mobilize_group_members")
     .select("member_role")
@@ -60,7 +64,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const isLeader = leader?.member_role === "leader";
   const isCreator = group.created_by === auth.userId;
-  if (!isLeader && !isCreator) {
+  if (!isLeader && !isCreator && !isSuperAdmin) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -80,6 +84,32 @@ export async function PATCH(req: Request, ctx: Ctx) {
   ] as const;
   for (const k of allowed) {
     if (k in body) patch[k] = body[k];
+  }
+
+  if (isSuperAdmin && typeof body.created_by === "string" && body.created_by.trim()) {
+    const newOwnerId = body.created_by.trim();
+    patch.created_by = newOwnerId;
+
+    const { data: existingMember } = await auth.admin
+      .from("mobilize_group_members")
+      .select("id, member_role, membership_status")
+      .eq("group_id", id)
+      .eq("user_id", newOwnerId)
+      .maybeSingle();
+
+    if (existingMember) {
+      await auth.admin
+        .from("mobilize_group_members")
+        .update({ member_role: "leader", membership_status: "approved" })
+        .eq("id", existingMember.id);
+    } else {
+      await auth.admin.from("mobilize_group_members").insert({
+        group_id: id,
+        user_id: newOwnerId,
+        member_role: "leader",
+        membership_status: "approved",
+      });
+    }
   }
   if ("wall_post_policy" in patch) {
     patch.wall_post_policy =

@@ -96,35 +96,37 @@ export function ChapterMapInviteCta() {
           textAlign: "center",
         }}
       >
-        <Stack spacing={0.75} sx={{ mb: 1.75, maxWidth: 420, mx: "auto" }}>
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-            God is raising up believers in every state.
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{ lineHeight: 1.7, fontWeight: 700, color: "rgba(255,255,255,0.92)" }}
+        <Stack spacing={0.75} sx={{ mb: 1.75, maxWidth: 520, mx: "auto" }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.25}
+            alignItems="center"
+            justifyContent="center"
           >
-            Know someone who should be part of it?
-          </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+              God is raising up believers in every state.
+            </Typography>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              startIcon={<ShareOutlinedIcon />}
+              onClick={() => setOpen(true)}
+              sx={{
+                fontWeight: 700,
+                borderRadius: 999,
+                px: 2.25,
+                textTransform: "none",
+                flexShrink: 0,
+              }}
+            >
+              Invite someone to join
+            </Button>
+          </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
             Invite them to find or join a chapter near them.
           </Typography>
         </Stack>
-        <Button
-          variant="outlined"
-          color="primary"
-          size="small"
-          startIcon={<ShareOutlinedIcon />}
-          onClick={() => setOpen(true)}
-          sx={{
-            fontWeight: 700,
-            borderRadius: 999,
-            px: 2.25,
-            textTransform: "none",
-          }}
-        >
-          Invite someone to join
-        </Button>
       </Box>
 
       <Dialog

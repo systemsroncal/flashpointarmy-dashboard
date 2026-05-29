@@ -1,5 +1,6 @@
 "use client";
 
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -86,9 +87,15 @@ type NavItem = {
 const COURSE_LEARNER_PREFIX = "/dashboard/course";
 
 const MOBILIZE_PREFIX = "/dashboard/mobilize";
-const MOBILIZE_HOME = MOBILIZE_PREFIX;
+const MOBILIZE_HOME = `${MOBILIZE_PREFIX}/map`;
 
 const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    module: MODULE_SLUGS.dashboard,
+    icon: <ArrowBackIcon />,
+  },
   {
     label: "Map & Groups",
     href: `${MOBILIZE_PREFIX}/map`,
@@ -120,8 +127,11 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
     return pathname === "/dashboard";
   }
   if (pathname.startsWith(MOBILIZE_PREFIX)) {
+    if (item.href === "/dashboard") {
+      return false;
+    }
     if (item.href === MOBILIZE_HOME && item.module === MODULE_SLUGS.movilization) {
-      return pathname === MOBILIZE_HOME || pathname === `${MOBILIZE_HOME}/`;
+      return pathname === MOBILIZE_HOME || pathname === `${MOBILIZE_PREFIX}/`;
     }
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
@@ -382,7 +392,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const settingsAllowedByRole =
     user.role_names.includes("admin") || user.role_names.includes("super_admin");
   const settingsNav = settingsAllowedByRole
-    ? allVisibleNav.filter((item) => SETTINGS_MODULES.has(item.module))
+    ? allVisibleNav.filter((item) => {
+        if (!SETTINGS_MODULES.has(item.module)) return false;
+        if (item.module === MODULE_SLUGS.reports) {
+          return user.role_names.includes("super_admin");
+        }
+        return true;
+      })
     : [];
   const visibleNav = allVisibleNav.filter((item) => !SETTINGS_MODULES.has(item.module));
   const ordersNav = ORDERS_DRAWER_NAV_BASE.filter((item) => can(permissions, item.module, "read"));

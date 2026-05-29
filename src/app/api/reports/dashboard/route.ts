@@ -1,4 +1,5 @@
 import { MODULE_SLUGS } from "@/config/modules";
+import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { listRoleNamesByUserIds } from "@/lib/admin/dashboard-user-queries";
 import {
@@ -25,7 +26,8 @@ export async function GET(req: Request) {
   const { supabase, user } = authResult;
 
     const permissions = await loadModulePermissions(supabase, user.id);
-    if (!can(permissions, MODULE_SLUGS.reports, "read")) {
+    const roleNames = await loadUserRoleNames(supabase, user.id);
+    if (!roleNames.includes("super_admin") || !can(permissions, MODULE_SLUGS.reports, "read")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

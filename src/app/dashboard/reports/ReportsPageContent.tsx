@@ -1,3 +1,4 @@
+import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { ReportsChartsClient } from "@/components/dashboard/reports/ReportsChartsClient";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -10,11 +11,12 @@ export default async function ReportsPageContent() {
   const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
-  if (!can(permissions, MODULE_SLUGS.reports, "read")) {
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  if (!roleNames.includes("super_admin") || !can(permissions, MODULE_SLUGS.reports, "read")) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
         <Typography color="error">
-          You do not have access to Reports. Administrators need the Reports module enabled (migration 033).
+          Reports are available to super administrators only.
         </Typography>
       </Paper>
     );

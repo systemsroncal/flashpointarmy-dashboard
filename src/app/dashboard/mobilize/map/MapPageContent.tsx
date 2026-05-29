@@ -633,10 +633,10 @@ export default function MobilizeMapPageContent() {
               </Select>
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel id="wpp">Who can post on the wall</InputLabel>
+              <InputLabel id="wpp">Who can post announcements</InputLabel>
               <Select
                 labelId="wpp"
-                label="Who can post on the wall"
+                label="Who can post announcements"
                 value={form.wall_post_policy}
                 onChange={(e) =>
                   setForm((f) => ({

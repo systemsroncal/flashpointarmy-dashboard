@@ -155,6 +155,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
       display_name: string | null;
       first_name: string | null;
       last_name: string | null;
+      primary_chapter_id: string | null;
     }
   >();
   if (userIds.length) {
@@ -167,13 +168,14 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
         display_name: u.display_name,
         first_name: u.first_name,
         last_name: u.last_name,
+        primary_chapter_id: u.primary_chapter_id ?? null,
       });
     }
   }
 
   const profileById = new Map<
     string,
-    { avatar_url: string | null; city: string | null; state: string | null }
+    { avatar_url: string | null; city: string | null; state: string | null; primary_chapter_id: string | null }
   >();
   if (userIds.length) {
     const profileRows = await listProfilesByIds(admin, userIds);
@@ -182,11 +184,25 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
         avatar_url: p.avatar_url ?? null,
         city: p.city,
         state: p.state,
+        primary_chapter_id: p.primary_chapter_id ?? null,
       });
     }
   }
 
   const roleByUser = userIds.length ? await listRoleNamesByUserIds(admin, userIds) : new Map<string, string[]>();
+
+  const { data: chapterRows } = await supabase
+    .from("chapters")
+    .select("id, name, city, state, zip_code, address_line")
+    .order("name");
+  const chapterOptions = (chapterRows ?? []) as Array<{
+    id: string;
+    name: string;
+    city: string | null;
+    state: string;
+    zip_code: string | null;
+    address_line: string | null;
+  }>;
 
   const rows = userIds
     .map((uid) => {
@@ -205,6 +221,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
         avatarUrl: profile?.avatar_url ?? null,
         city: preferNonEmptyAddr(profile?.city, du?.city),
         state: preferNonEmptyAddr(profile?.state, du?.state),
+        primaryChapterId: profile?.primary_chapter_id ?? du?.primary_chapter_id ?? null,
         roleLabel: progressRoleLabel(slugs),
         roleBucket: progressRoleBucketFromSlugs(slugs),
         graduateBadge:
@@ -223,6 +240,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
       courseSlug={course.slug as string}
       courseId={courseId}
       rows={rows}
+      chapterOptions={chapterOptions}
       totalSessions={totalSessions}
       quizCount={quizIds.length}
       appliesGrades={Boolean(course.applies_grades)}

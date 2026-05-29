@@ -7,6 +7,7 @@ import {
 } from "@/components/dashboard/courses/CourseProgressUsersTable";
 import type { CourseCompletionRow } from "@/lib/courses/course-completion-stats";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SearchIcon from "@mui/icons-material/Search";
 import {
   Accordion,
   AccordionDetails,
@@ -15,13 +16,17 @@ import {
   FormControl,
   FormControlLabel,
   FormLabel,
+  InputAdornment,
   Link as MuiLink,
   Radio,
   RadioGroup,
+  TextField,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { ChapterFilterControl } from "@/components/forms/ChapterFilterControl";
+import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
 
 export type ProgressRoleFilter = "all" | "member" | "leader";
 
@@ -30,6 +35,7 @@ type Props = {
   courseSlug: string;
   courseId: string;
   rows: CourseProgressRow[];
+  chapterOptions: ChapterSearchRow[];
   totalSessions: number;
   quizCount: number;
   appliesGrades: boolean;
@@ -49,6 +55,7 @@ export function CourseProgressPageClient({
   courseSlug,
   courseId,
   rows,
+  chapterOptions,
   totalSessions,
   quizCount,
   appliesGrades,
@@ -57,8 +64,23 @@ export function CourseProgressPageClient({
   totalWithProgress,
 }: Props) {
   const [roleFilter, setRoleFilter] = useState<ProgressRoleFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterChapterId, setFilterChapterId] = useState("all");
 
-  const filteredRows = useMemo(() => filterByRole(rows, roleFilter), [rows, roleFilter]);
+  const filteredRows = useMemo(() => {
+    let list = filterByRole(rows, roleFilter);
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((r) => {
+        const blob = [r.label, r.city ?? "", r.state ?? "", r.roleLabel].join(" ").toLowerCase();
+        return blob.includes(q);
+      });
+    }
+    if (filterChapterId !== "all") {
+      list = list.filter((r) => r.primaryChapterId === filterChapterId);
+    }
+    return list;
+  }, [rows, roleFilter, searchQuery, filterChapterId, chapterOptions]);
 
   const memberLeaderTotal = useMemo(
     () => rows.filter((r) => r.roleBucket === "member" || r.roleBucket === "leader").length,
@@ -126,6 +148,39 @@ export function CourseProgressPageClient({
           <FormControlLabel value="leader" control={<Radio size="small" />} label="Local leaders only" />
         </RadioGroup>
       </FormControl>
+
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          gap: 2,
+          mb: 2,
+          alignItems: { md: "flex-start" },
+        }}
+      >
+        <TextField
+          size="small"
+          label="Search"
+          placeholder="Name, city, state, role…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ minWidth: { md: 280 }, flex: 1 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
+        {chapterOptions.length > 0 ? (
+          <ChapterFilterControl
+            chapters={chapterOptions}
+            valueId={filterChapterId}
+            onChangeId={setFilterChapterId}
+          />
+        ) : null}
+      </Box>
 
       <CourseProgressUsersTable
         rows={filteredRows}
