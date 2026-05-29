@@ -28,7 +28,7 @@ const SHARE_URL = "https://fparmychapters.com/join-a-chapter/";
 const SHARE_SUBJECT = "Join a FlashPoint Army Chapter near you";
 
 const SHARE_MESSAGE =
-  "Believers across America are gathering to stand firm, serve their communities, and advance the mission of God. Join a FlashPoint Army Chapter near you:";
+  "God is raising up believers in every state. Know someone who should be part of it? Invite them to find or join a chapter near them.";
 
 function shareText() {
   return `${SHARE_MESSAGE}\n\n${SHARE_URL}`;
@@ -104,7 +104,7 @@ export function ChapterMapInviteCta() {
             justifyContent="center"
           >
             <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-              God is raising up believers in every state.
+              God is raising up believers in every state. Know someone who should be part of it?
             </Typography>
             <Button
               variant="outlined"

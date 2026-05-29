@@ -82,13 +82,57 @@ async function fetchDashboardUsersChunks(
 
 function chapterScope(opts: {
   chapterId: string;
+  state?: string;
+  stateChapterIds?: string[] | null;
   elevated: boolean;
   isLocalLeader: boolean;
   localChapterId: string | null;
-}): string | null {
-  if (opts.chapterId !== "all") return opts.chapterId;
-  if (!opts.elevated && opts.isLocalLeader && opts.localChapterId) return opts.localChapterId;
-  return null;
+}): { kind: "all" } | { kind: "single"; id: string } | { kind: "multi"; ids: string[] } {
+  if (opts.chapterId !== "all") return { kind: "single", id: opts.chapterId };
+  const stateIds = opts.stateChapterIds ?? null;
+  const st = (opts.state ?? "all").trim().toUpperCase();
+  if (st && st !== "ALL") {
+    return { kind: "multi", ids: stateIds ?? [] };
+  }
+  if (!opts.elevated && opts.isLocalLeader && opts.localChapterId) {
+    return { kind: "single", id: opts.localChapterId };
+  }
+  return { kind: "all" };
+}
+
+async function filterUserIdsByChapterScope(
+  admin: SupabaseClient,
+  ids: string[],
+  scope: ReturnType<typeof chapterScope>
+): Promise<string[]> {
+  if (scope.kind === "all") return ids;
+  if (scope.kind === "multi" && scope.ids.length === 0) return [];
+
+  const filtered: string[] = [];
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const sl = ids.slice(i, i + CHUNK);
+    let query = admin.from("dashboard_users").select("id").in("id", sl);
+    if (scope.kind === "single") {
+      query = query.eq("primary_chapter_id", scope.id);
+    } else {
+      query = query.in("primary_chapter_id", scope.ids);
+    }
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    for (const r of data ?? []) filtered.push(String((r as { id: string }).id));
+  }
+  return filtered;
+}
+
+export async function listChapterIdsForState(
+  admin: SupabaseClient,
+  stateCode: string
+): Promise<string[]> {
+  const st = stateCode.trim().toUpperCase();
+  if (!st || st === "ALL") return [];
+  const { data, error } = await admin.from("chapters").select("id").eq("state", st);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => String((r as { id: string }).id));
 }
 
 /** When `dashboard_community_members` view is missing (migration 032 not applied). */
@@ -98,6 +142,8 @@ export async function listCommunityMembersFallback(
     page: number;
     perPage: number;
     chapterId: string;
+    state?: string;
+    stateChapterIds?: string[] | null;
     q: string;
     elevated: boolean;
     isLocalLeader: boolean;
@@ -110,24 +156,14 @@ export async function listCommunityMembersFallback(
   const { page, perPage, q, selectedUserId } = opts;
   const sortKey = parseCommunityMemberRemoteSortKey(opts.sortKey);
   const sortAsc = opts.sortAsc ?? false;
-  const ch = chapterScope(opts);
+  const scope = chapterScope(opts);
 
   let ids = await listCommunityMemberUserIds(admin);
   if (ids.length === 0) return { rows: [], count: 0 };
 
-  if (ch) {
-    const filtered: string[] = [];
-    for (let i = 0; i < ids.length; i += CHUNK) {
-      const sl = ids.slice(i, i + CHUNK);
-      const { data, error } = await admin
-        .from("dashboard_users")
-        .select("id")
-        .in("id", sl)
-        .eq("primary_chapter_id", ch);
-      if (error) throw new Error(error.message);
-      for (const r of data ?? []) filtered.push(String((r as { id: string }).id));
-    }
-    ids = filtered;
+  if (scope.kind !== "all") {
+    ids = await filterUserIdsByChapterScope(admin, ids, scope);
+    if (ids.length === 0) return { rows: [], count: 0 };
   }
 
   if (selectedUserId) {
@@ -167,28 +203,20 @@ export async function communityMembersAutocompleteFallback(
   opts: {
     q: string;
     chapterId: string;
+    state?: string;
+    stateChapterIds?: string[] | null;
     elevated: boolean;
     isLocalLeader: boolean;
     localChapterId: string | null;
   }
 ): Promise<Array<{ id: string; label: string }>> {
-  const ch = chapterScope(opts);
+  const scope = chapterScope(opts);
   let ids = await listCommunityMemberUserIds(admin);
   if (ids.length === 0) return [];
 
-  if (ch) {
-    const filtered: string[] = [];
-    for (let i = 0; i < ids.length; i += CHUNK) {
-      const sl = ids.slice(i, i + CHUNK);
-      const { data, error } = await admin
-        .from("dashboard_users")
-        .select("id")
-        .in("id", sl)
-        .eq("primary_chapter_id", ch);
-      if (error) throw new Error(error.message);
-      for (const r of data ?? []) filtered.push(String((r as { id: string }).id));
-    }
-    ids = filtered;
+  if (scope.kind !== "all") {
+    ids = await filterUserIdsByChapterScope(admin, ids, scope);
+    if (ids.length === 0) return [];
   }
 
   const ql = opts.q.trim().toLowerCase();

@@ -25,8 +25,8 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChapterFilterControl } from "@/components/forms/ChapterFilterControl";
-import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
+import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
+import { matchesStateChapterFilter } from "@/lib/chapters/chapter-search";
 
 export type ProgressRoleFilter = "all" | "member" | "leader";
 
@@ -65,6 +65,7 @@ export function CourseProgressPageClient({
 }: Props) {
   const [roleFilter, setRoleFilter] = useState<ProgressRoleFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterState, setFilterState] = useState("all");
   const [filterChapterId, setFilterChapterId] = useState("all");
 
   const filteredRows = useMemo(() => {
@@ -76,11 +77,11 @@ export function CourseProgressPageClient({
         return blob.includes(q);
       });
     }
-    if (filterChapterId !== "all") {
-      list = list.filter((r) => r.primaryChapterId === filterChapterId);
-    }
+    list = list.filter((r) =>
+      matchesStateChapterFilter(r.primaryChapterId, chapterOptions, filterState, filterChapterId)
+    );
     return list;
-  }, [rows, roleFilter, searchQuery, filterChapterId, chapterOptions]);
+  }, [rows, roleFilter, searchQuery, filterState, filterChapterId, chapterOptions]);
 
   const memberLeaderTotal = useMemo(
     () => rows.filter((r) => r.roleBucket === "member" || r.roleBucket === "leader").length,
@@ -174,10 +175,12 @@ export function CourseProgressPageClient({
           }}
         />
         {chapterOptions.length > 0 ? (
-          <ChapterFilterControl
+          <StateChapterFilterControls
             chapters={chapterOptions}
-            valueId={filterChapterId}
-            onChangeId={setFilterChapterId}
+            filterState={filterState}
+            filterChapterId={filterChapterId}
+            onStateChange={setFilterState}
+            onChapterChange={setFilterChapterId}
           />
         ) : null}
       </Box>

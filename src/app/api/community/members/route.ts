@@ -4,6 +4,7 @@ import { MODULE_SLUGS } from "@/config/modules";
 import {
   communityMembersAutocompleteFallback,
   isMissingCommunityMembersViewError,
+  listChapterIdsForState,
   listCommunityMembersFallback,
 } from "@/lib/community/community-members-data";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -103,6 +104,7 @@ export async function GET(req: Request) {
   const page = Math.max(0, Number(url.searchParams.get("page") || 0));
   const perPage = Math.min(200, Math.max(1, Number(url.searchParams.get("perPage") || 20)));
   const chapterId = url.searchParams.get("chapterId") || "all";
+  const stateFilter = (url.searchParams.get("state") || "all").trim().toUpperCase();
   const selectedUserId = (url.searchParams.get("selectedUserId") || "").trim();
   const q = (url.searchParams.get("q") || "").trim();
   const autocomplete = url.searchParams.get("autocomplete") === "1";
@@ -122,6 +124,22 @@ export async function GET(req: Request) {
 
   const admin = createAdminClient();
 
+  let stateChapterIds: string[] | null = null;
+  if (chapterId === "all" && stateFilter && stateFilter !== "ALL") {
+    try {
+      stateChapterIds = await listChapterIdsForState(admin, stateFilter);
+      if (stateChapterIds.length === 0) {
+        if (autocomplete) return NextResponse.json({ options: [] });
+        return NextResponse.json({ rows: [], total: 0, page, perPage });
+      }
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Could not filter by state." },
+        { status: 500 }
+      );
+    }
+  }
+
   if (autocomplete) {
     if (q.length < 2) return NextResponse.json({ options: [] });
     let lookup = admin
@@ -137,6 +155,8 @@ export async function GET(req: Request) {
     }
     if (chapterId !== "all") {
       lookup = lookup.eq("primary_chapter_id", chapterId);
+    } else if (stateChapterIds?.length) {
+      lookup = lookup.in("primary_chapter_id", stateChapterIds);
     }
     const { data, error } = await lookup;
     if (error && isMissingCommunityMembersViewError(error)) {
@@ -144,6 +164,8 @@ export async function GET(req: Request) {
         const options = await communityMembersAutocompleteFallback(admin, {
           q,
           chapterId,
+          state: stateFilter,
+          stateChapterIds,
           elevated: chapterStaff,
           isLocalLeader,
           localChapterId,
@@ -192,6 +214,8 @@ export async function GET(req: Request) {
   }
   if (chapterId !== "all") {
     query = query.eq("primary_chapter_id", chapterId);
+  } else if (stateChapterIds?.length) {
+    query = query.in("primary_chapter_id", stateChapterIds);
   }
   if (selectedUserId) {
     query = query.eq("id", selectedUserId);
@@ -218,6 +242,8 @@ export async function GET(req: Request) {
         page,
         perPage,
         chapterId,
+        state: stateFilter,
+        stateChapterIds,
         q,
         elevated: chapterStaff,
         isLocalLeader,

@@ -45,7 +45,8 @@ import {
 import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
 import { CourseGraduateBadge, AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import { ChapterSearchAutocomplete } from "@/components/forms/ChapterSearchAutocomplete";
-import { ChapterFilterControl } from "@/components/forms/ChapterFilterControl";
+import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
+import { matchesStateChapterFilter } from "@/lib/chapters/chapter-search";
 import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
@@ -262,6 +263,7 @@ export function CommunitySection({
     if (remoteMode) return;
     setUsers(initialUsers);
   }, [remoteMode, initialUsers]);
+  const [filterState, setFilterState] = useState<string>("all");
   const [filterChapterId, setFilterChapterId] = useState<string>(() =>
     isLocalLeader && localChapterId ? localChapterId : "all"
   );
@@ -695,7 +697,7 @@ export function CommunitySection({
 
   useEffect(() => {
     setPage(0);
-  }, [searchCommitted, orderBy, order, filterChapterId]);
+  }, [searchCommitted, orderBy, order, filterState, filterChapterId]);
 
   const fetchRemoteRows = useCallback(async () => {
     if (!remoteMode) return;
@@ -706,6 +708,7 @@ export function CommunitySection({
         page: String(page),
         perPage: String(rowsPerPage < 0 ? 200 : rowsPerPage),
         chapterId: filterChapterId,
+        state: filterState,
         sort: orderBy,
         order,
       });
@@ -723,7 +726,7 @@ export function CommunitySection({
     } finally {
       setTableLoading(false);
     }
-  }, [remoteMode, page, rowsPerPage, filterChapterId, searchCommitted, orderBy, order]);
+  }, [remoteMode, page, rowsPerPage, filterState, filterChapterId, searchCommitted, orderBy, order]);
 
   useEffect(() => {
     void fetchRemoteRows();
@@ -744,6 +747,7 @@ export function CommunitySection({
           autocomplete: "1",
           q,
           chapterId: filterChapterId,
+          state: filterState,
         });
         const res = await fetch(`/api/community/members?${params.toString()}`, { cache: "no-store" });
         const payload = (await res.json()) as { options?: Array<{ id: string; label: string }> };
@@ -754,7 +758,7 @@ export function CommunitySection({
       }
     }, 250);
     return () => window.clearTimeout(tid);
-  }, [remoteMode, searchInput, filterChapterId]);
+  }, [remoteMode, searchInput, filterState, filterChapterId]);
 
   useEffect(() => {
     if (!viewUser) {
@@ -780,15 +784,16 @@ export function CommunitySection({
 
   const filtered = useMemo(() => {
     if (remoteMode) return users;
-    const chapterScoped =
-      filterChapterId === "all" ? users : users.filter((u) => u.primary_chapter_id === filterChapterId);
+    const chapterScoped = users.filter((u) =>
+      matchesStateChapterFilter(u.primary_chapter_id, chapterOptions, filterState, filterChapterId)
+    );
     const q = searchCommitted.trim().toLowerCase().replace(/\s+/g, " ");
     if (!q) return chapterScoped;
     return chapterScoped.filter((u) => {
       const blob = buildUserSearchBlob(u, chapterOptions, variant);
       return blob.includes(q);
     });
-  }, [remoteMode, users, filterChapterId, searchCommitted, variant, chapterOptions]);
+  }, [remoteMode, users, filterState, filterChapterId, searchCommitted, variant, chapterOptions]);
 
   const sorted = useMemo(() => {
     if (remoteMode) return users;
@@ -1492,11 +1497,12 @@ export function CommunitySection({
             ) : null}
           </Box>
           {showChapterFilter ? (
-            <ChapterFilterControl
+            <StateChapterFilterControls
               chapters={chapterOptions}
-              valueId={filterChapterId}
-              onChangeId={setFilterChapterId}
-              allowNameAndAddressSearch={allowChapterNameSearch}
+              filterState={filterState}
+              filterChapterId={filterChapterId}
+              onStateChange={setFilterState}
+              onChapterChange={setFilterChapterId}
             />
           ) : null}
         </Stack>
