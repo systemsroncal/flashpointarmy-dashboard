@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { loadUserRoleNames, isSuperAdminUser } from "@/lib/auth/user-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+type Body = { roleName?: "admin" | "sub_admin" };
+
 export async function POST(
-  _req: Request,
+  req: Request,
   context: { params: Promise<{ userId: string }> }
 ) {
   const { userId } = await context.params;
@@ -23,9 +24,20 @@ export async function POST(
   const callerRoles = await loadUserRoleNames(supabase, user.id);
   if (!isSuperAdminUser(callerRoles)) {
     return NextResponse.json(
-      { error: "Only the super admin can assign the administrator role." },
+      { error: "Only the super admin can change administrator roles." },
       { status: 403 }
     );
+  }
+
+  let body: Body;
+  try {
+    body = (await req.json()) as Body;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  if (body.roleName !== "admin" && body.roleName !== "sub_admin") {
+    return NextResponse.json({ error: "Invalid roleName." }, { status: 400 });
   }
 
   try {
@@ -34,32 +46,27 @@ export async function POST(
 
     if (targetRoles.includes("super_admin")) {
       return NextResponse.json(
-        { error: "This account is already a super admin." },
+        { error: "Cannot change the role of a super administrator." },
         { status: 400 }
       );
-    }
-    if (targetRoles.includes("admin")) {
-      return NextResponse.json({ error: "This user is already an administrator." }, { status: 400 });
-    }
-    if (targetRoles.includes("sub_admin")) {
-      return NextResponse.json({ error: "This user is already a sub administrator." }, { status: 400 });
     }
 
-    const eligible = targetRoles.some((n) => n === "member" || n === "local_leader");
-    if (!eligible) {
+    const hasStaffRole = targetRoles.includes("admin") || targetRoles.includes("sub_admin");
+    if (!hasStaffRole) {
       return NextResponse.json(
-        {
-          error:
-            "Only members or local leaders can be promoted to administrator. Adjust roles in the database if needed.",
-        },
+        { error: "User must already be an administrator or sub administrator." },
         { status: 400 }
       );
+    }
+
+    if (targetRoles.includes(body.roleName)) {
+      return NextResponse.json({ ok: true, role_names: [...targetRoles].sort() });
     }
 
     const { data: roleRows, error: rolesErr } = await admin
       .from("roles")
       .select("id, name")
-      .in("name", ["admin", "member", "local_leader"]);
+      .in("name", ["admin", "sub_admin"]);
 
     if (rolesErr || !roleRows?.length) {
       return NextResponse.json(
@@ -69,12 +76,12 @@ export async function POST(
     }
 
     const byName = new Map(roleRows.map((r) => [r.name, r.id] as const));
-    const adminId = byName.get("admin");
-    if (!adminId) {
-      return NextResponse.json({ error: "Role admin not found." }, { status: 500 });
+    const nextRoleId = byName.get(body.roleName);
+    if (!nextRoleId) {
+      return NextResponse.json({ error: `Role ${body.roleName} not found.` }, { status: 500 });
     }
 
-    const stripIds = ["member", "local_leader"]
+    const stripIds = ["admin", "sub_admin"]
       .map((n) => byName.get(n))
       .filter((id): id is string => Boolean(id));
 
@@ -84,18 +91,18 @@ export async function POST(
 
     const { error: insErr } = await admin
       .from("user_roles")
-      .insert({ user_id: userId, role_id: adminId });
+      .insert({ user_id: userId, role_id: nextRoleId });
 
     if (insErr) {
       return NextResponse.json(
-        { error: insErr.message || "Could not assign administrator role." },
+        { error: insErr.message || "Could not update role." },
         { status: 500 }
       );
     }
 
     const nextRoles = targetRoles
-      .filter((n) => n !== "member" && n !== "local_leader")
-      .concat("admin");
+      .filter((n) => n !== "admin" && n !== "sub_admin")
+      .concat(body.roleName);
     const unique = [...new Set(nextRoles)].sort();
 
     return NextResponse.json({ ok: true, role_names: unique });

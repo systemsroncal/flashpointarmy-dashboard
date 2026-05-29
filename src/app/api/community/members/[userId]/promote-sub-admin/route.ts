@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { loadUserRoleNames, isSuperAdminUser } from "@/lib/auth/user-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -23,7 +22,7 @@ export async function POST(
   const callerRoles = await loadUserRoleNames(supabase, user.id);
   if (!isSuperAdminUser(callerRoles)) {
     return NextResponse.json(
-      { error: "Only the super admin can assign the administrator role." },
+      { error: "Only the super admin can assign the sub administrator role." },
       { status: 403 }
     );
   }
@@ -50,7 +49,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Only members or local leaders can be promoted to administrator. Adjust roles in the database if needed.",
+            "Only members or local leaders can be promoted to sub administrator. Adjust roles in the database if needed.",
         },
         { status: 400 }
       );
@@ -59,7 +58,7 @@ export async function POST(
     const { data: roleRows, error: rolesErr } = await admin
       .from("roles")
       .select("id, name")
-      .in("name", ["admin", "member", "local_leader"]);
+      .in("name", ["sub_admin", "member", "local_leader"]);
 
     if (rolesErr || !roleRows?.length) {
       return NextResponse.json(
@@ -69,9 +68,9 @@ export async function POST(
     }
 
     const byName = new Map(roleRows.map((r) => [r.name, r.id] as const));
-    const adminId = byName.get("admin");
-    if (!adminId) {
-      return NextResponse.json({ error: "Role admin not found." }, { status: 500 });
+    const subAdminId = byName.get("sub_admin");
+    if (!subAdminId) {
+      return NextResponse.json({ error: "Role sub_admin not found." }, { status: 500 });
     }
 
     const stripIds = ["member", "local_leader"]
@@ -84,18 +83,18 @@ export async function POST(
 
     const { error: insErr } = await admin
       .from("user_roles")
-      .insert({ user_id: userId, role_id: adminId });
+      .insert({ user_id: userId, role_id: subAdminId });
 
     if (insErr) {
       return NextResponse.json(
-        { error: insErr.message || "Could not assign administrator role." },
+        { error: insErr.message || "Could not assign sub administrator role." },
         { status: 500 }
       );
     }
 
     const nextRoles = targetRoles
       .filter((n) => n !== "member" && n !== "local_leader")
-      .concat("admin");
+      .concat("sub_admin");
     const unique = [...new Set(nextRoles)].sort();
 
     return NextResponse.json({ ok: true, role_names: unique });

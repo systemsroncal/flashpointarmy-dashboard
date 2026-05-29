@@ -17,6 +17,7 @@ type Body = {
   lastName?: string;
   phone?: string;
   primaryChapterId?: string;
+  roleName?: "admin" | "sub_admin";
 };
 
 export async function POST(req: Request) {
@@ -61,6 +62,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Select a valid primary chapter." }, { status: 400 });
     }
 
+    const staffRoleName = body.roleName === "sub_admin" ? "sub_admin" : "admin";
+
     const admin = createAdminClient();
 
     const { data: createdData, error: createErr } = await admin.auth.admin.createUser({
@@ -88,13 +91,13 @@ export async function POST(req: Request) {
     const { data: adminRole, error: roleErr } = await admin
       .from("roles")
       .select("id")
-      .eq("name", "admin")
+      .eq("name", staffRoleName)
       .maybeSingle();
 
     if (roleErr || !adminRole?.id) {
       await admin.auth.admin.deleteUser(newId);
       return NextResponse.json(
-        { error: roleErr?.message || "Role admin not found." },
+        { error: roleErr?.message || `Role ${staffRoleName} not found.` },
         { status: 500 }
       );
     }
@@ -147,7 +150,7 @@ export async function POST(req: Request) {
         first_name: fn,
         last_name: ln,
         phone: phone || null,
-        role_names: ["admin"],
+        role_names: [staffRoleName],
       },
     });
   } catch (e) {

@@ -83,7 +83,8 @@ export type ChapterOption = {
   address_line?: string | null;
 };
 
-type EditableRole = "member" | "local_leader" | "admin";
+type EditableRole = "member" | "local_leader" | "admin" | "sub_admin";
+type StaffRole = "admin" | "sub_admin";
 
 function formatRoleLabel(slug: string) {
   return slug
@@ -232,7 +233,12 @@ export function CommunitySection({
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [inviteRole, setInviteRole] = useState<"member" | "local_leader">("member");
+  const [inviteRole, setInviteRole] = useState<EditableRole>("member");
+  const [inviteAdminRole, setInviteAdminRole] = useState<StaffRole>("admin");
+
+  function staffRoleLabel(role: StaffRole): string {
+    return role === "sub_admin" ? "Sub administrator" : "Administrator";
+  }
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [chapterId, setChapterId] = useState<string>(
@@ -353,7 +359,7 @@ export function CommunitySection({
     if (isAdmins) return false;
     if (!isSuperAdmin) return false;
     const names = u.role_names ?? [];
-    if (names.includes("admin") || names.includes("super_admin")) return false;
+    if (names.includes("admin") || names.includes("super_admin") || names.includes("sub_admin")) return false;
     return names.some((n) => n === "member" || n === "local_leader");
   }
 
@@ -367,19 +373,20 @@ export function CommunitySection({
     if (isAdmins) return false;
     if (!isSuperAdmin) return false;
     const names = u.role_names ?? [];
-    if (names.includes("super_admin") || names.includes("admin")) return false;
+    if (names.includes("super_admin") || names.includes("admin") || names.includes("sub_admin")) return false;
     return names.includes("member") || names.includes("local_leader");
   }
 
   function editableRoleFromUser(u: CommunityUserRow): EditableRole {
     const names = u.role_names ?? [];
+    if (names.includes("sub_admin")) return "sub_admin";
     if (names.includes("admin")) return "admin";
     if (names.includes("local_leader")) return "local_leader";
     return "member";
   }
 
   function canEditRoleInForm(u: CommunityUserRow): boolean {
-    if (isAdmins) return false;
+    if (isAdmins) return isSuperAdmin && !u.role_names?.includes("super_admin");
     if (!isSuperAdmin) return false;
     if (u.role_names?.includes("super_admin")) return false;
     return true;
@@ -427,6 +434,102 @@ export function CommunitySection({
 
   async function saveRoleChange(u: CommunityUserRow) {
     await applyPrimaryRole(u, roleChangeDraft, "view");
+  }
+
+  async function applySubAdminRole(
+    u: CommunityUserRow,
+    ctx: "view" | "edit"
+  ): Promise<boolean> {
+    const setSaving = ctx === "view" ? setRoleChangeSaving : setEditRoleSaving;
+    const setErr = ctx === "view" ? setRoleChangeError : setEditRoleError;
+    setSaving(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/community/members/${u.id}/promote-sub-admin`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as { error?: string; role_names?: string[] };
+      if (!res.ok) {
+        setErr(data.error || "Could not assign sub administrator role.");
+        return false;
+      }
+      const nextRoles = data.role_names ?? ["sub_admin"];
+      setUsers((prev) =>
+        prev.map((row) => (row.id === u.id ? { ...row, role_names: nextRoles } : row))
+      );
+      setViewUser((v) => (v && v.id === u.id ? { ...v, role_names: nextRoles } : v));
+      setEditUser((e) => (e && e.id === u.id ? { ...e, role_names: nextRoles } : e));
+      setEditRoleDraft("sub_admin");
+      setInviteFlash("Role updated.");
+      window.setTimeout(() => setInviteFlash(null), 8000);
+      router.refresh();
+      return true;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function applyStaffRoleSwitch(
+    u: CommunityUserRow,
+    roleName: StaffRole,
+    ctx: "view" | "edit"
+  ): Promise<boolean> {
+    const setSaving = ctx === "view" ? setRoleChangeSaving : setEditRoleSaving;
+    const setErr = ctx === "view" ? setRoleChangeError : setEditRoleError;
+    setSaving(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/community/members/${u.id}/set-staff-role`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roleName }),
+      });
+      const data = (await res.json()) as { error?: string; role_names?: string[] };
+      if (!res.ok) {
+        setErr(data.error || "Could not update role.");
+        return false;
+      }
+      const nextRoles = data.role_names ?? [roleName];
+      setUsers((prev) =>
+        prev.map((row) => (row.id === u.id ? { ...row, role_names: nextRoles } : row))
+      );
+      setViewUser((v) => (v && v.id === u.id ? { ...v, role_names: nextRoles } : v));
+      setEditUser((e) => (e && e.id === u.id ? { ...e, role_names: nextRoles } : e));
+      setEditRoleDraft(roleName);
+      setInviteFlash("Role updated.");
+      window.setTimeout(() => setInviteFlash(null), 8000);
+      router.refresh();
+      return true;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function runPromoteSubAdmin(u: CommunityUserRow) {
+    setPromoteSubmitting(true);
+    setPromoteError(null);
+    try {
+      const res = await fetch(`/api/community/members/${u.id}/promote-sub-admin`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as { error?: string; role_names?: string[] };
+      if (!res.ok) {
+        setPromoteError(data.error || "Could not assign sub administrator role.");
+        return;
+      }
+      const nextRoles = data.role_names ?? ["sub_admin"];
+      setUsers((prev) =>
+        prev.map((row) =>
+          row.id === u.id ? { ...row, role_names: nextRoles } : row
+        )
+      );
+      setViewUser((v) => (v && v.id === u.id ? { ...v, role_names: nextRoles } : v));
+      setInviteFlash("User promoted to sub administrator.");
+      window.setTimeout(() => setInviteFlash(null), 8000);
+      router.refresh();
+    } finally {
+      setPromoteSubmitting(false);
+    }
   }
 
   async function applyAdminRole(
@@ -804,10 +907,16 @@ export function CommunitySection({
         );
       }
       if (editUser && canEditRoleInForm(editUser) && editableRoleFromUser(editUser) !== editRoleDraft) {
-        const roleSaved =
-          editRoleDraft === "admin"
-            ? await applyAdminRole(editUser, "edit")
-            : await applyPrimaryRole(editUser, editRoleDraft, "edit");
+        let roleSaved = true;
+        if (isAdmins && (editRoleDraft === "admin" || editRoleDraft === "sub_admin")) {
+          roleSaved = await applyStaffRoleSwitch(editUser, editRoleDraft, "edit");
+        } else if (editRoleDraft === "admin") {
+          roleSaved = await applyAdminRole(editUser, "edit");
+        } else if (editRoleDraft === "sub_admin") {
+          roleSaved = await applySubAdminRole(editUser, "edit");
+        } else if (editRoleDraft === "member" || editRoleDraft === "local_leader") {
+          roleSaved = await applyPrimaryRole(editUser, editRoleDraft, "edit");
+        }
         if (!roleSaved) return;
       }
       setEditNewPassword("");
@@ -876,6 +985,7 @@ export function CommunitySection({
             lastName: ln,
             phone: phone.trim() || undefined,
             primaryChapterId: assignChapter,
+            roleName: inviteAdminRole,
           }),
         });
         const payload = (await res.json()) as {
@@ -897,7 +1007,9 @@ export function CommunitySection({
           ]);
         }
         setInviteFlash(
-          "Administrator created successfully. Email is already verified automatically."
+          inviteAdminRole === "sub_admin"
+            ? "Sub administrator created successfully. Email is already verified automatically."
+            : "Administrator created successfully. Email is already verified automatically."
         );
         window.setTimeout(() => setInviteFlash(null), 14000);
         setAddOpen(false);
@@ -906,6 +1018,60 @@ export function CommunitySection({
         setLastName("");
         setPassword("");
         setPhone("");
+        setInviteAdminRole("admin");
+        router.refresh();
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    if (isSuperAdmin && !isAdmins && (inviteRole === "admin" || inviteRole === "sub_admin")) {
+      setSubmitting(true);
+      try {
+        const res = await fetch("/api/admins/invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+            firstName: fn,
+            lastName: ln,
+            phone: phone.trim() || undefined,
+            primaryChapterId: assignChapter,
+            roleName: inviteRole,
+          }),
+        });
+        const payload = (await res.json()) as {
+          error?: string;
+          user?: CommunityUserRow;
+        };
+        if (!res.ok) {
+          setSubmitError(payload.error || `Could not invite ${staffRoleLabel(inviteRole as StaffRole).toLowerCase()}.`);
+          return;
+        }
+        if (payload.user) {
+          const row = payload.user;
+          setUsers((prev) => [
+            {
+              ...row,
+              phone: row.phone ?? null,
+            } as CommunityUserRow,
+            ...prev,
+          ]);
+        }
+        setInviteFlash(
+          `${staffRoleLabel(inviteRole as StaffRole)} created successfully. Email is already verified automatically.`
+        );
+        window.setTimeout(() => setInviteFlash(null), 14000);
+        setAddOpen(false);
+        setEmail("");
+        setFirstName("");
+        setLastName("");
+        setPassword("");
+        setPhone("");
+        if (isLeaders) setInviteRole("local_leader");
+        else setInviteRole("member");
         router.refresh();
       } finally {
         setSubmitting(false);
@@ -915,7 +1081,7 @@ export function CommunitySection({
 
     const roleToAssign: "member" | "local_leader" = isLeaders
       ? "local_leader"
-      : elevated && inviteRole === "local_leader"
+      : inviteRole === "local_leader"
         ? "local_leader"
         : "member";
 
@@ -961,7 +1127,8 @@ export function CommunitySection({
       setEmail("");
       setFirstName("");
       setLastName("");
-      if (!isLeaders) setInviteRole("member");
+      if (isLeaders) setInviteRole("local_leader");
+      else setInviteRole("member");
       setPassword("");
       setPhone("");
       router.refresh();
@@ -1168,10 +1335,12 @@ export function CommunitySection({
               onClick={() => {
                 setFirstName("");
                 setLastName("");
-                  if (!isLeaders) setInviteRole("member");
+                if (isLeaders) setInviteRole("local_leader");
+                else if (!isAdmins) setInviteRole("member");
+                if (isAdmins) setInviteAdminRole("admin");
                 setEmail("");
                 setPassword("");
-                  setPhone("");
+                setPhone("");
                 setSubmitError(null);
                 setAddOpen(true);
               }}
@@ -1541,9 +1710,9 @@ export function CommunitySection({
             <Typography variant="body2" color="text.secondary">
               {isAdmins ? (
                 <>
-                  Creates a dashboard user with the <strong>Administrator</strong> role (super admin
-                  only). If your session switches to the new user after sign-up, sign back in as an admin
-                  to continue.
+                  Creates a dashboard user with the <strong>Administrator</strong> or{" "}
+                  <strong>Sub administrator</strong> role (super admin only). If your session switches to the new user
+                  after sign-up, sign back in as an admin to continue.
                 </>
               ) : isLeaders ? (
                 <>
@@ -1591,13 +1760,47 @@ export function CommunitySection({
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="off"
             />
-            {!isLeaders && !isAdmins && elevated ? (
+            {isSuperAdmin && (isAdmins || isLeaders || elevated) ? (
+              <FormControl fullWidth>
+                <InputLabel id="invite-role-select">Role</InputLabel>
+                <Select
+                  labelId="invite-role-select"
+                  label="Role"
+                  value={isAdmins ? inviteAdminRole : inviteRole}
+                  onChange={(e) => {
+                    const next = e.target.value as EditableRole;
+                    if (isAdmins) {
+                      if (next === "admin" || next === "sub_admin") {
+                        setInviteAdminRole(next);
+                      }
+                    } else {
+                      setInviteRole(next);
+                    }
+                  }}
+                >
+                  {isAdmins ? (
+                    <>
+                      <MenuItem value="admin">Administrator</MenuItem>
+                      <MenuItem value="sub_admin">Sub administrator</MenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <MenuItem value="member">Member</MenuItem>
+                      <MenuItem value="local_leader">Local leader</MenuItem>
+                      <MenuItem value="admin">Administrator</MenuItem>
+                      <MenuItem value="sub_admin">Sub administrator</MenuItem>
+                    </>
+                  )}
+                </Select>
+              </FormControl>
+            ) : null}
+            {!isAdmins && !isLeaders && elevated && !isSuperAdmin ? (
               <FormControl fullWidth>
                 <InputLabel id="comm-invite-role">Role</InputLabel>
                 <Select
                   labelId="comm-invite-role"
                   label="Role"
-                  value={inviteRole}
+                  value={inviteRole === "local_leader" ? "local_leader" : "member"}
                   onChange={(e) =>
                     setInviteRole(e.target.value as "member" | "local_leader")
                   }
@@ -1612,11 +1815,7 @@ export function CommunitySection({
                 Role: <strong>Member</strong> (only admins can invite local leaders here.)
               </Typography>
             ) : null}
-            {isAdmins ? (
-              <Typography variant="body2" color="text.secondary">
-                Role: <strong>Administrator</strong>
-              </Typography>
-            ) : isLeaders ? (
+            {isLeaders && !isSuperAdmin ? (
               <Typography variant="body2" color="text.secondary">
                 Role: <strong>Local leader</strong>
               </Typography>
@@ -1810,8 +2009,8 @@ export function CommunitySection({
                     </Alert>
                   ) : null}
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                    Super admin: grant <strong>Administrator</strong> (replaces Member / Local leader roles for
-                    dashboard access).
+                    Super admin: grant <strong>Administrator</strong> or <strong>Sub administrator</strong> (replaces
+                    Member / Local leader roles for dashboard access).
                   </Typography>
                 </>
               ) : null}
@@ -1864,14 +2063,24 @@ export function CommunitySection({
         </DialogContent>
         <DialogActions>
           {viewUser && eligibleForAdminPromotion(viewUser) ? (
-            <Button
-              color="secondary"
-              variant="contained"
-              disabled={promoteSubmitting}
-              onClick={() => void runPromoteAdmin(viewUser)}
-            >
-              {promoteSubmitting ? "Saving…" : "Make administrator"}
-            </Button>
+            <>
+              <Button
+                color="secondary"
+                variant="contained"
+                disabled={promoteSubmitting}
+                onClick={() => void runPromoteSubAdmin(viewUser)}
+              >
+                {promoteSubmitting ? "Saving…" : "Make sub administrator"}
+              </Button>
+              <Button
+                color="secondary"
+                variant="contained"
+                disabled={promoteSubmitting}
+                onClick={() => void runPromoteAdmin(viewUser)}
+              >
+                {promoteSubmitting ? "Saving…" : "Make administrator"}
+              </Button>
+            </>
           ) : null}
           {viewUser && isAdmins && eligibleForSuperAdminPromotionFromAdminsList(viewUser) ? (
             <Button
@@ -2030,13 +2239,21 @@ export function CommunitySection({
                       labelId="edit-primary-role"
                       label="Dashboard role"
                       value={editRoleDraft}
-                      onChange={(e) =>
-                        setEditRoleDraft(e.target.value as "member" | "local_leader")
-                      }
+                      onChange={(e) => setEditRoleDraft(e.target.value as EditableRole)}
                     >
-                      <MenuItem value="member">Member</MenuItem>
-                      <MenuItem value="local_leader">Local leader</MenuItem>
-                      <MenuItem value="admin">Administrator</MenuItem>
+                      {isAdmins ? (
+                        <>
+                          <MenuItem value="admin">Administrator</MenuItem>
+                          <MenuItem value="sub_admin">Sub administrator</MenuItem>
+                        </>
+                      ) : (
+                        <>
+                          <MenuItem value="member">Member</MenuItem>
+                          <MenuItem value="local_leader">Local leader</MenuItem>
+                          <MenuItem value="admin">Administrator</MenuItem>
+                          <MenuItem value="sub_admin">Sub administrator</MenuItem>
+                        </>
+                      )}
                     </Select>
                   </FormControl>
                 </Stack>
