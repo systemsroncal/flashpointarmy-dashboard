@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  DEFAULT_SHORTCODES_HELP,
-  type BroadcastChannel,
-  type BroadcastTemplateRow,
-} from "@/lib/broadcast/types";
-import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
+import { DEFAULT_SHORTCODES_HELP, type BroadcastChannel, type BroadcastTemplateRow } from "@/lib/broadcast/types";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -13,59 +8,25 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   Paper,
   Snackbar,
   Stack,
   Tab,
   Tabs,
-  TextField,
   Typography,
 } from "@mui/material";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 type Snack = { message: string; severity: "success" | "error" };
 
-const PREVIEW_SHORTCODES: Record<string, string> = {
-  user_fullname: "Jane Doe",
-  user_first_name: "Jane",
-  user_last_name: "Doe",
-  user_email: "jane@example.com",
-  user_phone: "+15551234567",
-  chapter_name: "Austin Chapter",
-  app_name: "Flashpoint Dashboard",
-  current_year: String(new Date().getFullYear()),
-};
-
-function emptyForm(channel: BroadcastChannel) {
-  return {
-    name: "",
-    channel,
-    subject: channel === "email" ? "Hello {user_first_name}" : "",
-    body_html:
-      channel === "email"
-        ? "<p>Hello {user_fullname},</p><p>Your message here.</p>"
-        : "",
-    body_text:
-      channel === "sms" ? "Hello {user_first_name}, your message here." : "",
-    shortcodes_help: DEFAULT_SHORTCODES_HELP,
-  };
-}
-
 export function BroadcastTemplatesClient({ canManage }: { canManage: boolean }) {
+  const router = useRouter();
   const [channelTab, setChannelTab] = useState<BroadcastChannel>("email");
   const [templates, setTemplates] = useState<BroadcastTemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [snack, setSnack] = useState<Snack | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<BroadcastTemplateRow | null>(null);
-  const [form, setForm] = useState(emptyForm("email"));
-  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -89,47 +50,18 @@ export function BroadcastTemplatesClient({ canManage }: { canManage: boolean }) 
   }, [load]);
 
   function openCreate() {
-    setEditing(null);
-    setForm(emptyForm(channelTab));
-    setDialogOpen(true);
+    if (channelTab === "email") {
+      router.push("/dashboard/communications/templates/new");
+    } else {
+      router.push("/dashboard/communications/templates/sms/new");
+    }
   }
 
   function openEdit(t: BroadcastTemplateRow) {
-    setEditing(t);
-    setForm({
-      name: t.name,
-      channel: t.channel,
-      subject: t.subject ?? "",
-      body_html: t.body_html ?? "",
-      body_text: t.body_text,
-      shortcodes_help: t.shortcodes_help ?? DEFAULT_SHORTCODES_HELP,
-    });
-    setDialogOpen(true);
-  }
-
-  async function saveTemplate() {
-    if (!canManage) return;
-    setSaving(true);
-    try {
-      const payload = { ...form, channel: channelTab };
-      const url = editing ? `/api/broadcast/templates/${editing.id}` : "/api/broadcast/templates";
-      const res = await fetch(url, {
-        method: editing ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Save failed");
-      setDialogOpen(false);
-      setSnack({ message: editing ? "Template updated" : "Template created", severity: "success" });
-      await load();
-    } catch (e) {
-      setSnack({
-        message: e instanceof Error ? e.message : "Save failed",
-        severity: "error",
-      });
-    } finally {
-      setSaving(false);
+    if (t.channel === "email") {
+      router.push(`/dashboard/communications/templates/${t.id}/edit`);
+    } else {
+      router.push(`/dashboard/communications/templates/sms/${t.id}/edit`);
     }
   }
 
@@ -151,7 +83,7 @@ export function BroadcastTemplatesClient({ canManage }: { canManage: boolean }) 
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
         <Typography variant="h6">Broadcast templates</Typography>
         {canManage && (
           <Button startIcon={<AddIcon />} variant="contained" onClick={openCreate}>
@@ -164,6 +96,13 @@ export function BroadcastTemplatesClient({ canManage }: { canManage: boolean }) 
         <Tab label="Email" value="email" />
         <Tab label="SMS" value="sms" />
       </Tabs>
+
+      {channelTab === "email" && canManage ? (
+        <Alert severity="info">
+          Email templates open in a full-page visual builder with drag-and-drop blocks and an HTML code
+          editor.
+        </Alert>
+      ) : null}
 
       {!canManage && (
         <Alert severity="info">You can view templates. Only admins can create or edit them.</Alert>
@@ -180,7 +119,7 @@ export function BroadcastTemplatesClient({ canManage }: { canManage: boolean }) 
           {templates.map((t) => (
             <Paper key={t.id} sx={{ p: 2 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography fontWeight={600}>{t.name}</Typography>
                   {t.channel === "email" && t.subject && (
                     <Typography variant="body2" color="text.secondary">
@@ -206,58 +145,6 @@ export function BroadcastTemplatesClient({ canManage }: { canManage: boolean }) 
           ))}
         </Stack>
       )}
-
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{editing ? "Edit template" : "New template"}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="Template name"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              fullWidth
-            />
-            <TextField
-              label="Shortcodes help"
-              value={form.shortcodes_help}
-              onChange={(e) => setForm((f) => ({ ...f, shortcodes_help: e.target.value }))}
-              fullWidth
-              helperText="Available: {user_fullname}, {user_first_name}, {user_last_name}, {user_email}, {user_phone}, {chapter_name}, {app_name}, {current_year}"
-            />
-            {channelTab === "email" ? (
-              <>
-                <TextField
-                  label="Subject"
-                  value={form.subject}
-                  onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-                  fullWidth
-                />
-                <Typography variant="subtitle2">Body (HTML)</Typography>
-                <GatheringDescriptionEditor
-                  value={form.body_html}
-                  onChange={(html) => setForm((f) => ({ ...f, body_html: html }))}
-                />
-              </>
-            ) : (
-              <TextField
-                label="SMS message"
-                value={form.body_text}
-                onChange={(e) => setForm((f) => ({ ...f, body_text: e.target.value }))}
-                multiline
-                minRows={4}
-                fullWidth
-                helperText="160 chars recommended; shortcodes supported."
-              />
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => void saveTemplate()} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       <Snackbar
         open={!!snack}
