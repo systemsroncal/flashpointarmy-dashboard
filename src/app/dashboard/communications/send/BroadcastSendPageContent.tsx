@@ -22,8 +22,7 @@ export default async function BroadcastSendPageContent() {
     );
   }
 
-  const canSend =
-    can(permissions, MODULE_SLUGS.communications, "create") && isElevatedRole(roleNames);
+  const canSend = isElevatedRole(roleNames) || can(permissions, MODULE_SLUGS.communications, "create");
 
   return (
     <Box>

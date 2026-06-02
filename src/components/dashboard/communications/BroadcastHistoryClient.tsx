@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  AUDIENCE_LABELS,
+  describeBroadcastAudienceFilter,
   EMAIL_PROVIDER_LABELS,
   type BroadcastCampaignRow,
 } from "@/lib/broadcast/types";
@@ -76,8 +76,7 @@ export function BroadcastHistoryClient() {
                   <TableCell>{c.name}</TableCell>
                   <TableCell>{c.channel.toUpperCase()}</TableCell>
                   <TableCell>
-                    {AUDIENCE_LABELS[c.audience.audience]}
-                    {c.audience.chapterId ? " (chapter)" : ""}
+                    {describeBroadcastAudienceFilter(c.audience)}
                     {c.channel === "email" && (
                       <Typography variant="caption" display="block" color="text.secondary">
                         {EMAIL_PROVIDER_LABELS[c.email_provider]}

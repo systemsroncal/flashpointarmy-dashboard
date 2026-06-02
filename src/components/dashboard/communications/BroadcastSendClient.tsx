@@ -35,10 +35,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
+import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Snack = { message: string; severity: "success" | "error" };
-type Chapter = { id: string; name: string };
 type ProviderInfo = {
   email: { id: EmailProvider; label: string; configured: boolean }[];
   sms: { id: string; label: string; configured: boolean }[];
@@ -47,7 +48,7 @@ type ProviderInfo = {
 export function BroadcastSendClient({ canSend }: { canSend: boolean }) {
   const [channel, setChannel] = useState<BroadcastChannel>("email");
   const [templates, setTemplates] = useState<BroadcastTemplateRow[]>([]);
-  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [chapters, setChapters] = useState<ChapterSearchRow[]>([]);
   const [providers, setProviders] = useState<ProviderInfo | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [campaignName, setCampaignName] = useState("");
@@ -55,7 +56,8 @@ export function BroadcastSendClient({ canSend }: { canSend: boolean }) {
   const [bodyHtml, setBodyHtml] = useState("");
   const [bodyText, setBodyText] = useState("");
   const [audience, setAudience] = useState<BroadcastAudience>("all_users");
-  const [chapterId, setChapterId] = useState<string>("all");
+  const [filterState, setFilterState] = useState<string>("all");
+  const [filterChapterId, setFilterChapterId] = useState<string>("all");
   const [emailProvider, setEmailProvider] = useState<EmailProvider>("dashboard");
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [previewSample, setPreviewSample] = useState<
@@ -108,6 +110,15 @@ export function BroadcastSendClient({ canSend }: { canSend: boolean }) {
     applyTemplate(t);
   }
 
+  const audienceScope = useMemo(
+    () => ({
+      audience,
+      stateCode: filterState === "all" ? null : filterState,
+      chapterId: filterChapterId === "all" ? null : filterChapterId,
+    }),
+    [audience, filterState, filterChapterId]
+  );
+
   async function previewAudience() {
     setPreviewLoading(true);
     try {
@@ -152,10 +163,7 @@ export function BroadcastSendClient({ canSend }: { canSend: boolean }) {
           body_html: bodyHtml,
           body_text: bodyText,
           email_provider: emailProvider,
-          audience: {
-            audience,
-            chapterId: chapterId === "all" ? null : chapterId,
-          },
+          audience: audienceScope,
           send_now: true,
         }),
       });
@@ -280,37 +288,29 @@ export function BroadcastSendClient({ canSend }: { canSend: boolean }) {
           <Divider />
 
           <Typography variant="subtitle1">Audience</Typography>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Role filter</InputLabel>
-              <Select
-                label="Role filter"
-                value={audience}
-                onChange={(e) => setAudience(e.target.value as BroadcastAudience)}
-              >
-                {BROADCAST_AUDIENCES.map((a) => (
-                  <MenuItem key={a} value={a}>
-                    {AUDIENCE_LABELS[a]}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth size="small">
-              <InputLabel>Chapter</InputLabel>
-              <Select
-                label="Chapter"
-                value={chapterId}
-                onChange={(e) => setChapterId(e.target.value)}
-              >
-                <MenuItem value="all">All chapters</MenuItem>
-                {chapters.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {c.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
+          <FormControl fullWidth size="small" sx={{ maxWidth: { md: 480 } }}>
+            <InputLabel>Role filter</InputLabel>
+            <Select
+              label="Role filter"
+              value={audience}
+              onChange={(e) => setAudience(e.target.value as BroadcastAudience)}
+            >
+              {BROADCAST_AUDIENCES.map((a) => (
+                <MenuItem key={a} value={a}>
+                  {AUDIENCE_LABELS[a]}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {chapters.length > 0 ? (
+            <StateChapterFilterControls
+              chapters={chapters}
+              filterState={filterState}
+              filterChapterId={filterChapterId}
+              onStateChange={setFilterState}
+              onChapterChange={setFilterChapterId}
+            />
+          ) : null}
 
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             <Button

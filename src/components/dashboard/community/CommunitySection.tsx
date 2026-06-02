@@ -34,6 +34,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TablePagination,
   TableRow,
@@ -1325,7 +1326,7 @@ export function CommunitySection({
   }
 
   return (
-    <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.45)" }}>
+    <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.45)", maxWidth: "100%", overflow: "hidden" }}>
       <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
         {isAdmins ? "Administrators" : isLeaders ? "Leaders" : "Community"}
       </Typography>
@@ -1409,8 +1410,26 @@ export function CommunitySection({
             </>
           ) : null}
         </Box>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
-          <Box sx={{ position: "relative", minWidth: { sm: 320 }, flex: { sm: "0 1 420px" } }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            flexWrap: { md: "wrap" },
+            gap: 1.5,
+            alignItems: { md: "flex-start" },
+            width: "100%",
+            minWidth: 0,
+          }}
+        >
+          <Box
+            sx={{
+              position: "relative",
+              width: { xs: "100%", md: "auto" },
+              flex: { md: "1 1 280px" },
+              minWidth: { md: 260 },
+              maxWidth: { md: 480 },
+            }}
+          >
             <TextField
               id={searchFieldId}
               size="small"
@@ -1503,13 +1522,24 @@ export function CommunitySection({
               filterChapterId={filterChapterId}
               onStateChange={setFilterState}
               onChapterChange={setFilterChapterId}
+              allowChapterNameSearch={allowChapterNameSearch}
             />
           ) : null}
-        </Stack>
+        </Box>
       </Box>
       {tableLoading ? <LinearProgress sx={{ mb: 1 }} /> : null}
 
-      <Table size="small">
+      <TableContainer
+        sx={{
+          width: "100%",
+          maxWidth: "100%",
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          borderRadius: 1,
+          border: "1px solid rgba(255,215,0,0.1)",
+        }}
+      >
+      <Table size="small" sx={{ minWidth: 900 }}>
         <TableHead>
           <TableRow>
             <TableCell sx={{ color: "primary.main" }}>Avatar</TableCell>
@@ -1672,6 +1702,7 @@ export function CommunitySection({
           ))}
         </TableBody>
       </Table>
+      </TableContainer>
       <TablePagination
         component="div"
         count={remoteMode ? totalCount : sorted.length}

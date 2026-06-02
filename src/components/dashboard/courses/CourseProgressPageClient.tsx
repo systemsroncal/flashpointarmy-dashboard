@@ -154,9 +154,11 @@ export function CourseProgressPageClient({
         sx={{
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
-          gap: 2,
+          gap: 1.5,
           mb: 2,
           alignItems: { md: "flex-start" },
+          width: "100%",
+          minWidth: 0,
         }}
       >
         <TextField
@@ -165,7 +167,12 @@ export function CourseProgressPageClient({
           placeholder="Name, city, state, role…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          sx={{ minWidth: { md: 280 }, flex: 1 }}
+          sx={{
+            width: { xs: "100%", md: "auto" },
+            flex: { md: "1 1 280px" },
+            minWidth: { md: 260 },
+            maxWidth: { md: 480 },
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">

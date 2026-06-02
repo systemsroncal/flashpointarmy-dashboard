@@ -1170,12 +1170,22 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                   value={editForm.created_by}
                   onChange={(e) => setEditForm((f) => ({ ...f, created_by: e.target.value }))}
                 >
-                  {ownerCandidates.map((c) => (
-                    <MenuItem key={c.userId} value={c.userId}>
-                      {c.label}
+                  {ownerCandidates.length === 0 ? (
+                    <MenuItem value={editForm.created_by} disabled>
+                      No eligible users — check Mobilize settings (members / local leaders) and roles
                     </MenuItem>
-                  ))}
+                  ) : (
+                    ownerCandidates.map((c) => (
+                      <MenuItem key={c.userId} value={c.userId}>
+                        {c.label}
+                      </MenuItem>
+                    ))
+                  )}
                 </Select>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                  Lists administrators always, plus members and/or local leaders enabled under Mobilize
+                  settings.
+                </Typography>
               </FormControl>
             ) : null}
             <FormControl fullWidth>

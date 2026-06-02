@@ -1,6 +1,6 @@
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
-import { isElevatedRole } from "@/lib/auth/user-roles";
+import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -31,6 +31,10 @@ export async function requireBroadcastSend(
   userId: string
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const permissions = await loadModulePermissions(supabase, userId);
+  const roleNames = await loadUserRoleNames(supabase, userId);
+  if (isElevatedRole(roleNames)) {
+    return { ok: true };
+  }
   if (!can(permissions, MODULE_SLUGS.communications, "create")) {
     return { ok: false, status: 403, error: "Forbidden" };
   }

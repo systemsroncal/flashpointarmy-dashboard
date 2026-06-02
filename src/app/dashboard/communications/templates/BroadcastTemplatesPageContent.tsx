@@ -23,7 +23,7 @@ export default async function BroadcastTemplatesPageContent() {
   }
 
   const canManage =
-    can(permissions, MODULE_SLUGS.communications, "create") && isElevatedRole(roleNames);
+    isElevatedRole(roleNames) || can(permissions, MODULE_SLUGS.communications, "create");
 
   return (
     <Box>

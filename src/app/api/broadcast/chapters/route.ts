@@ -7,7 +7,11 @@ export async function GET() {
     if ("response" in authResult) return authResult.response;
     const { supabase } = authResult;
 
-    const { data, error } = await supabase.from("chapters").select("id, name").order("name");
+    const { data, error } = await supabase
+      .from("chapters")
+      .select("id, name, city, state")
+      .order("state")
+      .order("name");
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ chapters: data ?? [] });
   } catch (e) {

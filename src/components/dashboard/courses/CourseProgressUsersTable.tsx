@@ -13,6 +13,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TablePagination,
   TableRow,
@@ -131,8 +132,16 @@ export function CourseProgressUsersTable({
   });
 
   return (
-    <Paper sx={{ bgcolor: "rgba(0,0,0,0.45)", overflow: "auto" }}>
-      <Table size="small">
+    <Paper sx={{ bgcolor: "rgba(0,0,0,0.45)", maxWidth: "100%", overflow: "hidden" }}>
+      <TableContainer
+        sx={{
+          width: "100%",
+          maxWidth: "100%",
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+      <Table size="small" sx={{ minWidth: 720 }}>
         <TableHead>
           <TableRow>
             <TableCell sx={{ width: 56 }} />
@@ -235,6 +244,7 @@ export function CourseProgressUsersTable({
           )}
         </TableBody>
       </Table>
+      </TableContainer>
       {rows.length > 0 ? (
         <TablePagination
           component="div"

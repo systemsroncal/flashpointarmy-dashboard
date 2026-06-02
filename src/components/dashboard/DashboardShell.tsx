@@ -372,7 +372,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const allVisibleNav = NAV.filter((item) => {
     if (item.module === MODULE_SLUGS.movilization) {
-      return isElevatedRole(user.role_names) && can(permissions, MODULE_SLUGS.movilization, "read");
+      return (
+        isElevatedRole(user.role_names) || can(permissions, MODULE_SLUGS.movilization, "read")
+      );
     }
     /** Dashboard announcements: all signed-in users (not gated by communications module). */
     if (item.href === "/dashboard/notifications") {
@@ -406,7 +408,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const ordersHasActive = ordersNav.some((item) => isNavItemSelected(item, pathname));
   const showSystemNotificationBell =
     user.role_names.includes("admin") || user.role_names.includes("super_admin");
-  const showBecomePartner = can(permissions, MODULE_SLUGS.donate, "read");
+  const showBecomePartner =
+    isElevatedRole(user.role_names) || can(permissions, MODULE_SLUGS.donate, "read");
   const becomePartnerSelected =
     pathname === "/dashboard/donate" || pathname.startsWith("/dashboard/donate/");
 

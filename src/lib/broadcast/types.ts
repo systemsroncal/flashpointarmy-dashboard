@@ -1,3 +1,5 @@
+import { usStateByCode } from "@/data/usStates";
+
 export const BROADCAST_CHANNELS = ["email", "sms"] as const;
 export type BroadcastChannel = (typeof BROADCAST_CHANNELS)[number];
 
@@ -34,7 +36,9 @@ export const EMAIL_PROVIDER_LABELS: Record<EmailProvider, string> = {
 
 export type BroadcastAudienceFilter = {
   audience: BroadcastAudience;
-  /** UUID or "all" */
+  /** USPS state code (e.g. TX) or null for all states */
+  stateCode?: string | null;
+  /** Chapter UUID or null for all chapters (within state when stateCode is set) */
   chapterId?: string | null;
 };
 
@@ -85,3 +89,13 @@ export type BroadcastCampaignRow = {
 
 export const DEFAULT_SHORTCODES_HELP =
   "{user_fullname}, {user_first_name}, {user_last_name}, {user_email}, {user_phone}, {chapter_name}, {app_name}, {current_year}";
+
+/** Human-readable scope for history / logs */
+export function describeBroadcastAudienceFilter(filter: BroadcastAudienceFilter): string {
+  const parts = [AUDIENCE_LABELS[filter.audience]];
+  if (filter.stateCode) {
+    parts.push(usStateByCode(filter.stateCode)?.name ?? filter.stateCode);
+  }
+  if (filter.chapterId) parts.push("Chapter");
+  return parts.join(" · ");
+}

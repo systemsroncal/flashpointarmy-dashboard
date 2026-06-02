@@ -96,15 +96,17 @@ export function ChapterMapInviteCta() {
           textAlign: "center",
         }}
       >
-        <Stack spacing={0.75} sx={{ mb: 1.75, maxWidth: 520, mx: "auto" }}>
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1.25}
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+        <Stack spacing={0} sx={{ maxWidth: 580, mx: "auto", width: "100%" }}>
+          <Box sx={{ display: "block", textAlign: "center" }}>
+            <Typography
+              component="p"
+              variant="body2"
+              color="text.secondary"
+              sx={{ lineHeight: 1.7, mb: 0.75 }}
+            >
               God is raising up believers in every state. Know someone who should be part of it?
+              <br />
+              Invite them to find or join a chapter near them.
             </Typography>
             <Button
               variant="outlined"
@@ -114,18 +116,12 @@ export function ChapterMapInviteCta() {
               onClick={() => setOpen(true)}
               sx={{
                 fontWeight: 700,
-                borderRadius: 999,
-                px: 2.25,
                 textTransform: "none",
-                flexShrink: 0,
               }}
             >
               Invite someone to join
             </Button>
-          </Stack>
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-            Invite them to find or join a chapter near them.
-          </Typography>
+          </Box>
         </Stack>
       </Box>
 

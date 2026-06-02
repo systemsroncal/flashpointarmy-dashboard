@@ -36,8 +36,40 @@ export function canCreateMobilizeGroup(
   roleNames: string[],
   policy: MobilizeGroupCreatorPolicy = DEFAULT_MOBILIZE_GROUP_CREATOR_POLICY
 ): boolean {
-  if (roleNames.some((n) => n === "super_admin" || n === "admin")) return true;
+  if (roleNames.some((n) => n === "super_admin" || n === "admin" || n === "sub_admin")) return true;
   if (policy.allowLocalLeader && roleNames.includes("local_leader")) return true;
   if (policy.allowMember && roleNames.includes("member")) return true;
   return false;
+}
+
+const ADMIN_OWNER_ROLES = ["admin", "super_admin", "sub_admin"] as const;
+
+/** Role slugs eligible as group owner per Mobilize settings (+ all admins). */
+export function mobilizeOwnerCandidateRoleNames(
+  policy: MobilizeGroupCreatorPolicy = DEFAULT_MOBILIZE_GROUP_CREATOR_POLICY
+): string[] {
+  const names = new Set<string>([...ADMIN_OWNER_ROLES]);
+  if (policy.allowLocalLeader) names.add("local_leader");
+  if (policy.allowMember) names.add("member");
+  return [...names];
+}
+
+export async function listMobilizeOwnerCandidateUserIds(
+  admin: SupabaseClient,
+  policy: MobilizeGroupCreatorPolicy = DEFAULT_MOBILIZE_GROUP_CREATOR_POLICY,
+  extraUserIds: string[] = []
+): Promise<string[]> {
+  const roleNames = mobilizeOwnerCandidateRoleNames(policy);
+  const { data: roleRows } = await admin.from("roles").select("id, name").in("name", roleNames);
+  const roleIds = (roleRows ?? []).map((r) => r.id as string).filter(Boolean);
+  const userIds = new Set<string>(extraUserIds.filter(Boolean));
+
+  if (roleIds.length > 0) {
+    const { data: urRows } = await admin.from("user_roles").select("user_id").in("role_id", roleIds);
+    for (const row of urRows ?? []) {
+      userIds.add(String(row.user_id));
+    }
+  }
+
+  return [...userIds];
 }

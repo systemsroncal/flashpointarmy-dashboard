@@ -18,20 +18,46 @@ export function normalizeBroadcastAudience(raw: unknown): BroadcastAudience {
   return "all_users";
 }
 
+function normalizeOptionalScopeId(raw: unknown): string | null {
+  if (raw == null || String(raw).trim() === "" || String(raw) === "all") return null;
+  return String(raw).trim();
+}
+
 export function normalizeAudienceFilter(raw: unknown): BroadcastAudienceFilter {
   if (!raw || typeof raw !== "object") {
-    return { audience: "all_users", chapterId: null };
+    return { audience: "all_users", stateCode: null, chapterId: null };
   }
   const o = raw as Record<string, unknown>;
+  const stateRaw = o.stateCode ?? o.state_code ?? o.state;
+  const stateCode = normalizeOptionalScopeId(stateRaw)?.toUpperCase() ?? null;
   const chapterRaw = o.chapterId ?? o.chapter_id;
-  const chapterId =
-    chapterRaw == null || String(chapterRaw).trim() === "" || String(chapterRaw) === "all"
-      ? null
-      : String(chapterRaw).trim();
+  const chapterId = normalizeOptionalScopeId(chapterRaw);
   return {
     audience: normalizeBroadcastAudience(o.audience),
+    stateCode,
     chapterId,
   };
+}
+
+function userMatchesStateChapterScope(
+  primaryChapterId: string | null | undefined,
+  chapterStateById: Map<string, string>,
+  filter: BroadcastAudienceFilter
+): boolean {
+  if (filter.chapterId) {
+    if (primaryChapterId !== filter.chapterId) return false;
+    if (filter.stateCode) {
+      const st = chapterStateById.get(filter.chapterId);
+      return (st ?? "").toUpperCase() === filter.stateCode;
+    }
+    return true;
+  }
+  if (filter.stateCode) {
+    if (!primaryChapterId) return false;
+    const st = chapterStateById.get(primaryChapterId);
+    return (st ?? "").toUpperCase() === filter.stateCode;
+  }
+  return true;
 }
 
 function isPureMember(roleNames: string[]): boolean {
@@ -75,12 +101,15 @@ export async function resolveBroadcastRecipients(
       admin.from("dashboard_users").select("id, email, phone"),
       admin.from("profiles").select("id, first_name, last_name, display_name, phone, primary_chapter_id"),
       admin.from("user_roles").select("user_id, roles(name)"),
-      admin.from("chapters").select("id, name"),
+      admin.from("chapters").select("id, name, state"),
     ]);
 
   const chapterNameById = new Map<string, string>();
+  const chapterStateById = new Map<string, string>();
   for (const ch of chapters ?? []) {
-    chapterNameById.set(ch.id as string, ch.name as string);
+    const id = ch.id as string;
+    chapterNameById.set(id, ch.name as string);
+    chapterStateById.set(id, String((ch.state as string | null) ?? "").trim().toUpperCase());
   }
 
   const profileById = new Map<string, Record<string, unknown>>();
@@ -108,7 +137,7 @@ export async function resolveBroadcastRecipients(
 
     const prof = profileById.get(userId);
     const chapterId = prof?.primary_chapter_id as string | null | undefined;
-    if (filter.chapterId && chapterId !== filter.chapterId) continue;
+    if (!userMatchesStateChapterScope(chapterId, chapterStateById, filter)) continue;
 
     const email = (u.email as string | null)?.trim().toLowerCase() || null;
     const profilePhone = (prof?.phone as string | null)?.trim() || null;

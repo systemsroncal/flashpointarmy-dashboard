@@ -1,8 +1,22 @@
 import { NextResponse } from "next/server";
+import { listRoleNamesByUserIds } from "@/lib/admin/dashboard-user-queries";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import {
+  listMobilizeOwnerCandidateUserIds,
+  loadMobilizeGroupCreatorPolicy,
+} from "@/lib/mobilize/mobilize-roles";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+function primaryRoleLabel(roleNames: string[]): string {
+  if (roleNames.includes("super_admin")) return "Super admin";
+  if (roleNames.includes("admin")) return "Administrator";
+  if (roleNames.includes("sub_admin")) return "Sub administrator";
+  if (roleNames.includes("local_leader")) return "Local leader";
+  if (roleNames.includes("member")) return "Member";
+  return roleNames[0] ?? "User";
+}
 
 export async function GET(_req: Request, ctx: Ctx) {
   const auth = await requireMobilizeRead();
@@ -14,41 +28,44 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const { data: members } = await auth.admin
-    .from("mobilize_group_members")
-    .select("user_id, member_role, membership_status")
-    .eq("group_id", id)
-    .eq("membership_status", "approved");
+  const { data: group } = await auth.admin
+    .from("mobilize_groups")
+    .select("created_by")
+    .eq("id", id)
+    .maybeSingle();
 
-  const userIds = new Set((members ?? []).map((m) => String(m.user_id)));
+  const policy = await loadMobilizeGroupCreatorPolicy(auth.admin);
+  const extraIds: string[] = [];
+  if (group?.created_by) extraIds.push(String(group.created_by));
 
-  const { data: chapterLeaders } = await auth.admin.from("chapter_leaders").select("user_id");
-  for (const row of chapterLeaders ?? []) {
-    userIds.add(String(row.user_id));
+  const ids = await listMobilizeOwnerCandidateUserIds(auth.admin, policy, extraIds);
+  if (!ids.length) {
+    return NextResponse.json({ candidates: [], policy });
   }
-
-  const { data: chapters } = await auth.admin.from("chapters").select("created_by").not("created_by", "is", null);
-  for (const row of chapters ?? []) {
-    if (row.created_by) userIds.add(String(row.created_by));
-  }
-
-  const ids = [...userIds];
-  if (!ids.length) return NextResponse.json({ candidates: [] });
 
   const { data: users } = await auth.admin
     .from("dashboard_users")
     .select("id, email, first_name, last_name, display_name")
     .in("id", ids);
 
+  const rolesByUser = await listRoleNamesByUserIds(auth.admin, ids);
+
   const candidates = (users ?? []).map((u) => {
+    const uid = u.id as string;
+    const userRoles = rolesByUser.get(uid) ?? [];
     const name =
       [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
       u.display_name?.trim() ||
       u.email;
-    return { userId: u.id as string, label: name as string, email: u.email as string };
+    return {
+      userId: uid,
+      label: `${name} (${primaryRoleLabel(userRoles)})`,
+      email: u.email as string,
+      roleNames: userRoles,
+    };
   });
 
   candidates.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
 
-  return NextResponse.json({ candidates });
+  return NextResponse.json({ candidates, policy });
 }
