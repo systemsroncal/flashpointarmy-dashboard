@@ -99,8 +99,8 @@ export function BroadcastTemplatesClient({ canManage }: { canManage: boolean }) 
 
       {channelTab === "email" && canManage ? (
         <Alert severity="info">
-          Email templates open in a full-page visual builder with drag-and-drop blocks and an HTML code
-          editor.
+          Email templates use a simple word-style editor with a live preview. Advanced users can switch
+          to HTML code.
         </Alert>
       ) : null}
 

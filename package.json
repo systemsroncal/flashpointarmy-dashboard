@@ -34,8 +34,6 @@
     "apexcharts": "^5.11.0",
     "driver.js": "^1.4.0",
     "google-auth-library": "^9.15.1",
-    "grapesjs": "^0.23.2",
-    "grapesjs-preset-newsletter": "^1.0.2",
     "isomorphic-dompurify": "^3.9.0",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",

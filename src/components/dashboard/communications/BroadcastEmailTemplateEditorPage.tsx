@@ -1,12 +1,12 @@
 "use client";
 
 import { CommunicationsNavTabs } from "@/components/dashboard/communications/CommunicationsNavTabs";
-import { EmailTemplateGrapesEditor } from "@/components/dashboard/communications/EmailTemplateGrapesEditor";
+import { EmailTemplateRichEditor } from "@/components/dashboard/communications/EmailTemplateRichEditor";
 import { DEFAULT_SHORTCODES_HELP, type BroadcastTemplateRow } from "@/lib/broadcast/types";
 import { DEFAULT_EMAIL_TEMPLATE_HTML } from "@/lib/broadcast/email-template-html";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CodeIcon from "@mui/icons-material/Code";
-import ViewQuiltIcon from "@mui/icons-material/ViewQuilt";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import {
   Alert,
   Box,
@@ -62,7 +62,6 @@ export function BroadcastEmailTemplateEditorPage({
   const [loading, setLoading] = useState(isEdit);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [mode, setMode] = useState<EditorMode>("visual");
-  const [visualMountKey, setVisualMountKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [snack, setSnack] = useState<{ message: string; severity: "success" | "error" } | null>(
     null
@@ -81,7 +80,6 @@ export function BroadcastEmailTemplateEditorPage({
         return;
       }
       setForm(formFromTemplate(t));
-      setVisualMountKey((k) => k + 1);
     } catch (e) {
       setSnack({
         message: e instanceof Error ? e.message : "Failed to load",
@@ -98,9 +96,6 @@ export function BroadcastEmailTemplateEditorPage({
 
   function handleModeChange(next: EditorMode | null) {
     if (!next || next === mode) return;
-    if (next === "visual") {
-      setVisualMountKey((k) => k + 1);
-    }
     setMode(next);
   }
 
@@ -160,14 +155,7 @@ export function BroadcastEmailTemplateEditorPage({
   }
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: { xs: "auto", md: "calc(100vh - 140px)" },
-        gap: 2,
-      }}
-    >
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pb: 4 }}>
       <CommunicationsNavTabs />
 
       <Stack
@@ -176,7 +164,7 @@ export function BroadcastEmailTemplateEditorPage({
         alignItems={{ sm: "center" }}
         justifyContent="space-between"
       >
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
           <Button
             component={Link}
             href="/dashboard/communications/templates"
@@ -202,104 +190,90 @@ export function BroadcastEmailTemplateEditorPage({
       {loading ? (
         <Typography color="text.secondary">Loading template…</Typography>
       ) : (
-        <Paper
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            p: 2,
-            gap: 2,
-            bgcolor: "rgba(0,0,0,0.45)",
-            minHeight: 0,
-          }}
-        >
-          <Stack spacing={2}>
+        <Paper sx={{ p: { xs: 2, md: 3 }, bgcolor: "rgba(0,0,0,0.45)" }}>
+          <Stack spacing={2.5}>
             <TextField
               label="Template name"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               fullWidth
-              size="small"
             />
             <TextField
-              label="Email subject"
+              label="Email subject line"
               value={form.subject}
               onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
               fullWidth
-              size="small"
-              helperText="Shortcodes supported, e.g. {user_first_name}"
+              helperText='Example: "Hello {user_first_name}" — this is what recipients see in their inbox.'
             />
+
+            <Box>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                flexWrap="wrap"
+                gap={1}
+                sx={{ mb: 1 }}
+              >
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Email message
+                </Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={mode}
+                  onChange={(_, v) => handleModeChange(v as EditorMode | null)}
+                  aria-label="Editor mode"
+                >
+                  <ToggleButton value="visual">
+                    <EditNoteIcon fontSize="small" sx={{ mr: 0.75 }} />
+                    Easy editor
+                  </ToggleButton>
+                  <ToggleButton value="html">
+                    <CodeIcon fontSize="small" sx={{ mr: 0.75 }} />
+                    HTML code
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Stack>
+
+              {mode === "visual" ? (
+                <EmailTemplateRichEditor
+                  value={form.body_html}
+                  onChange={(html) => setForm((f) => ({ ...f, body_html: html }))}
+                />
+              ) : (
+                <Stack spacing={1}>
+                  <Alert severity="info" sx={{ py: 0.5 }}>
+                    For technical users only. Most people should use the Easy editor.
+                  </Alert>
+                  <TextField
+                    value={form.body_html}
+                    onChange={(e) => setForm((f) => ({ ...f, body_html: e.target.value }))}
+                    multiline
+                    fullWidth
+                    minRows={18}
+                    placeholder={DEFAULT_EMAIL_TEMPLATE_HTML}
+                    sx={{
+                      "& textarea": {
+                        fontFamily: "ui-monospace, Menlo, monospace",
+                        fontSize: "0.85rem",
+                        lineHeight: 1.5,
+                      },
+                    }}
+                  />
+                </Stack>
+              )}
+            </Box>
+
             <TextField
-              label="Shortcodes help"
+              label="Shortcodes reference (optional)"
               value={form.shortcodes_help}
               onChange={(e) => setForm((f) => ({ ...f, shortcodes_help: e.target.value }))}
               fullWidth
               size="small"
+              helperText="Internal note for your team; not shown to recipients."
             />
           </Stack>
-
-          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-            <Typography variant="subtitle1" fontWeight={700}>
-              Email body
-            </Typography>
-            <ToggleButtonGroup
-              exclusive
-              size="small"
-              value={mode}
-              onChange={(_, v) => handleModeChange(v as EditorMode | null)}
-              aria-label="Editor mode"
-            >
-              <ToggleButton value="visual">
-                <ViewQuiltIcon fontSize="small" sx={{ mr: 0.75 }} />
-                Visual builder
-              </ToggleButton>
-              <ToggleButton value="html">
-                <CodeIcon fontSize="small" sx={{ mr: 0.75 }} />
-                HTML code
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Stack>
-
-          <Typography variant="caption" color="text.secondary">
-            {mode === "visual"
-              ? "Drag blocks from the right panel to build your email (similar to a page builder). Switch to HTML code to edit markup directly."
-              : "Edit raw HTML. Switch back to Visual builder to continue with drag-and-drop blocks."}
-          </Typography>
-
-          <Box
-            sx={{
-              flex: 1,
-              minHeight: { xs: 480, md: 520 },
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {mode === "visual" ? (
-              <EmailTemplateGrapesEditor
-                key={visualMountKey}
-                mountKey={visualMountKey}
-                initialHtml={form.body_html}
-                onHtmlChange={(html) => setForm((f) => ({ ...f, body_html: html }))}
-              />
-            ) : (
-              <TextField
-                value={form.body_html}
-                onChange={(e) => setForm((f) => ({ ...f, body_html: e.target.value }))}
-                multiline
-                fullWidth
-                minRows={22}
-                placeholder={DEFAULT_EMAIL_TEMPLATE_HTML}
-                sx={{
-                  flex: 1,
-                  "& textarea": {
-                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                    fontSize: "0.8rem",
-                    lineHeight: 1.5,
-                  },
-                }}
-              />
-            )}
-          </Box>
         </Paper>
       )}
 
