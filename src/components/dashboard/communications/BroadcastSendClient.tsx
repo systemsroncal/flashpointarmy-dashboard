@@ -127,10 +127,7 @@ export function BroadcastSendClient({ canSend }: { canSend: boolean }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           channel,
-          audience: {
-            audience,
-            chapterId: chapterId === "all" ? null : chapterId,
-          },
+          audience: audienceScope,
         }),
       });
       const data = await res.json();
