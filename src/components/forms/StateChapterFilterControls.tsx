@@ -15,17 +15,24 @@ const ALL_CHAPTER_ID = "all";
 
 type StateFilterOption = { code: string; label: string };
 
-type ChapterFilterOption = ChapterSearchRow | { id: typeof ALL_CHAPTER_ID; name: string; city: null; state: string };
+type AllChapterOption = {
+  id: typeof ALL_CHAPTER_ID;
+  name: string;
+  city: null;
+  state: string;
+};
+
+type ChapterFilterOption = ChapterSearchRow | AllChapterOption;
 
 const ALL_STATE_OPTION: StateFilterOption = { code: ALL_STATE_CODE, label: "All states" };
-const ALL_CHAPTER_OPTION: ChapterFilterOption = {
+const ALL_CHAPTER_OPTION: AllChapterOption = {
   id: ALL_CHAPTER_ID,
   name: "All chapters",
   city: null,
   state: "",
 };
 
-function isAllChapterOption(o: ChapterFilterOption): o is typeof ALL_CHAPTER_OPTION {
+function isAllChapterOption(o: ChapterFilterOption): o is AllChapterOption {
   return o.id === ALL_CHAPTER_ID;
 }
 
