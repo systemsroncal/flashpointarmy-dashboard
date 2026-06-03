@@ -261,6 +261,41 @@ export async function listUserRoleJoinsByUserIds(
   return out;
 }
 
+/** User IDs that have any of the given role slugs (`roles.name`). Paginates `user_roles` for large role sets. */
+export async function listUserIdsByRoleNames(
+  admin: SupabaseClient,
+  roleNames: string[]
+): Promise<string[]> {
+  const names = [...new Set(roleNames.map((n) => n.trim()).filter(Boolean))];
+  if (!names.length) return [];
+
+  const { data: roleRows, error: roleErr } = await admin.from("roles").select("id, name").in("name", names);
+  if (roleErr) throw new Error(`listUserIdsByRoleNames roles: ${roleErr.message}`);
+
+  const roleIds = (roleRows ?? []).map((r) => String((r as { id: string }).id)).filter(Boolean);
+  if (!roleIds.length) return [];
+
+  const userIds = new Set<string>();
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const to = from + PAGE_SIZE - 1;
+    const { data: urRows, error: urErr } = await admin
+      .from("user_roles")
+      .select("user_id")
+      .in("role_id", roleIds)
+      .range(from, to);
+    if (urErr) throw new Error(`listUserIdsByRoleNames user_roles: ${urErr.message}`);
+    const rows = (urRows ?? []) as { user_id: string }[];
+    for (const row of rows) userIds.add(String(row.user_id));
+    if (rows.length < PAGE_SIZE) break;
+  }
+  return [...userIds];
+}
+
+/** Platform administrators (admin, super_admin, sub_admin). */
+export async function listAdminDashboardUserIds(admin: SupabaseClient): Promise<string[]> {
+  return listUserIdsByRoleNames(admin, ["admin", "super_admin", "sub_admin"]);
+}
+
 /**
  * Role slugs (`roles.name`) per user. Prefer this over {@link listUserRoleJoinsByUserIds} for
  * large user lists: the `roles(name)` embed can return null names depending on PostgREST/RLS shape.

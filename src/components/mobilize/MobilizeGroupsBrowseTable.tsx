@@ -81,7 +81,7 @@ function LeaderPill({ L, compact = false }: { L: MobilizeGroupLeaderBrief; compa
     <Stack
       sx={{
         ...leaderPillSx,
-        ...(compact ? { maxWidth: 108, py: 0.3, px: 0.65, gap: 0.5 } : {}),
+        ...(compact ? { maxWidth: "100%", width: "100%", py: 0.3, px: 0.65, gap: 0.5 } : {}),
       }}
     >
       <Avatar src={L.avatar_url ?? undefined} sx={{ width: av, height: av, fontSize: compact ? "0.6rem" : "0.65rem", flexShrink: 0 }}>
@@ -195,7 +195,15 @@ export default function MobilizeGroupsBrowseTable({
       );
     }
     return (
-      <Stack direction="row" alignItems="center" spacing={0.5} justifyContent={justify}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={0.5}
+        justifyContent={justify}
+        flexWrap="wrap"
+        useFlexGap
+        sx={{ maxWidth: "100%" }}
+      >
         <Button size="small" variant="outlined" startIcon={<PersonAddIcon />} onClick={() => void joinGroup(g.id)}>
           Join
         </Button>
@@ -231,16 +239,38 @@ export default function MobilizeGroupsBrowseTable({
 
   const thumbColWidth = thumbSize + 16;
 
+  const mapTableScrollSx = mapStacked
+    ? {
+        overflowY: "auto" as const,
+        overflowX: { xs: "auto" as const, md: "hidden" as const },
+      }
+    : null;
+
   return (
     <TableContainer
       sx={{
-        ...(maxHeight != null ? { maxHeight, overflow: "auto" } : {}),
+        ...(maxHeight != null
+          ? mapTableScrollSx
+            ? { maxHeight, ...mapTableScrollSx }
+            : { maxHeight, overflow: "auto" }
+          : mapTableScrollSx ?? {}),
         bgcolor: "rgba(0,0,0,0.2)",
         borderRadius: 1,
         border: "1px solid rgba(255,215,0,0.12)",
+        width: "100%",
+        maxWidth: "100%",
       }}
     >
-      <Table size="small" stickyHeader sx={{ tableLayout: "fixed", width: "100%" }}>
+      <Table
+        size="small"
+        stickyHeader
+        sx={{
+          tableLayout: "fixed",
+          width: "100%",
+          minWidth: mapStacked ? 0 : undefined,
+          "& .MuiTableCell-root": mapStacked ? { overflow: "hidden" } : undefined,
+        }}
+      >
         <TableHead>
           <TableRow>
             {mapStacked ? (
@@ -253,8 +283,13 @@ export default function MobilizeGroupsBrowseTable({
                 <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Name</TableCell>
               </>
             )}
-            <TableCell sx={{ fontWeight: 700, color: "text.secondary", minWidth: mapStacked ? 96 : 140 }}>Leaders</TableCell>
-            <TableCell align="right" sx={{ width: mapStacked ? 64 : 88, fontWeight: 700, color: "text.secondary" }}>
+            <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: mapStacked ? "30%" : undefined, minWidth: mapStacked ? 0 : 140 }}>
+              Leaders
+            </TableCell>
+            <TableCell
+              align="right"
+              sx={{ width: mapStacked ? "14%" : 88, fontWeight: 700, color: "text.secondary", whiteSpace: "nowrap" }}
+            >
               Members
             </TableCell>
             {showActivitiesColumn ? (
@@ -295,16 +330,37 @@ export default function MobilizeGroupsBrowseTable({
                       href={`/dashboard/mobilize/groups/${g.id}`}
                       fontWeight={700}
                       color="inherit"
-                      sx={{ textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
                       display="block"
+                      sx={{
+                        textDecoration: "none",
+                        "&:hover": { textDecoration: "underline" },
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
                     >
                       {g.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    >
                       {g.group_type}
                       {g.distance_km != null ? ` · ${g.distance_km.toFixed(1)} km` : ""}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block" title={g.address ?? ""}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      title={g.address ?? ""}
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {g.address ?? "—"}
                     </Typography>
                   </Box>
@@ -355,9 +411,9 @@ export default function MobilizeGroupsBrowseTable({
                     </TableCell>
                   </>
                 )}
-                <TableCell sx={{ verticalAlign: "top", maxWidth: mapStacked ? 120 : undefined }}>
+                <TableCell sx={{ verticalAlign: "top", width: mapStacked ? "30%" : undefined }}>
                   {leaders.length ? (
-                    <Stack spacing={mapStacked ? 0.45 : 0.65} sx={{ maxWidth: mapStacked ? 115 : 280 }}>
+                    <Stack spacing={mapStacked ? 0.45 : 0.65} sx={{ maxWidth: "100%", minWidth: 0 }}>
                       {leaders.slice(0, mapStacked ? 3 : 4).map((L) => (
                         <LeaderPill key={L.user_id} L={L} compact={mapStacked} />
                       ))}

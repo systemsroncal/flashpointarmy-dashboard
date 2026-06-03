@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { listRoleNamesByUserIds } from "@/lib/admin/dashboard-user-queries";
+import {
+  listDashboardUsersByIdsWithAuthFallback,
+  listRoleNamesByUserIds,
+} from "@/lib/admin/dashboard-user-queries";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import {
   listMobilizeOwnerCandidateUserIds,
@@ -43,14 +46,10 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({ candidates: [], policy });
   }
 
-  const { data: users } = await auth.admin
-    .from("dashboard_users")
-    .select("id, email, first_name, last_name, display_name")
-    .in("id", ids);
-
+  const users = await listDashboardUsersByIdsWithAuthFallback(auth.admin, ids);
   const rolesByUser = await listRoleNamesByUserIds(auth.admin, ids);
 
-  const candidates = (users ?? []).map((u) => {
+  const candidates = users.map((u) => {
     const uid = u.id as string;
     const userRoles = rolesByUser.get(uid) ?? [];
     const name =

@@ -163,6 +163,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     created_by: "",
   });
   const [ownerCandidates, setOwnerCandidates] = useState<{ userId: string; label: string }[]>([]);
+  const [ownerCandidatesLoading, setOwnerCandidatesLoading] = useState(false);
   const [msgEdit, setMsgEdit] = useState<{
     id: string;
     content: string;
@@ -218,6 +219,29 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const isApproved = membership?.membership_status === "approved";
   const isLeader = membership?.member_role === "leader" && isApproved;
   const isSuperAdmin = me.role_names.includes("super_admin");
+
+  const loadOwnerCandidates = useCallback(async () => {
+    if (!isSuperAdmin) return;
+    setOwnerCandidatesLoading(true);
+    try {
+      const res = await fetch(`/api/mobilize/groups/${groupId}/owner-candidates`);
+      const json = (await res.json()) as {
+        candidates?: { userId: string; label: string }[];
+        error?: string;
+      };
+      if (!res.ok) throw new Error(json.error || "Failed to load owner options.");
+      setOwnerCandidates(json.candidates ?? []);
+    } catch (e) {
+      setOwnerCandidates([]);
+      toast(e instanceof Error ? e.message : "Failed to load owner options.", "error");
+    } finally {
+      setOwnerCandidatesLoading(false);
+    }
+  }, [groupId, isSuperAdmin, toast]);
+
+  useEffect(() => {
+    if (isSuperAdmin) void loadOwnerCandidates();
+  }, [isSuperAdmin, loadOwnerCandidates]);
 
   function canManageEvent(e: EventRow) {
     return isLeader || e.created_by === me.id;
@@ -442,13 +466,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       wall_post_policy: group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved",
       created_by: group.created_by,
     });
-    if (isSuperAdmin) {
-      void fetch(`/api/mobilize/groups/${groupId}/owner-candidates`)
-        .then((r) => r.json())
-        .then((json: { candidates?: { userId: string; label: string }[] }) => {
-          setOwnerCandidates(json.candidates ?? []);
-        })
-        .catch(() => setOwnerCandidates([]));
+    if (isSuperAdmin && !ownerCandidates.length && !ownerCandidatesLoading) {
+      void loadOwnerCandidates();
     }
     setEditOpen(true);
   }
@@ -1169,10 +1188,15 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                   label="Group owner"
                   value={editForm.created_by}
                   onChange={(e) => setEditForm((f) => ({ ...f, created_by: e.target.value }))}
+                  disabled={ownerCandidatesLoading}
                 >
-                  {ownerCandidates.length === 0 ? (
-                    <MenuItem value={editForm.created_by} disabled>
-                      No eligible users — check Mobilize settings (members / local leaders) and roles
+                  {ownerCandidatesLoading ? (
+                    <MenuItem value="" disabled>
+                      Loading administrators…
+                    </MenuItem>
+                  ) : ownerCandidates.length === 0 ? (
+                    <MenuItem value="" disabled>
+                      No administrators found — contact support
                     </MenuItem>
                   ) : (
                     ownerCandidates.map((c) => (
@@ -1183,8 +1207,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                   )}
                 </Select>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                  Lists administrators always, plus members and/or local leaders enabled under Mobilize
-                  settings.
+                  Administrators always appear here. Members and local leaders also appear when enabled in
+                  Mobilize settings.
                 </Typography>
               </FormControl>
             ) : null}

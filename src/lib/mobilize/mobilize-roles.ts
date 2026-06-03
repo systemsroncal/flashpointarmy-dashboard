@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listAdminDashboardUserIds, listUserIdsByRoleNames } from "@/lib/admin/dashboard-user-queries";
 
 export type MobilizeGroupCreatorPolicy = {
   allowMember: boolean;
@@ -59,15 +60,19 @@ export async function listMobilizeOwnerCandidateUserIds(
   policy: MobilizeGroupCreatorPolicy = DEFAULT_MOBILIZE_GROUP_CREATOR_POLICY,
   extraUserIds: string[] = []
 ): Promise<string[]> {
-  const roleNames = mobilizeOwnerCandidateRoleNames(policy);
-  const { data: roleRows } = await admin.from("roles").select("id, name").in("name", roleNames);
-  const roleIds = (roleRows ?? []).map((r) => r.id as string).filter(Boolean);
   const userIds = new Set<string>(extraUserIds.filter(Boolean));
 
-  if (roleIds.length > 0) {
-    const { data: urRows } = await admin.from("user_roles").select("user_id").in("role_id", roleIds);
-    for (const row of urRows ?? []) {
-      userIds.add(String(row.user_id));
+  // Admins always eligible, regardless of Mobilize member/leader toggles.
+  for (const id of await listAdminDashboardUserIds(admin)) {
+    userIds.add(id);
+  }
+
+  const policyOnlyRoles = mobilizeOwnerCandidateRoleNames(policy).filter(
+    (n) => !(ADMIN_OWNER_ROLES as readonly string[]).includes(n)
+  );
+  if (policyOnlyRoles.length > 0) {
+    for (const id of await listUserIdsByRoleNames(admin, policyOnlyRoles)) {
+      userIds.add(id);
     }
   }
 
