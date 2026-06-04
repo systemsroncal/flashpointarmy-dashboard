@@ -9,7 +9,7 @@ const TARGET_ID = "login-form-panel";
 const HIGHLIGHT = {
   title: "First time signing in?",
   description:
-    "Use the email and temporary password you received. You may type the temporary password in any mix of upper and lower case. After you sign in, you will be asked to choose your own password.",
+    "Use the email and temporary password you received. You may type the temporary password in any mix of upper and lower case. After you sign in, you will be asked to choose your own password. Click the X button (top right) or tap outside this box to close.",
   side: "left" as const,
   align: "start" as const,
 };
@@ -52,7 +52,13 @@ export async function showLoginSignInHighlight(): Promise<void> {
   activeDriver = driverObj;
   driverObj.highlight({
     element: `#${TARGET_ID}`,
-    popover: HIGHLIGHT,
+    popover: {
+      ...HIGHLIGHT,
+      showButtons: ["close"],
+      onCloseClick: () => {
+        driverObj.destroy();
+      },
+    },
   });
 }
 

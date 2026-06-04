@@ -1,4 +1,5 @@
 import { CourseGridClient, type SessionCardModel } from "@/components/courses/CourseGridClient";
+import { isQuizOnlySession } from "@/lib/courses/session-counting";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
@@ -42,6 +43,20 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   const sessions = sessionsRaw ?? [];
   const sessionIds = sessions.map((s) => s.id);
 
+  const elementsBySession = new Map<string, { element_type: string }[]>();
+  if (sessionIds.length) {
+    const { data: elRows } = await supabase
+      .from("course_elements")
+      .select("session_id, element_type")
+      .in("session_id", sessionIds);
+    for (const row of elRows ?? []) {
+      const sid = row.session_id as string;
+      const list = elementsBySession.get(sid) ?? [];
+      list.push({ element_type: row.element_type as string });
+      elementsBySession.set(sid, list);
+    }
+  }
+
   const completedIds = new Set<string>();
   if (sessionIds.length) {
     const { data: prog } = await supabase
@@ -55,8 +70,9 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   }
 
   const sorted = [...sessions].sort((a, b) => a.sort_order - b.sort_order);
-  const cards: SessionCardModel[] = sorted.map((s, idx) => {
-    const prev = idx > 0 ? sorted[idx - 1] : null;
+  const learnerSessions = sorted.filter((s) => !isQuizOnlySession(elementsBySession.get(s.id) ?? []));
+  const cards: SessionCardModel[] = learnerSessions.map((s, idx) => {
+    const prev = idx > 0 ? learnerSessions[idx - 1] : null;
     const locked = Boolean(prev && !completedIds.has(prev.id));
     return {
       id: s.id,

@@ -37,6 +37,7 @@ type Props = {
   rows: CourseProgressRow[];
   chapterOptions: ChapterSearchRow[];
   totalSessions: number;
+  quizOnlySessionCount?: number;
   quizCount: number;
   appliesGrades: boolean;
   completionRow: CourseCompletionRow;
@@ -57,6 +58,7 @@ export function CourseProgressPageClient({
   rows,
   chapterOptions,
   totalSessions,
+  quizOnlySessionCount = 0,
   quizCount,
   appliesGrades,
   completionRow,
@@ -96,6 +98,14 @@ export function CourseProgressPageClient({
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         Public URL: /dashboard/course/{courseSlug}
       </Typography>
+      {quizOnlySessionCount > 0 ? (
+        <Typography variant="body2" color="warning.main" sx={{ mb: 1.5, lineHeight: 1.55 }}>
+          Progress uses <strong>{totalSessions}</strong> learner sessions only.{" "}
+          <strong>{quizOnlySessionCount}</strong> quiz-only session
+          {quizOnlySessionCount === 1 ? "" : "s"} in the editor are hidden from the course grid and not
+          required for 100% completion.
+        </Typography>
+      ) : null}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.55 }}>
         <strong>{totalWithProgress}</strong> users have session activity in this course (
         {memberLeaderTotal} members or local leaders). That is expected: the list only includes people who

@@ -1,4 +1,5 @@
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import { applyMobilizeGroupOwnerAndLeaders } from "@/lib/mobilize/sync-group-leaders";
 import { NextResponse } from "next/server";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
@@ -86,29 +87,31 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (k in body) patch[k] = body[k];
   }
 
-  if (isSuperAdmin && typeof body.created_by === "string" && body.created_by.trim()) {
-    const newOwnerId = body.created_by.trim();
-    patch.created_by = newOwnerId;
+  const leaderUserIdsRaw = body.leader_user_ids;
+  const leaderUserIds = Array.isArray(leaderUserIdsRaw)
+    ? leaderUserIdsRaw.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    : undefined;
 
-    const { data: existingMember } = await auth.admin
-      .from("mobilize_group_members")
-      .select("id, member_role, membership_status")
-      .eq("group_id", id)
-      .eq("user_id", newOwnerId)
-      .maybeSingle();
+  const newOwnerId =
+    isSuperAdmin && typeof body.created_by === "string" && body.created_by.trim()
+      ? body.created_by.trim()
+      : undefined;
 
-    if (existingMember) {
-      await auth.admin
-        .from("mobilize_group_members")
-        .update({ member_role: "leader", membership_status: "approved" })
-        .eq("id", existingMember.id);
-    } else {
-      await auth.admin.from("mobilize_group_members").insert({
-        group_id: id,
-        user_id: newOwnerId,
-        member_role: "leader",
-        membership_status: "approved",
+  let ownershipSynced = false;
+  if (isSuperAdmin && (newOwnerId || leaderUserIds?.length)) {
+    if (newOwnerId) patch.created_by = newOwnerId;
+    const withPrimary = new Set(leaderUserIds ?? []);
+    if (newOwnerId) withPrimary.add(newOwnerId);
+    try {
+      await applyMobilizeGroupOwnerAndLeaders(auth.admin, id, {
+        previousCreatedBy: String(group.created_by),
+        newCreatedBy: newOwnerId,
+        leaderUserIds: [...withPrimary],
       });
+      ownershipSynced = true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to sync group administrators.";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
   }
   if ("wall_post_policy" in patch) {
@@ -121,7 +124,18 @@ export async function PATCH(req: Request, ctx: Ctx) {
       u == null || String(u).trim() === "" ? null : String(u).trim();
   }
   if (Object.keys(patch).length === 0) {
-    return NextResponse.json({ error: "No valid fields." }, { status: 400 });
+    if (!ownershipSynced) {
+      return NextResponse.json({ error: "No valid fields." }, { status: 400 });
+    }
+    const { data, error: fetchErr } = await auth.admin
+      .from("mobilize_groups")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (fetchErr || !data) {
+      return NextResponse.json({ error: fetchErr?.message ?? "Not found." }, { status: 500 });
+    }
+    return NextResponse.json({ group: data });
   }
 
   const { data, error } = await auth.admin.from("mobilize_groups").update(patch).eq("id", id).select("*").single();

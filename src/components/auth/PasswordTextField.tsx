@@ -53,7 +53,19 @@ export function PasswordTextField({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       label={authStyled ? undefined : label}
-      sx={authStyled ? authTextFieldSx : sx}
+      sx={
+        authStyled
+          ? {
+              ...authTextFieldSx,
+              "& .MuiIconButton-root": {
+                color: "#374151",
+                bgcolor: "rgba(0,0,0,0.06)",
+                mr: 0.25,
+                "&:hover": { color: "#111", bgcolor: "rgba(0,0,0,0.12)" },
+              },
+            }
+          : sx
+      }
       inputProps={{ "aria-label": label }}
       InputProps={{
         endAdornment: (
@@ -61,11 +73,13 @@ export function PasswordTextField({
             <IconButton
               type="button"
               aria-label={visible ? "Hide password" : "Show password"}
+              title={visible ? "Hide password" : "Show password"}
               edge="end"
+              size="small"
               onClick={() => setVisible((v) => !v)}
               onMouseDown={(e) => e.preventDefault()}
             >
-              {visible ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+              {visible ? <VisibilityOff /> : <Visibility />}
             </IconButton>
           </InputAdornment>
         ),

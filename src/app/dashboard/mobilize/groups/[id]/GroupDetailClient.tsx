@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Autocomplete,
   Avatar,
   Box,
   Button,
@@ -161,6 +162,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     cover_image_url: "",
     wall_post_policy: "all_approved" as "all_approved" | "leaders_only",
     created_by: "",
+    leader_user_ids: [] as string[],
   });
   const [ownerCandidates, setOwnerCandidates] = useState<{ userId: string; label: string }[]>([]);
   const [ownerCandidatesLoading, setOwnerCandidatesLoading] = useState(false);
@@ -242,6 +244,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   useEffect(() => {
     if (isSuperAdmin) void loadOwnerCandidates();
   }, [isSuperAdmin, loadOwnerCandidates]);
+
+  const selectedOwnerCandidate = useMemo(
+    () => ownerCandidates.find((c) => c.userId === editForm.created_by) ?? null,
+    [ownerCandidates, editForm.created_by]
+  );
+
+  const selectedLeaderCandidates = useMemo(
+    () => ownerCandidates.filter((c) => editForm.leader_user_ids.includes(c.userId)),
+    [ownerCandidates, editForm.leader_user_ids]
+  );
 
   function canManageEvent(e: EventRow) {
     return isLeader || e.created_by === me.id;
@@ -465,6 +477,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       cover_image_url: group.cover_image_url?.trim() ?? "",
       wall_post_policy: group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved",
       created_by: group.created_by,
+      leader_user_ids: (() => {
+        const ids = members
+          .filter((m) => m.member_role === "leader" && m.membership_status === "approved")
+          .map((m) => m.user_id);
+        if (group.created_by && !ids.includes(group.created_by)) ids.push(group.created_by);
+        return ids;
+      })(),
     });
     if (isSuperAdmin && !ownerCandidates.length && !ownerCandidatesLoading) {
       void loadOwnerCandidates();
@@ -508,6 +527,17 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       toast("Name is required.", "error");
       return;
     }
+    if (isSuperAdmin && !editForm.created_by) {
+      toast("Select a primary owner.", "error");
+      return;
+    }
+    const leaderIds = isSuperAdmin
+      ? [...new Set([...editForm.leader_user_ids, editForm.created_by].filter(Boolean))]
+      : [];
+    if (isSuperAdmin && leaderIds.length === 0) {
+      toast("Add at least one group administrator.", "error");
+      return;
+    }
     setEditSaving(true);
     try {
       const cover =
@@ -526,7 +556,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           event_create_policy: editForm.event_create_policy,
           cover_image_url: cover,
           wall_post_policy: editForm.wall_post_policy,
-          ...(isSuperAdmin && editForm.created_by ? { created_by: editForm.created_by } : {}),
+          ...(isSuperAdmin
+            ? {
+                created_by: editForm.created_by,
+                leader_user_ids: leaderIds,
+              }
+            : {}),
         }),
       });
       const json = await res.json();
@@ -534,6 +569,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       toast("Group updated.", "success");
       setEditOpen(false);
       await loadGroup();
+      if (isApproved) await loadMembers();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Update failed.", "error");
     } finally {
@@ -969,7 +1005,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                         {m.state && String(m.state).trim() ? String(m.state).trim() : "—"}
                       </Typography>
                     </TableCell>
-                    <TableCell>{m.member_role}</TableCell>
+                    <TableCell>
+                      <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
+                        <Typography variant="body2" component="span">
+                          {m.member_role}
+                        </Typography>
+                        {group.created_by === m.user_id ? (
+                          <Chip size="small" label="Primary owner" color="primary" variant="outlined" />
+                        ) : null}
+                      </Stack>
+                    </TableCell>
                     <TableCell>{m.membership_status}</TableCell>
                   {isLeader ? (
                     <TableCell align="right">
@@ -1181,36 +1226,78 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               Geocode address
             </Button>
             {isSuperAdmin ? (
-              <FormControl fullWidth>
-                <InputLabel id="owner">Group owner</InputLabel>
-                <Select
-                  labelId="owner"
-                  label="Group owner"
-                  value={editForm.created_by}
-                  onChange={(e) => setEditForm((f) => ({ ...f, created_by: e.target.value }))}
-                  disabled={ownerCandidatesLoading}
-                >
-                  {ownerCandidatesLoading ? (
-                    <MenuItem value="" disabled>
-                      Loading administrators…
-                    </MenuItem>
-                  ) : ownerCandidates.length === 0 ? (
-                    <MenuItem value="" disabled>
-                      No administrators found — contact support
-                    </MenuItem>
-                  ) : (
-                    ownerCandidates.map((c) => (
-                      <MenuItem key={c.userId} value={c.userId}>
-                        {c.label}
-                      </MenuItem>
-                    ))
+              <Stack spacing={2}>
+                <Autocomplete
+                  fullWidth
+                  disableClearable
+                  loading={ownerCandidatesLoading}
+                  disabled={ownerCandidatesLoading || ownerCandidates.length === 0}
+                  options={ownerCandidates}
+                  value={selectedOwnerCandidate ?? undefined}
+                  onChange={(_, option) => {
+                    if (!option) return;
+                    setEditForm((f) => {
+                      const withoutPrev = f.leader_user_ids.filter((id) => id !== f.created_by);
+                      const leaderIds = [...new Set([...withoutPrev, option.userId])];
+                      return { ...f, created_by: option.userId, leader_user_ids: leaderIds };
+                    });
+                  }}
+                  getOptionLabel={(c) => c.label}
+                  isOptionEqualToValue={(a, b) => a.userId === b.userId}
+                  filterOptions={(opts, state) => {
+                    const q = state.inputValue.trim().toLowerCase();
+                    if (!q) return opts;
+                    return opts.filter((c) => c.label.toLowerCase().includes(q));
+                  }}
+                  noOptionsText={
+                    ownerCandidatesLoading ? "Loading administrators…" : "No matching users"
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Primary owner"
+                      placeholder="Search by name or role…"
+                      helperText="Replaces the group owner on record. The previous primary owner is demoted to member unless listed below."
+                    />
                   )}
-                </Select>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                  Administrators always appear here. Members and local leaders also appear when enabled in
-                  Mobilize settings.
-                </Typography>
-              </FormControl>
+                />
+                <Autocomplete
+                  multiple
+                  fullWidth
+                  disableCloseOnSelect
+                  loading={ownerCandidatesLoading}
+                  disabled={ownerCandidatesLoading || ownerCandidates.length === 0}
+                  options={ownerCandidates}
+                  value={selectedLeaderCandidates}
+                  onChange={(_, options) => {
+                    const ids = options.map((o) => o.userId);
+                    setEditForm((f) => {
+                      const withPrimary = f.created_by && !ids.includes(f.created_by)
+                        ? [f.created_by, ...ids]
+                        : ids;
+                      return { ...f, leader_user_ids: [...new Set(withPrimary)] };
+                    });
+                  }}
+                  getOptionLabel={(c) => c.label}
+                  isOptionEqualToValue={(a, b) => a.userId === b.userId}
+                  filterOptions={(opts, state) => {
+                    const q = state.inputValue.trim().toLowerCase();
+                    if (!q) return opts;
+                    return opts.filter((c) => c.label.toLowerCase().includes(q));
+                  }}
+                  noOptionsText={
+                    ownerCandidatesLoading ? "Loading administrators…" : "No matching users"
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Group administrators"
+                      placeholder="Add one or more administrators…"
+                      helperText="Leaders who can manage this group. Primary owner is always included."
+                    />
+                  )}
+                />
+              </Stack>
             ) : null}
             <FormControl fullWidth>
               <InputLabel id="ev">Visibility</InputLabel>

@@ -184,6 +184,37 @@ body {
 /* Login page — single-step driver.js highlight */
 .fp-login-hint-popover.driver-popover {
   max-width: min(320px, calc(100vw - 48px));
+  padding: 18px 60px 16px 18px;
+}
+
+.fp-login-hint-popover .driver-popover-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: auto;
+  height: auto;
+  min-width: 32px;
+  padding: 4px 10px;
+  font-size: 0;
+  line-height: 0;
+  font-weight: 700;
+  color: rgba(255, 215, 0, 0.9);
+  background-color: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 215, 0, 0.55);
+  border-radius: 6px;
+}
+
+.fp-login-hint-popover .driver-popover-close-btn::after {
+  content: "✕ Close";
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.fp-login-hint-popover .driver-popover-close-btn:hover,
+.fp-login-hint-popover .driver-popover-close-btn:focus {
+  color: #111;
+  background-color: #ffd700;
+  border-color: #ffd700;
 }
 
 /* driver.js stacking: overlay below popover; popover receives clicks. */

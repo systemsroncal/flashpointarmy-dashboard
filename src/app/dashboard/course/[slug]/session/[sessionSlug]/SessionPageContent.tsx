@@ -1,5 +1,6 @@
 import { CourseSessionPlayer, type SessionElementRow } from "@/components/courses/CourseSessionPlayer";
 import { MODULE_SLUGS } from "@/config/modules";
+import { isQuizOnlySession } from "@/lib/courses/session-counting";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isTrainingDebugActive } from "@/lib/training/training-debug";
 import { can } from "@/types/permissions";
@@ -54,6 +55,22 @@ export default async function SessionPageContent({
     .order("sort_order", { ascending: true });
 
   const sessions = sessionsRaw ?? [];
+  const sessionIds = sessions.map((s) => s.id);
+  const elementsBySession = new Map<string, { element_type: string }[]>();
+  if (sessionIds.length) {
+    const { data: elRows } = await supabase
+      .from("course_elements")
+      .select("session_id, element_type")
+      .in("session_id", sessionIds);
+    for (const row of elRows ?? []) {
+      const sid = row.session_id as string;
+      const list = elementsBySession.get(sid) ?? [];
+      list.push({ element_type: row.element_type as string });
+      elementsBySession.set(sid, list);
+    }
+  }
+
+  const learnerSessions = sessions.filter((s) => !isQuizOnlySession(elementsBySession.get(s.id) ?? []));
   const idx = sessions.findIndex((s) => s.slug === sessionSlug);
   if (idx < 0) {
     return (
@@ -64,10 +81,12 @@ export default async function SessionPageContent({
   }
 
   const current = sessions[idx];
-  const prev = idx > 0 ? sessions[idx - 1] : null;
-  const next = idx < sessions.length - 1 ? sessions[idx + 1] : null;
-
-  const sessionIds = sessions.map((s) => s.id);
+  const learnerIdx = learnerSessions.findIndex((s) => s.id === current.id);
+  const prevLearner = learnerIdx > 0 ? learnerSessions[learnerIdx - 1] : null;
+  const nextLearner =
+    learnerIdx >= 0 && learnerIdx < learnerSessions.length - 1
+      ? learnerSessions[learnerIdx + 1]
+      : null;
   const { data: progRows } = await supabase
     .from("course_session_progress")
     .select("session_id, completed_at, video_positions")
@@ -84,10 +103,11 @@ export default async function SessionPageContent({
     });
   }
 
-  const prevSlug = prev?.slug ?? null;
-  const nextSlug = next?.slug ?? null;
+  const prevSlug = prevLearner?.slug ?? null;
+  const nextSlug = nextLearner?.slug ?? null;
 
-  const prevDone = !prev || Boolean(progBySession.get(prev.id)?.completed_at);
+  const prevDone =
+    !prevLearner || Boolean(progBySession.get(prevLearner.id)?.completed_at);
   if (!prevDone) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
@@ -126,7 +146,7 @@ export default async function SessionPageContent({
     }
   }
 
-  const sortedSessionIds = sessions.map((s) => s.id as string);
+  const sortedSessionIds = learnerSessions.map((s) => s.id as string);
 
   return (
     <CourseSessionPlayer

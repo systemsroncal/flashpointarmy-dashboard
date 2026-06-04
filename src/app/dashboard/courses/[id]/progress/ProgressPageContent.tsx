@@ -18,6 +18,11 @@ import {
   computeCourseCompletionRow,
   progressRoleBucketFromSlugs,
 } from "@/lib/courses/course-completion-stats";
+import {
+  filterCountableSessionIds,
+  isQuizOnlySession,
+  type SessionElementTypeRow,
+} from "@/lib/courses/session-counting";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -80,9 +85,34 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
     .from("dashboard_users")
     .select("id", { count: "exact", head: true });
 
-  const { data: sessions } = await admin.from("course_sessions").select("id").eq("course_id", courseId);
-  const sessionIds = (sessions ?? []).map((s) => s.id as string);
-  const totalSessions = sessionIds.length;
+  const { data: sessions } = await admin
+    .from("course_sessions")
+    .select("id, sort_order")
+    .eq("course_id", courseId)
+    .order("sort_order", { ascending: true });
+  const sessionRows = sessions ?? [];
+  const sessionIds = sessionRows.map((s) => s.id as string);
+
+  const elementsBySession = new Map<string, SessionElementTypeRow[]>();
+  if (sessionIds.length) {
+    const { data: elRows } = await admin
+      .from("course_elements")
+      .select("session_id, element_type")
+      .in("session_id", sessionIds);
+    for (const row of elRows ?? []) {
+      const sid = row.session_id as string;
+      const list = elementsBySession.get(sid) ?? [];
+      list.push({ element_type: row.element_type as string });
+      elementsBySession.set(sid, list);
+    }
+  }
+
+  const countableSessionIds = filterCountableSessionIds(sessionRows, elementsBySession);
+  const countableSet = new Set(countableSessionIds);
+  const totalSessions = countableSessionIds.length;
+  const quizOnlySessionCount = sessionRows.filter((s) =>
+    isQuizOnlySession(elementsBySession.get(s.id as string) ?? [])
+  ).length;
 
   if (!totalSessions) {
     return (
@@ -121,6 +151,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
 
   const byUser = new Map<string, { done: number; ids: Set<string> }>();
   for (const row of progressRows) {
+    if (!countableSet.has(row.session_id)) continue;
     const uid = row.user_id;
     if (!byUser.has(uid)) byUser.set(uid, { done: 0, ids: new Set() });
     if (row.completed_at) {
@@ -242,6 +273,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
       rows={rows}
       chapterOptions={chapterOptions}
       totalSessions={totalSessions}
+      quizOnlySessionCount={quizOnlySessionCount}
       quizCount={quizIds.length}
       appliesGrades={Boolean(course.applies_grades)}
       completionRow={completionRow}

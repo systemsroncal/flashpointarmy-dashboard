@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  filterCountableSessionIds,
+  type SessionElementTypeRow,
+} from "@/lib/courses/session-counting";
 
 /** Primary training course — `/dashboard/course/biblical-citizenship`. */
 export const BIBLICAL_CITIZENSHIP_COURSE_SLUG = "biblical-citizenship";
@@ -12,6 +16,7 @@ export function graduateBadgeRoleFromRoles(roleNames: string[]): TrainingGraduat
   return null;
 }
 
+/** Learner-facing sessions only (excludes quiz-only placeholder sessions). */
 async function loadCourseSessionIds(
   supabase: SupabaseClient,
   courseSlug: string
@@ -25,9 +30,29 @@ async function loadCourseSessionIds(
 
   const { data: sessions } = await supabase
     .from("course_sessions")
-    .select("id")
-    .eq("course_id", course.id);
-  return (sessions ?? []).map((s) => s.id as string);
+    .select("id, sort_order")
+    .eq("course_id", course.id)
+    .order("sort_order", { ascending: true });
+  const sessionRows = sessions ?? [];
+  const sessionIds = sessionRows.map((s) => s.id as string);
+  if (!sessionIds.length) return [];
+
+  const elementsBySession = new Map<string, SessionElementTypeRow[]>();
+  const { data: elRows } = await supabase
+    .from("course_elements")
+    .select("session_id, element_type")
+    .in("session_id", sessionIds);
+  for (const row of elRows ?? []) {
+    const sid = row.session_id as string;
+    const list = elementsBySession.get(sid) ?? [];
+    list.push({ element_type: row.element_type as string });
+    elementsBySession.set(sid, list);
+  }
+
+  return filterCountableSessionIds(
+    sessionRows.map((s) => ({ id: s.id as string })),
+    elementsBySession
+  );
 }
 
 function userCompletedAllSessions(

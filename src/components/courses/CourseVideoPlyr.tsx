@@ -186,8 +186,16 @@ export function CourseVideoPlyr({
   const [autoResumed, setAutoResumed] = useState(false);
   const [resumePromptOpen, setResumePromptOpen] = useState(false);
   const fullyWatchedFiredRef = useRef(false);
+  const resumePromptDismissedRef = useRef(false);
+  const resumePromptVideoKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const videoKey = `${storageKey ?? ""}|${videoUrl}`;
+    if (resumePromptVideoKeyRef.current !== videoKey) {
+      resumePromptVideoKeyRef.current = videoKey;
+      resumePromptDismissedRef.current = false;
+    }
+
     const ls = storageKey ? readLs(storageKey) : 0;
     const saved = Math.max(0, initialSeconds, ls);
     setSavedSeconds(saved);
@@ -197,6 +205,7 @@ export function CourseVideoPlyr({
     if (
       !autoplayMuted &&
       !suppressResumeRef.current &&
+      !resumePromptDismissedRef.current &&
       saved >= MIN_SAVED_SECONDS_TO_AUTO_RESUME
     ) {
       setResumePromptOpen(true);
@@ -246,6 +255,7 @@ export function CourseVideoPlyr({
   }, []);
 
   const handleContinueWatching = useCallback(() => {
+    resumePromptDismissedRef.current = true;
     setResumePromptOpen(false);
     const target = Math.max(0, savedSeconds - RESUME_REWIND_SECONDS);
     pendingSeekRef.current = target;
@@ -534,7 +544,10 @@ export function CourseVideoPlyr({
 
       <Dialog
         open={resumePromptOpen}
-        onClose={() => setResumePromptOpen(false)}
+        onClose={() => {
+          resumePromptDismissedRef.current = true;
+          setResumePromptOpen(false);
+        }}
         maxWidth="xs"
         fullWidth
         aria-labelledby="course-video-resume-title"

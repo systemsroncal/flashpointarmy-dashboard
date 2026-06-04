@@ -163,6 +163,7 @@ export function CourseEditClient({
   const [busy, setBusy] = useState(false);
   const [deleteCourseOpen, setDeleteCourseOpen] = useState(false);
   const [deleteBlockTarget, setDeleteBlockTarget] = useState<{ sessionId: string; elementId: string } | null>(null);
+  const [deleteSessionTarget, setDeleteSessionTarget] = useState<SessionRow | null>(null);
   const [expandedBlockIds, setExpandedBlockIds] = useState<Record<string, boolean>>({});
   const [expandedSessionIds, setExpandedSessionIds] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(initialSessions.map((s) => [s.id, true]))
@@ -413,6 +414,25 @@ export function CourseEditClient({
     }
   }
 
+  async function confirmDeleteSession() {
+    if (!deleteSessionTarget) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("course_sessions").delete().eq("id", deleteSessionTarget.id);
+      if (error) throw new Error(error.message);
+      setSessions((prev) =>
+        prev.filter((s) => s.id !== deleteSessionTarget.id).map((s, i) => ({ ...s, sort_order: i }))
+      );
+      setDeleteSessionTarget(null);
+      setMsg("Session deleted.");
+      router.refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not delete session.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function confirmDeleteCourse() {
     setBusy(true);
     setErr(null);
@@ -541,8 +561,23 @@ export function CourseEditClient({
                     setExpandedSessionIds((prev) => ({ ...prev, [s.id]: isExpanded }))
                   }
                 >
-                  <AccordionSummary>
-                    <Typography fontWeight={700}>{s.title || "(untitled session)"}</Typography>
+                  <AccordionSummary sx={{ pr: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", width: "100%", gap: 1 }}>
+                      <Typography fontWeight={700} sx={{ flex: 1 }}>
+                        {s.title || "(untitled session)"}
+                      </Typography>
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteSessionTarget(s);
+                        }}
+                      >
+                        Delete session
+                      </Button>
+                    </Box>
                   </AccordionSummary>
                   <AccordionDetails>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
@@ -1074,6 +1109,24 @@ export function CourseEditClient({
           Delete course
         </Button>
       </Stack>
+
+      <Dialog open={Boolean(deleteSessionTarget)} onClose={() => !busy && setDeleteSessionTarget(null)}>
+        <DialogTitle>Delete this session?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This removes &quot;{deleteSessionTarget?.title || "this session"}&quot; and all of its content blocks.
+            Learner progress and quiz results for this session will be removed. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteSessionTarget(null)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button color="error" variant="contained" disabled={busy} onClick={() => void confirmDeleteSession()}>
+            Delete session
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={Boolean(deleteBlockTarget)} onClose={() => !busy && setDeleteBlockTarget(null)}>
         <DialogTitle>Delete content block?</DialogTitle>
