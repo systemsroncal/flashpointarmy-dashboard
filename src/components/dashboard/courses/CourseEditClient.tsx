@@ -311,7 +311,7 @@ export function CourseEditClient({
   }
 
   async function addSession() {
-    const t = window.prompt("New session title:");
+    const t = window.prompt("New lesson title:");
     if (!t?.trim()) return;
     const sl = slugify(t);
     const max = sessions.reduce((m, s) => Math.max(m, s.sort_order), -1);
@@ -427,7 +427,7 @@ export function CourseEditClient({
       setMsg("Session deleted.");
       router.refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not delete session.");
+      setErr(e instanceof Error ? e.message : "Could not delete lesson.");
     } finally {
       setBusy(false);
     }
@@ -534,10 +534,10 @@ export function CourseEditClient({
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
         <Typography variant="subtitle1" fontWeight={800}>
-          Sessions (drag to reorder)
+          Lessons (drag to reorder)
         </Typography>
         <Button startIcon={<AddIcon />} onClick={() => void addSession()}>
-          Add session
+          Add lesson
         </Button>
       </Box>
 
@@ -561,31 +561,34 @@ export function CourseEditClient({
                     setExpandedSessionIds((prev) => ({ ...prev, [s.id]: isExpanded }))
                   }
                 >
-                  <AccordionSummary sx={{ pr: 1 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", width: "100%", gap: 1 }}>
-                      <Typography fontWeight={700} sx={{ flex: 1 }}>
-                        {s.title || "(untitled session)"}
-                      </Typography>
+                  <AccordionSummary>
+                    <Typography fontWeight={700} sx={{ flex: 1 }}>
+                      {s.title || "(untitled lesson)"}
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={1}
+                      alignItems={{ sm: "center" }}
+                      justifyContent="space-between"
+                      sx={{ mb: 1.5 }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <DragIndicatorIcon sx={{ cursor: "grab", color: "text.secondary" }} {...handle} />
+                        <Typography variant="caption" color="text.secondary">
+                          Drag the handle to reorder lessons
+                        </Typography>
+                      </Box>
                       <Button
                         size="small"
                         color="error"
                         variant="outlined"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteSessionTarget(s);
-                        }}
+                        onClick={() => setDeleteSessionTarget(s)}
                       >
-                        Delete session
+                        Delete lesson
                       </Button>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                      <DragIndicatorIcon sx={{ cursor: "grab", color: "text.secondary" }} {...handle} />
-                      <Typography variant="caption" color="text.secondary">
-                        Drag the handle to reorder sessions
-                      </Typography>
-                    </Box>
+                    </Stack>
                     <Stack spacing={1.5} sx={{ mb: 2 }}>
                       <TextField
                         label="Session title"
@@ -777,8 +780,14 @@ export function CourseEditClient({
                                       <MenuItem value="quiz">Quiz</MenuItem>
                                     </Select>
                                   </FormControl>
-                                  <Button color="error" size="small" onClick={() => requestRemoveElement(s.id, el.id)}>
-                                    <DeleteOutlineIcon fontSize="small" />
+                                  <Button
+                                    color="error"
+                                    size="small"
+                                    variant="outlined"
+                                    startIcon={<DeleteOutlineIcon fontSize="small" />}
+                                    onClick={() => requestRemoveElement(s.id, el.id)}
+                                  >
+                                    Delete
                                   </Button>
                                 </Box>
                                 <TextField
@@ -1110,38 +1119,55 @@ export function CourseEditClient({
         </Button>
       </Stack>
 
-      <Dialog open={Boolean(deleteSessionTarget)} onClose={() => !busy && setDeleteSessionTarget(null)}>
-        <DialogTitle>Delete this session?</DialogTitle>
+      <Dialog
+        open={Boolean(deleteSessionTarget)}
+        onClose={(_, reason) => {
+          if (busy) return;
+          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+          setDeleteSessionTarget(null);
+        }}
+      >
+        <DialogTitle>Delete this lesson?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            This removes &quot;{deleteSessionTarget?.title || "this session"}&quot; and all of its content blocks.
-            Learner progress and quiz results for this session will be removed. This cannot be undone.
+            Are you sure you want to delete &quot;{deleteSessionTarget?.title || "this lesson"}&quot;?
+          </DialogContentText>
+          <DialogContentText sx={{ mt: 1.5 }}>
+            All content blocks in this lesson will be removed. Learner progress and quiz results for this lesson will
+            also be deleted. This action cannot be undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteSessionTarget(null)} disabled={busy}>
             Cancel
           </Button>
           <Button color="error" variant="contained" disabled={busy} onClick={() => void confirmDeleteSession()}>
-            Delete session
+            Yes, delete lesson
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={Boolean(deleteBlockTarget)} onClose={() => !busy && setDeleteBlockTarget(null)}>
-        <DialogTitle>Delete content block?</DialogTitle>
+      <Dialog
+        open={Boolean(deleteBlockTarget)}
+        onClose={(_, reason) => {
+          if (busy) return;
+          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+          setDeleteBlockTarget(null);
+        }}
+      >
+        <DialogTitle>Delete this content block?</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            This removes the block from the session. Learner progress tied to this block may be affected. This cannot
-            be undone.
+          <DialogContentText>Are you sure you want to delete this block from the lesson?</DialogContentText>
+          <DialogContentText sx={{ mt: 1.5 }}>
+            Learner progress tied to this block may be affected. This action cannot be undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteBlockTarget(null)} disabled={busy}>
             Cancel
           </Button>
           <Button color="error" variant="contained" disabled={busy} onClick={() => void confirmRemoveElement()}>
-            Delete block
+            Yes, delete block
           </Button>
         </DialogActions>
       </Dialog>
