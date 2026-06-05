@@ -299,42 +299,24 @@ export function CourseSessionPlayer({
     [supabase, user.id, sessionId, mergeVideoPositionMaps]
   );
 
-  const clearVideoDoneFlag = useCallback(
-    (elementId: string) => {
-      try {
-        localStorage.removeItem(`coursevid-done:${user.id}:${sessionId}:${elementId}`);
-      } catch {
-        /* ignore */
-      }
-      const doneKey = videoDoneStorageKey(elementId);
+  const onVideoProgress = useCallback(
+    (elementId: string, _current: number, duration: number) => {
+      if (duration <= 0) return;
+      setVideoDurationsById((prev) => {
+        if (prev[elementId] === duration) return prev;
+        return { ...prev, [elementId]: duration };
+      });
+      const durKey = videoDurationStorageKey(elementId);
+      const stored = Number(videoPositionsRef.current[durKey] ?? 0);
+      if (Math.abs(stored - duration) <= 1) return;
       setVideoPositions((prev) => {
-        if (prev[doneKey] == null) return prev;
-        const next = { ...prev };
-        delete next[doneKey];
+        const next = mergeVideoPositionMaps(prev, { [durKey]: duration });
         videoPositionsRef.current = next;
         return next;
       });
-      setVideoFullyWatchedById((prev) => {
-        if (!prev[elementId]) return prev;
-        return { ...prev, [elementId]: false };
-      });
-      void mergePersist({ video_positions: { [doneKey]: 0 } });
+      void mergePersist({ video_positions: { [durKey]: duration } });
     },
-    [user.id, sessionId, mergePersist]
-  );
-
-  const onVideoProgress = useCallback(
-    (elementId: string, current: number, duration: number) => {
-      if (duration <= 0) return;
-      const saved = Math.max(
-        current,
-        numericVideoPositions(videoPositionsRef.current)[elementId] ?? 0
-      );
-      if (saved / duration < TRUST_DONE_FLAG_MIN_FRACTION && videoFullyWatchedById[elementId]) {
-        clearVideoDoneFlag(elementId);
-      }
-    },
-    [clearVideoDoneFlag, videoFullyWatchedById]
+    [mergePersist, mergeVideoPositionMaps]
   );
 
   const onVideoSeconds = useCallback(
@@ -632,43 +614,6 @@ export function CourseSessionPlayer({
           Complete this session to unlock the next one.
         </Typography>
       ) : null}
-
-      <Dialog
-        open={markCompleteDialogOpen && markCompleteAllowed && !completed}
-        onClose={() => setMarkCompleteDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        aria-labelledby="mark-complete-video-title"
-      >
-        <DialogTitle id="mark-complete-video-title" sx={{ color: "primary.main", fontWeight: 700 }}>
-          Video complete
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            {videoElementIds.length > 1
-              ? "You have finished watching all videos in this session. Tap the button below to mark this session as completed."
-              : "You have finished watching this video. Tap the button below to mark this session as completed."}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2, flexDirection: "column", gap: 1, alignItems: "stretch" }}>
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={<CheckCircleOutlineIcon />}
-            disabled={busyComplete}
-            autoFocus
-            onClick={() => {
-              setMarkCompleteDialogOpen(false);
-              void markComplete();
-            }}
-          >
-            Mark as complete
-          </Button>
-          <Button color="inherit" onClick={() => setMarkCompleteDialogOpen(false)}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }
