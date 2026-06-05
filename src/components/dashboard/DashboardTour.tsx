@@ -16,6 +16,8 @@ import {
 } from "@/lib/dashboard/dashboard-tour-routes";
 import {
   getSeenTourStepIds,
+  hasAutoTourCompleted,
+  markAutoTourCompleted,
   markTourStepSeen,
 } from "@/lib/dashboard/dashboard-tour-storage";
 import { createClient } from "@/utils/supabase/client";
@@ -35,7 +37,7 @@ import {
 } from "react";
 
 type DashboardTourContextValue = {
-  /** Restart the tour from zero for the user's current module (help button). */
+  /** Show the guided tour for the user's current section (help button). */
   startTour: () => void;
 };
 
@@ -70,10 +72,9 @@ function noopOverlayClick(): void {
 }
 
 /**
- * "auto" = automatic tour shown on page visit. Marks each step as seen as the
- *   user advances so the next module visit only shows what is unseen.
- * "help" = manual restart via the (?) header button. Does NOT mutate the
- *   per-step seen state, so it cannot interfere with the automatic tour.
+ * "auto" = one-time automatic tour on first dashboard home visit. Marks each
+ *   step as seen and sets a global "auto tour done" flag when finished or skipped.
+ * "help" = manual tour via the (?) header button. Does NOT mutate seen state.
  */
 type RunMode = "auto" | "help";
 
@@ -159,7 +160,7 @@ export function DashboardTourProvider({
   const driverRef = useRef<Driver | null>(null);
   const runningRef = useRef(false);
   const allEntriesRef = useRef<TourStepEntry[]>([]);
-  const lastModuleTourPathRef = useRef<string | null>(null);
+  const autoTourStartedRef = useRef(false);
   const [driverReady, setDriverReady] = useState(false);
 
   /** Keep latest callbacks in refs so internal effects/callbacks don't recreate on every render. */
@@ -261,12 +262,7 @@ export function DashboardTourProvider({
     [buildInput.settingsNav.length, cleanupTourUi, tourActions, userId]
   );
 
-  /**
-   * Help button: shows ALL tour steps for the current module, every time.
-   * This runs independently of the automatic tour — it does NOT clear or
-   * write the "seen" state, so the auto-tour keeps its progress across
-   * modules untouched.
-   */
+  /** Help button: shows all tour steps for the current section on demand. */
   const startTour = useCallback(() => {
     const moduleKey = pathnameToTourModuleKey(pathname, navItemsForRoutesRef.current);
     if (!moduleKey) return;
@@ -281,21 +277,25 @@ export function DashboardTourProvider({
 
   const contextValue = useMemo(() => ({ startTour }), [startTour]);
 
-  /** Auto-tour: when navigating to a new module, show the steps the user hasn't seen yet. */
+  /**
+   * One-time auto-tour: only on first visit to dashboard home, before the user
+   * has finished or skipped it. After that, use the (?) help button.
+   */
   useEffect(() => {
     if (!driverReady) return;
+    if (!autoStartMainTour) return;
+    if (hasAutoTourCompleted(userId)) return;
     if (pathname.startsWith("/dashboard/mobilize")) return;
-    if (lastModuleTourPathRef.current === pathname) return;
+    if (autoTourStartedRef.current) return;
 
     const moduleKey = pathnameToTourModuleKey(pathname, navItemsForRoutesRef.current);
     if (!moduleKey) return;
 
-    const isHome = pathname === "/dashboard" || pathname === "/dashboard/";
-
     let cancelled = false;
-    lastModuleTourPathRef.current = pathname;
 
-    void (async () => {
+    const tryAutoTour = async () => {
+      if (cancelled || autoTourStartedRef.current || hasAutoTourCompleted(userId)) return;
+
       try {
         const supabase = createClient();
         const { data } = await supabase.auth.getUser();
@@ -305,7 +305,7 @@ export function DashboardTourProvider({
         return;
       }
 
-      await waitMs(isHome ? 1500 : 700);
+      await waitMs(1500);
       if (cancelled) return;
 
       if (allEntriesRef.current.length === 0) {
@@ -319,13 +319,28 @@ export function DashboardTourProvider({
         allEntriesRef.current,
         seen
       );
-      if (entries.length === 0) return;
+      if (entries.length === 0) {
+        markAutoTourCompleted(userId);
+        autoTourStartedRef.current = true;
+        return;
+      }
 
+      autoTourStartedRef.current = true;
       await runTourEntries({ entries, mode: "auto" });
-    })();
+    };
+
+    void tryAutoTour();
+
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      void tryAutoTour();
+    });
 
     return () => {
       cancelled = true;
+      subscription.unsubscribe();
     };
   }, [autoStartMainTour, driverReady, pathname, runTourEntries, userId]);
 
@@ -344,11 +359,11 @@ export function DashboardTourHelpButton() {
   const { startTour } = useDashboardTour();
 
   return (
-    <Tooltip title="Restart guided tour for this section">
+    <Tooltip title="Show guided tour for this section">
       <IconButton
         color="inherit"
         size="small"
-        aria-label="Restart guided tour for this section"
+        aria-label="Show guided tour for this section"
         data-tour="header-tour-help"
         onClick={() => startTour()}
       >

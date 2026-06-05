@@ -1,4 +1,5 @@
 const TOUR_SEEN_KEY = "fpa_dashboard_tour_seen_v2";
+const AUTO_TOUR_DONE_KEY = "fpa_dashboard_tour_auto_done_v1";
 
 function storageKey(userId: string): string {
   return `${TOUR_SEEN_KEY}:${userId}`;
@@ -49,6 +50,26 @@ export function areAllTourStepsSeen(userId: string, stepIds: string[]): boolean 
   if (stepIds.length === 0) return true;
   const seen = getSeenTourStepIds(userId);
   return stepIds.every((id) => seen.has(id));
+}
+
+/** True after the user has seen (or skipped) the one-time automatic dashboard tour. */
+export function hasAutoTourCompleted(userId: string): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return localStorage.getItem(`${AUTO_TOUR_DONE_KEY}:${userId}`) === "1";
+  } catch {
+    return true;
+  }
+}
+
+/** Mark the automatic tour as done so it only runs once per user. */
+export function markAutoTourCompleted(userId: string): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.setItem(`${AUTO_TOUR_DONE_KEY}:${userId}`, "1");
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Remove the given step ids from the per-user "seen" set (used to restart a module's tour). */
