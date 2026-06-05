@@ -25,6 +25,11 @@ export function isElevatedRole(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "super_admin" || n === "admin");
 }
 
+/** Mobilize nav, pages, and APIs — platform admins only. */
+export function canAccessMobilizeModule(roleNames: string[]): boolean {
+  return isElevatedRole(roleNames);
+}
+
 export function isSubAdminUser(roleNames: string[]): boolean {
   return roleNames.includes(SUB_ADMIN_ROLE);
 }

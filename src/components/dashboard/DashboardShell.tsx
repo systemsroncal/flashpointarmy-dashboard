@@ -57,6 +57,7 @@ import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
+import { canAccessMobilizeModule } from "@/lib/auth/user-roles";
 import { isElevatedRole } from "@/lib/auth/user-roles";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -345,7 +346,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const permissions = usePermissions();
   const user = useDashboardUser();
-  const isMobilize = pathname.startsWith(MOBILIZE_PREFIX);
+  const isMobilize =
+    pathname.startsWith(MOBILIZE_PREFIX) && canAccessMobilizeModule(user.role_names);
 
   /** Red Mobilize chrome only while inside `/dashboard/mobilize/*` (not persisted). */
   const redNavAccent = isMobilize;
@@ -372,9 +374,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const allVisibleNav = NAV.filter((item) => {
     if (item.module === MODULE_SLUGS.movilization) {
-      return (
-        isElevatedRole(user.role_names) || can(permissions, MODULE_SLUGS.movilization, "read")
-      );
+      return canAccessMobilizeModule(user.role_names);
     }
     /** Dashboard announcements: all signed-in users (not gated by communications module). */
     if (item.href === "/dashboard/notifications") {

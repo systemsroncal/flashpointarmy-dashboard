@@ -16,6 +16,7 @@ const LOCAL_LEADER_HIDDEN_MODULES = new Set<string>([
   MODULE_SLUGS.logs,
   MODULE_SLUGS.admins,
   MODULE_SLUGS.courses,
+  MODULE_SLUGS.movilization,
 ]);
 
 /** Sub admin: operational modules only (no Mobilize, no Settings). */
@@ -37,7 +38,6 @@ const MEMBER_NAV_MODULES = new Set<string>([
   MODULE_SLUGS.gatherings,
   MODULE_SLUGS.training,
   MODULE_SLUGS.communications,
-  MODULE_SLUGS.movilization,
 ]);
 
 /**
