@@ -19,10 +19,6 @@ import {
   Alert,
   Box,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   Link as MuiLink,
   Paper,
@@ -52,22 +48,51 @@ function videoDoneStorageKey(elementId: string): string {
   return `__done__${elementId}`;
 }
 
-/** Saved position must reach this fraction before a persisted "done" flag is trusted. */
-const TRUST_DONE_FLAG_MIN_FRACTION = 0.95;
+/** Persisted duration (seconds) for computing saved progress %. */
+function videoDurationStorageKey(elementId: string): string {
+  return `__dur__${elementId}`;
+}
+
+/** Minimum saved watch progress before "Mark session as completed" is offered. */
+const MARK_COMPLETE_MIN_SAVED_FRACTION = 0.6;
 
 function isVideoDoneFlag(value: unknown): boolean {
   return value === 1 || value === true;
 }
 
-/** Resume math should ignore server-side watch flags mixed into `video_positions`. */
+/** Resume math should ignore server-side metadata mixed into `video_positions`. */
 function numericVideoPositions(positions: Record<string, number>): Record<string, number> {
   const out: Record<string, number> = {};
   for (const [k, v] of Object.entries(positions)) {
-    if (k.startsWith("__done__")) continue;
+    if (k.startsWith("__")) continue;
     const n = Number(v);
     if (Number.isFinite(n) && n >= 0) out[k] = n;
   }
   return out;
+}
+
+function readVideoDurationsFromPositions(positions: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(positions)) {
+    if (!k.startsWith("__dur__")) continue;
+    const id = k.slice("__dur__".length);
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 0) out[id] = n;
+  }
+  return out;
+}
+
+function isVideoEligibleForMarkComplete(
+  elementId: string,
+  positions: Record<string, number>,
+  durations: Record<string, number>,
+  watchedToEndBefore: Record<string, boolean>
+): boolean {
+  if (watchedToEndBefore[elementId]) return true;
+  const saved = numericVideoPositions(positions)[elementId] ?? 0;
+  const dur = durations[elementId];
+  if (!dur || dur <= 0) return false;
+  return saved / dur >= MARK_COMPLETE_MIN_SAVED_FRACTION;
 }
 
 export function CourseSessionPlayer({
@@ -114,8 +139,6 @@ export function CourseSessionPlayer({
   }, [trainingDebug, searchParams]);
   const supabase = useMemo(() => createClient(), []);
   const [completed, setCompleted] = useState(initialCompleted);
-  const completedRef = useRef(initialCompleted);
-  completedRef.current = completed;
   const [busyComplete, setBusyComplete] = useState(false);
   const [videoPositions, setVideoPositions] = useState<Record<string, number>>(initialVideoPositions);
   const videoPositionsRef = useRef(initialVideoPositions);
@@ -180,10 +203,8 @@ export function CourseSessionPlayer({
   const [videoFullyWatchedById, setVideoFullyWatchedById] = useState(() =>
     readVideoFullyWatched(videoElementIds, initialVideoPositions)
   );
-  const [markCompleteDialogOpen, setMarkCompleteDialogOpen] = useState(false);
-  const prevAllVideosWatchedRef = useRef(
-    videoElementIds.length === 0 ||
-      videoElementIds.every((id) => readVideoFullyWatched(videoElementIds, initialVideoPositions)[id])
+  const [videoDurationsById, setVideoDurationsById] = useState<Record<string, number>>(() =>
+    readVideoDurationsFromPositions(initialVideoPositions)
   );
 
   useEffect(() => {
@@ -225,8 +246,19 @@ export function CourseSessionPlayer({
     setVideoFullyWatchedById(readVideoFullyWatched(videoElementIds));
   }, [user.id, sessionId, videoIdsKey, videoPositions]);
 
-  const allVideosFullyWatched =
-    videoElementIds.length === 0 || videoElementIds.every((id) => videoFullyWatchedById[id]);
+  useEffect(() => {
+    setVideoDurationsById((prev) => ({
+      ...readVideoDurationsFromPositions(videoPositions),
+      ...prev,
+    }));
+  }, [videoPositions]);
+
+  const markCompleteAllowed = useMemo(() => {
+    if (videoElementIds.length === 0) return true;
+    return videoElementIds.every((id) =>
+      isVideoEligibleForMarkComplete(id, videoPositions, videoDurationsById, videoFullyWatchedById)
+    );
+  }, [videoElementIds, videoPositions, videoDurationsById, videoFullyWatchedById]);
 
   const mergePersist = useCallback(
     async (patch: { video_positions?: Record<string, number>; completed_at?: string | null }) => {
@@ -319,7 +351,7 @@ export function CourseSessionPlayer({
   );
 
   async function markComplete() {
-    if (videoElementIds.length > 0 && !allVideosFullyWatched) return;
+    if (videoElementIds.length > 0 && !markCompleteAllowed) return;
     setBusyComplete(true);
     try {
       const completedAt = new Date().toISOString();
@@ -368,24 +400,6 @@ export function CourseSessionPlayer({
     }
   }
 
-  const markCompleteAllowed = allVideosFullyWatched;
-
-  useEffect(() => {
-    if (completed) {
-      setMarkCompleteDialogOpen(false);
-      prevAllVideosWatchedRef.current = true;
-      return;
-    }
-    if (
-      videoElementIds.length > 0 &&
-      allVideosFullyWatched &&
-      !prevAllVideosWatchedRef.current
-    ) {
-      setMarkCompleteDialogOpen(true);
-    }
-    prevAllVideosWatchedRef.current = allVideosFullyWatched;
-  }, [completed, allVideosFullyWatched, videoElementIds.length]);
-
   const onVideoFullyWatched = useCallback(
     (elementId: string) => {
       try {
@@ -400,16 +414,7 @@ export function CourseSessionPlayer({
         return next;
       });
       void mergePersist({ video_positions: donePatch });
-      setVideoFullyWatchedById((prev) => {
-        const next = { ...prev, [elementId]: true };
-        const allDone =
-          videoElementIds.length === 0 ||
-          videoElementIds.every((id) => (id === elementId ? true : Boolean(prev[id])));
-        if (allDone && !completedRef.current) {
-          setMarkCompleteDialogOpen(true);
-        }
-        return next;
-      });
+      setVideoFullyWatchedById((prev) => ({ ...prev, [elementId]: true }));
     },
     [user.id, sessionId, videoElementIds, mergePersist]
   );
@@ -594,8 +599,8 @@ export function CourseSessionPlayer({
             </Button>
           ) : !markCompleteAllowed && videoElementIds.length > 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 360 }}>
-              Watch each video through to the end to unlock session completion. You can use the timeline to rewind or
-              skip ahead; your position is saved automatically when you return.
+              Watch at least 60% of each video (your saved position counts when you return). If you have already
+              finished a video before, you can mark the session complete at any time.
             </Typography>
           ) : (
             <Button
