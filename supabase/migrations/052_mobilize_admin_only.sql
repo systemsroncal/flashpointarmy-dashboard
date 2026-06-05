@@ -6,8 +6,8 @@ set
   can_read = false,
   can_update = false,
   can_delete = false
-from public.roles r
-join public.modules m on m.id = rp.module_id
+from public.roles r, public.modules m
 where rp.role_id = r.id
+  and rp.module_id = m.id
   and m.slug = 'movilization'
   and r.name in ('local_leader', 'member');
