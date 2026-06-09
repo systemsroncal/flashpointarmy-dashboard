@@ -17,10 +17,6 @@ export async function POST(_req: Request, ctx: Ctx) {
   if (gErr || !group) {
     return NextResponse.json({ error: "Group not found." }, { status: 404 });
   }
-  if (group.visibility !== "public") {
-    return NextResponse.json({ error: "Join requests are only for public groups." }, { status: 400 });
-  }
-
   const { data: existing } = await auth.admin
     .from("mobilize_group_members")
     .select("id, membership_status")

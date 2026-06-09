@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Supabase CLI local link/cache (machine-specific)
 /supabase/.temp/
+
+# Local Excel exports (scripts/export-members-leaders-xlsx.mjs)
+/exports/

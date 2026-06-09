@@ -32,6 +32,7 @@ export type CourseProgressRow = {
   roleLabel: string;
   roleBucket: ProgressRoleBucket;
   graduateBadge?: TrainingGraduateBadgeRole | null;
+  showAdminCrown?: boolean;
   done: number;
   quiz: { best: number; max: number } | null;
 };
@@ -184,6 +185,7 @@ export function CourseProgressUsersTable({
                   <TableCell sx={{ pr: 0 }}>
                     <AvatarWithGraduateIcon
                       graduateRole={r.graduateBadge}
+                      showAdminCrown={Boolean(r.showAdminCrown)}
                       size={36}
                       src={r.avatarUrl ?? undefined}
                       alt={r.label}

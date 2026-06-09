@@ -1,6 +1,7 @@
 "use client";
 
 import DeleteOutline from "@mui/icons-material/DeleteOutline";
+import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import Edit from "@mui/icons-material/Edit";
 import { PasswordTextField } from "@/components/auth/PasswordTextField";
 import Search from "@mui/icons-material/Search";
@@ -48,6 +49,7 @@ import { CourseGraduateBadge, AvatarWithGraduateIcon } from "@/components/dashbo
 import { ChapterSearchAutocomplete } from "@/components/forms/ChapterSearchAutocomplete";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
 import { matchesStateChapterFilter } from "@/lib/chapters/chapter-search";
+import { downloadExcelFromApi } from "@/lib/export/download-xlsx-client";
 import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
@@ -328,6 +330,8 @@ export function CommunitySection({
   } | null>(null);
   const [syncLogs, setSyncLogs] = useState<string[]>([]);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const allowChapterNameSearch = elevated || isSuperAdmin;
 
@@ -1325,6 +1329,25 @@ export function CommunitySection({
     }
   }
 
+  async function handleExportExcel() {
+    if (isAdmins) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      const params = new URLSearchParams({
+        chapterId: filterChapterId,
+        state: filterState,
+      });
+      const path = isLeaders ? "/api/export/leaders" : "/api/export/members";
+      const fallback = isLeaders ? "leaders.xlsx" : "members.xlsx";
+      await downloadExcelFromApi(`${path}?${params.toString()}`, fallback);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Export failed.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.45)", maxWidth: "100%", overflow: "hidden" }}>
       <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
@@ -1351,6 +1374,11 @@ export function CommunitySection({
       {tableFetchError ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setTableFetchError(null)}>
           {tableFetchError}
+        </Alert>
+      ) : null}
+      {exportError ? (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setExportError(null)}>
+          {exportError}
         </Alert>
       ) : null}
 
@@ -1408,6 +1436,17 @@ export function CommunitySection({
                 </Button>
               ) : null}
             </>
+          ) : null}
+          {!isAdmins ? (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<DownloadOutlined />}
+              disabled={exporting}
+              onClick={() => void handleExportExcel()}
+            >
+              {exporting ? "Exporting…" : "Export to Excel"}
+            </Button>
           ) : null}
         </Box>
         <Box
@@ -1619,6 +1658,7 @@ export function CommunitySection({
               <TableCell>
                 <AvatarWithGraduateIcon
                   graduateRole={u.training_graduate_badge}
+                  showAdminCrown={u.role_names?.some((r) => r === "admin" || r === "super_admin")}
                   size={30}
                   src={u.avatar_url ? publicAssetSrc(u.avatar_url) : undefined}
                 >

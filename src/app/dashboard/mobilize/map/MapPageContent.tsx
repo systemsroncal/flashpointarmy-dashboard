@@ -338,12 +338,12 @@ export default function MobilizeMapPageContent() {
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2} sx={{ mb: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight={700}>
-            Map & Groups
+            Groups
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Public groups and your own groups with coordinates. Use GPS or geocode an address to search nearby
-            (server-side Haversine). Whether you can create a new group depends on your role and Mobilize settings;
-            dashboard admins and super admins always can.
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720, lineHeight: 1.55 }}>
+            Welcome! In this section you can find groups near your area. We invite you to join a group close to your
+            location—or explore and join any group that matches your interests. Use the list or map, GPS, or an address
+            to search nearby.
           </Typography>
         </Box>
         {canCreateGroup ? (

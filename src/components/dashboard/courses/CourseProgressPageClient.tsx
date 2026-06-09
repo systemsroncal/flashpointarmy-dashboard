@@ -6,13 +6,16 @@ import {
   type CourseProgressRow,
 } from "@/components/dashboard/courses/CourseProgressUsersTable";
 import type { CourseCompletionRow } from "@/lib/courses/course-completion-stats";
+import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Alert,
   Box,
+  Button,
   FormControl,
   FormControlLabel,
   FormLabel,
@@ -27,6 +30,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
 import { matchesStateChapterFilter, type ChapterSearchRow } from "@/lib/chapters/chapter-search";
+import { downloadExcelFromApi } from "@/lib/export/download-xlsx-client";
 
 export type ProgressRoleFilter = "all" | "member" | "leader";
 
@@ -69,6 +73,8 @@ export function CourseProgressPageClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterState, setFilterState] = useState("all");
   const [filterChapterId, setFilterChapterId] = useState("all");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const filteredRows = useMemo(() => {
     let list = filterByRole(rows, roleFilter);
@@ -89,6 +95,27 @@ export function CourseProgressPageClient({
     () => rows.filter((r) => r.roleBucket === "member" || r.roleBucket === "leader").length,
     [rows]
   );
+
+  async function handleExportExcel() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const params = new URLSearchParams({
+        courseId,
+        role: roleFilter,
+        chapterId: filterChapterId,
+        state: filterState,
+      });
+      await downloadExcelFromApi(
+        `/api/export/course-progress?${params.toString()}`,
+        `course-progress-${courseSlug}.xlsx`
+      );
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Export failed.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <Box>
@@ -145,6 +172,12 @@ export function CourseProgressPageClient({
         </AccordionDetails>
       </Accordion>
 
+      {exportError ? (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setExportError(null)}>
+          {exportError}
+        </Alert>
+      ) : null}
+
       <FormControl component="fieldset" sx={{ mb: 2 }}>
         <FormLabel component="legend" sx={{ color: "text.secondary", fontSize: "0.875rem", mb: 0.5 }}>
           Show users
@@ -200,6 +233,16 @@ export function CourseProgressPageClient({
             onChapterChange={setFilterChapterId}
           />
         ) : null}
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<DownloadOutlined />}
+          disabled={exporting}
+          onClick={() => void handleExportExcel()}
+          sx={{ alignSelf: { xs: "stretch", md: "flex-start" }, whiteSpace: "nowrap" }}
+        >
+          {exporting ? "Exporting…" : "Export to Excel"}
+        </Button>
       </Box>
 
       <CourseProgressUsersTable

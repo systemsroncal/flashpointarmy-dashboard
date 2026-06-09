@@ -259,6 +259,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
           totalSessions > 0 && doneCount >= totalSessions
             ? graduateBadgeRoleFromRoles(slugs)
             : null,
+        showAdminCrown: slugs.includes("admin") || slugs.includes("super_admin"),
         done: doneCount,
         quiz: quizByUser.get(uid) ?? null,
       };

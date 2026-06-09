@@ -71,7 +71,7 @@ type Props = {
    * Map tab only: one column for cover + name + address, then actions stacked below (no separate Actions column).
    */
   layoutVariant?: "default" | "mapStacked";
-  /** Multiplier for cover thumbnail (base 56 default / 72 mapStacked). E.g. 3.5 for Map & Groups + My Groups. */
+  /** Multiplier for cover thumbnail (base 56 default / 72 mapStacked). E.g. 3.5 for Groups + My Groups. */
   thumbnailScale?: number;
 };
 
@@ -161,13 +161,6 @@ export default function MobilizeGroupsBrowseTable({
     const justify = align === "start" ? "flex-start" : "flex-end";
     const st = g.my_membership_status;
     const href = `/dashboard/mobilize/groups/${g.id}`;
-    if (g.visibility !== "public") {
-      return (
-        <Typography variant="caption" color="text.secondary">
-          Private
-        </Typography>
-      );
-    }
     if (st === "approved") {
       return (
         <Stack direction="row" alignItems="center" spacing={0.5} justifyContent={justify}>

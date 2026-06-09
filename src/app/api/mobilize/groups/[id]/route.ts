@@ -20,20 +20,6 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Group not found." }, { status: 404 });
   }
 
-  if (group.visibility !== "public") {
-    const { data: m } = await auth.admin
-      .from("mobilize_group_members")
-      .select("membership_status")
-      .eq("group_id", id)
-      .eq("user_id", auth.userId)
-      .maybeSingle();
-    const allowed =
-      group.created_by === auth.userId || m?.membership_status === "approved";
-    if (!allowed) {
-      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-    }
-  }
-
   const { data: myMembership } = await auth.admin
     .from("mobilize_group_members")
     .select("*")

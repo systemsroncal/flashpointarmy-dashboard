@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Autocomplete,
   Avatar,
@@ -36,8 +36,12 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import ViewListIcon from "@mui/icons-material/ViewList";
@@ -113,6 +117,83 @@ function dateTimeLocalFromIso(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function MobilizeSectionEmptyState({ icon, message }: { icon: ReactNode; message: string }) {
+  return (
+    <Card variant="outlined" sx={{ bgcolor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,215,0,0.12)" }}>
+      <CardContent>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ xs: "center", sm: "flex-start" }}
+          spacing={1.5}
+          useFlexGap
+          sx={{ textAlign: { xs: "center", sm: "left" } }}
+        >
+          <Box sx={{ flexShrink: 0, color: "text.secondary", display: "flex" }}>{icon}</Box>
+          <Typography variant="body1" color="text.secondary">
+            {message}
+          </Typography>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+function JoinToViewGate({
+  section,
+  onJoin,
+  showJoinButton,
+  isPending,
+}: {
+  section: "announcements" | "events" | "members";
+  onJoin: () => void;
+  showJoinButton: boolean;
+  isPending: boolean;
+}) {
+  const sectionLabel =
+    section === "announcements"
+      ? "announcements"
+      : section === "events"
+        ? "events and activities"
+        : "members";
+
+  const message = isPending
+    ? "Your join request is pending. A group leader must approve it before you can view this section."
+    : `Join this group to view ${sectionLabel}.`;
+
+  return (
+    <Card variant="outlined" sx={{ bgcolor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,215,0,0.12)" }}>
+      <CardContent>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ xs: "stretch", sm: "center" }}
+          spacing={2}
+          useFlexGap
+        >
+          <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
+            <WarningAmberOutlinedIcon
+              color="warning"
+              sx={{ fontSize: 40, flexShrink: 0, mt: 0.25 }}
+            />
+            <Typography variant="body1" color="text.primary">
+              {message}
+            </Typography>
+          </Stack>
+          {showJoinButton ? (
+            <Button
+              variant="contained"
+              startIcon={<PersonAddIcon />}
+              onClick={() => void onJoin()}
+              sx={{ alignSelf: { xs: "stretch", sm: "center" }, flexShrink: 0 }}
+            >
+              Join now
+            </Button>
+          ) : null}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function GroupDetailClient({ groupId }: { groupId: string }) {
@@ -577,8 +658,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     }
   }
 
+  const isPendingJoin = membership?.membership_status === "pending";
   const showJoin =
-    group?.visibility === "public" && (!membership || membership.membership_status === "rejected");
+    !isApproved && !isPendingJoin && (!membership || membership.membership_status === "rejected");
 
   const eventWeeks = useMemo(() => {
     const first = startOfMonth(eventCalCursor);
@@ -655,7 +737,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             sx={{ mt: 2 }}
             onClick={() => void joinRequest()}
           >
-            Join
+            Join now
           </Button>
         ) : null}
         {membership?.membership_status === "pending" ? (
@@ -693,10 +775,19 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       {header}
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab label="Announcements" disabled={!isApproved} />
-        <Tab label="Events" disabled={!isApproved} />
-        <Tab label="Members" disabled={!isApproved} />
+        <Tab label="Announcements" />
+        <Tab label="Events" />
+        <Tab label="Members" />
       </Tabs>
+
+      {tab === 0 && !isApproved ? (
+        <JoinToViewGate
+          section="announcements"
+          onJoin={joinRequest}
+          showJoinButton={showJoin}
+          isPending={isPendingJoin}
+        />
+      ) : null}
 
       {tab === 0 && isApproved ? (
         <Box>
@@ -773,9 +864,23 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 </Card>
               );
             })}
-            {!messages.length ? <Typography color="text.secondary">No messages yet.</Typography> : null}
+            {!messages.length ? (
+              <MobilizeSectionEmptyState
+                icon={<CampaignOutlinedIcon sx={{ fontSize: 40 }} />}
+                message="There are no announcements in this group yet."
+              />
+            ) : null}
           </Box>
         </Box>
+      ) : null}
+
+      {tab === 1 && !isApproved ? (
+        <JoinToViewGate
+          section="events"
+          onJoin={joinRequest}
+          showJoinButton={showJoin}
+          isPending={isPendingJoin}
+        />
       ) : null}
 
       {tab === 1 && isApproved ? (
@@ -865,7 +970,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                   </CardContent>
                 </Card>
               ))}
-              {!events.length ? <Typography color="text.secondary">No events yet.</Typography> : null}
+              {!events.length ? (
+                <MobilizeSectionEmptyState
+                  icon={<CalendarMonthOutlinedIcon sx={{ fontSize: 40 }} />}
+                  message="There are no upcoming events in this group."
+                />
+              ) : null}
             </>
           ) : (
             <Box>
@@ -932,6 +1042,15 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Box>
       ) : null}
 
+      {tab === 2 && !isApproved ? (
+        <JoinToViewGate
+          section="members"
+          onJoin={joinRequest}
+          showJoinButton={showJoin}
+          isPending={isPendingJoin}
+        />
+      ) : null}
+
       {tab === 2 && isApproved ? (
         <Box>
           {isLeader ? (
@@ -965,80 +1084,93 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
             Members
           </Typography>
-          <TableContainer
-            sx={{
-              borderRadius: 1,
-              border: "1px solid rgba(255,215,0,0.12)",
-              bgcolor: "rgba(0,0,0,0.15)",
-            }}
-          >
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Member</TableCell>
-                  <TableCell sx={{ width: 72 }}>State</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Status</TableCell>
-                  {isLeader ? <TableCell align="right">Actions</TableCell> : null}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {members.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell>
-                      <Stack direction="row" alignItems="center" spacing={1}>
-                        <Avatar src={m.avatar_url ?? undefined} sx={{ width: 36, height: 36 }}>
-                          {(m.display_name ?? "?").slice(0, 1)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2">{m.display_name ?? m.user_id.slice(0, 8)}</Typography>
-                          {m.email ? (
-                            <Typography variant="caption" color="text.secondary">
-                              {m.email}
-                            </Typography>
-                          ) : null}
-                        </Box>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={600} color="text.primary">
-                        {m.state && String(m.state).trim() ? String(m.state).trim() : "—"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
-                        <Typography variant="body2" component="span">
-                          {m.member_role}
-                        </Typography>
-                        {group.created_by === m.user_id ? (
-                          <Chip size="small" label="Primary owner" color="primary" variant="outlined" />
-                        ) : null}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{m.membership_status}</TableCell>
-                  {isLeader ? (
-                    <TableCell align="right">
-                      {m.membership_status === "approved" && m.user_id !== me.id ? (
-                        <Stack direction="row" spacing={0.5} justifyContent="flex-end" flexWrap="wrap">
-                          {m.member_role === "member" ? (
-                            <Button size="small" onClick={() => void setMemberRole(m.user_id, "leader")}>
-                              Make leader
-                            </Button>
-                          ) : (
-                            <Button size="small" onClick={() => void setMemberRole(m.user_id, "member")}>
-                              Demote
-                            </Button>
-                          )}
-                        </Stack>
-                      ) : null}
-                    </TableCell>
-                  ) : null}
+          {members.length ? (
+            <TableContainer
+              sx={{
+                borderRadius: 1,
+                border: "1px solid rgba(255,215,0,0.12)",
+                bgcolor: "rgba(0,0,0,0.15)",
+              }}
+            >
+              <Table
+                size="small"
+                sx={{
+                  "& .MuiTableCell-root": {
+                    borderBottom: "none",
+                  },
+                }}
+              >
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Member</TableCell>
+                    <TableCell sx={{ width: 72 }}>State</TableCell>
+                    <TableCell>Role</TableCell>
+                    <TableCell>Status</TableCell>
+                    {isLeader ? <TableCell align="right">Actions</TableCell> : null}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          {!members.length ? <Typography color="text.secondary">No members loaded.</Typography> : null}
+                </TableHead>
+                <TableBody>
+                  {members.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Avatar src={m.avatar_url ?? undefined} sx={{ width: 36, height: 36 }}>
+                            {(m.display_name ?? "?").slice(0, 1)}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2">{m.display_name ?? m.user_id.slice(0, 8)}</Typography>
+                            {m.email ? (
+                              <Typography variant="caption" color="text.secondary">
+                                {m.email}
+                              </Typography>
+                            ) : null}
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600} color="text.primary">
+                          {m.state && String(m.state).trim() ? String(m.state).trim() : "—"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
+                          <Typography variant="body2" component="span">
+                            {m.member_role}
+                          </Typography>
+                          {group.created_by === m.user_id ? (
+                            <Chip size="small" label="Primary owner" color="primary" variant="outlined" />
+                          ) : null}
+                        </Stack>
+                      </TableCell>
+                      <TableCell>{m.membership_status}</TableCell>
+                    {isLeader ? (
+                      <TableCell align="right">
+                        {m.membership_status === "approved" && m.user_id !== me.id ? (
+                          <Stack direction="row" spacing={0.5} justifyContent="flex-end" flexWrap="wrap">
+                            {m.member_role === "member" ? (
+                              <Button size="small" onClick={() => void setMemberRole(m.user_id, "leader")}>
+                                Make leader
+                              </Button>
+                            ) : (
+                              <Button size="small" onClick={() => void setMemberRole(m.user_id, "member")}>
+                                Demote
+                              </Button>
+                            )}
+                          </Stack>
+                        ) : null}
+                      </TableCell>
+                    ) : null}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <MobilizeSectionEmptyState
+              icon={<GroupsOutlinedIcon sx={{ fontSize: 40 }} />}
+              message="This group does not have any members yet. Approved members will appear here."
+            />
+          )}
         </Box>
       ) : null}
 

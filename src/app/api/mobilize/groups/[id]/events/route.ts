@@ -48,10 +48,12 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
+  const nowIso = new Date().toISOString();
   const { data, error } = await auth.admin
     .from("mobilize_events")
     .select("*")
     .eq("group_id", id)
+    .gte("date_time", nowIso)
     .order("date_time", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

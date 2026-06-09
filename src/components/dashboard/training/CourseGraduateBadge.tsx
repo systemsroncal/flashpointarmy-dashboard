@@ -1,24 +1,21 @@
 "use client";
 
 import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
-import { Avatar, Box, Typography, type SxProps, type Theme } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+  type SxProps,
+  type Theme,
+} from "@mui/material";
 import type { ReactNode } from "react";
 
-function MedalIcon({ size = 12 }: { size?: number }) {
-  return (
-    <Box
-      component="svg"
-      viewBox="0 0 512 512"
-      aria-hidden
-      sx={{ width: size, height: size, flexShrink: 0, display: "block" }}
-    >
-      <path
-        fill="currentColor"
-        d="M4.1 38.5C7 15.8 26.1 0 49.2 0h413.7c23.1 0 42.2 15.8 45.1 38.5l47.1 351.8c2.8 20.7-11.5 39.5-32.4 42.3-1.7.2-3.4.3-5.1.3H44.7c-20.9 0-37.9-16.1-39.7-36.9L4.1 38.5zM256 96c-53 0-96 43-96 96s43 96 96 96 96-43 96-96-43-96-96-96zm0 144a48 48 0 1 1 0-96 48 48 0 1 1 0 96z"
-      />
-    </Box>
-  );
-}
+const GOLD = "#D4AF37";
 
 function StarIcon({ size = 12 }: { size?: number }) {
   return (
@@ -36,14 +33,30 @@ function StarIcon({ size = 12 }: { size?: number }) {
   );
 }
 
+function CrownIcon({ size = 12 }: { size?: number }) {
+  return (
+    <Box
+      component="svg"
+      viewBox="0 0 576 512"
+      aria-hidden
+      sx={{ width: size, height: size, flexShrink: 0, display: "block" }}
+    >
+      <path
+        fill="currentColor"
+        d="M309 106c11.4-7 19-19.7 19-34 0-22.1-17.9-40-40-40s-40 17.9-40 40c0 14.4 7.6 27 19 34L209 237l-63-31.5C136 198 124 192 112 192c-22.1 0-40 17.9-40 40 0 12.2 5.5 23.1 14.1 30.5l26.9 21.3L32 384h512L453.9 284.8l26.9-21.3c8.6-7.4 14.1-18.3 14.1-30.5 0-22.1-17.9-40-40-40-12 0-24 6-34 13.5L309 106z"
+      />
+    </Box>
+  );
+}
+
 const BADGE_STYLES: Record<
   TrainingGraduateBadgeRole,
-  { label: string; background: string; Icon: typeof MedalIcon }
+  { label: string; background: string; Icon: typeof StarIcon }
 > = {
   local_leader: {
     label: "LOCAL LEADER",
-    background: "linear-gradient(90deg, #F5B11E 0%, #FFCA59 50%, #F5B11E 100%)",
-    Icon: MedalIcon,
+    background: "linear-gradient(90deg, #15803d 0%, #22c55e 50%, #15803d 100%)",
+    Icon: StarIcon,
   },
   member: {
     label: "MEMBER",
@@ -52,12 +65,71 @@ const BADGE_STYLES: Record<
   },
 };
 
+export function graduateDisplayName(parts: {
+  first_name?: string | null;
+  last_name?: string | null;
+  display_name?: string | null;
+  email?: string | null;
+}): string {
+  const full = [parts.first_name, parts.last_name].filter(Boolean).join(" ").trim();
+  if (full) return full;
+  const disp = parts.display_name?.trim();
+  if (disp) return disp;
+  const email = parts.email?.trim();
+  if (email) return email.split("@")[0] ?? email;
+  return "Graduate";
+}
+
+export function CourseGraduateCongratulationsDialog({
+  open,
+  onClose,
+  firstName,
+  lastName,
+  displayName,
+  email,
+}: {
+  open: boolean;
+  onClose: () => void;
+  firstName?: string | null;
+  lastName?: string | null;
+  displayName?: string | null;
+  email?: string | null;
+}) {
+  const name = graduateDisplayName({
+    first_name: firstName,
+    last_name: lastName,
+    display_name: displayName,
+    email,
+  });
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth aria-labelledby="graduate-congrats-title">
+      <DialogTitle id="graduate-congrats-title" sx={{ color: "primary.main", fontWeight: 800 }}>
+        Course completed
+      </DialogTitle>
+      <DialogContent>
+        <Typography variant="body1" sx={{ mb: 1.5 }}>
+          Congratulations {name}!
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          You have successfully completed the Biblical Citizenship training course. Thank you for
+          your commitment to faithful biblical citizenship.
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button variant="contained" onClick={onClose} autoFocus>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 export function CourseGraduateBadge({
   role,
   size = "default",
 }: {
   role: TrainingGraduateBadgeRole;
-  /** `compact` for dense layouts; `default` matches sidebar profile mockup. */
   size?: "default" | "compact";
 }) {
   const config = BADGE_STYLES[role];
@@ -98,28 +170,36 @@ export function CourseGraduateBadge({
 }
 
 /**
- * Avatar with a subtle course-graduate icon pinned to the top-left corner.
- * Used in user list tables where the full text badge would clutter rows.
+ * Avatar with course-graduate and admin icons on the top-right corner.
+ * Admin crown: gold, no background, always when `showAdminCrown`.
  */
 export function AvatarWithGraduateIcon({
   graduateRole,
+  showAdminCrown = false,
   size = 30,
   src,
   alt,
   children,
   avatarSx,
   sx,
+  onGraduateClick,
 }: {
   graduateRole?: TrainingGraduateBadgeRole | null;
+  /** Platform admin / super_admin — gold crown, no course requirement. */
+  showAdminCrown?: boolean;
   size?: number;
   src?: string;
   alt?: string;
   children?: ReactNode;
   avatarSx?: SxProps<Theme>;
   sx?: SxProps<Theme>;
+  /** When set and user is a graduate, avatar + badge open this handler (e.g. congratulations dialog). */
+  onGraduateClick?: () => void;
 }) {
   const overlaySize = Math.max(13, Math.round(size * 0.44));
   const iconSize = Math.max(7, Math.round(overlaySize * 0.52));
+  const crownSize = Math.max(11, Math.round(size * 0.38));
+  const clickable = Boolean(graduateRole && onGraduateClick);
 
   return (
     <Box
@@ -135,10 +215,19 @@ export function AvatarWithGraduateIcon({
       <Avatar
         src={src}
         alt={alt}
+        onClick={
+          clickable
+            ? (e) => {
+                e.stopPropagation();
+                onGraduateClick?.();
+              }
+            : undefined
+        }
         sx={{
           width: size,
           height: size,
           fontSize: `${Math.round(size * 0.38)}px`,
+          cursor: clickable ? "pointer" : undefined,
           ...avatarSx,
         }}
       >
@@ -147,12 +236,21 @@ export function AvatarWithGraduateIcon({
       {graduateRole ? (
         <Box
           component="span"
+          onClick={
+            clickable
+              ? (e) => {
+                  e.stopPropagation();
+                  onGraduateClick?.();
+                }
+              : undefined
+          }
           title={`${BADGE_STYLES[graduateRole].label} — Biblical Citizenship completed`}
           aria-label={`${BADGE_STYLES[graduateRole].label} — Biblical Citizenship course completed`}
           sx={{
             position: "absolute",
             top: -3,
-            left: -3,
+            right: -3,
+            left: "auto",
             width: overlaySize,
             height: overlaySize,
             borderRadius: "50%",
@@ -164,13 +262,33 @@ export function AvatarWithGraduateIcon({
             border: "1.5px solid rgba(10,10,12,0.95)",
             boxShadow: "0 1px 3px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.12)",
             zIndex: 1,
+            cursor: clickable ? "pointer" : "default",
+            pointerEvents: clickable ? "auto" : "none",
+          }}
+        >
+          <StarIcon size={iconSize} />
+        </Box>
+      ) : null}
+      {showAdminCrown ? (
+        <Box
+          component="span"
+          title="Administrator"
+          aria-label="Administrator"
+          sx={{
+            position: "absolute",
+            bottom: -2,
+            right: -4,
+            left: "auto",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: GOLD,
+            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.75))",
+            zIndex: 2,
             pointerEvents: "none",
           }}
         >
-          {(() => {
-            const Icon = BADGE_STYLES[graduateRole].Icon;
-            return <Icon size={iconSize} />;
-          })()}
+          <CrownIcon size={crownSize} />
         </Box>
       ) : null}
     </Box>

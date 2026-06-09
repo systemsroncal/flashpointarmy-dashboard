@@ -31,7 +31,6 @@ import StarOutlineIcon from "@mui/icons-material/StarOutline";
 import VolunteerActivismOutlinedIcon from "@mui/icons-material/VolunteerActivismOutlined";
 import {
   AppBar,
-  Avatar,
   Box,
   Collapse,
   Divider,
@@ -57,8 +56,7 @@ import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
-import { canAccessMobilizeModule } from "@/lib/auth/user-roles";
-import { isElevatedRole } from "@/lib/auth/user-roles";
+import { canAccessMobilizeModule, isElevatedRole } from "@/lib/auth/user-roles";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
@@ -68,9 +66,13 @@ import { createClient } from "@/utils/supabase/client";
 import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
+import { MobilizeNavNotificationsBadge } from "@/components/mobilize/MobilizeNavNotificationsBadge";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
-import { CourseGraduateBadge } from "@/components/dashboard/training/CourseGraduateBadge";
+import {
+  AvatarWithGraduateIcon,
+  CourseGraduateCongratulationsDialog,
+} from "@/components/dashboard/training/CourseGraduateBadge";
 import { UserProfileDrawer } from "./UserProfileDrawer";
 import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
@@ -98,7 +100,7 @@ const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
     icon: <ArrowBackIcon />,
   },
   {
-    label: "Map & Groups",
+    label: "Groups",
     href: `${MOBILIZE_PREFIX}/map`,
     module: MODULE_SLUGS.movilization,
     icon: <MapIcon />,
@@ -341,6 +343,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [desktopDrawerOpen, setDesktopDrawerOpen] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileEditMode, setProfileEditMode] = useState(false);
+  const [graduateCongratsOpen, setGraduateCongratsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const pathname = usePathname();
@@ -564,6 +567,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     sx={{
                       ...NAV_ITEM_TOUCH_SX,
                       py: 0.75,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
                       "&.Mui-selected": {
                         borderLeft: `3px solid ${MOVILIZATION_RED}`,
                         bgcolor: "rgba(195, 32, 32, 0.1)",
@@ -580,6 +586,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     </ListItemIcon>
                     <ListItemText
                       primary={item.label}
+                      sx={
+                        item.href === `${MOBILIZE_PREFIX}/notifications`
+                          ? { flex: "1 1 auto", minWidth: 0, m: 0 }
+                          : undefined
+                      }
                       primaryTypographyProps={{
                         variant: "body2",
                         fontWeight: 600,
@@ -587,6 +598,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.88)",
                       }}
                     />
+                    {item.href === `${MOBILIZE_PREFIX}/notifications` ? (
+                      <MobilizeNavNotificationsBadge />
+                    ) : null}
                   </ListItemButton>
                 </ListItem>
               );
@@ -940,39 +954,46 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           sx={{
             p: 1.5,
             pb: "calc(12px + env(safe-area-inset-bottom, 0px))",
-            cursor: "pointer",
             touchAction: "manipulation",
-            "&:hover": { bgcolor: "rgba(255,215,0,0.05)" },
-          }}
-          onClick={() => setProfileOpen(true)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setProfileOpen(true);
-            }
           }}
         >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-          <Avatar
+          <AvatarWithGraduateIcon
+            size={40}
+            graduateRole={user.training_graduate_badge}
+            showAdminCrown={isElevatedRole(user.role_names)}
             src={user.avatar_url ? publicAssetSrc(user.avatar_url) : undefined}
-            sx={{ width: 40, height: 40, bgcolor: "primary.dark" }}
+            alt={displayInitial}
+            avatarSx={{ bgcolor: "primary.dark" }}
+            onGraduateClick={
+              user.training_graduate_badge ? () => setGraduateCongratsOpen(true) : undefined
+            }
           >
             {displayInitial.slice(0, 2).toUpperCase()}
-          </Avatar>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
+          </AvatarWithGraduateIcon>
+          <Box
+            sx={{
+              minWidth: 0,
+              flex: 1,
+              cursor: "pointer",
+              "&:hover": { opacity: 0.92 },
+            }}
+            onClick={() => setProfileOpen(true)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setProfileOpen(true);
+              }
+            }}
+          >
             <Typography variant="body2" color="text.primary" noWrap fontWeight={600}>
               {displayInitial}
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" noWrap>
               {user.email}
             </Typography>
-            {user.training_graduate_badge ? (
-              <Box sx={{ mt: 0.75 }}>
-                <CourseGraduateBadge role={user.training_graduate_badge} />
-              </Box>
-            ) : null}
           </Box>
         </Box>
         <ListItemButton
@@ -1130,6 +1151,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </Box>
+
+      <CourseGraduateCongratulationsDialog
+        open={graduateCongratsOpen}
+        onClose={() => setGraduateCongratsOpen(false)}
+        firstName={user.first_name}
+        lastName={user.last_name}
+        displayName={user.display_name}
+        email={user.email}
+      />
 
       <UserProfileDrawer
         open={profileOpen}

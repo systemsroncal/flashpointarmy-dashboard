@@ -1,3 +1,4 @@
+import { MobilizeNotificationsSoundWatcher } from "@/components/mobilize/MobilizeNotificationsSoundWatcher";
 import { MobilizeToastProvider } from "@/components/mobilize/MobilizeToastProvider";
 import { canAccessMobilizeModule, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { requireServerUser } from "@/lib/auth/server-session";
@@ -10,5 +11,10 @@ export default async function MobilizeLayout({ children }: { children: React.Rea
     redirect("/dashboard");
   }
 
-  return <MobilizeToastProvider>{children}</MobilizeToastProvider>;
+  return (
+    <MobilizeToastProvider>
+      <MobilizeNotificationsSoundWatcher />
+      {children}
+    </MobilizeToastProvider>
+  );
 }
