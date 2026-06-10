@@ -113,6 +113,19 @@ const MOBILIZE_DASHBOARD_NAV_ITEM_SX = {
     "& .MuiListItemText-primary": { color: flashpointYellow },
   },
 } as const;
+
+/** Inset panel for single-group sidebar tabs (gold accent, distinct from Mobilize nav). */
+const MOBILIZE_GROUP_SIDEBAR_PANEL_SX = {
+  mx: 1,
+  mt: 1,
+  mb: 0.5,
+  borderRadius: 1.5,
+  border: "1px solid rgba(255, 215, 0, 0.22)",
+  bgcolor: "rgba(0, 0, 0, 0.28)",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.04)",
+  overflow: "hidden",
+} as const;
+
 const maintenanceTop = `var(${MAINTENANCE_BANNER_OFFSET_VAR}, 0px)`;
 
 type NavItem = {
@@ -378,6 +391,25 @@ const NAV_ITEM_TOUCH_SX = {
   },
 } as const;
 
+const MOBILIZE_GROUP_TAB_NAV_SX = {
+  ...NAV_ITEM_TOUCH_SX,
+  py: 0.6,
+  minHeight: 44,
+  mx: 0.75,
+  mb: 0.35,
+  borderRadius: 1,
+  borderLeft: "none !important",
+  "&.Mui-selected": {
+    bgcolor: "rgba(255, 215, 0, 0.16)",
+    boxShadow: "inset 0 0 0 1px rgba(255, 215, 0, 0.35)",
+    "& .MuiListItemIcon-root": { color: flashpointYellow },
+    "& .MuiListItemText-primary": { color: flashpointYellow, fontWeight: 700 },
+  },
+  "&:hover": {
+    bgcolor: "rgba(255, 255, 255, 0.06)",
+  },
+} as const;
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   const desktop = useMediaQuery(theme.breakpoints.up("md"));
@@ -619,10 +651,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     }}
                   >
                     <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
-                      <MapIcon />
+                      <ArrowBackIcon />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Groups"
+                      primary="All groups"
                       primaryTypographyProps={{
                         variant: "body2",
                         fontWeight: 600,
@@ -632,53 +664,92 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     />
                   </ListItemButton>
                 </ListItem>
-                {MOBILIZE_GROUP_TAB_SLUGS.map((slug) => {
-                  const selected = activeMobilizeGroupTab === slug;
-                  const href = mobilizeGroupDetailHref(mobilizeGroupDetailId, slug);
-                  return (
-                    <ListItem key={slug} disablePadding>
-                      <ListItemButton
-                        component={Link}
-                        href={href}
-                        selected={selected}
-                        data-tour={`mobilize-group-tab-${slug}`}
-                        onClick={closeMobileDrawer}
-                        sx={{
-                          ...NAV_ITEM_TOUCH_SX,
-                          py: 0.75,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.5,
-                          "&.Mui-selected": {
-                            borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                            bgcolor: "rgba(195, 32, 32, 0.1)",
-                          },
-                        }}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.92)",
-                            minWidth: 38,
-                          }}
-                        >
-                          {MOBILIZE_GROUP_TAB_ICONS[slug]}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={MOBILIZE_GROUP_TAB_LABELS[slug]}
-                          primaryTypographyProps={{
-                            variant: "body2",
-                            fontWeight: 600,
-                            fontSize: "calc(0.82rem + 3px)",
-                            color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.88)",
-                          }}
-                        />
-                      </ListItemButton>
-                    </ListItem>
-                  );
-                })}
+                <Box sx={MOBILIZE_GROUP_SIDEBAR_PANEL_SX}>
+                  <Box
+                    sx={{
+                      px: 1.25,
+                      pt: 1.25,
+                      pb: 0.75,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.75,
+                    }}
+                  >
+                    <GroupsOutlinedIcon sx={{ fontSize: 18, color: flashpointYellow }} />
+                    <Typography
+                      variant="overline"
+                      sx={{
+                        color: "rgba(255,215,0,0.78)",
+                        letterSpacing: "0.12em",
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      This group
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ borderColor: "rgba(255,215,0,0.14)", mx: 1, mb: 0.75 }} />
+                  <Box sx={{ pb: 0.75 }}>
+                    {MOBILIZE_GROUP_TAB_SLUGS.map((slug) => {
+                      const selected = activeMobilizeGroupTab === slug;
+                      const href = mobilizeGroupDetailHref(mobilizeGroupDetailId, slug);
+                      return (
+                        <ListItem key={slug} disablePadding>
+                          <ListItemButton
+                            component={Link}
+                            href={href}
+                            selected={selected}
+                            data-tour={`mobilize-group-tab-${slug}`}
+                            onClick={closeMobileDrawer}
+                            sx={{
+                              ...MOBILIZE_GROUP_TAB_NAV_SX,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}
+                          >
+                            <ListItemIcon
+                              sx={{
+                                color: selected ? flashpointYellow : "rgba(255,255,255,0.78)",
+                                minWidth: 34,
+                              }}
+                            >
+                              {MOBILIZE_GROUP_TAB_ICONS[slug]}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={MOBILIZE_GROUP_TAB_LABELS[slug]}
+                              primaryTypographyProps={{
+                                variant: "body2",
+                                fontWeight: selected ? 700 : 600,
+                                fontSize: "calc(0.8rem + 2px)",
+                                color: selected ? flashpointYellow : "rgba(255,255,255,0.86)",
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })}
+                  </Box>
+                </Box>
               </>
             ) : (
-              mobilizeDrawerNav.map((item) => {
+              <>
+                <Box sx={{ px: 2, pt: 0.25, pb: 0.75 }}>
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      color: "rgba(195,32,32,0.82)",
+                      letterSpacing: "0.12em",
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    Mobilize
+                  </Typography>
+                </Box>
+              {mobilizeDrawerNav.map((item) => {
                 const selected = isNavItemSelected(item, pathname);
                 const isMobilizeDashboardLink = item.href === "/dashboard";
                 return (
@@ -733,7 +804,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     </ListItemButton>
                   </ListItem>
                 );
-              })
+              })}
+              </>
             )}
           </>
         ) : (
