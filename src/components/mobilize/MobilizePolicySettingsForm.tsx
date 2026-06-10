@@ -74,7 +74,7 @@ export function MobilizePolicySettingsForm() {
   }
 
   return (
-    <Paper sx={{ p: 3, maxWidth: 560, bgcolor: "rgba(0,0,0,0.35)" }}>
+    <Paper sx={{ p: 3, maxWidth: 560, bgcolor: "#fafafa", border: "1px solid rgba(0,0,0,0.1)" }}>
       <Typography variant="h6" fontWeight={700} gutterBottom>
         Who can create Mobilize groups
       </Typography>

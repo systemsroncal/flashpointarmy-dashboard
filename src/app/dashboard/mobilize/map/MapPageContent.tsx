@@ -32,9 +32,14 @@ import MapIcon from "@mui/icons-material/Map";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
+import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
 import MobilizeGroupsBrowseTable from "@/components/mobilize/MobilizeGroupsBrowseTable";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
+import {
+  isMobilizeGroupListed,
+  mobilizeGroupListingVisibilityFromListed,
+} from "@/lib/mobilize/group-ui-labels";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -94,6 +99,7 @@ export default function MobilizeMapPageContent() {
     visibility: "public",
     cover_image_url: "",
     wall_post_policy: "all_approved" as "all_approved" | "leaders_only",
+    resources_post_policy: "all_approved" as "all_approved" | "leaders_only",
   });
 
   useEffect(() => {
@@ -166,6 +172,7 @@ export default function MobilizeMapPageContent() {
           const byId = new Map(rows.map((g) => [g.id, g]));
           for (const raw of jsonMine.groups as GroupRow[]) {
             if (raw.latitude == null || raw.longitude == null) continue;
+            if (!isMobilizeGroupListed(raw.visibility)) continue;
             const merged = { ...raw, ...(byId.get(raw.id) ?? {}) };
             byId.set(raw.id, merged);
           }
@@ -308,6 +315,7 @@ export default function MobilizeMapPageContent() {
           visibility: form.visibility,
           cover_image_url: cover,
           wall_post_policy: form.wall_post_policy,
+          resources_post_policy: form.resources_post_policy,
         }),
       });
       const json = await res.json();
@@ -324,6 +332,7 @@ export default function MobilizeMapPageContent() {
         visibility: "public",
         cover_image_url: "",
         wall_post_policy: "all_approved",
+        resources_post_policy: "all_approved",
       });
       await load();
     } catch (e) {
@@ -620,18 +629,16 @@ export default function MobilizeMapPageContent() {
             <Button variant="outlined" onClick={() => void runGeocodeForForm()}>
               Geocode address
             </Button>
-            <FormControl fullWidth>
-              <InputLabel id="vis">Visibility</InputLabel>
-              <Select
-                labelId="vis"
-                label="Visibility"
-                value={form.visibility}
-                onChange={(e) => setForm((f) => ({ ...f, visibility: String(e.target.value) }))}
-              >
-                <MenuItem value="public">Public</MenuItem>
-                <MenuItem value="private">Private</MenuItem>
-              </Select>
-            </FormControl>
+            <MobilizeGroupListedSwitch
+              listed={isMobilizeGroupListed(form.visibility)}
+              disabled={saving}
+              onListedChange={(listed) =>
+                setForm((f) => ({
+                  ...f,
+                  visibility: mobilizeGroupListingVisibilityFromListed(listed),
+                }))
+              }
+            />
             <FormControl fullWidth>
               <InputLabel id="wpp">Who can post announcements</InputLabel>
               <Select
@@ -642,6 +649,23 @@ export default function MobilizeMapPageContent() {
                   setForm((f) => ({
                     ...f,
                     wall_post_policy: e.target.value as "all_approved" | "leaders_only",
+                  }))
+                }
+              >
+                <MenuItem value="all_approved">All approved members</MenuItem>
+                <MenuItem value="leaders_only">Leaders only</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel id="rpp-create">Who can add resources</InputLabel>
+              <Select
+                labelId="rpp-create"
+                label="Who can add resources"
+                value={form.resources_post_policy}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    resources_post_policy: e.target.value as "all_approved" | "leaders_only",
                   }))
                 }
               >

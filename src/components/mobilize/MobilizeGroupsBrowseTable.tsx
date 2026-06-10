@@ -247,9 +247,9 @@ export default function MobilizeGroupsBrowseTable({
             ? { maxHeight, ...mapTableScrollSx }
             : { maxHeight, overflow: "auto" }
           : mapTableScrollSx ?? {}),
-        bgcolor: "rgba(0,0,0,0.2)",
+        bgcolor: "#ffffff",
         borderRadius: 1,
-        border: "1px solid rgba(255,215,0,0.12)",
+        border: "1px solid rgba(0,0,0,0.12)",
         width: "100%",
         maxWidth: "100%",
       }}
@@ -370,7 +370,7 @@ export default function MobilizeGroupsBrowseTable({
                 sx={{
                   "& td": {
                     verticalAlign: "middle",
-                    borderColor: "rgba(255,215,0,0.08)",
+                    borderColor: "rgba(0,0,0,0.06)",
                     ...(mapStacked ? { py: 0.75 } : {}),
                   },
                 }}

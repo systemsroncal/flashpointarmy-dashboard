@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, cover_image_url, created_by, created_at"
+      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, created_by, created_at"
     )
     .order("created_at", { ascending: false });
 
@@ -86,6 +86,7 @@ export async function POST(req: Request) {
     event_create_policy?: string;
     cover_image_url?: string | null;
     wall_post_policy?: string;
+    resources_post_policy?: string;
   };
 
   const name = String(body.name ?? "").trim();
@@ -100,6 +101,8 @@ export async function POST(req: Request) {
     body.event_create_policy === "leader_only" ? "leader_only" : "any_member";
   const wall_post_policy =
     body.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved";
+  const resources_post_policy =
+    body.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved";
   const cover =
     body.cover_image_url != null && String(body.cover_image_url).trim()
       ? String(body.cover_image_url).trim()
@@ -115,6 +118,7 @@ export async function POST(req: Request) {
     visibility,
     event_create_policy,
     wall_post_policy,
+    resources_post_policy,
     cover_image_url: cover,
     created_by: auth.userId,
   };

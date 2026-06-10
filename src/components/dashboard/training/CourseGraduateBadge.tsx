@@ -15,7 +15,25 @@ import {
 } from "@mui/material";
 import type { ReactNode } from "react";
 
-const GOLD = "#D4AF37";
+const GOLD = "rgb(255, 215, 0)";
+const ADMIN_AVATAR_BG = "#f8ffd1";
+/** Reference avatar size for overlay metrics from design (sidebar profile). */
+const OVERLAY_REF_SIZE = 40;
+const OVERLAY_REF = {
+  top: -10,
+  right: -9,
+  iconSize: 25,
+  crownRotateDeg: 41,
+} as const;
+
+function overlayMetrics(avatarSize: number) {
+  const scale = avatarSize / OVERLAY_REF_SIZE;
+  return {
+    top: OVERLAY_REF.top * scale,
+    right: OVERLAY_REF.right * scale,
+    iconSize: OVERLAY_REF.iconSize * scale,
+  };
+}
 
 function StarIcon({ size = 12 }: { size?: number }) {
   return (
@@ -196,10 +214,9 @@ export function AvatarWithGraduateIcon({
   /** When set and user is a graduate, avatar + badge open this handler (e.g. congratulations dialog). */
   onGraduateClick?: () => void;
 }) {
-  const overlaySize = Math.max(13, Math.round(size * 0.44));
-  const iconSize = Math.max(7, Math.round(overlaySize * 0.52));
-  const crownSize = Math.max(11, Math.round(size * 0.38));
+  const { top, right, iconSize } = overlayMetrics(size);
   const clickable = Boolean(graduateRole && onGraduateClick);
+  const adminAvatarBg = showAdminCrown && !src;
 
   return (
     <Box
@@ -229,6 +246,9 @@ export function AvatarWithGraduateIcon({
           fontSize: `${Math.round(size * 0.38)}px`,
           cursor: clickable ? "pointer" : undefined,
           ...avatarSx,
+          ...(adminAvatarBg
+            ? { bgcolor: ADMIN_AVATAR_BG, color: "rgba(0,0,0,0.87)" }
+            : {}),
         }}
       >
         {children}
@@ -248,19 +268,14 @@ export function AvatarWithGraduateIcon({
           aria-label={`${BADGE_STYLES[graduateRole].label} — Biblical Citizenship course completed`}
           sx={{
             position: "absolute",
-            top: -3,
-            right: -3,
+            top,
+            right,
             left: "auto",
-            width: overlaySize,
-            height: overlaySize,
-            borderRadius: "50%",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            background: BADGE_STYLES[graduateRole].background,
-            color: "#111",
-            border: "1.5px solid rgba(10,10,12,0.95)",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.12)",
+            color: graduateRole === "local_leader" ? "#22c55e" : "#9ca3af",
+            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.75))",
             zIndex: 1,
             cursor: clickable ? "pointer" : "default",
             pointerEvents: clickable ? "auto" : "none",
@@ -276,8 +291,8 @@ export function AvatarWithGraduateIcon({
           aria-label="Administrator"
           sx={{
             position: "absolute",
-            bottom: -2,
-            right: -4,
+            top,
+            right,
             left: "auto",
             display: "inline-flex",
             alignItems: "center",
@@ -286,9 +301,10 @@ export function AvatarWithGraduateIcon({
             filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.75))",
             zIndex: 2,
             pointerEvents: "none",
+            transform: `rotate(${OVERLAY_REF.crownRotateDeg}deg)`,
           }}
         >
-          <CrownIcon size={crownSize} />
+          <CrownIcon size={iconSize} />
         </Box>
       ) : null}
     </Box>

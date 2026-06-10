@@ -2,12 +2,15 @@
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignIcon from "@mui/icons-material/Campaign";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EventIcon from "@mui/icons-material/Event";
 import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import MapIcon from "@mui/icons-material/Map";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
@@ -49,7 +52,7 @@ import {
 import type { Theme } from "@mui/material/styles";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardTourHelpButton, DashboardTourProvider } from "@/components/dashboard/DashboardTour";
 import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
@@ -76,8 +79,46 @@ import {
 import { UserProfileDrawer } from "./UserProfileDrawer";
 import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
+import { flashpointYellow } from "@/theme/tokens";
+import {
+  MOBILIZE_GROUP_TAB_LABELS,
+  MOBILIZE_GROUP_TAB_SLUGS,
+  mobilizeGroupDetailHref,
+  parseMobilizeGroupDetailId,
+  parseMobilizeGroupTab,
+  type MobilizeGroupTabSlug,
+} from "@/lib/mobilize/group-detail-tabs";
 
 const DRAWER_WIDTH = 220;
+
+/** Mobilize sidebar: “Dashboard” back link — light grid tile + system yellow hover. */
+const MOBILIZE_DASHBOARD_NAV_ITEM_SX = {
+  mx: 1,
+  mb: 0.75,
+  borderRadius: 1.5,
+  border: "1px solid rgba(255, 255, 255, 0.14)",
+  bgcolor: "rgba(255, 255, 255, 0.1)",
+  backgroundImage: `
+    linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px)
+  `,
+  backgroundSize: "16px 16px",
+  transition: "background-color 0.15s ease, border-color 0.15s ease, background-image 0.15s ease",
+  "&:hover": {
+    bgcolor: "rgba(255, 215, 0, 0.22)",
+    borderColor: "rgba(255, 215, 0, 0.45)",
+    backgroundImage: "none",
+    "& .MuiListItemIcon-root": { color: flashpointYellow },
+    "& .MuiListItemText-primary": { color: flashpointYellow },
+  },
+  "&.Mui-selected": {
+    borderLeft: "none !important",
+    bgcolor: "rgba(255, 215, 0, 0.18)",
+    borderColor: "rgba(255, 215, 0, 0.4)",
+    "& .MuiListItemIcon-root": { color: flashpointYellow },
+    "& .MuiListItemText-primary": { color: flashpointYellow },
+  },
+} as const;
 const maintenanceTop = `var(${MAINTENANCE_BANNER_OFFSET_VAR}, 0px)`;
 
 type NavItem = {
@@ -91,6 +132,13 @@ const COURSE_LEARNER_PREFIX = "/dashboard/course";
 
 const MOBILIZE_PREFIX = "/dashboard/mobilize";
 const MOBILIZE_HOME = `${MOBILIZE_PREFIX}/map`;
+
+const MOBILIZE_GROUP_TAB_ICONS: Record<MobilizeGroupTabSlug, React.ReactNode> = {
+  announcements: <CampaignOutlinedIcon />,
+  events: <EventAvailableOutlinedIcon />,
+  members: <GroupsOutlinedIcon />,
+  resources: <FolderOpenOutlinedIcon />,
+};
 
 const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
   {
@@ -347,10 +395,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const permissions = usePermissions();
   const user = useDashboardUser();
   const isMobilize =
     pathname.startsWith(MOBILIZE_PREFIX) && canAccessMobilizeModule(user.role_names);
+  const mobilizeGroupDetailId = parseMobilizeGroupDetailId(pathname);
+  const isMobilizeGroupDetail = Boolean(mobilizeGroupDetailId);
+  const activeMobilizeGroupTab = parseMobilizeGroupTab(searchParams.get("tab"));
 
   /** Red Mobilize chrome only while inside `/dashboard/mobilize/*` (not persisted). */
   const redNavAccent = isMobilize;
@@ -554,15 +606,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       >
         {isMobilize ? (
           <>
-            {mobilizeDrawerNav.map((item) => {
-              const selected = isNavItemSelected(item, pathname);
-              return (
-                <ListItem key={item.href} disablePadding>
+            {isMobilizeGroupDetail && mobilizeGroupDetailId ? (
+              <>
+                <ListItem disablePadding>
                   <ListItemButton
                     component={Link}
-                    href={item.href}
-                    selected={selected}
-                    data-tour={mobilizeNavTourAttr(item.href)}
+                    href="/dashboard"
+                    selected={false}
+                    data-tour={mobilizeNavTourAttr("/dashboard")}
                     onClick={closeMobileDrawer}
                     sx={{
                       ...NAV_ITEM_TOUCH_SX,
@@ -570,41 +621,126 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       display: "flex",
                       alignItems: "center",
                       gap: 0.5,
-                      "&.Mui-selected": {
-                        borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                        bgcolor: "rgba(195, 32, 32, 0.1)",
-                      },
+                      ...MOBILIZE_DASHBOARD_NAV_ITEM_SX,
                     }}
                   >
-                    <ListItemIcon
-                      sx={{
-                        color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.92)",
-                        minWidth: 38,
-                      }}
-                    >
-                      {item.icon}
+                    <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
+                      <ArrowBackIcon />
                     </ListItemIcon>
                     <ListItemText
-                      primary={item.label}
-                      sx={
-                        item.href === `${MOBILIZE_PREFIX}/notifications`
-                          ? { flex: "1 1 auto", minWidth: 0, m: 0 }
-                          : undefined
-                      }
+                      primary="Dashboard"
                       primaryTypographyProps={{
                         variant: "body2",
                         fontWeight: 600,
                         fontSize: "calc(0.82rem + 3px)",
-                        color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.88)",
+                        color: "rgba(255,255,255,0.88)",
                       }}
                     />
-                    {item.href === `${MOBILIZE_PREFIX}/notifications` ? (
-                      <MobilizeNavNotificationsBadge />
-                    ) : null}
                   </ListItemButton>
                 </ListItem>
-              );
-            })}
+                {MOBILIZE_GROUP_TAB_SLUGS.map((slug) => {
+                  const selected = activeMobilizeGroupTab === slug;
+                  const href = mobilizeGroupDetailHref(mobilizeGroupDetailId, slug);
+                  return (
+                    <ListItem key={slug} disablePadding>
+                      <ListItemButton
+                        component={Link}
+                        href={href}
+                        selected={selected}
+                        data-tour={`mobilize-group-tab-${slug}`}
+                        onClick={closeMobileDrawer}
+                        sx={{
+                          ...NAV_ITEM_TOUCH_SX,
+                          py: 0.75,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          "&.Mui-selected": {
+                            borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                            bgcolor: "rgba(195, 32, 32, 0.1)",
+                          },
+                        }}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.92)",
+                            minWidth: 38,
+                          }}
+                        >
+                          {MOBILIZE_GROUP_TAB_ICONS[slug]}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={MOBILIZE_GROUP_TAB_LABELS[slug]}
+                          primaryTypographyProps={{
+                            variant: "body2",
+                            fontWeight: 600,
+                            fontSize: "calc(0.82rem + 3px)",
+                            color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.88)",
+                          }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
+              </>
+            ) : (
+              mobilizeDrawerNav.map((item) => {
+                const selected = isNavItemSelected(item, pathname);
+                const isMobilizeDashboardLink = item.href === "/dashboard";
+                return (
+                  <ListItem key={item.href} disablePadding>
+                    <ListItemButton
+                      component={Link}
+                      href={item.href}
+                      selected={selected}
+                      data-tour={mobilizeNavTourAttr(item.href)}
+                      onClick={closeMobileDrawer}
+                      sx={{
+                        ...NAV_ITEM_TOUCH_SX,
+                        py: 0.75,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        ...(isMobilizeDashboardLink
+                          ? MOBILIZE_DASHBOARD_NAV_ITEM_SX
+                          : {
+                              "&.Mui-selected": {
+                                borderLeft: `3px solid ${MOVILIZATION_RED}`,
+                                bgcolor: "rgba(195, 32, 32, 0.1)",
+                              },
+                            }),
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.92)",
+                          minWidth: 38,
+                        }}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.label}
+                        sx={
+                          item.href === `${MOBILIZE_PREFIX}/notifications`
+                            ? { flex: "1 1 auto", minWidth: 0, m: 0 }
+                            : undefined
+                        }
+                        primaryTypographyProps={{
+                          variant: "body2",
+                          fontWeight: 600,
+                          fontSize: "calc(0.82rem + 3px)",
+                          color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.88)",
+                        }}
+                      />
+                      {item.href === `${MOBILIZE_PREFIX}/notifications` ? (
+                        <MobilizeNavNotificationsBadge />
+                      ) : null}
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })
+            )}
           </>
         ) : (
           visibleNav.map((item) => {
@@ -1009,10 +1145,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             }
             void handleSignOut();
           }}
-          sx={{ mt: 0.5, borderRadius: 1, ...NAV_ITEM_TOUCH_SX }}
+          sx={{
+            mt: 0.5,
+            ...NAV_ITEM_TOUCH_SX,
+            ...(isMobilize ? MOBILIZE_DASHBOARD_NAV_ITEM_SX : { borderRadius: 1 }),
+          }}
         >
           <ListItemIcon sx={{ minWidth: 38, color: "rgba(255,255,255,0.92)" }}>
-            <ExitToAppIcon fontSize="small" />
+            {isMobilize ? <ArrowBackIcon fontSize="small" /> : <ExitToAppIcon fontSize="small" />}
           </ListItemIcon>
           <ListItemText
             primary={isMobilize ? "Dashboard" : "Sign out"}
@@ -1142,7 +1282,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           pb: "calc(32px + env(safe-area-inset-bottom, 0px))",
           ml: { md: desktopDrawerOpen ? `${DRAWER_WIDTH}px` : 0 },
           minHeight: "100vh",
-          color: "grey.100",
+          ...(isMobilize
+            ? { bgcolor: "#ffffff", color: "#0d0d0d" }
+            : { color: "grey.100" }),
           transition: theme.transitions.create("margin", {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,

@@ -87,8 +87,8 @@ export default function MobilizeGroupCoverDropzone({ value, onChange, disabled =
           px: 2,
           borderRadius: 1,
           border: "2px dashed",
-          borderColor: dragOver ? "primary.main" : "rgba(255,215,0,0.25)",
-          bgcolor: dragOver ? "rgba(255,215,0,0.06)" : "rgba(0,0,0,0.2)",
+          borderColor: dragOver ? "primary.main" : "rgba(202, 154, 0, 0.45)",
+          bgcolor: dragOver ? "rgba(255, 215, 0, 0.12)" : "#fafafa",
           textAlign: "center",
           cursor: disabled || uploading ? "default" : "pointer",
           mb: 1,
@@ -111,8 +111,8 @@ export default function MobilizeGroupCoverDropzone({ value, onChange, disabled =
             mt: 1,
             p: 1.5,
             borderRadius: 1,
-            border: "1px solid rgba(255,215,0,0.2)",
-            bgcolor: "rgba(0,0,0,0.25)",
+            border: "1px solid rgba(0,0,0,0.1)",
+            bgcolor: "#ffffff",
           }}
         >
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>

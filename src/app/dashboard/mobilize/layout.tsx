@@ -1,3 +1,4 @@
+import { MobilizeContentShell } from "@/components/mobilize/MobilizeContentShell";
 import { MobilizeNotificationsSoundWatcher } from "@/components/mobilize/MobilizeNotificationsSoundWatcher";
 import { MobilizeToastProvider } from "@/components/mobilize/MobilizeToastProvider";
 import { canAccessMobilizeModule, loadUserRoleNames } from "@/lib/auth/user-roles";
@@ -14,7 +15,7 @@ export default async function MobilizeLayout({ children }: { children: React.Rea
   return (
     <MobilizeToastProvider>
       <MobilizeNotificationsSoundWatcher />
-      {children}
+      <MobilizeContentShell>{children}</MobilizeContentShell>
     </MobilizeToastProvider>
   );
 }

@@ -57,3 +57,31 @@ export async function writeMobilizeGroupCoverImage(userId: string, buffer: Buffe
   await writeFile(path.join(absDir, fileName), buffer);
   return toWebPath("mobilize-groups", userId, fileName);
 }
+
+/** Mobilize announcement images under `public/uploads/mobilize-announcements/{groupId}/{userId}/{uuid}.{ext}`. */
+export async function writeMobilizeAnnouncementImage(
+  groupId: string,
+  userId: string,
+  buffer: Buffer,
+  ext: string
+): Promise<string> {
+  const absDir = path.join(uploadsRoot(), "mobilize-announcements", groupId, userId);
+  await mkdir(absDir, { recursive: true });
+  const fileName = `${randomUUID()}.${ext}`;
+  await writeFile(path.join(absDir, fileName), buffer);
+  return toWebPath("mobilize-announcements", groupId, userId, fileName);
+}
+
+/** Mobilize group resource documents under `public/uploads/mobilize-resources/{groupId}/{userId}/{uuid}.{ext}`. */
+export async function writeMobilizeGroupResourceFile(
+  groupId: string,
+  userId: string,
+  buffer: Buffer,
+  ext: string
+): Promise<string> {
+  const absDir = path.join(uploadsRoot(), "mobilize-resources", groupId, userId);
+  await mkdir(absDir, { recursive: true });
+  const fileName = `${randomUUID()}.${ext}`;
+  await writeFile(path.join(absDir, fileName), buffer);
+  return toWebPath("mobilize-resources", groupId, userId, fileName);
+}

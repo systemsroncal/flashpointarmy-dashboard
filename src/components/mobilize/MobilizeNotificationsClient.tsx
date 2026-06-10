@@ -31,15 +31,15 @@ import Link from "next/link";
 
 function notificationCardSx(accent: string) {
   return {
-    bgcolor: "rgba(0,0,0,0.28)",
-    border: "1px solid rgba(255,215,0,0.14)",
+    bgcolor: "#fafafa",
+    border: "1px solid rgba(0,0,0,0.1)",
     borderLeft: "4px solid",
     borderLeftColor: accent,
     borderRadius: 2,
     transition: "transform 0.15s ease, box-shadow 0.15s ease",
     "&:hover": {
       transform: "translateY(-1px)",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+      boxShadow: "0 6px 18px rgba(0,0,0,0.1)",
     },
   } as const;
 }
@@ -166,7 +166,7 @@ function EventNotificationCard({ item }: { item: MobilizeRecentEventNotification
 
 function EmptySection({ icon, message }: { icon: ReactNode; message: string }) {
   return (
-    <Card variant="outlined" sx={{ bgcolor: "rgba(0,0,0,0.18)", borderColor: "rgba(255,215,0,0.1)", borderRadius: 2 }}>
+    <Card variant="outlined" sx={{ bgcolor: "#fafafa", borderColor: "rgba(0,0,0,0.1)", borderRadius: 2 }}>
       <CardContent>
         <Stack
           direction={{ xs: "column", sm: "row" }}

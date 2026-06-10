@@ -68,6 +68,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     "event_create_policy",
     "cover_image_url",
     "wall_post_policy",
+    "resources_post_policy",
   ] as const;
   for (const k of allowed) {
     if (k in body) patch[k] = body[k];
@@ -100,9 +101,16 @@ export async function PATCH(req: Request, ctx: Ctx) {
       return NextResponse.json({ error: msg }, { status: 400 });
     }
   }
+  if ("visibility" in patch) {
+    patch.visibility = patch.visibility === "private" ? "private" : "public";
+  }
   if ("wall_post_policy" in patch) {
     patch.wall_post_policy =
       patch.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved";
+  }
+  if ("resources_post_policy" in patch) {
+    patch.resources_post_policy =
+      patch.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved";
   }
   if ("cover_image_url" in patch) {
     const u = patch.cover_image_url;

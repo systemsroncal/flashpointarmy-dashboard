@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-images";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string; messageId: string }> };
@@ -21,7 +22,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const { data: msg, error: mErr } = await auth.admin
     .from("mobilize_group_messages")
-    .select("id, author_id, content, comments_policy")
+    .select("id, author_id, content, comments_policy, image_urls")
     .eq("id", messageId)
     .eq("group_id", groupId)
     .maybeSingle();
@@ -37,14 +38,31 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const body = (await req.json()) as {
     content?: string;
     comments_policy?: string;
+    image_urls?: unknown;
   };
 
   const patch: Record<string, unknown> = {};
   if (typeof body.content === "string") {
-    const c = body.content.trim();
-    if (!c) return NextResponse.json({ error: "content cannot be empty." }, { status: 400 });
-    patch.content = c;
+    patch.content = body.content.trim();
   }
+  if ("image_urls" in body) {
+    const image_urls = sanitizeAnnouncementImageUrls(body.image_urls);
+    if (image_urls === null) {
+      return NextResponse.json({ error: "Invalid image URLs." }, { status: 400 });
+    }
+    patch.image_urls = image_urls;
+  }
+
+  const nextContent = typeof patch.content === "string" ? patch.content : String(msg.content ?? "").trim();
+  const nextImages = Array.isArray(patch.image_urls)
+    ? (patch.image_urls as string[])
+    : Array.isArray((msg as { image_urls?: string[] }).image_urls)
+      ? ((msg as { image_urls: string[] }).image_urls ?? [])
+      : [];
+  if (!nextContent && !nextImages.length) {
+    return NextResponse.json({ error: "Add text or at least one image." }, { status: 400 });
+  }
+
   if ("comments_policy" in body && isLeader) {
     patch.comments_policy =
       body.comments_policy === "leaders_only" ? "leaders_only" : "everyone";

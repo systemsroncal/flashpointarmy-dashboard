@@ -70,29 +70,7 @@ export async function GET(req: Request) {
     }))
     .filter((r) => r.distance_km <= radiusKm);
 
-  const byId = new Map<string, GroupRow & { distance_km: number }>();
-  for (const r of withDistance) byId.set(r.id, r);
-
-  const { data: owned, error: ownErr } = await auth.admin
-    .from("mobilize_groups")
-    .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, wall_post_policy, created_at, created_by"
-    )
-    .eq("created_by", auth.userId)
-    .not("latitude", "is", null)
-    .not("longitude", "is", null);
-
-  if (!ownErr && owned?.length) {
-    for (const r of owned as GroupRow[]) {
-      if (byId.has(r.id)) continue;
-      if (types.length && !types.includes(r.group_type)) continue;
-      if (q && !r.name.toLowerCase().includes(q)) continue;
-      const distance_km = haversineKm(lat, lng, r.latitude as number, r.longitude as number);
-      byId.set(r.id, { ...r, distance_km });
-    }
-  }
-
-  const merged = [...byId.values()].sort((a, b) => a.distance_km - b.distance_km);
+  const merged = withDistance.sort((a, b) => a.distance_km - b.distance_km);
 
   const extras = await enrichMobilizeGroupsBrowse(
     auth.admin,

@@ -205,9 +205,9 @@ function ActivitiesInner() {
       ) : view === "list" ? (
         <TableContainer
           sx={{
-            bgcolor: "rgba(0,0,0,0.2)",
+            bgcolor: "#ffffff",
             borderRadius: 1,
-            border: "1px solid rgba(255,215,0,0.12)",
+            border: "1px solid rgba(0,0,0,0.12)",
           }}
         >
           <Table size="small" stickyHeader>
@@ -222,7 +222,7 @@ function ActivitiesInner() {
             </TableHead>
             <TableBody>
               {events.map((e) => (
-                <TableRow key={e.id} hover sx={{ "& td": { borderColor: "rgba(255,215,0,0.08)" } }}>
+                <TableRow key={e.id} hover sx={{ "& td": { borderColor: "rgba(0,0,0,0.06)" } }}>
                   <TableCell sx={{ whiteSpace: "nowrap", verticalAlign: "top" }}>
                     {new Date(e.date_time).toLocaleString(undefined, {
                       dateStyle: "medium",
@@ -272,8 +272,8 @@ function ActivitiesInner() {
                     variant="outlined"
                     sx={{
                       minHeight: 88,
-                      bgcolor: inMonth ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.1)",
-                      borderColor: inMonth ? "rgba(255,215,0,0.12)" : "transparent",
+                      bgcolor: inMonth ? "#f3f4f6" : "#fafafa",
+                      borderColor: inMonth ? "rgba(202, 154, 0, 0.35)" : "transparent",
                     }}
                   >
                     <CardContent sx={{ p: 0.75, "&:last-child": { pb: 0.75 } }}>

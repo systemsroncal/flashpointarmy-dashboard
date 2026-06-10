@@ -22,14 +22,12 @@ import {
   Select,
   Skeleton,
   Stack,
-  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Tabs,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -46,10 +44,29 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { mobilizeGroupTabIndex, parseMobilizeGroupTab } from "@/lib/mobilize/group-detail-tabs";
 import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
-import { labelEventCreatePolicy, labelWallPostPolicy } from "@/lib/mobilize/group-ui-labels";
+import {
+  mobilizeCalendarDaySx,
+  mobilizeCardSx,
+  mobilizePanelSx,
+  mobilizeTableContainerSx,
+} from "@/lib/mobilize/mobilize-ui-surface";
+import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
+import {
+  isMobilizeGroupListed,
+  labelEventCreatePolicy,
+  labelGroupListingVisibility,
+  labelResourcesPostPolicy,
+  labelWallPostPolicy,
+  mobilizeGroupListingVisibilityFromListed,
+} from "@/lib/mobilize/group-ui-labels";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnouncementImagePicker";
+import { MobilizeAnnouncementMediaGrid } from "@/components/mobilize/MobilizeAnnouncementMediaGrid";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
+import MobilizeGroupResourcesPanel from "@/components/mobilize/MobilizeGroupResourcesPanel";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -64,6 +81,7 @@ type Group = {
   visibility: string;
   event_create_policy: string;
   wall_post_policy?: string;
+  resources_post_policy?: string;
   cover_image_url?: string | null;
   created_by: string;
   created_at: string;
@@ -79,6 +97,7 @@ type MessageRow = {
   author_id: string;
   content: string;
   comments_policy?: string;
+  image_urls?: string[];
   created_at: string;
 };
 
@@ -121,7 +140,7 @@ function dateTimeLocalFromIso(iso: string): string {
 
 function MobilizeSectionEmptyState({ icon, message }: { icon: ReactNode; message: string }) {
   return (
-    <Card variant="outlined" sx={{ bgcolor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,215,0,0.12)" }}>
+    <Card variant="outlined" sx={mobilizeCardSx}>
       <CardContent>
         <Stack
           direction={{ xs: "column", sm: "row" }}
@@ -130,7 +149,7 @@ function MobilizeSectionEmptyState({ icon, message }: { icon: ReactNode; message
           useFlexGap
           sx={{ textAlign: { xs: "center", sm: "left" } }}
         >
-          <Box sx={{ flexShrink: 0, color: "text.secondary", display: "flex" }}>{icon}</Box>
+          <Box sx={{ flexShrink: 0, color: "primary.dark", display: "flex" }}>{icon}</Box>
           <Typography variant="body1" color="text.secondary">
             {message}
           </Typography>
@@ -146,7 +165,7 @@ function JoinToViewGate({
   showJoinButton,
   isPending,
 }: {
-  section: "announcements" | "events" | "members";
+  section: "announcements" | "events" | "members" | "resources";
   onJoin: () => void;
   showJoinButton: boolean;
   isPending: boolean;
@@ -156,14 +175,16 @@ function JoinToViewGate({
       ? "announcements"
       : section === "events"
         ? "events and activities"
-        : "members";
+        : section === "resources"
+          ? "resources"
+          : "members";
 
   const message = isPending
     ? "Your join request is pending. A group leader must approve it before you can view this section."
     : `Join this group to view ${sectionLabel}.`;
 
   return (
-    <Card variant="outlined" sx={{ bgcolor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,215,0,0.12)" }}>
+    <Card variant="outlined" sx={mobilizeCardSx}>
       <CardContent>
         <Stack
           direction={{ xs: "column", sm: "row" }}
@@ -176,7 +197,7 @@ function JoinToViewGate({
               color="warning"
               sx={{ fontSize: 40, flexShrink: 0, mt: 0.25 }}
             />
-            <Typography variant="body1" color="text.primary">
+            <Typography variant="body1" color="text.primary" sx={{ fontWeight: 500 }}>
               {message}
             </Typography>
           </Stack>
@@ -199,7 +220,8 @@ function JoinToViewGate({
 export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const toast = useMobilizeToast();
   const me = useDashboardUser();
-  const [tab, setTab] = useState(0);
+  const searchParams = useSearchParams();
+  const tab = mobilizeGroupTabIndex(parseMobilizeGroupTab(searchParams.get("tab")));
   const [group, setGroup] = useState<Group | null>(null);
   const [membership, setMembership] = useState<Membership>(null);
   const [loading, setLoading] = useState(true);
@@ -207,6 +229,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [wallInput, setWallInput] = useState("");
+  const [wallImages, setWallImages] = useState<string[]>([]);
+  const [wallPosting, setWallPosting] = useState(false);
   const [leaderCommentsPolicy, setLeaderCommentsPolicy] = useState<"everyone" | "leaders_only">("everyone");
   const [eventOpen, setEventOpen] = useState(false);
   const [eventsView, setEventsView] = useState<"list" | "calendar">("list");
@@ -228,6 +252,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     is_public: false,
   });
   const [deleteDialog, setDeleteDialog] = useState<{ id: string; title: string } | null>(null);
+  const [removeMemberDialog, setRemoveMemberDialog] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  const [memberActionSaving, setMemberActionSaving] = useState(false);
   const [eventSaving, setEventSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
@@ -242,6 +271,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     event_create_policy: "any_member" as "any_member" | "leader_only",
     cover_image_url: "",
     wall_post_policy: "all_approved" as "all_approved" | "leaders_only",
+    resources_post_policy: "all_approved" as "all_approved" | "leaders_only",
     created_by: "",
     leader_user_ids: [] as string[],
   });
@@ -250,6 +280,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const [msgEdit, setMsgEdit] = useState<{
     id: string;
     content: string;
+    image_urls: string[];
     comments_policy: "everyone" | "leaders_only";
   } | null>(null);
 
@@ -361,12 +392,19 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   const wallPolicy = group?.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved";
   const canPostWall = isApproved && (isLeader || wallPolicy === "all_approved");
+  const resourcesPolicy =
+    group?.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved";
+  const canPostResources = isApproved && (isLeader || resourcesPolicy === "all_approved");
 
   async function postWall() {
     const content = wallInput.trim();
-    if (!content) return;
+    if (!content && !wallImages.length) return;
+    setWallPosting(true);
     try {
-      const body: { content: string; comments_policy?: string } = { content };
+      const body: { content: string; comments_policy?: string; image_urls?: string[] } = {
+        content,
+        image_urls: wallImages,
+      };
       if (isLeader) body.comments_policy = leaderCommentsPolicy;
       const res = await fetch(`/api/mobilize/groups/${groupId}/messages`, {
         method: "POST",
@@ -376,10 +414,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Post failed.");
       setWallInput("");
+      setWallImages([]);
       setLeaderCommentsPolicy("everyone");
       await loadWall();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Post failed.", "error");
+    } finally {
+      setWallPosting(false);
     }
   }
 
@@ -393,9 +434,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           isLeader
             ? {
                 content: msgEdit.content.trim(),
+                image_urls: msgEdit.image_urls,
                 comments_policy: msgEdit.comments_policy,
               }
-            : { content: msgEdit.content.trim() }
+            : { content: msgEdit.content.trim(), image_urls: msgEdit.image_urls }
         ),
       });
       const json = await res.json();
@@ -544,6 +586,27 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     }
   }
 
+  async function confirmRemoveMember() {
+    if (!removeMemberDialog) return;
+    setMemberActionSaving(true);
+    try {
+      const res = await fetch(
+        `/api/mobilize/groups/${groupId}/members/${removeMemberDialog.userId}`,
+        { method: "DELETE" }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Remove failed.");
+      toast("Member removed from the group.", "success");
+      setRemoveMemberDialog(null);
+      await loadMembers();
+      await loadGroup();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Remove failed.", "error");
+    } finally {
+      setMemberActionSaving(false);
+    }
+  }
+
   function openEditGroup() {
     if (!group) return;
     setEditForm({
@@ -557,6 +620,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       event_create_policy: group.event_create_policy === "leader_only" ? "leader_only" : "any_member",
       cover_image_url: group.cover_image_url?.trim() ?? "",
       wall_post_policy: group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved",
+      resources_post_policy:
+        group.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved",
       created_by: group.created_by,
       leader_user_ids: (() => {
         const ids = members
@@ -637,6 +702,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           event_create_policy: editForm.event_create_policy,
           cover_image_url: cover,
           wall_post_policy: editForm.wall_post_policy,
+          resources_post_policy: editForm.resources_post_policy,
           ...(isSuperAdmin
             ? {
                 created_by: editForm.created_by,
@@ -711,10 +777,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
           <Chip label={group.group_type} />
-          <Chip label={group.visibility === "private" ? "Private" : "Public"} />
+          <Chip label={labelGroupListingVisibility(group.visibility)} />
           <Chip label={labelEventCreatePolicy(group.event_create_policy)} variant="outlined" />
           <Chip
             label={labelWallPostPolicy(group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved")}
+            variant="outlined"
+          />
+          <Chip
+            label={labelResourcesPostPolicy(
+              group.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved"
+            )}
             variant="outlined"
           />
           {membership ? <Chip label={`You: ${membership.membership_status}`} color="primary" /> : null}
@@ -754,6 +826,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   }
 
   const canEditGroup = isLeader || group.created_by === me.id || isSuperAdmin;
+  const canManageMembers = isLeader || group.created_by === me.id;
   const gridSx = {
     display: "grid",
     gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
@@ -774,12 +847,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       </Stack>
       {header}
 
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab label="Announcements" />
-        <Tab label="Events" />
-        <Tab label="Members" />
-      </Tabs>
-
+      <Box sx={mobilizePanelSx}>
       {tab === 0 && !isApproved ? (
         <JoinToViewGate
           section="announcements"
@@ -797,9 +865,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 fullWidth
                 multiline
                 minRows={2}
-                placeholder="Post a message, link, or activity idea…"
+                placeholder="Write an announcement or add photos…"
                 value={wallInput}
                 onChange={(e) => setWallInput(e.target.value)}
+                disabled={wallPosting}
+              />
+              <MobilizeAnnouncementImagePicker
+                groupId={groupId}
+                value={wallImages}
+                onChange={setWallImages}
+                disabled={wallPosting}
               />
               {isLeader ? (
                 <FormControl component="fieldset" sx={{ mt: 1.5 }} variant="standard">
@@ -816,8 +891,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                   </RadioGroup>
                 </FormControl>
               ) : null}
-              <Button sx={{ mt: 1 }} variant="contained" onClick={() => void postWall()}>
-                Post
+              <Button
+                sx={{ mt: 1 }}
+                variant="contained"
+                onClick={() => void postWall()}
+                disabled={wallPosting || (!wallInput.trim() && !wallImages.length)}
+              >
+                {wallPosting ? "Posting…" : "Post"}
               </Button>
             </>
           ) : (
@@ -830,7 +910,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               const canEdit = isLeader || m.author_id === me.id;
               const pol = m.comments_policy === "leaders_only" ? "Leaders only" : "Everyone";
               return (
-                <Card key={m.id} variant="outlined" sx={{ mb: 1, bgcolor: "rgba(0,0,0,0.2)" }}>
+                <Card key={m.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
                   <CardContent>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
                       <Box sx={{ flex: 1 }}>
@@ -840,9 +920,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                         {isLeader ? (
                           <Chip size="small" label={`Comments: ${pol}`} sx={{ ml: 1 }} variant="outlined" />
                         ) : null}
-                        <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: "pre-wrap" }}>
-                          {m.content}
-                        </Typography>
+                        {m.content ? (
+                          <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: "pre-wrap" }}>
+                            {m.content}
+                          </Typography>
+                        ) : null}
+                        <MobilizeAnnouncementMediaGrid urls={m.image_urls ?? []} />
                       </Box>
                       {canEdit ? (
                         <Button
@@ -851,6 +934,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                             setMsgEdit({
                               id: m.id,
                               content: m.content,
+                              image_urls: m.image_urls ?? [],
                               comments_policy:
                                 m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
                             })
@@ -916,7 +1000,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           {eventsView === "list" ? (
             <>
               {events.map((e) => (
-                <Card key={e.id} variant="outlined" sx={{ mb: 1, bgcolor: "rgba(0,0,0,0.2)" }}>
+                <Card key={e.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
                   <CardContent>
                     <Typography fontWeight={600}>{e.title}</Typography>
                     {e.description ? (
@@ -1013,8 +1097,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                         variant="outlined"
                         sx={{
                           minHeight: 72,
-                          bgcolor: inMonth ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.1)",
-                          borderColor: inMonth ? "rgba(255,215,0,0.12)" : "transparent",
+                          ...mobilizeCalendarDaySx(inMonth),
                         }}
                       >
                         <CardContent sx={{ p: 0.5, "&:last-child": { pb: 0.5 } }}>
@@ -1053,7 +1136,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
       {tab === 2 && isApproved ? (
         <Box>
-          {isLeader ? (
+          {canManageMembers ? (
             <>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
                 Pending requests
@@ -1061,7 +1144,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               {members
                 .filter((m) => m.membership_status === "pending")
                 .map((m) => (
-                  <Card key={m.id} variant="outlined" sx={{ mb: 1, bgcolor: "rgba(0,0,0,0.2)" }}>
+                  <Card key={m.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
                     <CardContent sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
                       <Typography variant="body2">{m.display_name ?? m.user_id.slice(0, 8)}</Typography>
                       <Button size="small" onClick={() => void approveMember(m.user_id, "approved")}>
@@ -1085,13 +1168,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Members
           </Typography>
           {members.length ? (
-            <TableContainer
-              sx={{
-                borderRadius: 1,
-                border: "1px solid rgba(255,215,0,0.12)",
-                bgcolor: "rgba(0,0,0,0.15)",
-              }}
-            >
+          <TableContainer sx={mobilizeTableContainerSx}>
               <Table
                 size="small"
                 sx={{
@@ -1106,7 +1183,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                     <TableCell sx={{ width: 72 }}>State</TableCell>
                     <TableCell>Role</TableCell>
                     <TableCell>Status</TableCell>
-                    {isLeader ? <TableCell align="right">Actions</TableCell> : null}
+                    {canManageMembers ? <TableCell align="right">Actions</TableCell> : null}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1143,19 +1220,35 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                         </Stack>
                       </TableCell>
                       <TableCell>{m.membership_status}</TableCell>
-                    {isLeader ? (
+                    {canManageMembers ? (
                       <TableCell align="right">
-                        {m.membership_status === "approved" && m.user_id !== me.id ? (
+                        {m.user_id !== me.id && group.created_by !== m.user_id ? (
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end" flexWrap="wrap">
-                            {m.member_role === "member" ? (
-                              <Button size="small" onClick={() => void setMemberRole(m.user_id, "leader")}>
-                                Make leader
-                              </Button>
-                            ) : (
-                              <Button size="small" onClick={() => void setMemberRole(m.user_id, "member")}>
-                                Demote
-                              </Button>
-                            )}
+                            {m.membership_status === "approved" ? (
+                              m.member_role === "member" ? (
+                                <Button size="small" onClick={() => void setMemberRole(m.user_id, "leader")}>
+                                  Make leader
+                                </Button>
+                              ) : (
+                                <Button size="small" onClick={() => void setMemberRole(m.user_id, "member")}>
+                                  Demote
+                                </Button>
+                              )
+                            ) : null}
+                            <Button
+                              size="small"
+                              color="error"
+                              variant="outlined"
+                              startIcon={<DeleteOutlineIcon />}
+                              onClick={() =>
+                                setRemoveMemberDialog({
+                                  userId: m.user_id,
+                                  name: m.display_name ?? m.email ?? m.user_id.slice(0, 8),
+                                })
+                              }
+                            >
+                              Remove
+                            </Button>
                           </Stack>
                         ) : null}
                       </TableCell>
@@ -1173,6 +1266,25 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           )}
         </Box>
       ) : null}
+
+      {tab === 3 && !isApproved ? (
+        <JoinToViewGate
+          section="resources"
+          onJoin={joinRequest}
+          showJoinButton={showJoin}
+          isPending={isPendingJoin}
+        />
+      ) : null}
+
+      {tab === 3 && isApproved ? (
+        <MobilizeGroupResourcesPanel
+          groupId={groupId}
+          currentUserId={me.id}
+          isLeader={isLeader}
+          canPost={canPostResources}
+        />
+      ) : null}
+      </Box>
 
       <Dialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>New Mobilize event</DialogTitle>
@@ -1288,6 +1400,34 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           </Button>
           <Button variant="contained" onClick={() => void saveEditedEvent()} disabled={eventSaving}>
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={!!removeMemberDialog}
+        onClose={() => !memberActionSaving && setRemoveMemberDialog(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Remove member</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Remove <strong>{removeMemberDialog?.name}</strong> from this group? They will lose access to
+            announcements, events, resources, and the member list.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRemoveMemberDialog(null)} disabled={memberActionSaving}>
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => void confirmRemoveMember()}
+            disabled={memberActionSaving}
+          >
+            {memberActionSaving ? "Removing…" : "Remove member"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1431,18 +1571,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 />
               </Stack>
             ) : null}
-            <FormControl fullWidth>
-              <InputLabel id="ev">Visibility</InputLabel>
-              <Select
-                labelId="ev"
-                label="Visibility"
-                value={editForm.visibility}
-                onChange={(e) => setEditForm((f) => ({ ...f, visibility: String(e.target.value) }))}
-              >
-                <MenuItem value="public">Public</MenuItem>
-                <MenuItem value="private">Private</MenuItem>
-              </Select>
-            </FormControl>
+            <MobilizeGroupListedSwitch
+              listed={isMobilizeGroupListed(editForm.visibility)}
+              disabled={editSaving}
+              onListedChange={(listed) =>
+                setEditForm((f) => ({
+                  ...f,
+                  visibility: mobilizeGroupListingVisibilityFromListed(listed),
+                }))
+              }
+            />
             <FormControl fullWidth>
               <InputLabel id="ecp">Who can create events</InputLabel>
               <Select
@@ -1477,6 +1615,23 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 <MenuItem value="leaders_only">Leaders only</MenuItem>
               </Select>
             </FormControl>
+            <FormControl fullWidth>
+              <InputLabel id="rpp">Who can add resources</InputLabel>
+              <Select
+                labelId="rpp"
+                label="Who can add resources"
+                value={editForm.resources_post_policy}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    resources_post_policy: e.target.value as "all_approved" | "leaders_only",
+                  }))
+                }
+              >
+                <MenuItem value="all_approved">All approved members</MenuItem>
+                <MenuItem value="leaders_only">Leaders only</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -1501,6 +1656,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 minRows={3}
                 value={msgEdit.content}
                 onChange={(e) => setMsgEdit((s) => (s ? { ...s, content: e.target.value } : s))}
+              />
+              <MobilizeAnnouncementImagePicker
+                groupId={groupId}
+                value={msgEdit.image_urls}
+                onChange={(urls) => setMsgEdit((s) => (s ? { ...s, image_urls: urls } : s))}
               />
               {isLeader ? (
                 <FormControl fullWidth>

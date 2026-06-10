@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-images";
+import { getMobilizeWallPostAccess } from "@/lib/mobilize/mobilize-wall-post-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -33,7 +35,7 @@ export async function GET(req: Request, ctx: Ctx) {
 
   let q = auth.admin
     .from("mobilize_group_messages")
-    .select("id, group_id, author_id, content, comments_policy, created_at")
+    .select("id, group_id, author_id, content, comments_policy, image_urls, created_at")
     .eq("group_id", id)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -52,40 +54,32 @@ export async function POST(req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id } = await ctx.params;
 
-  const membership = await isApprovedMember(auth.admin, id, auth.userId);
-  if (!membership) {
+  const access = await getMobilizeWallPostAccess(auth.admin, id, auth.userId);
+  if (!access) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
-
-  const { data: grp } = await auth.admin
-    .from("mobilize_groups")
-    .select("wall_post_policy")
-    .eq("id", id)
-    .maybeSingle();
-
-  const wall =
-    (grp as { wall_post_policy?: string } | null)?.wall_post_policy === "leaders_only"
-      ? "leaders_only"
-      : "all_approved";
-  const isLeader = membership.member_role === "leader";
-  if (wall === "leaders_only" && !isLeader) {
+  if (!access.canPost) {
     return NextResponse.json({ error: "Only group leaders can post on this wall." }, { status: 403 });
   }
 
-  const body = (await req.json()) as { content?: string; comments_policy?: string };
+  const body = (await req.json()) as { content?: string; comments_policy?: string; image_urls?: unknown };
   const content = String(body.content ?? "").trim();
-  if (!content) {
-    return NextResponse.json({ error: "content is required." }, { status: 400 });
+  const image_urls = sanitizeAnnouncementImageUrls(body.image_urls);
+  if (image_urls === null) {
+    return NextResponse.json({ error: "Invalid image URLs." }, { status: 400 });
+  }
+  if (!content && !image_urls.length) {
+    return NextResponse.json({ error: "Add text or at least one image." }, { status: 400 });
   }
 
   let comments_policy: "everyone" | "leaders_only" = "everyone";
-  if (isLeader) {
+  if (access.isLeader) {
     comments_policy = body.comments_policy === "leaders_only" ? "leaders_only" : "everyone";
   }
 
   const { data, error } = await auth.admin
     .from("mobilize_group_messages")
-    .insert({ group_id: id, author_id: auth.userId, content, comments_policy })
+    .insert({ group_id: id, author_id: auth.userId, content, comments_policy, image_urls })
     .select("*")
     .single();
 

@@ -292,7 +292,7 @@ export default function MobilizeMapView({
   const initialZoom = searchOrigin ? 11 : zoom;
 
   return (
-    <Box sx={{ width: "100%", height, borderRadius: 2, overflow: "hidden", border: "1px solid rgba(255,215,0,0.15)" }}>
+    <Box sx={{ width: "100%", height, borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.12)" }}>
       <MapContainer
         center={defaultCenter}
         zoom={initialZoom}
