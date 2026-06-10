@@ -47,10 +47,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { mobilizeGroupTabIndex, parseMobilizeGroupTab } from "@/lib/mobilize/group-detail-tabs";
 import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
+import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import {
   mobilizeCalendarDaySx,
   mobilizeCardSx,
-  mobilizePanelSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
@@ -847,7 +847,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       </Stack>
       {header}
 
-      <Box sx={mobilizePanelSx}>
+      <MobilizeContentPanel sx={{ mt: 2 }}>
       {tab === 0 && !isApproved ? (
         <JoinToViewGate
           section="announcements"
@@ -1284,7 +1284,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           canPost={canPostResources}
         />
       ) : null}
-      </Box>
+      </MobilizeContentPanel>
 
       <Dialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>New Mobilize event</DialogTitle>

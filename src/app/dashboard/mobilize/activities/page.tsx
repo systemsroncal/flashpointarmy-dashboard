@@ -27,6 +27,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import NextLink from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
 type Ev = {
@@ -143,11 +144,12 @@ function ActivitiesInner() {
       <Typography variant="h4" fontWeight={700} gutterBottom>
         Upcoming Activities
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Mobilize events from your groups and public listings. Switch between list and month calendar; filter by My
         groups or All.
       </Typography>
 
+      <MobilizeContentPanel>
       <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5} sx={{ mb: 2 }}>
         <ToggleButtonGroup size="small" value={view} exclusive onChange={(_, v) => v && setViewAndUrl(v)} aria-label="View mode">
           <ToggleButton value="list" aria-label="List" sx={{ px: 1.25 }}>
@@ -315,6 +317,7 @@ function ActivitiesInner() {
           No events in this range.
         </Typography>
       ) : null}
+      </MobilizeContentPanel>
     </Box>
   );
 }

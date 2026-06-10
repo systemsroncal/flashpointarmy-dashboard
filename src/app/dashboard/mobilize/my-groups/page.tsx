@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { Box, Typography } from "@mui/material";
 import MobilizeGroupsBrowseTable, {
   type MobilizeBrowseGroupRow,
@@ -63,13 +64,15 @@ export default function MyGroupsPage() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Groups you belong to or lead. Join or open a group from the table.
       </Typography>
-      <MobilizeGroupsBrowseTable
-        groups={rows}
-        loading={loading}
-        emptyMessage="You are not in any Mobilize group yet."
-        onJoined={() => void load()}
-        thumbnailScale={3.5}
-      />
+      <MobilizeContentPanel>
+        <MobilizeGroupsBrowseTable
+          groups={rows}
+          loading={loading}
+          emptyMessage="You are not in any Mobilize group yet."
+          onJoined={() => void load()}
+          thumbnailScale={3.5}
+        />
+      </MobilizeContentPanel>
     </Box>
   );
 }

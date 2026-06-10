@@ -1,18 +1,21 @@
 import type { SxProps, Theme } from "@mui/material";
 
-/** White content panel (e.g. group tabs area). */
+/** White content panel — inset on dark Mobilize page, not full-bleed. */
 export const mobilizePanelSx: SxProps<Theme> = {
   bgcolor: "#ffffff",
-  color: "text.primary",
+  color: "#0d0d0d",
   borderRadius: 2,
   border: "1px solid rgba(0,0,0,0.1)",
   p: { xs: 2, sm: 2.5 },
   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  width: "100%",
+  boxSizing: "border-box",
 };
 
 export const mobilizeCardSx: SxProps<Theme> = {
-  bgcolor: "background.paper",
+  bgcolor: "#fafafa",
   borderColor: "rgba(0,0,0,0.1)",
+  color: "#0d0d0d",
 };
 
 export const mobilizeTableContainerSx: SxProps<Theme> = {

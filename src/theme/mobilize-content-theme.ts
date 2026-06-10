@@ -4,8 +4,22 @@ import { createTheme } from "@mui/material/styles";
 import { flashpointTheme } from "@/theme/flashpoint-theme";
 import { flashpointBlack, flashpointYellow } from "@/theme/tokens";
 
-/** Light surface for `/dashboard/mobilize/*` main content (sidebar stays dark). */
-export const mobilizeContentTheme = createTheme(flashpointTheme, {
+/** Dark page chrome for `/dashboard/mobilize/*` (matches dashboard main area). */
+export const mobilizePageTheme = createTheme(flashpointTheme, {
+  components: {
+    MuiTabs: {
+      styleOverrides: {
+        indicator: {
+          backgroundColor: flashpointYellow,
+          height: 3,
+        },
+      },
+    },
+  },
+});
+
+/** Light theme scoped to white content panels only. */
+export const mobilizePanelTheme = createTheme(flashpointTheme, {
   palette: {
     mode: "light",
     primary: {
@@ -27,25 +41,6 @@ export const mobilizeContentTheme = createTheme(flashpointTheme, {
     },
   },
   components: {
-    MuiTabs: {
-      styleOverrides: {
-        indicator: {
-          backgroundColor: flashpointYellow,
-          height: 3,
-        },
-      },
-    },
-    MuiTab: {
-      styleOverrides: {
-        root: {
-          color: "rgba(0,0,0,0.55)",
-          fontWeight: 600,
-          "&.Mui-selected": {
-            color: flashpointBlack,
-          },
-        },
-      },
-    },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {

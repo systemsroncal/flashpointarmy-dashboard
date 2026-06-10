@@ -1,3 +1,4 @@
+import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { MobilizePolicySettingsForm } from "@/components/mobilize/MobilizePolicySettingsForm";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createClient } from "@/utils/supabase/server";
@@ -18,7 +19,9 @@ export default async function MobilizeSettingsPage() {
       <Typography variant="h4" fontWeight={700} sx={{ mb: 2 }}>
         Mobilize settings
       </Typography>
-      <MobilizePolicySettingsForm />
+      <MobilizeContentPanel>
+        <MobilizePolicySettingsForm />
+      </MobilizeContentPanel>
     </Box>
   );
 }

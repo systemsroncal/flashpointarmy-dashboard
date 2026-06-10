@@ -27,6 +27,7 @@ import {
   Switch,
   Typography,
 } from "@mui/material";
+import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import Link from "next/link";
 
 function notificationCardSx(accent: string) {
@@ -221,6 +222,7 @@ export function MobilizeNotificationsClient() {
         />
       </Stack>
 
+      <MobilizeContentPanel>
       {loading ? (
         <Stack spacing={2}>
           <Skeleton variant="rounded" height={120} />
@@ -274,6 +276,7 @@ export function MobilizeNotificationsClient() {
           </Box>
         </Stack>
       )}
+      </MobilizeContentPanel>
     </Box>
   );
 }

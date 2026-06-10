@@ -91,29 +91,23 @@ import {
 
 const DRAWER_WIDTH = 220;
 
-/** Mobilize sidebar: “Dashboard” back link — light grid tile + system yellow hover. */
+/** Mobilize sidebar: back links — outline only, no fill. */
 const MOBILIZE_DASHBOARD_NAV_ITEM_SX = {
   mx: 1,
   mb: 0.75,
   borderRadius: 1.5,
-  border: "1px solid rgba(255, 255, 255, 0.14)",
-  bgcolor: "rgba(255, 255, 255, 0.1)",
-  backgroundImage: `
-    linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px)
-  `,
-  backgroundSize: "16px 16px",
-  transition: "background-color 0.15s ease, border-color 0.15s ease, background-image 0.15s ease",
+  border: "1px solid rgba(255, 255, 255, 0.22)",
+  bgcolor: "transparent",
+  transition: "border-color 0.15s ease",
   "&:hover": {
-    bgcolor: "rgba(255, 215, 0, 0.22)",
-    borderColor: "rgba(255, 215, 0, 0.45)",
-    backgroundImage: "none",
+    bgcolor: "transparent",
+    borderColor: "rgba(255, 215, 0, 0.55)",
     "& .MuiListItemIcon-root": { color: flashpointYellow },
     "& .MuiListItemText-primary": { color: flashpointYellow },
   },
   "&.Mui-selected": {
-    borderLeft: "none !important",
-    bgcolor: "rgba(255, 215, 0, 0.18)",
+    borderLeft: "1px solid rgba(255, 215, 0, 0.4) !important",
+    bgcolor: "transparent",
     borderColor: "rgba(255, 215, 0, 0.4)",
     "& .MuiListItemIcon-root": { color: flashpointYellow },
     "& .MuiListItemText-primary": { color: flashpointYellow },
@@ -611,9 +605,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <ListItem disablePadding>
                   <ListItemButton
                     component={Link}
-                    href="/dashboard"
+                    href={MOBILIZE_HOME}
                     selected={false}
-                    data-tour={mobilizeNavTourAttr("/dashboard")}
+                    data-tour={mobilizeNavTourAttr(MOBILIZE_HOME)}
                     onClick={closeMobileDrawer}
                     sx={{
                       ...NAV_ITEM_TOUCH_SX,
@@ -625,10 +619,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     }}
                   >
                     <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
-                      <ArrowBackIcon />
+                      <MapIcon />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Dashboard"
+                      primary="Groups"
                       primaryTypographyProps={{
                         variant: "body2",
                         fontWeight: 600,
@@ -1283,9 +1277,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           pb: "calc(32px + env(safe-area-inset-bottom, 0px))",
           ml: { md: desktopDrawerOpen ? `${DRAWER_WIDTH}px` : 0 },
           minHeight: "100vh",
-          ...(isMobilize
-            ? { bgcolor: "#ffffff", color: "#0d0d0d" }
-            : { color: "grey.100" }),
+          color: "grey.100",
           transition: theme.transitions.create("margin", {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,

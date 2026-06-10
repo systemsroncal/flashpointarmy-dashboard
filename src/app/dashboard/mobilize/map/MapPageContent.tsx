@@ -31,6 +31,7 @@ import AddIcon from "@mui/icons-material/Add";
 import MapIcon from "@mui/icons-material/Map";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import ViewListIcon from "@mui/icons-material/ViewList";
+import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
 import MobilizeGroupsBrowseTable from "@/components/mobilize/MobilizeGroupsBrowseTable";
@@ -367,6 +368,7 @@ export default function MobilizeMapPageContent() {
         ) : null}
       </Stack>
 
+      <MobilizeContentPanel>
       <FormControl component="fieldset" variant="standard" sx={{ mb: 2 }}>
         <FormLabel component="legend" sx={{ color: "text.secondary", fontSize: "0.875rem", mb: 0.5 }}>
           Search origin (map & radius)
@@ -580,6 +582,7 @@ export default function MobilizeMapPageContent() {
           </Box>
         </Box>
       )}
+      </MobilizeContentPanel>
 
       <Dialog open={createOpen} onClose={() => !saving && setCreateOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Create group</DialogTitle>
