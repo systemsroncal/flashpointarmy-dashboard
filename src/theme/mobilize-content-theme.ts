@@ -23,9 +23,10 @@ export const mobilizePanelTheme = createTheme(flashpointTheme, {
   palette: {
     mode: "light",
     primary: {
-      main: flashpointYellow,
-      dark: "#c9a600",
-      contrastText: flashpointBlack,
+      main: flashpointBlack,
+      dark: "#000000",
+      light: "rgba(0,0,0,0.55)",
+      contrastText: "#ffffff",
     },
     background: {
       default: "#ffffff",
@@ -41,6 +42,51 @@ export const mobilizePanelTheme = createTheme(flashpointTheme, {
     },
   },
   components: {
+    MuiButton: {
+      styleOverrides: {
+        containedPrimary: {
+          backgroundColor: flashpointBlack,
+          color: "#ffffff",
+          "&:hover": {
+            backgroundColor: "#000000",
+          },
+        },
+        outlinedPrimary: {
+          borderColor: flashpointBlack,
+          color: flashpointBlack,
+          "&:hover": {
+            backgroundColor: flashpointBlack,
+            borderColor: flashpointBlack,
+            color: "#ffffff",
+          },
+        },
+        textPrimary: {
+          color: flashpointBlack,
+          "&:hover": {
+            backgroundColor: "rgba(0,0,0,0.06)",
+          },
+        },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          color: flashpointBlack,
+          borderColor: "rgba(0,0,0,0.22)",
+          "&.Mui-selected": {
+            backgroundColor: flashpointBlack,
+            color: "#ffffff",
+            borderColor: flashpointBlack,
+            "&:hover": {
+              backgroundColor: "#000000",
+            },
+          },
+          "&:hover": {
+            backgroundColor: "rgba(0,0,0,0.06)",
+          },
+        },
+      },
+    },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
