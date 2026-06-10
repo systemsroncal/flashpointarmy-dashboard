@@ -189,11 +189,13 @@ export function CourseGraduateBadge({
 
 /**
  * Avatar with course-graduate and admin icons on the top-right corner.
- * Admin crown: gold, no background, always when `showAdminCrown`.
+ * `table`: gradient badge behind graduate stars (user directories).
+ * `sidebar`: plain gold/green/gray icons without badge background (drawer profile).
  */
 export function AvatarWithGraduateIcon({
   graduateRole,
   showAdminCrown = false,
+  overlayStyle = "table",
   size = 30,
   src,
   alt,
@@ -205,6 +207,8 @@ export function AvatarWithGraduateIcon({
   graduateRole?: TrainingGraduateBadgeRole | null;
   /** Platform admin / super_admin — gold crown, no course requirement. */
   showAdminCrown?: boolean;
+  /** `sidebar` = plain overlays for drawer profile; `table` = badge background in lists. */
+  overlayStyle?: "table" | "sidebar";
   size?: number;
   src?: string;
   alt?: string;
@@ -214,9 +218,13 @@ export function AvatarWithGraduateIcon({
   /** When set and user is a graduate, avatar + badge open this handler (e.g. congratulations dialog). */
   onGraduateClick?: () => void;
 }) {
+  const isSidebar = overlayStyle === "sidebar";
   const { top, right, iconSize } = overlayMetrics(size);
+  const tableOverlaySize = Math.max(13, Math.round(size * 0.44));
+  const tableIconSize = Math.max(7, Math.round(tableOverlaySize * 0.52));
+  const tableCrownSize = Math.max(11, Math.round(size * 0.38));
   const clickable = Boolean(graduateRole && onGraduateClick);
-  const adminAvatarBg = showAdminCrown && !src;
+  const adminAvatarBg = isSidebar && showAdminCrown && !src;
 
   return (
     <Box
@@ -266,22 +274,44 @@ export function AvatarWithGraduateIcon({
           }
           title={`${BADGE_STYLES[graduateRole].label} — Biblical Citizenship completed`}
           aria-label={`${BADGE_STYLES[graduateRole].label} — Biblical Citizenship course completed`}
-          sx={{
-            position: "absolute",
-            top,
-            right,
-            left: "auto",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: graduateRole === "local_leader" ? "#22c55e" : "#9ca3af",
-            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.75))",
-            zIndex: 1,
-            cursor: clickable ? "pointer" : "default",
-            pointerEvents: clickable ? "auto" : "none",
-          }}
+          sx={
+            isSidebar
+              ? {
+                  position: "absolute",
+                  top,
+                  right,
+                  left: "auto",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: graduateRole === "local_leader" ? "#22c55e" : "#9ca3af",
+                  filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.75))",
+                  zIndex: 1,
+                  cursor: clickable ? "pointer" : "default",
+                  pointerEvents: clickable ? "auto" : "none",
+                }
+              : {
+                  position: "absolute",
+                  top: -3,
+                  right: -3,
+                  left: "auto",
+                  width: tableOverlaySize,
+                  height: tableOverlaySize,
+                  borderRadius: "50%",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: BADGE_STYLES[graduateRole].background,
+                  color: "#111",
+                  border: "1.5px solid rgba(10,10,12,0.95)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.12)",
+                  zIndex: 1,
+                  cursor: clickable ? "pointer" : "default",
+                  pointerEvents: clickable ? "auto" : "none",
+                }
+          }
         >
-          <StarIcon size={iconSize} />
+          <StarIcon size={isSidebar ? iconSize : tableIconSize} />
         </Box>
       ) : null}
       {showAdminCrown ? (
@@ -289,22 +319,38 @@ export function AvatarWithGraduateIcon({
           component="span"
           title="Administrator"
           aria-label="Administrator"
-          sx={{
-            position: "absolute",
-            top,
-            right,
-            left: "auto",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: GOLD,
-            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.75))",
-            zIndex: 2,
-            pointerEvents: "none",
-            transform: `rotate(${OVERLAY_REF.crownRotateDeg}deg)`,
-          }}
+          sx={
+            isSidebar
+              ? {
+                  position: "absolute",
+                  top,
+                  right,
+                  left: "auto",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: GOLD,
+                  filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.75))",
+                  zIndex: 2,
+                  pointerEvents: "none",
+                  transform: `rotate(${OVERLAY_REF.crownRotateDeg}deg)`,
+                }
+              : {
+                  position: "absolute",
+                  bottom: -2,
+                  right: -4,
+                  left: "auto",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: GOLD,
+                  filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.75))",
+                  zIndex: 2,
+                  pointerEvents: "none",
+                }
+          }
         >
-          <CrownIcon size={iconSize} />
+          <CrownIcon size={isSidebar ? iconSize : tableCrownSize} />
         </Box>
       ) : null}
     </Box>

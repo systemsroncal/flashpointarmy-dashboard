@@ -1096,6 +1096,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
           <AvatarWithGraduateIcon
             size={40}
+            overlayStyle="sidebar"
             graduateRole={user.training_graduate_badge}
             showAdminCrown={isElevatedRole(user.role_names)}
             src={user.avatar_url ? publicAssetSrc(user.avatar_url) : undefined}
