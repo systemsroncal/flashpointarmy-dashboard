@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Autocomplete,
-  Avatar,
   Box,
   Button,
   Card,
@@ -45,6 +44,8 @@ import MilitaryTechOutlinedIcon from "@mui/icons-material/MilitaryTechOutlined";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
+import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import { canViewMobilizeGroupReports, parseMobilizeGroupTab } from "@/lib/mobilize/group-detail-tabs";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
@@ -127,6 +128,7 @@ type MemberRow = {
   phone?: string | null;
   avatar_url?: string | null;
   state?: string | null;
+  training_graduate_badge?: TrainingGraduateBadgeRole | null;
 };
 
 function formatMemberSince(iso: string): string {
@@ -1302,9 +1304,19 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                     <TableRow key={m.id}>
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar src={m.avatar_url ?? undefined} sx={{ width: 36, height: 36 }}>
-                            {(m.display_name ?? "?").slice(0, 1)}
-                          </Avatar>
+                          <AvatarWithGraduateIcon
+                            graduateRole={m.training_graduate_badge}
+                            overlayStyle="directory"
+                            size={36}
+                            src={m.avatar_url ? publicAssetSrc(m.avatar_url) : undefined}
+                            alt={memberName}
+                            avatarSx={{
+                              bgcolor: "rgba(233,196,106,0.18)",
+                              color: "primary.main",
+                            }}
+                          >
+                            {(m.display_name ?? "?").slice(0, 1).toUpperCase()}
+                          </AvatarWithGraduateIcon>
                           <Typography variant="body2">{memberName}</Typography>
                         </Stack>
                       </TableCell>
@@ -1356,6 +1368,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                               <Tooltip title="Make leader">
                                 <IconButton
                                   size="small"
+                                  color="primary"
                                   aria-label="Make leader"
                                   onClick={() =>
                                     setPromoteLeaderConfirm({

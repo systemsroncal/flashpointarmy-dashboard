@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { loadTrainingGraduateBadgesForUsers } from "@/lib/courses/course-completion";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -90,6 +91,8 @@ export async function GET(_req: Request, ctx: Ctx) {
     }
   }
 
+  const graduateBadges = await loadTrainingGraduateBadgesForUsers(auth.admin, userIds);
+
   const members = (rows ?? []).map((m: { user_id: string; id: string; member_role: string; membership_status: string; created_at: string }) => {
     const du = duById.get(m.user_id);
     const pr = prById.get(m.user_id);
@@ -110,6 +113,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       member_since: m.created_at,
       avatar_url: pr?.avatar_url ?? null,
       state: st,
+      training_graduate_badge: graduateBadges.get(m.user_id) ?? null,
     };
   });
 

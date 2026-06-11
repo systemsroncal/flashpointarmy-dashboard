@@ -94,6 +94,16 @@ export const mobilizePanelTheme = createTheme(flashpointTheme, {
         },
       },
     },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          color: flashpointBlack,
+        },
+        colorError: {
+          color: "#d32f2f",
+        },
+      },
+    },
     MuiTableCell: {
       styleOverrides: {
         head: {

@@ -190,6 +190,7 @@ export function CourseGraduateBadge({
 /**
  * Avatar with course-graduate and admin icons on the top-right corner.
  * `table`: gradient badge behind graduate stars (user directories).
+ * `directory`: same gradient as table, circle sized like the sidebar profile badge.
  * `sidebar`: plain gold/green/gray icons without badge background (drawer profile).
  */
 export function AvatarWithGraduateIcon({
@@ -207,8 +208,8 @@ export function AvatarWithGraduateIcon({
   graduateRole?: TrainingGraduateBadgeRole | null;
   /** Platform admin / super_admin — gold crown, no course requirement. */
   showAdminCrown?: boolean;
-  /** `sidebar` = plain overlays for drawer profile; `table` = badge background in lists. */
-  overlayStyle?: "table" | "sidebar";
+  /** `sidebar` = plain overlays; `table` = small badge in lists; `directory` = list gradient at sidebar badge size. */
+  overlayStyle?: "table" | "sidebar" | "directory";
   size?: number;
   src?: string;
   alt?: string;
@@ -219,9 +220,12 @@ export function AvatarWithGraduateIcon({
   onGraduateClick?: () => void;
 }) {
   const isSidebar = overlayStyle === "sidebar";
+  const isDirectory = overlayStyle === "directory";
   const { top, right, iconSize } = overlayMetrics(size);
   const tableOverlaySize = Math.max(13, Math.round(size * 0.44));
   const tableIconSize = Math.max(7, Math.round(tableOverlaySize * 0.52));
+  const directoryCircleSize = iconSize;
+  const directoryIconSize = Math.max(9, Math.round(directoryCircleSize * 0.55));
   const tableCrownSize = Math.max(11, Math.round(size * 0.38));
   const clickable = Boolean(graduateRole && onGraduateClick);
   const adminAvatarBg = isSidebar && showAdminCrown && !src;
@@ -290,28 +294,50 @@ export function AvatarWithGraduateIcon({
                   cursor: clickable ? "pointer" : "default",
                   pointerEvents: clickable ? "auto" : "none",
                 }
-              : {
-                  position: "absolute",
-                  top: -3,
-                  right: -3,
-                  left: "auto",
-                  width: tableOverlaySize,
-                  height: tableOverlaySize,
-                  borderRadius: "50%",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: BADGE_STYLES[graduateRole].background,
-                  color: "#111",
-                  border: "1.5px solid rgba(10,10,12,0.95)",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.12)",
-                  zIndex: 1,
-                  cursor: clickable ? "pointer" : "default",
-                  pointerEvents: clickable ? "auto" : "none",
-                }
+              : isDirectory
+                ? {
+                    position: "absolute",
+                    top,
+                    right,
+                    left: "auto",
+                    width: directoryCircleSize,
+                    height: directoryCircleSize,
+                    borderRadius: "50%",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: BADGE_STYLES[graduateRole].background,
+                    color: "#111",
+                    border: "1.5px solid rgba(10,10,12,0.95)",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.12)",
+                    zIndex: 1,
+                    cursor: clickable ? "pointer" : "default",
+                    pointerEvents: clickable ? "auto" : "none",
+                  }
+                : {
+                    position: "absolute",
+                    top: -3,
+                    right: -3,
+                    left: "auto",
+                    width: tableOverlaySize,
+                    height: tableOverlaySize,
+                    borderRadius: "50%",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: BADGE_STYLES[graduateRole].background,
+                    color: "#111",
+                    border: "1.5px solid rgba(10,10,12,0.95)",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.12)",
+                    zIndex: 1,
+                    cursor: clickable ? "pointer" : "default",
+                    pointerEvents: clickable ? "auto" : "none",
+                  }
           }
         >
-          <StarIcon size={isSidebar ? iconSize : tableIconSize} />
+          <StarIcon
+            size={isSidebar ? iconSize : isDirectory ? directoryIconSize : tableIconSize}
+          />
         </Box>
       ) : null}
       {showAdminCrown ? (
