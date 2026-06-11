@@ -11,10 +11,14 @@ import { useEffect, useMemo, useState } from "react";
 const MEMBER_VIDEO: string = "https://youtu.be/XBjT8Vc2kis";
 const LEADER_VIDEO: string = "https://youtu.be/HMWn-Ikrim0";
 
+/** Temporarily off: auto-popup and toolbar clip for local_leader / member roles. */
+const ROLE_WELCOME_VIDEOS_ENABLED = false;
+
 const MS_24H = 24 * 60 * 60 * 1000;
 const AUTO_SHOW_COOKIE = "fpa_welcome_video_last_auto_ms";
 
 function roleVideoUrl(roleNames: string[]): string | null {
+  if (!ROLE_WELCOME_VIDEOS_ENABLED) return null;
   if (roleNames.includes("local_leader")) return LEADER_VIDEO;
   if (roleNames.includes("member")) return MEMBER_VIDEO;
   return null;

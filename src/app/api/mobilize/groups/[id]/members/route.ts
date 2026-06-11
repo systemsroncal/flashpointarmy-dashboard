@@ -40,33 +40,36 @@ export async function GET(_req: Request, ctx: Ctx) {
     {
       display_name: string | null;
       email: string | null;
+      phone: string | null;
       state: string | null;
       primary_chapter_id: string | null;
     }
   >();
-  const prById = new Map<string, { avatar_url: string | null; state: string | null }>();
+  const prById = new Map<string, { avatar_url: string | null; state: string | null; phone: string | null }>();
 
   if (userIds.length) {
     const { data: du } = await auth.admin
       .from("dashboard_users")
-      .select("id, display_name, email, state, primary_chapter_id")
+      .select("id, display_name, email, phone, state, primary_chapter_id")
       .in("id", userIds);
     for (const u of du ?? []) {
       duById.set(u.id as string, {
         display_name: (u as { display_name?: string | null }).display_name ?? null,
         email: (u as { email?: string | null }).email ?? null,
+        phone: (u as { phone?: string | null }).phone ?? null,
         state: (u as { state?: string | null }).state ?? null,
         primary_chapter_id: (u as { primary_chapter_id?: string | null }).primary_chapter_id ?? null,
       });
     }
     const { data: pr } = await auth.admin
       .from("profiles")
-      .select("id, avatar_url, state")
+      .select("id, avatar_url, state, phone")
       .in("id", userIds);
     for (const p of pr ?? []) {
       prById.set(p.id as string, {
         avatar_url: (p as { avatar_url?: string | null }).avatar_url ?? null,
         state: (p as { state?: string | null }).state ?? null,
+        phone: (p as { phone?: string | null }).phone ?? null,
       });
     }
   }
@@ -98,10 +101,13 @@ export async function GET(_req: Request, ctx: Ctx) {
     const st = (fromProfile || fromUser || fromChapter || "").trim() || null;
     const dn = (du?.display_name ?? "").trim();
     const em = (du?.email ?? "").trim();
+    const ph = (pr?.phone ?? du?.phone ?? "").trim();
     return {
       ...m,
       display_name: dn || em || m.user_id.slice(0, 8),
       email: em || null,
+      phone: ph || null,
+      member_since: m.created_at,
       avatar_url: pr?.avatar_url ?? null,
       state: st,
     };

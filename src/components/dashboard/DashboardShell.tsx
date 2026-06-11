@@ -2,7 +2,6 @@
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignIcon from "@mui/icons-material/Campaign";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EventIcon from "@mui/icons-material/Event";
@@ -10,7 +9,6 @@ import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import MapIcon from "@mui/icons-material/Map";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
@@ -80,13 +78,10 @@ import { UserProfileDrawer } from "./UserProfileDrawer";
 import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
 import { flashpointYellow } from "@/theme/tokens";
+import { MobilizeGroupSidebarTabs } from "@/components/mobilize/MobilizeGroupSidebarTabs";
 import {
-  MOBILIZE_GROUP_TAB_LABELS,
-  MOBILIZE_GROUP_TAB_SLUGS,
-  mobilizeGroupDetailHref,
   parseMobilizeGroupDetailId,
   parseMobilizeGroupTab,
-  type MobilizeGroupTabSlug,
 } from "@/lib/mobilize/group-detail-tabs";
 
 const DRAWER_WIDTH = 220;
@@ -139,13 +134,6 @@ const COURSE_LEARNER_PREFIX = "/dashboard/course";
 
 const MOBILIZE_PREFIX = "/dashboard/mobilize";
 const MOBILIZE_HOME = `${MOBILIZE_PREFIX}/map`;
-
-const MOBILIZE_GROUP_TAB_ICONS: Record<MobilizeGroupTabSlug, React.ReactNode> = {
-  announcements: <CampaignOutlinedIcon />,
-  events: <EventAvailableOutlinedIcon />,
-  members: <GroupsOutlinedIcon />,
-  resources: <FolderOpenOutlinedIcon />,
-};
 
 const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
   {
@@ -388,25 +376,6 @@ const NAV_ITEM_TOUCH_SX = {
   WebkitTapHighlightColor: "transparent",
   "& .MuiListItemIcon-root, & .MuiListItemText-root": {
     pointerEvents: "none",
-  },
-} as const;
-
-const MOBILIZE_GROUP_TAB_NAV_SX = {
-  ...NAV_ITEM_TOUCH_SX,
-  py: 0.6,
-  minHeight: 44,
-  mx: 0.75,
-  mb: 0.35,
-  borderRadius: 1,
-  borderLeft: "none !important",
-  "&.Mui-selected": {
-    bgcolor: "rgba(255, 215, 0, 0.16)",
-    boxShadow: "inset 0 0 0 1px rgba(255, 215, 0, 0.35)",
-    "& .MuiListItemIcon-root": { color: flashpointYellow },
-    "& .MuiListItemText-primary": { color: flashpointYellow, fontWeight: 700 },
-  },
-  "&:hover": {
-    bgcolor: "rgba(255, 255, 255, 0.06)",
   },
 } as const;
 
@@ -690,47 +659,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     </Typography>
                   </Box>
                   <Divider sx={{ borderColor: "rgba(255,215,0,0.14)", mx: 1, mb: 0.75 }} />
-                  <Box sx={{ pb: 0.75 }}>
-                    {MOBILIZE_GROUP_TAB_SLUGS.map((slug) => {
-                      const selected = activeMobilizeGroupTab === slug;
-                      const href = mobilizeGroupDetailHref(mobilizeGroupDetailId, slug);
-                      return (
-                        <ListItem key={slug} disablePadding>
-                          <ListItemButton
-                            component={Link}
-                            href={href}
-                            selected={selected}
-                            data-tour={`mobilize-group-tab-${slug}`}
-                            onClick={closeMobileDrawer}
-                            sx={{
-                              ...MOBILIZE_GROUP_TAB_NAV_SX,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 0.5,
-                            }}
-                          >
-                            <ListItemIcon
-                              sx={{
-                                color: selected ? flashpointYellow : "rgba(255,255,255,0.78)",
-                                minWidth: 34,
-                              }}
-                            >
-                              {MOBILIZE_GROUP_TAB_ICONS[slug]}
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={MOBILIZE_GROUP_TAB_LABELS[slug]}
-                              primaryTypographyProps={{
-                                variant: "body2",
-                                fontWeight: selected ? 700 : 600,
-                                fontSize: "calc(0.8rem + 2px)",
-                                color: selected ? flashpointYellow : "rgba(255,255,255,0.86)",
-                              }}
-                            />
-                          </ListItemButton>
-                        </ListItem>
-                      );
-                    })}
-                  </Box>
+                  <MobilizeGroupSidebarTabs
+                    groupId={mobilizeGroupDetailId}
+                    activeTab={activeMobilizeGroupTab}
+                    onNavigate={closeMobileDrawer}
+                  />
                 </Box>
               </>
             ) : (

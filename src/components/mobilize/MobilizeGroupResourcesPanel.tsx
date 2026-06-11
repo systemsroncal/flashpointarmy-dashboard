@@ -5,7 +5,6 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EditIcon from "@mui/icons-material/Edit";
-import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import LinkIcon from "@mui/icons-material/Link";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -25,6 +24,8 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
+import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import { mobilizeCardSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
@@ -73,21 +74,6 @@ const emptyForm = (type: MobilizeResourceType = "link"): ResourceForm => ({
   url: "",
   file_name: "",
 });
-
-function MobilizeSectionEmptyState({ icon, message }: { icon: React.ReactNode; message: string }) {
-  return (
-    <Card variant="outlined" sx={mobilizeCardSx}>
-      <CardContent>
-        <Stack direction="row" spacing={1.5} alignItems="flex-start">
-          <Box sx={{ flexShrink: 0, color: "primary.dark", display: "flex" }}>{icon}</Box>
-          <Typography variant="body1" color="text.secondary">
-            {message}
-          </Typography>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
 
 type Props = {
   groupId: string;
@@ -454,7 +440,7 @@ export default function MobilizeGroupResourcesPanel({
         })
       ) : (
         <MobilizeSectionEmptyState
-          icon={<FolderOpenOutlinedIcon sx={{ fontSize: 40 }} />}
+          imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.resources}
           message="No resources have been added to this group yet."
         />
       )}

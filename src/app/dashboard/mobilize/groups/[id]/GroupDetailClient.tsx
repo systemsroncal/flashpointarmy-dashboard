@@ -15,6 +15,7 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
+  IconButton,
   InputLabel,
   MenuItem,
   Radio,
@@ -34,20 +35,21 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
+import MilitaryTechOutlinedIcon from "@mui/icons-material/MilitaryTechOutlined";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { mobilizeGroupTabIndex, parseMobilizeGroupTab } from "@/lib/mobilize/group-detail-tabs";
+import { canViewMobilizeGroupReports, parseMobilizeGroupTab } from "@/lib/mobilize/group-detail-tabs";
+import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
+import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import {
   mobilizeCalendarDaySx,
   mobilizeCardSx,
@@ -66,6 +68,7 @@ import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnouncementImagePicker";
 import { MobilizeAnnouncementMediaGrid } from "@/components/mobilize/MobilizeAnnouncementMediaGrid";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
+import { MobilizeGroupReportsPanel } from "@/components/mobilize/MobilizeGroupReportsPanel";
 import MobilizeGroupResourcesPanel from "@/components/mobilize/MobilizeGroupResourcesPanel";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
@@ -118,11 +121,25 @@ type MemberRow = {
   member_role: string;
   membership_status: string;
   created_at: string;
+  member_since?: string;
   display_name?: string;
   email?: string | null;
+  phone?: string | null;
   avatar_url?: string | null;
   state?: string | null;
 };
+
+function formatMemberSince(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function capitalizeRole(role: string): string {
+  return role === "leader" ? "Leader" : "Member";
+}
 
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -138,34 +155,13 @@ function dateTimeLocalFromIso(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function MobilizeSectionEmptyState({ icon, message }: { icon: ReactNode; message: string }) {
-  return (
-    <Card variant="outlined" sx={mobilizeCardSx}>
-      <CardContent>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          alignItems={{ xs: "center", sm: "flex-start" }}
-          spacing={1.5}
-          useFlexGap
-          sx={{ textAlign: { xs: "center", sm: "left" } }}
-        >
-          <Box sx={{ flexShrink: 0, color: "primary.dark", display: "flex" }}>{icon}</Box>
-          <Typography variant="body1" color="text.secondary">
-            {message}
-          </Typography>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
-
 function JoinToViewGate({
   section,
   onJoin,
   showJoinButton,
   isPending,
 }: {
-  section: "announcements" | "events" | "members" | "resources";
+  section: "announcements" | "events" | "members" | "resources" | "reports";
   onJoin: () => void;
   showJoinButton: boolean;
   isPending: boolean;
@@ -177,7 +173,9 @@ function JoinToViewGate({
         ? "events and activities"
         : section === "resources"
           ? "resources"
-          : "members";
+          : section === "reports"
+            ? "reports"
+            : "members";
 
   const message = isPending
     ? "Your join request is pending. A group leader must approve it before you can view this section."
@@ -221,7 +219,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const toast = useMobilizeToast();
   const me = useDashboardUser();
   const searchParams = useSearchParams();
-  const tab = mobilizeGroupTabIndex(parseMobilizeGroupTab(searchParams.get("tab")));
+  const activeTab = parseMobilizeGroupTab(searchParams.get("tab"));
   const [group, setGroup] = useState<Group | null>(null);
   const [membership, setMembership] = useState<Membership>(null);
   const [loading, setLoading] = useState(true);
@@ -253,6 +251,15 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   });
   const [deleteDialog, setDeleteDialog] = useState<{ id: string; title: string } | null>(null);
   const [removeMemberDialog, setRemoveMemberDialog] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  const [memberRoleDialog, setMemberRoleDialog] = useState<{
+    userId: string;
+    name: string;
+    role: "leader" | "member";
+  } | null>(null);
+  const [promoteLeaderConfirm, setPromoteLeaderConfirm] = useState<{
     userId: string;
     name: string;
   } | null>(null);
@@ -333,6 +340,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const isApproved = membership?.membership_status === "approved";
   const isLeader = membership?.member_role === "leader" && isApproved;
   const isSuperAdmin = me.role_names.includes("super_admin");
+  const canViewReports = canViewMobilizeGroupReports({
+    isSuperAdmin,
+    groupCreatedBy: group?.created_by,
+    currentUserId: me.id,
+    membership,
+  });
+  const approvedMembers = useMemo(
+    () => members.filter((m) => m.membership_status === "approved"),
+    [members]
+  );
 
   const loadOwnerCandidates = useCallback(async () => {
     if (!isSuperAdmin) return;
@@ -578,12 +595,39 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Role update failed.");
-      toast("Role updated.", "success");
+      toast("Group role updated.", "success");
+      setMemberRoleDialog(null);
+      setPromoteLeaderConfirm(null);
       await loadMembers();
       await loadGroup();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Role update failed.", "error");
+    } finally {
+      setMemberActionSaving(false);
     }
+  }
+
+  function requestMemberRoleSave() {
+    if (!memberRoleDialog) return;
+    const current = members.find((m) => m.user_id === memberRoleDialog.userId);
+    if (
+      current?.member_role === "member" &&
+      memberRoleDialog.role === "leader"
+    ) {
+      setPromoteLeaderConfirm({
+        userId: memberRoleDialog.userId,
+        name: memberRoleDialog.name,
+      });
+      return;
+    }
+    setMemberActionSaving(true);
+    void setMemberRole(memberRoleDialog.userId, memberRoleDialog.role);
+  }
+
+  function confirmPromoteLeader() {
+    if (!promoteLeaderConfirm) return;
+    setMemberActionSaving(true);
+    void setMemberRole(promoteLeaderConfirm.userId, "leader");
   }
 
   async function confirmRemoveMember() {
@@ -749,17 +793,71 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     return events.filter((e) => new Date(e.date_time).toDateString() === key);
   }
 
-  const header = useMemo(() => {
-    if (!group) return null;
+  const groupCoverSrc = useMemo(() => {
+    if (!group) return "";
     const cover =
       group.cover_image_url?.trim() ||
       "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=80";
-    const coverSrc = publicAssetSrc(cover);
+    return publicAssetSrc(cover);
+  }, [group]);
+
+  const groupMetaChips = useMemo(() => {
+    if (!group) return null;
+    return (
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+        <Chip size="small" label={group.group_type} />
+        <Chip size="small" label={labelGroupListingVisibility(group.visibility)} />
+        <Chip size="small" label={labelEventCreatePolicy(group.event_create_policy)} variant="outlined" />
+        <Chip
+          size="small"
+          label={labelWallPostPolicy(group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved")}
+          variant="outlined"
+        />
+        <Chip
+          size="small"
+          label={labelResourcesPostPolicy(
+            group.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved"
+          )}
+          variant="outlined"
+        />
+        {membership ? (
+          <Chip size="small" label={`You: ${membership.membership_status}`} color="primary" />
+        ) : null}
+      </Box>
+    );
+  }, [group, membership]);
+
+  const joinCallToAction = useMemo(() => {
+    if (showJoin) {
+      return (
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<PersonAddIcon />}
+          sx={{ mt: 1.5 }}
+          onClick={() => void joinRequest()}
+        >
+          Join now
+        </Button>
+      );
+    }
+    if (membership?.membership_status === "pending") {
+      return (
+        <Typography sx={{ mt: 1.5 }} color="warning.main" variant="body2">
+          Your membership is pending leader approval.
+        </Typography>
+      );
+    }
+    return null;
+  }, [membership, showJoin]);
+
+  const fullHeader = useMemo(() => {
+    if (!group) return null;
     return (
       <Box sx={{ mb: 2 }}>
         <Box
           component="img"
-          src={coverSrc}
+          src={groupCoverSrc}
           alt=""
           sx={{
             width: "100%",
@@ -775,22 +873,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         <Typography variant="h4" fontWeight={700}>
           {group.name}
         </Typography>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-          <Chip label={group.group_type} />
-          <Chip label={labelGroupListingVisibility(group.visibility)} />
-          <Chip label={labelEventCreatePolicy(group.event_create_policy)} variant="outlined" />
-          <Chip
-            label={labelWallPostPolicy(group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved")}
-            variant="outlined"
-          />
-          <Chip
-            label={labelResourcesPostPolicy(
-              group.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved"
-            )}
-            variant="outlined"
-          />
-          {membership ? <Chip label={`You: ${membership.membership_status}`} color="primary" /> : null}
-        </Box>
+        <Box sx={{ mt: 1 }}>{groupMetaChips}</Box>
         {group.description ? (
           <Typography variant="body2" sx={{ mt: 1 }}>
             {group.description}
@@ -801,25 +884,48 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             {group.address}
           </Typography>
         ) : null}
-        {showJoin ? (
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<PersonAddIcon />}
-            sx={{ mt: 2 }}
-            onClick={() => void joinRequest()}
-          >
-            Join now
-          </Button>
-        ) : null}
-        {membership?.membership_status === "pending" ? (
-          <Typography sx={{ mt: 2 }} color="warning.main">
-            Your membership is pending leader approval.
-          </Typography>
-        ) : null}
+        {joinCallToAction}
       </Box>
     );
-  }, [group, membership, showJoin]);
+  }, [group, groupCoverSrc, groupMetaChips, joinCallToAction]);
+
+  const compactHeader = useMemo(() => {
+    if (!group) return null;
+    return (
+      <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 2 }}>
+        <Box
+          component="img"
+          src={groupCoverSrc}
+          alt=""
+          sx={{
+            width: 72,
+            height: 72,
+            borderRadius: 1,
+            objectFit: "cover",
+            flexShrink: 0,
+            bgcolor: "rgba(0,0,0,0.25)",
+          }}
+        />
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="h5" fontWeight={700} lineHeight={1.25}>
+            {group.name}
+          </Typography>
+          <Box sx={{ mt: 0.75 }}>{groupMetaChips}</Box>
+          {group.description ? (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+              {group.description}
+            </Typography>
+          ) : null}
+          {group.address ? (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {group.address}
+            </Typography>
+          ) : null}
+          {joinCallToAction}
+        </Box>
+      </Stack>
+    );
+  }, [group, groupCoverSrc, groupMetaChips, joinCallToAction]);
 
   if (loading || !group) {
     return <Skeleton height={320} />;
@@ -845,10 +951,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           </Button>
         ) : null}
       </Stack>
-      {header}
+      {activeTab === "announcements" ? fullHeader : compactHeader}
 
-      <MobilizeContentPanel sx={{ mt: 2 }}>
-      {tab === 0 && !isApproved ? (
+      <MobilizeContentPanel sx={{ mt: activeTab === "announcements" ? 2 : 0 }}>
+      {activeTab === "announcements" && !isApproved ? (
         <JoinToViewGate
           section="announcements"
           onJoin={joinRequest}
@@ -857,7 +963,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         />
       ) : null}
 
-      {tab === 0 && isApproved ? (
+      {activeTab === "announcements" && isApproved ? (
         <Box>
           {canPostWall ? (
             <>
@@ -950,7 +1056,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             })}
             {!messages.length ? (
               <MobilizeSectionEmptyState
-                icon={<CampaignOutlinedIcon sx={{ fontSize: 40 }} />}
+                imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
                 message="There are no announcements in this group yet."
               />
             ) : null}
@@ -958,7 +1064,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Box>
       ) : null}
 
-      {tab === 1 && !isApproved ? (
+      {activeTab === "events" && !isApproved ? (
         <JoinToViewGate
           section="events"
           onJoin={joinRequest}
@@ -967,7 +1073,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         />
       ) : null}
 
-      {tab === 1 && isApproved ? (
+      {activeTab === "events" && isApproved ? (
         <Box>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
             {(isLeader || group.event_create_policy === "any_member") ? (
@@ -1056,7 +1162,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               ))}
               {!events.length ? (
                 <MobilizeSectionEmptyState
-                  icon={<CalendarMonthOutlinedIcon sx={{ fontSize: 40 }} />}
+                  imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.events}
                   message="There are no upcoming events in this group."
                 />
               ) : null}
@@ -1125,7 +1231,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Box>
       ) : null}
 
-      {tab === 2 && !isApproved ? (
+      {activeTab === "members" && !isApproved ? (
         <JoinToViewGate
           section="members"
           onJoin={joinRequest}
@@ -1134,7 +1240,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         />
       ) : null}
 
-      {tab === 2 && isApproved ? (
+      {activeTab === "members" && isApproved ? (
         <Box>
           {canManageMembers ? (
             <>
@@ -1165,9 +1271,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           ) : null}
 
           <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-            Members
+            Members ({approvedMembers.length})
           </Typography>
-          {members.length ? (
+          {approvedMembers.length ? (
           <TableContainer sx={mobilizeTableContainerSx}>
               <Table
                 size="small"
@@ -1180,81 +1286,110 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 <TableHead>
                   <TableRow>
                     <TableCell>Member</TableCell>
-                    <TableCell sx={{ width: 72 }}>State</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Phone</TableCell>
                     <TableCell>Role</TableCell>
-                    <TableCell>Status</TableCell>
+                    <TableCell>Member since</TableCell>
                     {canManageMembers ? <TableCell align="right">Actions</TableCell> : null}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {members.map((m) => (
+                  {approvedMembers.map((m) => {
+                    const memberName = m.display_name ?? m.email ?? m.user_id.slice(0, 8);
+                    const canActOnMember =
+                      m.user_id !== me.id && group.created_by !== m.user_id;
+                    return (
                     <TableRow key={m.id}>
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={1}>
                           <Avatar src={m.avatar_url ?? undefined} sx={{ width: 36, height: 36 }}>
                             {(m.display_name ?? "?").slice(0, 1)}
                           </Avatar>
-                          <Box>
-                            <Typography variant="body2">{m.display_name ?? m.user_id.slice(0, 8)}</Typography>
-                            {m.email ? (
-                              <Typography variant="caption" color="text.secondary">
-                                {m.email}
-                              </Typography>
-                            ) : null}
-                          </Box>
+                          <Typography variant="body2">{memberName}</Typography>
                         </Stack>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={600} color="text.primary">
-                          {m.state && String(m.state).trim() ? String(m.state).trim() : "—"}
+                        <Typography variant="body2" color="text.secondary">
+                          {m.email?.trim() || "—"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {m.phone?.trim() || "—"}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
                           <Typography variant="body2" component="span">
-                            {m.member_role}
+                            {capitalizeRole(m.member_role)}
                           </Typography>
                           {group.created_by === m.user_id ? (
-                            <Chip size="small" label="Primary owner" color="primary" variant="outlined" />
+                            <Chip size="small" label="Owner" variant="outlined" />
                           ) : null}
                         </Stack>
                       </TableCell>
-                      <TableCell>{m.membership_status}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {formatMemberSince(m.member_since ?? m.created_at)}
+                        </Typography>
+                      </TableCell>
                     {canManageMembers ? (
                       <TableCell align="right">
-                        {m.user_id !== me.id && group.created_by !== m.user_id ? (
-                          <Stack direction="row" spacing={0.5} justifyContent="flex-end" flexWrap="wrap">
-                            {m.membership_status === "approved" ? (
-                              m.member_role === "member" ? (
-                                <Button size="small" onClick={() => void setMemberRole(m.user_id, "leader")}>
-                                  Make leader
-                                </Button>
-                              ) : (
-                                <Button size="small" onClick={() => void setMemberRole(m.user_id, "member")}>
-                                  Demote
-                                </Button>
-                              )
+                        {canActOnMember ? (
+                          <Stack direction="row" spacing={0.25} justifyContent="flex-end">
+                            <Tooltip title="Edit group role">
+                              <IconButton
+                                size="small"
+                                aria-label="Edit group role"
+                                onClick={() =>
+                                  setMemberRoleDialog({
+                                    userId: m.user_id,
+                                    name: memberName,
+                                    role: m.member_role === "leader" ? "leader" : "member",
+                                  })
+                                }
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            {m.member_role === "member" ? (
+                              <Tooltip title="Make leader">
+                                <IconButton
+                                  size="small"
+                                  aria-label="Make leader"
+                                  onClick={() =>
+                                    setPromoteLeaderConfirm({
+                                      userId: m.user_id,
+                                      name: memberName,
+                                    })
+                                  }
+                                >
+                                  <MilitaryTechOutlinedIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
                             ) : null}
-                            <Button
-                              size="small"
-                              color="error"
-                              variant="outlined"
-                              startIcon={<DeleteOutlineIcon />}
-                              onClick={() =>
-                                setRemoveMemberDialog({
-                                  userId: m.user_id,
-                                  name: m.display_name ?? m.email ?? m.user_id.slice(0, 8),
-                                })
-                              }
-                            >
-                              Remove
-                            </Button>
+                            <Tooltip title="Remove from group">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                aria-label="Remove from group"
+                                onClick={() =>
+                                  setRemoveMemberDialog({
+                                    userId: m.user_id,
+                                    name: memberName,
+                                  })
+                                }
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                           </Stack>
                         ) : null}
                       </TableCell>
                     ) : null}
                     </TableRow>
-                  ))}
+                  );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -1267,7 +1402,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Box>
       ) : null}
 
-      {tab === 3 && !isApproved ? (
+      {activeTab === "resources" && !isApproved ? (
         <JoinToViewGate
           section="resources"
           onJoin={joinRequest}
@@ -1276,13 +1411,32 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         />
       ) : null}
 
-      {tab === 3 && isApproved ? (
+      {activeTab === "resources" && isApproved ? (
         <MobilizeGroupResourcesPanel
           groupId={groupId}
           currentUserId={me.id}
           isLeader={isLeader}
           canPost={canPostResources}
         />
+      ) : null}
+
+      {activeTab === "reports" && !isApproved ? (
+        <JoinToViewGate
+          section="reports"
+          onJoin={joinRequest}
+          showJoinButton={showJoin}
+          isPending={isPendingJoin}
+        />
+      ) : null}
+
+      {activeTab === "reports" && isApproved && !canViewReports ? (
+        <Typography color="text.secondary">
+          Reports are available to group owners and leaders only.
+        </Typography>
+      ) : null}
+
+      {activeTab === "reports" && isApproved && canViewReports ? (
+        <MobilizeGroupReportsPanel groupId={groupId} />
       ) : null}
       </MobilizeContentPanel>
 
@@ -1400,6 +1554,75 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           </Button>
           <Button variant="contained" onClick={() => void saveEditedEvent()} disabled={eventSaving}>
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={!!memberRoleDialog}
+        onClose={() => !memberActionSaving && setMemberRoleDialog(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Edit group role</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Change the Mobilize group role for <strong>{memberRoleDialog?.name}</strong>. This does not
+            change their dashboard system role.
+          </Typography>
+          <FormControl fullWidth>
+            <InputLabel id="member-role-select">Group role</InputLabel>
+            <Select
+              labelId="member-role-select"
+              label="Group role"
+              value={memberRoleDialog?.role ?? "member"}
+              onChange={(e) =>
+                setMemberRoleDialog((s) =>
+                  s ? { ...s, role: e.target.value as "leader" | "member" } : s
+                )
+              }
+            >
+              <MenuItem value="member">Member</MenuItem>
+              <MenuItem value="leader">Leader</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMemberRoleDialog(null)} disabled={memberActionSaving}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={requestMemberRoleSave} disabled={memberActionSaving}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={!!promoteLeaderConfirm}
+        onClose={() => !memberActionSaving && setPromoteLeaderConfirm(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Make group leader?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Promote <strong>{promoteLeaderConfirm?.name}</strong> to group leader? They will be able to
+            manage members, settings, and content according to group policies.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setPromoteLeaderConfirm(null)}
+            disabled={memberActionSaving}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={confirmPromoteLeader}
+            disabled={memberActionSaving}
+          >
+            Make leader
           </Button>
         </DialogActions>
       </Dialog>
