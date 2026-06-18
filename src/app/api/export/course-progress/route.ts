@@ -1,12 +1,10 @@
-import { MODULE_SLUGS } from "@/config/modules";
+import { assertSuperAdminExportAccess } from "@/lib/export/require-super-admin-export";
 import {
   buildCourseProgressExportRows,
   type CourseProgressExportRoleFilter,
 } from "@/lib/export/course-progress-export";
 import { buildXlsxBuffer, xlsxAttachmentHeaders } from "@/lib/export/xlsx-buffer";
 import { requireApiAuth } from "@/lib/auth/server-session";
-import { loadModulePermissions } from "@/lib/auth/load-permissions";
-import { can } from "@/types/permissions";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -22,11 +20,9 @@ export async function GET(req: Request) {
   const authResult = await requireApiAuth();
   if ("response" in authResult) return authResult.response;
 
-  const { supabase } = authResult;
-  const permissions = await loadModulePermissions(supabase, authResult.user.id);
-  if (!can(permissions, MODULE_SLUGS.courses, "read")) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
+  const { supabase, user } = authResult;
+  const forbidden = await assertSuperAdminExportAccess(supabase, user.id);
+  if (forbidden) return forbidden;
   if (!hasSupabaseAdminEnv()) {
     return NextResponse.json({ error: "Server export is not configured." }, { status: 503 });
   }

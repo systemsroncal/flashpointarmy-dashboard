@@ -1,5 +1,6 @@
 import { CourseProgressPageClient } from "@/components/dashboard/courses/CourseProgressPageClient";
 import { MODULE_SLUGS } from "@/config/modules";
+import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
@@ -23,6 +24,10 @@ import {
   isQuizOnlySession,
   type SessionElementTypeRow,
 } from "@/lib/courses/session-counting";
+import {
+  fetchCourseQuizResultsForElements,
+  fetchCourseSessionProgressForSessions,
+} from "@/lib/courses/fetch-course-session-progress";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -59,6 +64,9 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
       </Paper>
     );
   }
+
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  const isSuperAdmin = isSuperAdminUser(roleNames);
 
   const { data: course } = await supabase
     .from("courses")
@@ -123,16 +131,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
     );
   }
 
-  const { data: prog } = await admin
-    .from("course_session_progress")
-    .select("user_id, session_id, completed_at")
-    .in("session_id", sessionIds);
-
-  const progressRows = (prog ?? []) as Array<{
-    user_id: string;
-    session_id: string;
-    completed_at: string | null;
-  }>;
+  const progressRows = await fetchCourseSessionProgressForSessions(admin, sessionIds);
 
   const completionRow = await computeCourseCompletionRow(
     admin,
@@ -163,12 +162,9 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
 
   const quizByUser = new Map<string, { best: number; max: number }>();
   if (quizIds.length) {
-    const { data: results } = await admin
-      .from("course_quiz_results")
-      .select("user_id, score, max_score")
-      .in("element_id", quizIds);
-    for (const r of results ?? []) {
-      const uid = r.user_id as string;
+    const results = await fetchCourseQuizResultsForElements(admin, quizIds);
+    for (const r of results) {
+      const uid = r.user_id;
       const score = Number(r.score);
       const max = Number(r.max_score);
       const cur = quizByUser.get(uid);
@@ -280,6 +276,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
       completionRow={completionRow}
       totalRegisteredUsers={totalRegisteredUsers ?? 0}
       totalWithProgress={userIds.length}
+      isSuperAdmin={isSuperAdmin}
     />
   );
 }

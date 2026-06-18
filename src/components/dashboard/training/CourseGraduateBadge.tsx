@@ -17,6 +17,10 @@ import type { ReactNode } from "react";
 
 const GOLD = "rgb(255, 215, 0)";
 const ADMIN_AVATAR_BG = "#f8ffd1";
+const MEMBER_GRADUATE_CIRCLE_BG =
+  "linear-gradient(90deg, #15803d 0%, #22c55e 50%, #15803d 100%)";
+const LOCAL_LEADER_GRADUATE_CIRCLE_BG =
+  "linear-gradient(90deg, #ca8a04 0%, #fbbf24 50%, #ca8a04 100%)";
 /** Reference avatar size for overlay metrics from design (sidebar profile). */
 const OVERLAY_REF_SIZE = 40;
 const OVERLAY_REF = {
@@ -73,12 +77,12 @@ const BADGE_STYLES: Record<
 > = {
   local_leader: {
     label: "LOCAL LEADER",
-    background: "linear-gradient(90deg, #15803d 0%, #22c55e 50%, #15803d 100%)",
+    background: LOCAL_LEADER_GRADUATE_CIRCLE_BG,
     Icon: StarIcon,
   },
   member: {
     label: "MEMBER",
-    background: "linear-gradient(90deg, #979797 0%, #CECECE 50%, #979797 100%)",
+    background: MEMBER_GRADUATE_CIRCLE_BG,
     Icon: StarIcon,
   },
 };
@@ -288,7 +292,7 @@ export function AvatarWithGraduateIcon({
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: graduateRole === "local_leader" ? "#22c55e" : "#9ca3af",
+                  color: graduateRole === "local_leader" ? "#fbbf24" : "#9ca3af",
                   filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.75))",
                   zIndex: 1,
                   cursor: clickable ? "pointer" : "default",

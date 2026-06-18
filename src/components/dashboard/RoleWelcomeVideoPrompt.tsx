@@ -8,11 +8,12 @@ import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-const MEMBER_VIDEO: string = "https://youtu.be/XBjT8Vc2kis";
 const LEADER_VIDEO: string = "https://youtu.be/HMWn-Ikrim0";
 
-/** Temporarily off: auto-popup and toolbar clip for local_leader / member roles. */
-const ROLE_WELCOME_VIDEOS_ENABLED = false;
+/** Member welcome uses the same clip as local leader. */
+const MEMBER_VIDEO: string = LEADER_VIDEO;
+
+const ROLE_WELCOME_VIDEOS_ENABLED = true;
 
 const MS_24H = 24 * 60 * 60 * 1000;
 const AUTO_SHOW_COOKIE = "fpa_welcome_video_last_auto_ms";
@@ -89,14 +90,9 @@ export function RoleWelcomeVideoPrompt() {
     }
   }, [onNationalHome, open, manualOpen]);
 
-  /** Elevated users open clips manually — two shortcuts (leader + member). */
+  /** Elevated users open clips manually — leader + member shortcuts (same clip). */
   const adminToolbar =
-    adminLike &&
-    MEMBER_VIDEO &&
-    LEADER_VIDEO &&
-    MEMBER_VIDEO !== LEADER_VIDEO &&
-    MEMBER_VIDEO.length > 0 &&
-    LEADER_VIDEO.length > 0 ? (
+    adminLike && LEADER_VIDEO.length > 0 ? (
       <>
         <Tooltip title="Welcome video · Local leader">
           <IconButton
@@ -119,28 +115,11 @@ export function RoleWelcomeVideoPrompt() {
             aria-label="Member welcome video"
             onClick={() => {
               setManualOpen(true);
-              setDialogUrl(MEMBER_VIDEO);
-              setOpen(true);
-            }}
-          >
-            <VideocamOutlinedIcon sx={{ opacity: 0.92 }} />
-          </IconButton>
-        </Tooltip>
-      </>
-    ) : adminLike ? (
-      <>
-        <Tooltip title="Leader / Member welcome videos">
-          <IconButton
-            color="inherit"
-            size="small"
-            aria-label="Local leader welcome video"
-            onClick={() => {
-              setManualOpen(true);
               setDialogUrl(LEADER_VIDEO);
               setOpen(true);
             }}
           >
-            <VideocamOutlinedIcon />
+            <VideocamOutlinedIcon sx={{ opacity: 0.92 }} />
           </IconButton>
         </Tooltip>
       </>

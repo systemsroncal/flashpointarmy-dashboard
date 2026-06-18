@@ -47,6 +47,7 @@ type Props = {
   completionRow: CourseCompletionRow;
   totalRegisteredUsers: number;
   totalWithProgress: number;
+  isSuperAdmin?: boolean;
 };
 
 function filterByRole(rows: CourseProgressRow[], filter: ProgressRoleFilter): CourseProgressRow[] {
@@ -68,6 +69,7 @@ export function CourseProgressPageClient({
   completionRow,
   totalRegisteredUsers,
   totalWithProgress,
+  isSuperAdmin = false,
 }: Props) {
   const [roleFilter, setRoleFilter] = useState<ProgressRoleFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -233,6 +235,7 @@ export function CourseProgressPageClient({
             onChapterChange={setFilterChapterId}
           />
         ) : null}
+        {isSuperAdmin ? (
         <Button
           variant="outlined"
           size="small"
@@ -243,6 +246,7 @@ export function CourseProgressPageClient({
         >
           {exporting ? "Exporting…" : "Export to Excel"}
         </Button>
+        ) : null}
       </Box>
 
       <CourseProgressUsersTable

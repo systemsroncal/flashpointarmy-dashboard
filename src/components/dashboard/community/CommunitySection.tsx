@@ -1508,7 +1508,7 @@ export function CommunitySection({
               ) : null}
             </>
           ) : null}
-          {!isAdmins ? (
+          {isSuperAdmin && !isAdmins ? (
             <Button
               variant="outlined"
               size="small"

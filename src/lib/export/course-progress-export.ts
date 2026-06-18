@@ -9,6 +9,7 @@ import {
   filterCountableSessionIds,
   type SessionElementTypeRow,
 } from "@/lib/courses/session-counting";
+import { fetchCourseSessionProgressForSessions } from "@/lib/courses/fetch-course-session-progress";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type CourseProgressExportRoleFilter = "all" | "member" | "leader";
@@ -59,13 +60,10 @@ export async function buildCourseProgressExportRows(
     return { rows: [], courseTitle: course.title as string, totalSessions: 0 };
   }
 
-  const { data: prog } = await admin
-    .from("course_session_progress")
-    .select("user_id, session_id, completed_at")
-    .in("session_id", sessionIds);
+  const prog = await fetchCourseSessionProgressForSessions(admin, sessionIds);
 
   const byUser = new Map<string, number>();
-  for (const row of prog ?? []) {
+  for (const row of prog) {
     if (!countableSet.has(row.session_id as string)) continue;
     if (!row.completed_at) continue;
     const uid = row.user_id as string;

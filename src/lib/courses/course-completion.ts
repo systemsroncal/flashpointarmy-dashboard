@@ -3,6 +3,7 @@ import {
   filterCountableSessionIds,
   type SessionElementTypeRow,
 } from "@/lib/courses/session-counting";
+import { fetchCourseSessionProgressForSessions } from "@/lib/courses/fetch-course-session-progress";
 
 /** Primary training course — `/dashboard/course/biblical-citizenship`. */
 export const BIBLICAL_CITIZENSHIP_COURSE_SLUG = "biblical-citizenship";
@@ -115,14 +116,12 @@ export async function loadTrainingGraduateBadgesForUsers(
   const total = sessionIds.length;
   if (!total) return result;
 
-  const { data: prog } = await admin
-    .from("course_session_progress")
-    .select("user_id, session_id, completed_at")
-    .in("user_id", userIds)
-    .in("session_id", sessionIds);
+  const prog = await fetchCourseSessionProgressForSessions(admin, sessionIds, {
+    userIds,
+  });
 
   const completedByUser = new Map<string, Set<string>>();
-  for (const row of prog ?? []) {
+  for (const row of prog) {
     if (!row.completed_at) continue;
     const uid = row.user_id as string;
     const set = completedByUser.get(uid) ?? new Set<string>();

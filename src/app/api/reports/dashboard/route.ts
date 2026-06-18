@@ -9,6 +9,7 @@ import {
   type DateBucket,
 } from "@/lib/reports/bucket-series";
 import { fetchCreatedAtInRange } from "@/lib/reports/fetch-created-at-range";
+import { fetchAllCourseSessionProgress } from "@/lib/courses/fetch-course-session-progress";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -48,7 +49,7 @@ export async function GET(req: Request) {
       chapterStatusRes,
       coursesRes,
       sessionsRes,
-      progressRes,
+      progressRows,
     ] = await Promise.all([
       fetchCreatedAtInRange(admin, "dashboard_users", fromIso, toIso),
       fetchCreatedAtInRange(admin, "chapters", fromIso, toIso),
@@ -57,7 +58,7 @@ export async function GET(req: Request) {
       admin.from("chapters").select("status"),
       admin.from("courses").select("id, title, published").eq("published", true),
       admin.from("course_sessions").select("id, course_id"),
-      admin.from("course_session_progress").select("user_id, session_id, completed_at"),
+      fetchAllCourseSessionProgress(admin),
     ]);
 
     const firstErr = roleRes.error || chapterStatusRes.error;
@@ -96,12 +97,6 @@ export async function GET(req: Request) {
     const courseRows = (coursesRes.data ?? []) as { id: string; title: string }[];
     const sessionRows =
       (sessionsRes.data ?? []) as { id: string; course_id: string }[];
-    const progressRows =
-      (progressRes.data ?? []) as {
-        user_id: string;
-        session_id: string;
-        completed_at: string | null;
-      }[];
 
     const sessionsByCourse = new Map<string, Set<string>>();
     for (const s of sessionRows) {
