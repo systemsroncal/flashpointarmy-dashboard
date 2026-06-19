@@ -239,16 +239,14 @@ export function DonatePageClient({ presets }: Props) {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "minmax(260px, 360px) 1fr" },
-            gap: { xs: 3, md: 5 },
+            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+            gap: { xs: 3, md: 4 },
             alignItems: "start",
           }}
         >
           <Box
             sx={{
               width: "100%",
-              maxWidth: 360,
-              mx: { xs: "auto", md: 0 },
               borderRadius: 2,
               overflow: "hidden",
               boxShadow: "0 16px 40px rgba(0,0,0,0.35)",
@@ -260,6 +258,8 @@ export function DonatePageClient({ presets }: Props) {
               initialSeconds={0}
               onPersistSeconds={() => {}}
               autoplayMuted={false}
+              showProgressHint={false}
+              fillContainer
             />
           </Box>
           <Stack spacing={2.25} sx={{ pt: { md: 1 } }}>

@@ -149,6 +149,8 @@ export function CourseVideoPlyr({
   onVideoFullyWatched,
   onProgress,
   suppressResumePrompt = false,
+  showProgressHint = true,
+  fillContainer = false,
 }: {
   videoUrl: string;
   initialSeconds: number;
@@ -166,6 +168,10 @@ export function CourseVideoPlyr({
   onProgress?: (currentSeconds: number, durationSeconds: number) => void;
   /** When true (e.g. learner already finished), skip auto-resume on load. */
   suppressResumePrompt?: boolean;
+  /** Show helper text under the player (course sessions). */
+  showProgressHint?: boolean;
+  /** Use full parent width instead of the course session viewport cap. */
+  fillContainer?: boolean;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlyrLike | null>(null);
@@ -496,10 +502,10 @@ export function CourseVideoPlyr({
     <Box sx={{ position: "relative", width: "100%" }}>
       <Box
         ref={mountRef}
-        className="course-video-plyr-mount"
+        className={fillContainer ? "course-video-plyr-mount course-video-plyr-mount--fill" : "course-video-plyr-mount"}
         sx={{
           width: "100%",
-          maxWidth: "min(100%, calc(72vh * 16 / 9))",
+          maxWidth: fillContainer ? "100%" : "min(100%, calc(72vh * 16 / 9))",
           mx: "auto",
           position: "relative",
           overflow: "hidden",
@@ -515,32 +521,34 @@ export function CourseVideoPlyr({
         }}
       />
 
-      {autoResumed && savedSeconds >= MIN_SAVED_SECONDS_TO_AUTO_RESUME ? (
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          alignItems="center"
-          justifyContent="center"
-          sx={{ mt: 1 }}
-        >
-          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
-            Resumed near your last saved position. Use the timeline to rewind or skip ahead — your progress
-            is saved automatically.
+      {showProgressHint ? (
+        autoResumed && savedSeconds >= MIN_SAVED_SECONDS_TO_AUTO_RESUME ? (
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems="center"
+            justifyContent="center"
+            sx={{ mt: 1 }}
+          >
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
+              Resumed near your last saved position. Use the timeline to rewind or skip ahead — your progress
+              is saved automatically.
+            </Typography>
+            <Button size="small" color="inherit" onClick={handleStartOver} sx={{ flexShrink: 0 }}>
+              Start from beginning
+            </Button>
+          </Stack>
+        ) : (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ mt: 1, textAlign: "center" }}
+          >
+            Use the progress bar to rewind or skip ahead. Your position is saved while you watch.
           </Typography>
-          <Button size="small" color="inherit" onClick={handleStartOver} sx={{ flexShrink: 0 }}>
-            Start from beginning
-          </Button>
-        </Stack>
-      ) : (
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          display="block"
-          sx={{ mt: 1, textAlign: "center" }}
-        >
-          Use the progress bar to rewind or skip ahead. Your position is saved while you watch.
-        </Typography>
-      )}
+        )
+      ) : null}
 
       <Dialog
         open={resumePromptOpen}
