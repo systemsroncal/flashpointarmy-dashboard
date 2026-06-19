@@ -199,6 +199,7 @@ export function CourseProgressPageClient({
         sx={{
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
+          flexWrap: { md: "wrap" },
           gap: 1.5,
           mb: 2,
           alignItems: { md: "flex-start" },

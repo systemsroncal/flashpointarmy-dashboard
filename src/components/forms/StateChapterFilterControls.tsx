@@ -108,11 +108,18 @@ export function StateChapterFilterControls({
         alignItems: "flex-start",
         gap: 1,
         width: { xs: "100%", md: "auto" },
-        flex: { md: "0 1 auto" },
-        minWidth: 0,
+        flex: { md: "0 0 auto" },
+        flexShrink: 0,
       }}
     >
-      <Box sx={{ flex: { xs: "2 1 0", md: "0 1 200px" }, minWidth: 0, maxWidth: { md: 240 } }}>
+      <Box
+        sx={{
+          flex: { xs: "2 1 0", md: "0 0 200px" },
+          minWidth: { xs: 0, md: 180 },
+          width: { md: 200 },
+          flexShrink: { md: 0 },
+        }}
+      >
         <Autocomplete
           size={size}
           fullWidth
@@ -136,7 +143,14 @@ export function StateChapterFilterControls({
           )}
         />
       </Box>
-      <Box sx={{ flex: { xs: "3 1 0", md: "0 1 280px" }, minWidth: 0, maxWidth: { md: 360 } }}>
+      <Box
+        sx={{
+          flex: { xs: "3 1 0", md: "0 0 300px" },
+          minWidth: { xs: 0, md: 240 },
+          width: { md: 300 },
+          flexShrink: { md: 0 },
+        }}
+      >
         <Autocomplete
           size={size}
           fullWidth
