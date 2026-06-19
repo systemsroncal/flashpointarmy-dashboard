@@ -77,7 +77,7 @@ import {
 import { UserProfileDrawer } from "./UserProfileDrawer";
 import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
-import { flashpointYellow } from "@/theme/tokens";
+import { flashpointBlack, flashpointYellow } from "@/theme/tokens";
 import { MobilizeGroupSidebarTabs } from "@/components/mobilize/MobilizeGroupSidebarTabs";
 import {
   parseMobilizeGroupDetailId,
@@ -213,7 +213,11 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-const MOVILIZATION_RED = "#c32020";
+const NAV_SELECTED_SX = {
+  borderLeft: "3px solid",
+  borderColor: "primary.main",
+  bgcolor: "rgba(255,215,0,0.08)",
+} as const;
 
 const SETTINGS_MODULES = new Set<string>([
   MODULE_SLUGS.emails,
@@ -399,8 +403,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const isMobilizeGroupDetail = Boolean(mobilizeGroupDetailId);
   const activeMobilizeGroupTab = parseMobilizeGroupTab(searchParams.get("tab"));
 
-  /** Red Mobilize chrome only while inside `/dashboard/mobilize/*` (not persisted). */
-  const redNavAccent = isMobilize;
+  /** Mobilize uses the same yellow nav accent as the main dashboard. */
 
   const mobilizeDrawerNav = useMemo(() => {
     const items = [...MOBILIZE_DRAWER_NAV_BASE];
@@ -587,7 +590,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           />
         </Box>
       </Box>
-      <Divider sx={{ borderColor: redNavAccent ? "rgba(195,32,32,0.22)" : "rgba(255,215,0,0.2)" }} />
+      <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
       <List
         sx={{
           flex: 1,
@@ -672,7 +675,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Typography
                     variant="overline"
                     sx={{
-                      color: "rgba(195,32,32,0.82)",
+                      color: "rgba(255,215,0,0.78)",
                       letterSpacing: "0.12em",
                       fontSize: "0.68rem",
                       fontWeight: 700,
@@ -702,16 +705,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         ...(isMobilizeDashboardLink
                           ? MOBILIZE_DASHBOARD_NAV_ITEM_SX
                           : {
-                              "&.Mui-selected": {
-                                borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                                bgcolor: "rgba(195, 32, 32, 0.1)",
-                              },
+                              "&.Mui-selected": NAV_SELECTED_SX,
                             }),
                       }}
                     >
                       <ListItemIcon
                         sx={{
-                          color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.92)",
+                          color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
                           minWidth: 38,
                         }}
                       >
@@ -728,7 +728,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                           variant: "body2",
                           fontWeight: 600,
                           fontSize: "calc(0.82rem + 3px)",
-                          color: selected ? MOVILIZATION_RED : "rgba(255,255,255,0.88)",
+                          color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
                         }}
                       />
                       {item.href === `${MOBILIZE_PREFIX}/notifications` ? (
@@ -759,25 +759,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     alignItems: "center",
                     justifyContent: "flex-start",
                     gap: 0.5,
-                    "&.Mui-selected": redNavAccent
-                      ? {
-                          borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                          bgcolor: "rgba(195, 32, 32, 0.1)",
-                        }
-                      : {
-                          borderLeft: "3px solid",
-                          borderColor: "primary.main",
-                          bgcolor: "rgba(255,215,0,0.08)",
-                        },
+                    "&.Mui-selected": NAV_SELECTED_SX,
                   }}
                 >
                   <ListItemIcon
                     sx={{
-                      color: selected
-                        ? redNavAccent
-                          ? MOVILIZATION_RED
-                          : "primary.main"
-                        : "rgba(255,255,255,0.92)",
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
                       minWidth: 38,
                     }}
                   >
@@ -794,11 +781,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       variant: "body2",
                       fontWeight: 600,
                       fontSize: "calc(0.82rem + 3px)",
-                      color: selected
-                        ? redNavAccent
-                          ? MOVILIZATION_RED
-                          : "primary.main"
-                        : "rgba(255,255,255,0.88)",
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
                     }}
                   />
                   {item.href === "/dashboard/notifications" ? <NotificationsDrawerUnreadCount /> : null}
@@ -817,24 +800,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 sx={{
                   ...NAV_ITEM_TOUCH_SX,
                   py: 0.75,
-                  "&.Mui-selected": redNavAccent
-                    ? {
-                        borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                        bgcolor: "rgba(195, 32, 32, 0.1)",
-                      }
-                    : {
-                        borderLeft: "3px solid",
-                        borderColor: "primary.main",
-                        bgcolor: "rgba(255,215,0,0.08)",
-                      },
+                  "&.Mui-selected": NAV_SELECTED_SX,
                 }}
               >
                 <ListItemIcon
                   sx={{
                     color: ordersHasActive
-                      ? redNavAccent
-                        ? MOVILIZATION_RED
-                        : "primary.main"
+                      ? "primary.main"
                       : "rgba(255,255,255,0.92)",
                     minWidth: 38,
                   }}
@@ -848,9 +820,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     fontWeight: 600,
                     fontSize: "calc(0.82rem + 3px)",
                     color: ordersHasActive
-                      ? redNavAccent
-                        ? MOVILIZATION_RED
-                        : "primary.main"
+                      ? "primary.main"
                       : "rgba(255,255,255,0.88)",
                   }}
                 />
@@ -873,24 +843,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                           ...NAV_ITEM_TOUCH_SX,
                           py: 0.65,
                           pl: 4.5,
-                          "&.Mui-selected": redNavAccent
-                            ? {
-                                borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                                bgcolor: "rgba(195, 32, 32, 0.1)",
-                              }
-                            : {
-                                borderLeft: "3px solid",
-                                borderColor: "primary.main",
-                                bgcolor: "rgba(255,215,0,0.08)",
-                              },
+                          "&.Mui-selected": NAV_SELECTED_SX,
                         }}
                       >
                         <ListItemIcon
                           sx={{
                             color: selected
-                              ? redNavAccent
-                                ? MOVILIZATION_RED
-                                : "primary.main"
+                              ? "primary.main"
                               : "rgba(255,255,255,0.92)",
                             minWidth: 36,
                           }}
@@ -904,9 +863,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                             fontWeight: 500,
                             fontSize: "calc(0.8rem + 3px)",
                             color: selected
-                              ? redNavAccent
-                                ? MOVILIZATION_RED
-                                : "primary.main"
+                              ? "primary.main"
                               : "rgba(255,255,255,0.88)",
                           }}
                         />
@@ -928,24 +885,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 sx={{
                   ...NAV_ITEM_TOUCH_SX,
                   py: 0.75,
-                  "&.Mui-selected": redNavAccent
-                    ? {
-                        borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                        bgcolor: "rgba(195, 32, 32, 0.1)",
-                      }
-                    : {
-                        borderLeft: "3px solid",
-                        borderColor: "primary.main",
-                        bgcolor: "rgba(255,215,0,0.08)",
-                      },
+                  "&.Mui-selected": NAV_SELECTED_SX,
                 }}
               >
                 <ListItemIcon
                   sx={{
                     color: settingsHasActive
-                      ? redNavAccent
-                        ? MOVILIZATION_RED
-                        : "primary.main"
+                      ? "primary.main"
                       : "rgba(255,255,255,0.92)",
                     minWidth: 38,
                   }}
@@ -959,9 +905,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     fontWeight: 600,
                     fontSize: "calc(0.82rem + 3px)",
                     color: settingsHasActive
-                      ? redNavAccent
-                        ? MOVILIZATION_RED
-                        : "primary.main"
+                      ? "primary.main"
                       : "rgba(255,255,255,0.88)",
                   }}
                 />
@@ -984,24 +928,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                           ...NAV_ITEM_TOUCH_SX,
                           py: 0.65,
                           pl: 4.5,
-                          "&.Mui-selected": redNavAccent
-                            ? {
-                                borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                                bgcolor: "rgba(195, 32, 32, 0.1)",
-                              }
-                            : {
-                                borderLeft: "3px solid",
-                                borderColor: "primary.main",
-                                bgcolor: "rgba(255,215,0,0.08)",
-                              },
+                          "&.Mui-selected": NAV_SELECTED_SX,
                         }}
                       >
                         <ListItemIcon
                           sx={{
                             color: selected
-                              ? redNavAccent
-                                ? MOVILIZATION_RED
-                                : "primary.main"
+                              ? "primary.main"
                               : "rgba(255,255,255,0.92)",
                             minWidth: 36,
                           }}
@@ -1015,9 +948,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                             fontWeight: 500,
                             fontSize: "calc(0.8rem + 3px)",
                             color: selected
-                              ? redNavAccent
-                                ? MOVILIZATION_RED
-                                : "primary.main"
+                              ? "primary.main"
                               : "rgba(255,255,255,0.88)",
                           }}
                         />
@@ -1040,27 +971,27 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             onClick={closeMobileDrawer}
             sx={{
               ...NAV_ITEM_TOUCH_SX,
+              mx: 1,
+              mb: 0.75,
               px: 2,
               py: 1.25,
-              "&.Mui-selected": redNavAccent
-                ? {
-                    borderLeft: `3px solid ${MOVILIZATION_RED}`,
-                    bgcolor: "rgba(195, 32, 32, 0.1)",
-                  }
-                : {
-                    borderLeft: "3px solid",
-                    borderColor: "primary.main",
-                    bgcolor: "rgba(255,215,0,0.08)",
-                  },
+              borderRadius: 1,
+              bgcolor: flashpointYellow,
+              border: "1px solid rgba(0,0,0,0.1)",
+              "&:hover": {
+                bgcolor: flashpointYellow,
+                filter: "brightness(0.97)",
+              },
+              "&.Mui-selected": {
+                bgcolor: flashpointYellow,
+                borderLeft: "3px solid",
+                borderColor: flashpointBlack,
+              },
             }}
           >
             <ListItemIcon
               sx={{
-                color: becomePartnerSelected
-                  ? redNavAccent
-                    ? MOVILIZATION_RED
-                    : "primary.main"
-                  : "rgba(255,255,255,0.92)",
+                color: flashpointBlack,
                 minWidth: 32,
               }}
             >
@@ -1074,16 +1005,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 fontSize: "0.72rem",
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                color: becomePartnerSelected
-                  ? redNavAccent
-                    ? MOVILIZATION_RED
-                    : "primary.main"
-                  : "rgba(255,255,255,0.95)",
+                color: flashpointBlack,
               }}
             />
           </ListItemButton>
         ) : null}
-        <Divider sx={{ borderColor: redNavAccent ? "rgba(195,32,32,0.22)" : "rgba(255,215,0,0.2)" }} />
+        <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
         <Box
           data-tour="sidebar-profile"
           sx={{
@@ -1188,7 +1115,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           zIndex: (t) => t.zIndex.drawer + 1,
           bgcolor: "rgba(12,12,14,0.88)",
           backdropFilter: "blur(8px)",
-          borderBottom: redNavAccent ? "1px solid rgba(195,32,32,0.18)" : "1px solid rgba(255,215,0,0.12)",
+          borderBottom: "1px solid rgba(255,215,0,0.12)",
           width: { xs: "100%", md: `calc(100% - ${appBarShift}px)` },
           ml: { md: `${appBarShift}px` },
           transition: theme.transitions.create(["width", "margin"], {
@@ -1244,12 +1171,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 width: DRAWER_WIDTH,
                 [`& .MuiDrawer-paper`]: {
                   ...drawerPaperSx(theme),
-                  ...(redNavAccent
-                    ? {
-                        borderRight: "1px solid rgba(195,32,32,0.22)",
-                        scrollbarColor: "rgba(195,32,32,0.28) rgba(0,0,0,0.35)",
-                      }
-                    : {}),
                   position: "fixed",
                   top: maintenanceTop,
                   ...drawerViewportHeightCss(maintenanceTop),
@@ -1258,12 +1179,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             : {
                 [`& .MuiDrawer-paper`]: {
                   ...drawerPaperSx(theme),
-                  ...(redNavAccent
-                    ? {
-                        borderRight: "1px solid rgba(195,32,32,0.22)",
-                        scrollbarColor: "rgba(195,32,32,0.28) rgba(0,0,0,0.35)",
-                      }
-                    : {}),
                   top: maintenanceTop,
                   ...drawerViewportHeightCss(maintenanceTop),
                   touchAction: "pan-y",

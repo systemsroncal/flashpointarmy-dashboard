@@ -271,7 +271,7 @@ export function NationalOverview({
     () =>
       [
         {
-          label: "Chapters",
+          label: "Chapter Applications",
           value: stats.activeChapters,
           color: "#3b82f6",
           icon: PlaceOutlined,
@@ -289,7 +289,7 @@ export function NationalOverview({
           icon: GroupsOutlined,
         },
         {
-          label: "Local Leaders",
+          label: "Leader Recruitment",
           value: stats.localLeaders,
           color: "#eab308",
           icon: AssignmentIndOutlined,
