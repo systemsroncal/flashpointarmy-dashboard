@@ -3,11 +3,12 @@
 import {
   DONATION_DEFAULT_CHECKOUT_URL,
   DONATION_PARTNER_HERO_IMAGE,
-  DONATION_PARTNER_INTRO_IMAGE,
 } from "@/lib/donations/constants";
+import { DASHBOARD_WELCOME_VIDEO_URL } from "@/lib/dashboard/welcome-video";
 import { formatUsdFromCents } from "@/lib/donations/format";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import type { DonationAmountPreset } from "@/types/donations";
+import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { Box, Button, Container, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
 
@@ -216,7 +217,6 @@ export function DonatePageClient({ presets }: Props) {
   );
 
   const heroSrc = publicAssetSrc(DONATION_PARTNER_HERO_IMAGE);
-  const introSrc = publicAssetSrc(DONATION_PARTNER_INTRO_IMAGE);
 
   return (
     <Box sx={{ bgcolor: "#0b0b0d", color: "#fff", mx: { xs: -2, sm: -3 }, mb: -4 }}>
@@ -245,19 +245,23 @@ export function DonatePageClient({ presets }: Props) {
           }}
         >
           <Box
-            component="img"
-            src={introSrc}
-            alt=""
             sx={{
-              display: "block",
               width: "100%",
               maxWidth: 360,
-              height: "auto",
               mx: { xs: "auto", md: 0 },
               borderRadius: 2,
+              overflow: "hidden",
               boxShadow: "0 16px 40px rgba(0,0,0,0.35)",
+              bgcolor: "#000",
             }}
-          />
+          >
+            <CourseVideoPlyr
+              videoUrl={DASHBOARD_WELCOME_VIDEO_URL}
+              initialSeconds={0}
+              onPersistSeconds={() => {}}
+              autoplayMuted={false}
+            />
+          </Box>
           <Stack spacing={2.25} sx={{ pt: { md: 1 } }}>
             <Typography
               component="h2"
@@ -322,19 +326,25 @@ export function DonatePageClient({ presets }: Props) {
           ) : (
             <Box
               sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "repeat(2, minmax(0, 1fr))",
-                  md: "repeat(4, minmax(0, 1fr))",
-                },
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
                 gap: { xs: 1.5, sm: 2, md: 2.5 },
-                alignItems: "center",
                 maxWidth: 1180,
                 mx: "auto",
               }}
             >
               {packages.map((preset) => (
-                <PartnershipCard key={preset.id} preset={preset} />
+                <Box
+                  key={preset.id}
+                  sx={{
+                    width: { xs: "calc(50% - 8px)", md: "calc(25% - 19px)" },
+                    maxWidth: 290,
+                    minWidth: { xs: 0, md: 220 },
+                  }}
+                >
+                  <PartnershipCard preset={preset} />
+                </Box>
               ))}
             </Box>
           )}

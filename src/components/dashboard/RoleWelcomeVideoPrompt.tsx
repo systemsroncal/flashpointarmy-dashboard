@@ -8,10 +8,7 @@ import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-const LEADER_VIDEO: string = "https://youtu.be/HMWn-Ikrim0";
-
-/** Member welcome uses the same clip as local leader. */
-const MEMBER_VIDEO: string = LEADER_VIDEO;
+import { DASHBOARD_WELCOME_VIDEO_URL } from "@/lib/dashboard/welcome-video";
 
 const ROLE_WELCOME_VIDEOS_ENABLED = true;
 
@@ -20,8 +17,8 @@ const AUTO_SHOW_COOKIE = "fpa_welcome_video_last_auto_ms";
 
 function roleVideoUrl(roleNames: string[]): string | null {
   if (!ROLE_WELCOME_VIDEOS_ENABLED) return null;
-  if (roleNames.includes("local_leader")) return LEADER_VIDEO;
-  if (roleNames.includes("member")) return MEMBER_VIDEO;
+  if (roleNames.includes("local_leader")) return DASHBOARD_WELCOME_VIDEO_URL;
+  if (roleNames.includes("member")) return DASHBOARD_WELCOME_VIDEO_URL;
   return null;
 }
 
@@ -92,7 +89,7 @@ export function RoleWelcomeVideoPrompt() {
 
   /** Elevated users open clips manually — leader + member shortcuts (same clip). */
   const adminToolbar =
-    adminLike && LEADER_VIDEO.length > 0 ? (
+    adminLike && DASHBOARD_WELCOME_VIDEO_URL.length > 0 ? (
       <>
         <Tooltip title="Welcome video · Local leader">
           <IconButton
@@ -101,7 +98,7 @@ export function RoleWelcomeVideoPrompt() {
             aria-label="Local leader welcome video"
             onClick={() => {
               setManualOpen(true);
-              setDialogUrl(LEADER_VIDEO);
+              setDialogUrl(DASHBOARD_WELCOME_VIDEO_URL);
               setOpen(true);
             }}
           >
@@ -115,7 +112,7 @@ export function RoleWelcomeVideoPrompt() {
             aria-label="Member welcome video"
             onClick={() => {
               setManualOpen(true);
-              setDialogUrl(LEADER_VIDEO);
+              setDialogUrl(DASHBOARD_WELCOME_VIDEO_URL);
               setOpen(true);
             }}
           >
@@ -126,7 +123,7 @@ export function RoleWelcomeVideoPrompt() {
     ) : null;
 
   if (adminToolbar) {
-    const activeUrl = dialogUrl ?? LEADER_VIDEO;
+    const activeUrl = dialogUrl ?? DASHBOARD_WELCOME_VIDEO_URL;
     return (
       <>
         {adminToolbar}
