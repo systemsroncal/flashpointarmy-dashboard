@@ -21,6 +21,7 @@ import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import PeopleIcon from "@mui/icons-material/People";
 import PublicIcon from "@mui/icons-material/Public";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import SchoolIcon from "@mui/icons-material/School";
 import SecurityIcon from "@mui/icons-material/Security";
 import EmailIcon from "@mui/icons-material/Email";
@@ -298,6 +299,12 @@ const NAV: NavItem[] = [
     href: "/dashboard/courses",
     module: MODULE_SLUGS.courses,
     icon: <MenuBookIcon />,
+  },
+  {
+    label: "Certificate requests",
+    href: "/dashboard/courses/certificate-requests",
+    module: MODULE_SLUGS.courses,
+    icon: <FactCheckOutlinedIcon />,
   },
   {
     label: "Notifications",

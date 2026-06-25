@@ -49,6 +49,19 @@ export async function writeCourseAsset(
   return toWebPath("courses", userId, fileName);
 }
 
+/** Training certificate uploads under `public/uploads/training-certificates/{userId}/`. */
+export async function writeTrainingCertificate(
+  userId: string,
+  buffer: Buffer,
+  ext: string
+): Promise<string> {
+  const absDir = path.join(uploadsRoot(), "training-certificates", userId);
+  await mkdir(absDir, { recursive: true });
+  const fileName = `${randomUUID()}.${ext}`;
+  await writeFile(path.join(absDir, fileName), buffer);
+  return toWebPath("training-certificates", userId, fileName);
+}
+
 /** Mobilize group cover images under `public/uploads/mobilize-groups/{userId}/{uuid}.{ext}`. */
 export async function writeMobilizeGroupCoverImage(userId: string, buffer: Buffer, ext: string): Promise<string> {
   const absDir = path.join(uploadsRoot(), "mobilize-groups", userId);

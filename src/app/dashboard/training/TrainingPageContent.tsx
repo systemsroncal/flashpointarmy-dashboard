@@ -2,8 +2,8 @@ import { TrainingCommandLanding } from "@/components/dashboard/training/Training
 import { MODULE_SLUGS } from "@/config/modules";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { shouldShowExternalCertificatePrompt } from "@/lib/training/certificate-requests";
 import { can } from "@/types/permissions";
-import { createClient } from "@/utils/supabase/server";
 import { requireServerUser } from "@/lib/auth/server-session";
 import { Paper, Typography } from "@mui/material";
 
@@ -35,10 +35,12 @@ export default async function TrainingPageContent() {
   const intro = dbIntro || envIntro;
   const roles = await loadUserRoleNames(supabase, user.id);
   const elevated = isElevatedRole(roles);
+  const showExternalCertPrompt = await shouldShowExternalCertificatePrompt(supabase, user.id);
 
   return (
     <TrainingCommandLanding
       introVideoUrl={intro || null}
+      showExternalCertPrompt={showExternalCertPrompt}
       introVideoAdmin={
         elevated ? { initialDbUrl: dbIntro, hasEnvFallback: Boolean(envIntro) } : null
       }

@@ -1,5 +1,8 @@
 import { CourseGridClient, type SessionCardModel } from "@/components/courses/CourseGridClient";
+import { ExternalTrainingCertificateBanner } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
+import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { isQuizOnlySession } from "@/lib/courses/session-counting";
+import { shouldShowExternalCertificatePrompt } from "@/lib/training/certificate-requests";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
@@ -88,6 +91,9 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   const roleNames = await loadUserRoleNames(supabase, user.id);
   const canEditCourse = isElevatedRole(roleNames);
   const editCourseHref = canEditCourse ? `/dashboard/courses/${course.id}/edit` : null;
+  const showExternalCertPrompt =
+    slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG &&
+    (await shouldShowExternalCertificatePrompt(supabase, user.id, slug));
 
   return (
     <Box
@@ -101,6 +107,11 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
         `,
       }}
     >
+      <ExternalTrainingCertificateBanner
+        showPrompt={showExternalCertPrompt}
+        courseSlug={slug}
+        variant="compact"
+      />
       <CourseGridClient
         courseSlug={course.slug as string}
         courseTitle={course.title as string}

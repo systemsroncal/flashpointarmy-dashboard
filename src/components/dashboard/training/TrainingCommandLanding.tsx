@@ -4,6 +4,7 @@ import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { Box, Button, Link as MuiLink, Typography } from "@mui/material";
 import Link from "next/link";
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
+import { ExternalTrainingCertificateBanner } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
 import { TrainingIntroVideoAdmin } from "@/components/dashboard/training/TrainingIntroVideoAdmin";
 
 const checklist = [
@@ -22,6 +23,8 @@ type Props = {
   introVideoUrl?: string | null;
   /** Primary CTA course path, e.g. `/dashboard/course/biblical-citizenship`. */
   primaryCourseHref?: string;
+  /** Ask if training was completed at another organization. */
+  showExternalCertPrompt?: boolean;
   /** Shown to super_admin / admin: edit URL stored in `training_settings`. */
   introVideoAdmin?: IntroVideoAdminProps | null;
 };
@@ -29,6 +32,7 @@ type Props = {
 export function TrainingCommandLanding({
   introVideoUrl,
   primaryCourseHref = "/dashboard/course/biblical-citizenship",
+  showExternalCertPrompt = false,
   introVideoAdmin,
 }: Props) {
   const trimmedIntro = introVideoUrl?.trim() ?? "";
@@ -95,6 +99,8 @@ export function TrainingCommandLanding({
           p: { xs: 2.5, sm: 3.5 },
         }}
       >
+        <ExternalTrainingCertificateBanner showPrompt={showExternalCertPrompt} />
+
         <Typography
           component="h1"
           sx={{
