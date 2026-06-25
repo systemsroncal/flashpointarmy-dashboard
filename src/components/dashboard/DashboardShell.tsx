@@ -29,7 +29,6 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SettingsIcon from "@mui/icons-material/Settings";
-import StarOutlineIcon from "@mui/icons-material/StarOutline";
 import VolunteerActivismOutlinedIcon from "@mui/icons-material/VolunteerActivismOutlined";
 import {
   AppBar,
@@ -78,7 +77,7 @@ import {
 import { UserProfileDrawer } from "./UserProfileDrawer";
 import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
-import { flashpointBlack, flashpointYellow } from "@/theme/tokens";
+import { flashpointYellow } from "@/theme/tokens";
 import { MobilizeGroupSidebarTabs } from "@/components/mobilize/MobilizeGroupSidebarTabs";
 import {
   parseMobilizeGroupDetailId,
@@ -468,10 +467,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const ordersHasActive = ordersNav.some((item) => isNavItemSelected(item, pathname));
   const showSystemNotificationBell =
     user.role_names.includes("admin") || user.role_names.includes("super_admin");
-  const showBecomePartner =
-    isElevatedRole(user.role_names) || can(permissions, MODULE_SLUGS.donate, "read");
-  const becomePartnerSelected =
-    pathname === "/dashboard/donate" || pathname.startsWith("/dashboard/donate/");
 
   const tourBuildInput = useMemo(
     () => ({
@@ -969,54 +964,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         ) : null}
       </List>
       <Box sx={{ flexShrink: 0 }}>
-        {showBecomePartner ? (
-          <ListItemButton
-            component={Link}
-            href="/dashboard/donate"
-            selected={becomePartnerSelected}
-            data-tour="nav-donate"
-            onClick={closeMobileDrawer}
-            sx={{
-              ...NAV_ITEM_TOUCH_SX,
-              mx: 1,
-              mb: 0.75,
-              px: 2,
-              py: 1.25,
-              borderRadius: 1,
-              bgcolor: flashpointYellow,
-              border: "1px solid rgba(0,0,0,0.1)",
-              "&:hover": {
-                bgcolor: flashpointYellow,
-                filter: "brightness(0.97)",
-              },
-              "&.Mui-selected": {
-                bgcolor: flashpointYellow,
-                borderLeft: "3px solid",
-                borderColor: flashpointBlack,
-              },
-            }}
-          >
-            <ListItemIcon
-              sx={{
-                color: flashpointBlack,
-                minWidth: 32,
-              }}
-            >
-              <StarOutlineIcon sx={{ fontSize: 20 }} />
-            </ListItemIcon>
-            <ListItemText
-              primary="Become a Partner"
-              primaryTypographyProps={{
-                variant: "body2",
-                fontWeight: 800,
-                fontSize: "0.72rem",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: flashpointBlack,
-              }}
-            />
-          </ListItemButton>
-        ) : null}
         <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
         <Box
           data-tour="sidebar-profile"

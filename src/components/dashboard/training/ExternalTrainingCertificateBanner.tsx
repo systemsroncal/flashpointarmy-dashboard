@@ -27,6 +27,8 @@ const DISMISS_KEY = "fp-external-cert-prompt-dismissed";
 type Props = {
   showPrompt: boolean;
   courseSlug?: string;
+  /** Human-readable course name shown in the prompt. */
+  courseTitle?: string;
   /** Compact layout for course grid page */
   variant?: "default" | "compact";
 };
@@ -34,6 +36,7 @@ type Props = {
 export function ExternalTrainingCertificateBanner({
   showPrompt,
   courseSlug = BIBLICAL_CITIZENSHIP_COURSE_SLUG,
+  courseTitle = "Biblical Citizenship",
   variant = "default",
 }: Props) {
   const router = useRouter();
@@ -143,47 +146,83 @@ export function ExternalTrainingCertificateBanner({
   if (submitted) {
     return (
       <Alert severity="info" icon={<CheckCircleOutlineIcon />} sx={{ mb: 2 }}>
-        Your external training certificate request has been submitted and is pending review. You will be notified once
-        an administrator approves or rejects it.
+        Thank you. We received your certificate for the <strong>{courseTitle}</strong> course. A team member will
+        review it and update your account. You do not need to submit again unless we ask you to.
       </Alert>
     );
   }
+
+  const titleSx = {
+    color: "rgba(255,255,255,0.95)",
+    fontWeight: 700,
+    fontSize: { xs: "1.1rem", sm: "1.2rem" },
+    lineHeight: 1.45,
+    mb: 1.25,
+  } as const;
+
+  const bodySx = {
+    color: "rgba(255,255,255,0.82)",
+    mb: 2,
+    lineHeight: 1.75,
+    fontSize: { xs: "1rem", sm: "1.05rem" },
+  } as const;
 
   return (
     <>
       <Paper
         elevation={0}
         sx={{
-          mb: variant === "compact" ? 2 : 3,
+          mb: variant === "compact" ? 2 : 0,
           p: { xs: 2, sm: 2.5 },
           borderRadius: 2,
           border: "1px solid rgba(212, 175, 55, 0.45)",
           bgcolor: "rgba(22, 22, 28, 0.92)",
         }}
       >
-        <Typography sx={{ color: "rgba(255,255,255,0.92)", fontWeight: 600, mb: 1 }}>
-          Completed this course elsewhere?
+        <Typography sx={titleSx}>
+          Have you already finished the <strong>{courseTitle}</strong> course somewhere else?
         </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.78)", mb: 2, lineHeight: 1.6 }}>
-          If you have already completed Biblical Citizenship training through another organization or platform, you may
-          submit your certificate for review instead of retaking every session here.
+        <Typography sx={bodySx}>
+          Some people complete the <strong>{courseTitle}</strong> course at another church, chapter, or training
+          program — not on this website. If that is you, you do not need to watch every lesson here again.
+        </Typography>
+        <Typography sx={{ ...bodySx, mb: 2.5 }}>
+          Tap <strong>Yes</strong> to send a photo or PDF of your completion certificate. Our team will check it and
+          update your account when approved.
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
-          <Button variant="contained" color="primary" onClick={handleYes} sx={{ fontWeight: 700 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleYes}
+            sx={{ fontWeight: 700, minHeight: 48, px: 3, fontSize: "1rem" }}
+          >
             Yes
           </Button>
-          <Button variant="outlined" onClick={handleNo} sx={{ borderColor: "rgba(255,255,255,0.35)", color: "grey.200" }}>
-            No
+          <Button
+            variant="outlined"
+            onClick={handleNo}
+            sx={{
+              borderColor: "rgba(255,255,255,0.35)",
+              color: "grey.200",
+              minHeight: 48,
+              px: 3,
+              fontSize: "1rem",
+            }}
+          >
+            No, I have not
           </Button>
         </Box>
       </Paper>
 
       <Dialog open={formOpen} onClose={() => !submitting && setFormOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>External training certificate</DialogTitle>
+        <DialogTitle sx={{ fontSize: "1.15rem", fontWeight: 700 }}>
+          Submit your {courseTitle} certificate
+        </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Submit proof that you completed this training at another organization or chapter. An administrator will
-            review your request.
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
+            Fill in the information below and upload your certificate. This is for people who already completed the{" "}
+            <strong>{courseTitle}</strong> course at another organization.
           </Typography>
 
           {error ? (
@@ -194,8 +233,8 @@ export function ExternalTrainingCertificateBanner({
 
           <FormControlLabel
             control={<Checkbox checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />}
-            label="I have completed this training"
-            sx={{ display: "flex", alignItems: "flex-start", mb: 2 }}
+            label={`I have completed the ${courseTitle} course`}
+            sx={{ display: "flex", alignItems: "flex-start", mb: 2, "& .MuiFormControlLabel-label": { lineHeight: 1.6 } }}
           />
 
           <TextField

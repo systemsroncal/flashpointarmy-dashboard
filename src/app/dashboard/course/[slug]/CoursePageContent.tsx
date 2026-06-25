@@ -110,6 +110,7 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
       <ExternalTrainingCertificateBanner
         showPrompt={showExternalCertPrompt}
         courseSlug={slug}
+        courseTitle={course.title as string}
         variant="compact"
       />
       <CourseGridClient

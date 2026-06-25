@@ -1,5 +1,6 @@
 import { TrainingCommandLanding } from "@/components/dashboard/training/TrainingCommandLanding";
 import { MODULE_SLUGS } from "@/config/modules";
+import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { shouldShowExternalCertificatePrompt } from "@/lib/training/certificate-requests";
@@ -37,10 +38,19 @@ export default async function TrainingPageContent() {
   const elevated = isElevatedRole(roles);
   const showExternalCertPrompt = await shouldShowExternalCertificatePrompt(supabase, user.id);
 
+  const { data: primaryCourse } = await supabase
+    .from("courses")
+    .select("title")
+    .eq("slug", BIBLICAL_CITIZENSHIP_COURSE_SLUG)
+    .maybeSingle();
+  const externalCourseTitle =
+    (primaryCourse?.title as string | undefined)?.trim() || "Biblical Citizenship";
+
   return (
     <TrainingCommandLanding
       introVideoUrl={intro || null}
       showExternalCertPrompt={showExternalCertPrompt}
+      externalCourseTitle={externalCourseTitle}
       introVideoAdmin={
         elevated ? { initialDbUrl: dbIntro, hasEnvFallback: Boolean(envIntro) } : null
       }

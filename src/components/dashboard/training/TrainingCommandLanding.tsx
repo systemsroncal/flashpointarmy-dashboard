@@ -25,6 +25,8 @@ type Props = {
   primaryCourseHref?: string;
   /** Ask if training was completed at another organization. */
   showExternalCertPrompt?: boolean;
+  /** Display name for the primary training course (certificate prompt). */
+  externalCourseTitle?: string;
   /** Shown to super_admin / admin: edit URL stored in `training_settings`. */
   introVideoAdmin?: IntroVideoAdminProps | null;
 };
@@ -33,6 +35,7 @@ export function TrainingCommandLanding({
   introVideoUrl,
   primaryCourseHref = "/dashboard/course/biblical-citizenship",
   showExternalCertPrompt = false,
+  externalCourseTitle = "Biblical Citizenship",
   introVideoAdmin,
 }: Props) {
   const trimmedIntro = introVideoUrl?.trim() ?? "";
@@ -92,6 +95,21 @@ export function TrainingCommandLanding({
           mx: "auto",
           position: "relative",
           zIndex: 1,
+          mb: 3,
+        }}
+      >
+        <ExternalTrainingCertificateBanner
+          showPrompt={showExternalCertPrompt}
+          courseTitle={externalCourseTitle}
+        />
+      </Box>
+
+      <Box
+        sx={{
+          maxWidth: 720,
+          mx: "auto",
+          position: "relative",
+          zIndex: 1,
           borderRadius: 2,
           border: "1px solid rgba(212, 175, 55, 0.55)",
           boxShadow: "0 0 0 1px rgba(0,0,0,0.5), 0 24px 48px rgba(0,0,0,0.45)",
@@ -99,8 +117,6 @@ export function TrainingCommandLanding({
           p: { xs: 2.5, sm: 3.5 },
         }}
       >
-        <ExternalTrainingCertificateBanner showPrompt={showExternalCertPrompt} />
-
         <Typography
           component="h1"
           sx={{
