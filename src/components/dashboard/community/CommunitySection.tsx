@@ -1484,12 +1484,12 @@ export function CommunitySection({
             >
               Add new
             </Button>
-              {!isAdmins ? (
+              {!isAdmins && isSuperAdmin ? (
                 <Button variant="outlined" size="small" onClick={() => setImportOpen(true)}>
                   {isLeaders ? "Import Local leaders" : "Import Members"}
                 </Button>
               ) : null}
-              {!isLeaders && !isAdmins ? (
+              {!isLeaders && !isAdmins && isSuperAdmin ? (
                 <Button
                   variant="outlined"
                   size="small"

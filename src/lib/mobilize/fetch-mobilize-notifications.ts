@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatPrivacyName } from "@/lib/user/format-privacy-name";
 
 export type MobilizePendingJoinNotification = {
   id: string;
@@ -28,11 +29,15 @@ export type MobilizeNotificationsPayload = {
 
 function displayNameFromUser(
   userId: string,
-  du?: { display_name: string | null; email: string | null } | null
+  du?: {
+    first_name: string | null;
+    last_name: string | null;
+    display_name: string | null;
+    email: string | null;
+  } | null
 ) {
-  const dn = (du?.display_name ?? "").trim();
   const em = (du?.email ?? "").trim();
-  return dn || em || `User ${userId.slice(0, 8)}`;
+  return formatPrivacyName(du?.first_name, du?.last_name, du?.display_name?.trim() || em || `User ${userId.slice(0, 8)}`);
 }
 
 export async function fetchMobilizeNotifications(
@@ -101,15 +106,20 @@ export async function fetchMobilizeNotifications(
     }
   }
 
-  const duById = new Map<string, { display_name: string | null; email: string | null }>();
+  const duById = new Map<
+    string,
+    { first_name: string | null; last_name: string | null; display_name: string | null; email: string | null }
+  >();
   const avatarById = new Map<string, string | null>();
   if (userIds.length) {
     const { data: du } = await admin
       .from("dashboard_users")
-      .select("id, display_name, email")
+      .select("id, first_name, last_name, display_name, email")
       .in("id", userIds);
     for (const u of du ?? []) {
       duById.set(u.id as string, {
+        first_name: (u as { first_name?: string | null }).first_name ?? null,
+        last_name: (u as { last_name?: string | null }).last_name ?? null,
         display_name: (u as { display_name?: string | null }).display_name ?? null,
         email: (u as { email?: string | null }).email ?? null,
       });

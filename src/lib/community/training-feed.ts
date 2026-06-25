@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatPrivacyName } from "@/lib/user/format-privacy-name";
 
 async function chapterStateFromProfile(
   supabase: SupabaseClient,
@@ -20,8 +21,8 @@ async function chapterStateFromProfile(
 }
 
 function displayHandle(first: string | null | undefined, last: string | null | undefined, email: string): string {
-  const n = [first, last].filter(Boolean).join(" ").trim();
-  if (n) return n;
+  const privacy = formatPrivacyName(first, last);
+  if (privacy !== "A member") return privacy;
   return email.split("@")[0] || "User";
 }
 

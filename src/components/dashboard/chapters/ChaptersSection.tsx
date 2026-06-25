@@ -157,6 +157,7 @@ export function ChaptersSection({
   showRowActions = true,
   /** Admin / super_admin only — local leaders and members must not see assigned leaders. */
   showLeadersColumn = true,
+  isSuperAdmin = false,
 }: {
   initialRows: ChapterRow[];
   leaderOptions: LeaderOption[];
@@ -169,6 +170,7 @@ export function ChaptersSection({
   /** Local leaders: read-only table (no view/edit/delete column). */
   showRowActions?: boolean;
   showLeadersColumn?: boolean;
+  isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
   const [rows, setRows] = useSyncedState(initialRows);
@@ -509,9 +511,11 @@ export function ChaptersSection({
               >
                 Add new
               </Button>
+              {isSuperAdmin ? (
               <Button variant="outlined" size="small" onClick={() => setImportOpen(true)}>
                 Import Chapters
               </Button>
+              ) : null}
             </>
           ) : null}
         </Box>

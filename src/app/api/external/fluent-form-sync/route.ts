@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
+import { assertSuperAdminExportAccess } from "@/lib/export/require-super-admin-export";
 import { MODULE_SLUGS } from "@/config/modules";
 import {
   DEFAULT_EXTERNAL_USER_PASSWORD,
@@ -327,6 +328,9 @@ export async function POST(req: Request) {
   const authResult = await requireApiAuth();
   if ("response" in authResult) return authResult.response;
   const { supabase, user } = authResult;
+
+  const forbidden = await assertSuperAdminExportAccess(supabase, user.id);
+  if (forbidden) return forbidden;
 
   const permissions = await loadModulePermissions(supabase, user.id);
   if (!can(permissions, MODULE_SLUGS.community, "create")) {

@@ -23,6 +23,7 @@ export default async function ChaptersPageContent() {
 
   const roleNames = await loadUserRoleNames(supabase, user.id);
   const chapterStaff = isChapterStaffRole(roleNames);
+  const isSuperAdmin = roleNames.includes("super_admin");
   const showChapterRowActions = chapterStaff || !roleNames.includes("local_leader");
 
   let rows: {
@@ -171,6 +172,7 @@ export default async function ChaptersPageContent() {
       canDelete={del}
       showRowActions={showChapterRowActions}
       showLeadersColumn={chapterStaff}
+      isSuperAdmin={isSuperAdmin}
     />
   );
 }

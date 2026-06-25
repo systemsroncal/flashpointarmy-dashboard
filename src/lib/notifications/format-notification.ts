@@ -2,6 +2,8 @@
  * Normalizes legacy notification rows (old audit payloads / manual.* titles)
  * for display in the UI.
  */
+import { scrubPrivacyNamesInText } from "@/lib/user/format-privacy-name";
+
 export function formatNotificationDisplay(n: {
   title: string;
   body: string | null;
@@ -41,5 +43,8 @@ export function formatNotificationDisplay(n: {
     if (body === title) body = null;
   }
 
-  return { title, body: body || null };
+  return {
+    title: scrubPrivacyNamesInText(title),
+    body: body ? scrubPrivacyNamesInText(body) : null,
+  };
 }
