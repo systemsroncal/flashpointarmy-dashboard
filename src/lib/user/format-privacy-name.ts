@@ -13,10 +13,30 @@ export function formatPrivacyName(
   return fb || "A member";
 }
 
-/** Redact "First Last" to "First L." in notification copy (legacy rows / manual logs). */
+function redactNamePair(first: string, last: string): string {
+  return `${first} ${last.charAt(0).toUpperCase()}.`;
+}
+
+const NAME_PAIR =
+  /([A-ZÀ-ÖØ-Þ][\p{L}'-]*)\s+([A-ZÀ-ÖØ-Þ][\p{L}'-]+)/u;
+
+/** Redact "First Last" to "First L." in public feed / notification copy. */
 export function scrubPrivacyNamesInText(text: string): string {
-  return text.replace(
-    /\b([A-ZÀ-ÖØ-Þ][\p{L}'-]*)\s+([A-ZÀ-ÖØ-Þ][\p{L}'-]+)\b(?=\s+(?:was|registered|joined|requested|completed|finished|granted))/gu,
-    (_, first: string, last: string) => `${first} ${last.charAt(0).toUpperCase()}.`
-  );
+  const trimmed = text.trim();
+  if (!trimmed) return text;
+
+  // Subtitle that is only a person's name (e.g. member registration feed rows).
+  if (/^[A-ZÀ-ÖØ-Þ][\p{L}'-]*\s+[A-ZÀ-ÖØ-Þ][\p{L}'-]+$/u.test(trimmed)) {
+    return trimmed.replace(NAME_PAIR, (_, first, last) => redactNamePair(first, last));
+  }
+
+  return trimmed
+    .replace(
+      /\b([A-ZÀ-ÖØ-Þ][\p{L}'-]*)\s+([A-ZÀ-ÖØ-Þ][\p{L}'-]+)\b(?=\s+(?:was|registered|joined|requested|completed|finished|granted))/gu,
+      (_, first, last) => redactNamePair(first, last)
+    )
+    .replace(
+      /^([A-ZÀ-ÖØ-Þ][\p{L}'-]*)\s+([A-ZÀ-ÖØ-Þ][\p{L}'-]+)\b(?=\s+)/u,
+      (_, first, last) => redactNamePair(first, last)
+    );
 }

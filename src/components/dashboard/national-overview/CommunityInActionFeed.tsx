@@ -14,6 +14,7 @@ import TrendingUpOutlined from "@mui/icons-material/TrendingUpOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import { Box, Chip, Typography } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
+import { scrubPrivacyNamesInText } from "@/lib/user/format-privacy-name";
 
 export type ActivityFeedRow = {
   id: string;
@@ -184,11 +185,13 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
   const Icon = visual.Icon;
   const state = row.state_code?.trim().toUpperCase().slice(0, 2) || null;
   const categoryDisplay = visual.categoryLabel;
+  const displayTitle = scrubPrivacyNamesInText(row.title);
+  const displaySubtitle = row.subtitle ? scrubPrivacyNamesInText(row.subtitle) : null;
   const showSubtitle =
-    row.subtitle &&
-    row.subtitle.trim() !== "" &&
-    row.subtitle.trim().toLowerCase() !== row.title.trim().toLowerCase() &&
-    row.subtitle.trim().toLowerCase() !== categoryDisplay.toLowerCase();
+    displaySubtitle &&
+    displaySubtitle.trim() !== "" &&
+    displaySubtitle.trim().toLowerCase() !== displayTitle.trim().toLowerCase() &&
+    displaySubtitle.trim().toLowerCase() !== categoryDisplay.toLowerCase();
 
   return (
     <Box
@@ -236,7 +239,7 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
             fontSize: FEED_TITLE_FONT_SIZE,
           }}
         >
-          {row.title}
+          {displayTitle}
         </Typography>
         {state ? (
           <Chip
@@ -269,7 +272,7 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
               color="text.secondary"
               sx={{ flex: 1, minWidth: 0, lineHeight: 1.4, fontSize: FEED_DESC_FONT_SIZE }}
             >
-              {row.subtitle}
+              {displaySubtitle}
             </Typography>
             <Typography
               variant="caption"
