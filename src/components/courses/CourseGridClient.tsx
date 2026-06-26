@@ -194,38 +194,46 @@ export function CourseGridClient({
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 2 }}>
-        <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ mb: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 1,
+            mb: sectionSubtitle ? 0.75 : 0,
+          }}
+        >
           <Typography
             variant={sectionTitle ? "h6" : "h5"}
-            sx={{ fontWeight: sectionTitle ? 800 : 900, color: "#fff", mb: sectionSubtitle ? 0.75 : 0 }}
+            sx={{ fontWeight: sectionTitle ? 800 : 900, color: "#fff" }}
           >
             {heading}
           </Typography>
-          {sectionSubtitle ? (
-            <Typography
-              sx={{
-                color: "rgba(255,255,255,0.78)",
-                lineHeight: 1.65,
-                fontSize: { xs: "0.95rem", sm: "1rem" },
-                maxWidth: 720,
-              }}
+          {editCourseHref ? (
+            <Button
+              component={Link}
+              href={editCourseHref}
+              size="small"
+              variant="outlined"
+              startIcon={<EditIcon fontSize="small" />}
+              sx={{ flexShrink: 0, minHeight: 44, touchAction: "manipulation" }}
             >
-              {sectionSubtitle}
-            </Typography>
+              Edit course
+            </Button>
           ) : null}
         </Box>
-        {editCourseHref ? (
-          <Button
-            component={Link}
-            href={editCourseHref}
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon fontSize="small" />}
-            sx={{ flexShrink: 0, minHeight: 44, touchAction: "manipulation" }}
+        {sectionSubtitle ? (
+          <Typography
+            sx={{
+              color: "rgba(255,255,255,0.78)",
+              lineHeight: 1.65,
+              fontSize: { xs: "0.95rem", sm: "1rem" },
+              width: "100%",
+            }}
           >
-            Edit course
-          </Button>
+            {sectionSubtitle}
+          </Typography>
         ) : null}
       </Box>
       <Paper

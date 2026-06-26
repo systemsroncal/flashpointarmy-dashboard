@@ -25,6 +25,7 @@ export function CourseIntroVideoBlock({ videoUrl }: Props) {
           fontSize: { xs: "1.75rem", sm: "2.25rem" },
           lineHeight: 1.2,
           mb: 1,
+          textAlign: "center",
         }}
       >
         Biblical Citizenship
@@ -36,6 +37,8 @@ export function CourseIntroVideoBlock({ videoUrl }: Props) {
           lineHeight: 1.6,
           mb: { xs: 2.5, sm: 3 },
           maxWidth: 720,
+          mx: "auto",
+          textAlign: "center",
         }}
       >
         Your Foundational Training for FlashPoint Army Chapters
@@ -46,7 +49,7 @@ export function CourseIntroVideoBlock({ videoUrl }: Props) {
           display: "grid",
           gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
           gap: { xs: 2.5, md: 3 },
-          alignItems: "start",
+          alignItems: "center",
         }}
       >
         <Typography
@@ -54,6 +57,7 @@ export function CourseIntroVideoBlock({ videoUrl }: Props) {
             color: "rgba(255,255,255,0.78)",
             lineHeight: 1.75,
             fontSize: { xs: "0.95rem", sm: "1rem" },
+            alignSelf: "center",
           }}
         >
           {INTRO_COPY}
@@ -65,6 +69,8 @@ export function CourseIntroVideoBlock({ videoUrl }: Props) {
             borderRadius: 1,
             overflow: "hidden",
             aspectRatio: "16/9",
+            alignSelf: "center",
+            width: "100%",
           }}
         >
           <CourseVideoPlyr videoUrl={trimmed} initialSeconds={0} onPersistSeconds={() => {}} />
