@@ -30,8 +30,8 @@ type Props = {
   courseSlug?: string;
   /** Human-readable course name shown in the prompt. */
   courseTitle?: string;
-  /** `training` = Patriot Academy CTA on training landing only */
-  variant?: "default" | "compact" | "training";
+  /** `inline` = simple Patriot Academy link below training CTA */
+  variant?: "default" | "compact" | "inline";
 };
 
 export function ExternalTrainingCertificateBanner({
@@ -52,7 +52,7 @@ export function ExternalTrainingCertificateBanner({
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    if (variant === "training") return;
+    if (variant === "inline") return;
     try {
       if (localStorage.getItem(DISMISS_KEY) === "1") setDismissed(true);
     } catch {
@@ -143,9 +143,25 @@ export function ExternalTrainingCertificateBanner({
     }
   }
 
-  if (!showPrompt || (variant !== "training" && dismissed)) return null;
+  if (!showPrompt || (variant === "default" && dismissed)) return null;
 
   if (submitted) {
+    if (variant === "inline") {
+      return (
+        <Typography
+          sx={{
+            mt: 1.5,
+            textAlign: "center",
+            color: "rgba(255,255,255,0.78)",
+            fontSize: "0.9rem",
+            lineHeight: 1.65,
+          }}
+        >
+          Thank you. We received your certificate for the <strong>{courseTitle}</strong> course. A team member will
+          review it and update your account.
+        </Typography>
+      );
+    }
     return (
       <Alert severity="info" icon={<CheckCircleOutlineIcon />} sx={{ mb: 2 }}>
         Thank you. We received your certificate for the <strong>{courseTitle}</strong> course. A team member will
@@ -159,7 +175,7 @@ export function ExternalTrainingCertificateBanner({
     fontWeight: 700,
     fontSize: { xs: "1.1rem", sm: "1.2rem" },
     lineHeight: 1.45,
-    mb: variant === "training" ? 0 : 1.25,
+    mb: 1.25,
   } as const;
 
   const bodySx = {
@@ -247,38 +263,35 @@ export function ExternalTrainingCertificateBanner({
     </Dialog>
   );
 
-  if (variant === "training") {
+  if (variant === "inline") {
     return (
       <>
-        <Paper
-          elevation={0}
+        <Typography
           sx={{
-            p: { xs: 2, sm: 2.5 },
-            borderRadius: 2,
-            border: "1px solid rgba(212, 175, 55, 0.45)",
-            bgcolor: "rgba(22, 22, 28, 0.92)",
+            mt: 1.5,
+            textAlign: "center",
+            color: "rgba(255,255,255,0.78)",
+            fontSize: "0.92rem",
+            lineHeight: 1.65,
           }}
         >
-          <Typography sx={titleSx}>Start Biblical Citizenship</Typography>
-          <Typography sx={{ ...bodySx, mb: 0 }}>
-            Already completed this course through Patriot Academy?{" "}
-            <MuiLink
-              component="button"
-              type="button"
-              onClick={openForm}
-              sx={{
-                color: "primary.main",
-                fontWeight: 700,
-                cursor: "pointer",
-                verticalAlign: "baseline",
-                textDecoration: "underline",
-                "&:hover": { color: "primary.light" },
-              }}
-            >
-              Continue Here
-            </MuiLink>
-          </Typography>
-        </Paper>
+          Already completed this course through Patriot Academy?{" "}
+          <MuiLink
+            component="button"
+            type="button"
+            onClick={openForm}
+            sx={{
+              color: "primary.main",
+              fontWeight: 700,
+              cursor: "pointer",
+              verticalAlign: "baseline",
+              textDecoration: "underline",
+              "&:hover": { color: "primary.light" },
+            }}
+          >
+            Continue Here
+          </MuiLink>
+        </Typography>
         {formDialog}
       </>
     );

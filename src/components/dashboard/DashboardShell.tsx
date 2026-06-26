@@ -1,5 +1,6 @@
 "use client";
 
+import AdjustIcon from "@mui/icons-material/Adjust";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -34,6 +35,7 @@ import VolunteerActivismOutlinedIcon from "@mui/icons-material/VolunteerActivism
 import {
   AppBar,
   Box,
+  Button,
   Collapse,
   Divider,
   Drawer,
@@ -59,6 +61,7 @@ import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
 import { canAccessMobilizeModule, isElevatedRole } from "@/lib/auth/user-roles";
+import { isMemberOnboardingAudience } from "@/lib/onboarding/member-onboarding-status";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
@@ -71,6 +74,7 @@ import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { MobilizeNavNotificationsBadge } from "@/components/mobilize/MobilizeNavNotificationsBadge";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
+import { SidebarYourJourney } from "./SidebarYourJourney";
 import {
   AvatarWithGraduateIcon,
   CourseGraduateCongratulationsDialog,
@@ -561,6 +565,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     [user.first_name, user.last_name].filter(Boolean).join(" ").trim() ||
     user.email.split("@")[0];
 
+  const showSidebarJourney =
+    !isMobilize && isMemberOnboardingAudience(user.role_names) && user.member_onboarding;
+
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Box sx={{ flexShrink: 0, px: 1.25, pt: 1.25, pb: 1.25 }}>
@@ -976,6 +983,32 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </>
         ) : null}
       </List>
+      {showSidebarJourney ? (
+        <Box sx={{ flexShrink: 0, px: 1.5, pt: 0.5, pb: 1 }}>
+          <SidebarYourJourney snapshot={user.member_onboarding!} />
+          <Button
+            component={Link}
+            href="/dashboard/training"
+            fullWidth
+            variant="contained"
+            startIcon={<AdjustIcon />}
+            onClick={closeMobileDrawer}
+            sx={{
+              mt: 1.25,
+              fontWeight: 800,
+              color: "#0a0a0a",
+              bgcolor: "primary.main",
+              borderRadius: 2,
+              py: 1.1,
+              minHeight: 44,
+              touchAction: "manipulation",
+              "&:hover": { bgcolor: "primary.light" },
+            }}
+          >
+            Get Equipped
+          </Button>
+        </Box>
+      ) : null}
       <Box sx={{ flexShrink: 0 }}>
         <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
         <Box

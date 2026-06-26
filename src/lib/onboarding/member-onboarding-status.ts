@@ -1,6 +1,7 @@
 import {
   loadCoachMeetingForUser,
   loadFirstMissionForUser,
+  loadTrainingLessonCounts,
   loadTrainingStepStatus,
 } from "@/lib/onboarding/onboarding-records";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -17,6 +18,8 @@ export type MemberOnboardingSnapshot = {
   firstMission: FirstMissionStepStatus;
   rankLabel: string;
   rankAudience: MissionRankAudience;
+  trainingCompletedLessons: number;
+  trainingTotalLessons: number;
 };
 
 /** Members and local leaders see the onboarding panel on National overview. */
@@ -29,10 +32,11 @@ export async function loadMemberOnboardingSnapshot(
   userId: string,
   roleNames: string[]
 ): Promise<MemberOnboardingSnapshot> {
-  const [training, coachMeetingRow, firstMissionRow] = await Promise.all([
+  const [training, coachMeetingRow, firstMissionRow, lessonCounts] = await Promise.all([
     loadTrainingStepStatus(supabase, userId),
     loadCoachMeetingForUser(supabase, userId),
     loadFirstMissionForUser(supabase, userId),
+    loadTrainingLessonCounts(supabase, userId),
   ]);
 
   return {
@@ -41,6 +45,8 @@ export async function loadMemberOnboardingSnapshot(
     firstMission: firstMissionRow.status,
     rankLabel: "Recruit",
     rankAudience: roleNames.includes("local_leader") ? "local_leader" : "member",
+    trainingCompletedLessons: lessonCounts.completed,
+    trainingTotalLessons: lessonCounts.total,
   };
 }
 
@@ -57,4 +63,30 @@ export function formatOnboardingStepLabel(status: string): string {
     default:
       return status;
   }
+}
+
+/** 0–100 for sidebar journey progress bar. */
+export function computeJourneyProgressPercent(snapshot: MemberOnboardingSnapshot): number {
+  const stepWeight = 100 / 3;
+  let total = 0;
+
+  if (snapshot.training === "completed") {
+    total += stepWeight;
+  } else if (snapshot.training === "in_progress" && snapshot.trainingTotalLessons > 0) {
+    total += stepWeight * (snapshot.trainingCompletedLessons / snapshot.trainingTotalLessons);
+  }
+
+  if (snapshot.coachMeeting === "completed") {
+    total += stepWeight;
+  } else if (snapshot.coachMeeting === "in_progress") {
+    total += stepWeight * 0.5;
+  }
+
+  if (snapshot.firstMission === "completed") {
+    total += stepWeight;
+  } else if (snapshot.firstMission === "in_progress") {
+    total += stepWeight * 0.5;
+  }
+
+  return Math.min(100, Math.round(total));
 }

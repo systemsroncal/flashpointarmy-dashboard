@@ -10,7 +10,7 @@ import { TrainingIntroVideoAdmin } from "@/components/dashboard/training/Trainin
 const assignmentSteps = [
   "Watch the introduction from Gene Bailey below.",
   "Complete all lessons in the Biblical Citizenship course at your own pace.",
-  'If you have already completed this course through Patriot Academy, simply select "I\'ve Already Completed This Course" to continue your journey.',
+  'If you have already completed this course through Patriot Academy, select "Continue Here" below to continue your journey.',
 ];
 
 type IntroVideoAdminProps = {
@@ -25,7 +25,7 @@ type Props = {
   courseIntroVideoUrl?: string | null;
   /** Primary CTA course path, e.g. `/dashboard/course/biblical-citizenship`. */
   primaryCourseHref?: string;
-  /** Patriot Academy certificate prompt above the main card. */
+  /** Patriot Academy certificate link below the main CTA. */
   showExternalCertPrompt?: boolean;
   externalCourseTitle?: string;
   introVideoAdmin?: IntroVideoAdminProps | null;
@@ -89,22 +89,6 @@ export function TrainingCommandLanding({
       >
         STAND FIRM
       </Typography>
-
-      <Box
-        sx={{
-          maxWidth: 720,
-          mx: "auto",
-          position: "relative",
-          zIndex: 1,
-          mb: 3,
-        }}
-      >
-        <ExternalTrainingCertificateBanner
-          showPrompt={showExternalCertPrompt}
-          courseTitle={externalCourseTitle}
-          variant="training"
-        />
-      </Box>
 
       <Box
         sx={{
@@ -237,8 +221,16 @@ export function TrainingCommandLanding({
             "&:hover": { bgcolor: "primary.light" },
           }}
         >
-          Begin Your Training
+          Start Biblical Citizenship
         </Button>
+
+        {showExternalCertPrompt ? (
+          <ExternalTrainingCertificateBanner
+            showPrompt={showExternalCertPrompt}
+            courseTitle={externalCourseTitle}
+            variant="inline"
+          />
+        ) : null}
 
         {introVideoAdmin ? <TrainingIntroVideoAdmin {...introVideoAdmin} /> : null}
       </Box>

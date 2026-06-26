@@ -257,12 +257,12 @@ export async function queryOnboardingMembersPaginated(
   return { rows, total, page, perPage };
 }
 
-export async function loadTrainingStepStatus(
+export async function loadTrainingLessonCounts(
   supabase: SupabaseClient,
   userId: string
-): Promise<TrainingStepStatus> {
+): Promise<{ completed: number; total: number }> {
   const sessionIds = await loadCountableSessionIdsCached(supabase);
-  if (!sessionIds.length) return "pending";
+  if (!sessionIds.length) return { completed: 0, total: 0 };
 
   const { count } = await supabase
     .from("course_session_progress")
@@ -271,7 +271,15 @@ export async function loadTrainingStepStatus(
     .in("session_id", sessionIds)
     .not("completed_at", "is", null);
 
-  return resolveTrainingStepStatus(count ?? 0, sessionIds.length);
+  return { completed: count ?? 0, total: sessionIds.length };
+}
+
+export async function loadTrainingStepStatus(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<TrainingStepStatus> {
+  const { completed, total } = await loadTrainingLessonCounts(supabase, userId);
+  return resolveTrainingStepStatus(completed, total);
 }
 
 export async function loadTrainingStepStatusesForUsers(

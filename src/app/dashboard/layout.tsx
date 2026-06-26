@@ -6,6 +6,10 @@ import { loadDashboardUser } from "@/lib/auth/dashboard-user";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { loadTrainingGraduateBadge } from "@/lib/courses/course-completion";
 import {
+  isMemberOnboardingAudience,
+  loadMemberOnboardingSnapshot,
+} from "@/lib/onboarding/member-onboarding-status";
+import {
   ensureDashboardUserMirror,
   ensureMemberRoleIfUserHasNoRoles,
 } from "@/lib/import/dashboard-user-mirror";
@@ -83,6 +87,7 @@ export default async function DashboardLayout({
   const permissions = await loadModulePermissions(supabase, user.id);
 
   let trainingGraduateBadge: Awaited<ReturnType<typeof loadTrainingGraduateBadge>> = null;
+  let memberOnboarding: Awaited<ReturnType<typeof loadMemberOnboardingSnapshot>> | null = null;
   try {
     trainingGraduateBadge = await loadTrainingGraduateBadge(
       supabase,
@@ -92,7 +97,22 @@ export default async function DashboardLayout({
   } catch {
     /* Badge is optional — never block dashboard render if course tables are unavailable. */
   }
-  dashboardUser = { ...dashboardUser, training_graduate_badge: trainingGraduateBadge };
+  if (isMemberOnboardingAudience(dashboardUser.role_names)) {
+    try {
+      memberOnboarding = await loadMemberOnboardingSnapshot(
+        supabase,
+        dashboardUser.id,
+        dashboardUser.role_names
+      );
+    } catch {
+      memberOnboarding = null;
+    }
+  }
+  dashboardUser = {
+    ...dashboardUser,
+    training_graduate_badge: trainingGraduateBadge,
+    member_onboarding: memberOnboarding,
+  };
 
   return (
     <DashboardUserProvider user={dashboardUser}>
