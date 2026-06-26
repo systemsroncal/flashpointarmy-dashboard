@@ -24,7 +24,9 @@ import {
 import { loadCommunityActivityFeed } from "@/lib/community/community-activity-feed";
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
 import { ChapterMapInviteCta } from "./ChapterMapInviteCta";
+import { MemberOnboardingProgressCard } from "./MemberOnboardingProgressCard";
 import { UsaChapterActivityMap } from "./UsaChapterActivityMap";
+import type { MemberOnboardingSnapshot } from "@/lib/onboarding/member-onboarding-status";
 
 type ChapterRow = { id: string; name: string; state: string };
 
@@ -46,10 +48,12 @@ export function NationalOverview({
   initialStats,
   initialFeed,
   chapters,
+  memberOnboarding = null,
 }: {
   initialStats: OverviewStatBlock;
   initialFeed: ActivityFeedRow[];
   chapters: ChapterRow[];
+  memberOnboarding?: MemberOnboardingSnapshot | null;
 }) {
   const user = useDashboardUser();
   const showInviteCta = useMemo(
@@ -389,6 +393,7 @@ export function NationalOverview({
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-start" }}>
         <Box ref={mapColumnRef} sx={{ flex: "1 1 380px", minWidth: 280 }}>
+          {memberOnboarding ? <MemberOnboardingProgressCard snapshot={memberOnboarding} /> : null}
           <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.4)" }}>
             <Typography variant="h6" sx={{ mb: 1, color: "primary.main" }}>
               Live chapter activity map

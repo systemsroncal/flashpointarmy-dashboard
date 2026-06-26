@@ -7,8 +7,13 @@ import {
   sumReferenceTotals,
 } from "@/lib/donors/aggregate-donors-by-state";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
 import { loadCommunityActivityFeed } from "@/lib/community/community-activity-feed";
+import {
+  isMemberOnboardingAudience,
+  loadMemberOnboardingSnapshot,
+} from "@/lib/onboarding/member-onboarding-status";
 import { loadOverviewStats } from "@/lib/stats/overview-stats";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
@@ -76,7 +81,18 @@ export default async function DashboardHomeContent() {
     chapters = [];
   }
 
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  const memberOnboarding =
+    isMemberOnboardingAudience(roleNames)
+      ? await loadMemberOnboardingSnapshot(supabase, user.id)
+      : null;
+
   return (
-    <NationalOverview initialStats={stats} initialFeed={feed} chapters={chapters} />
+    <NationalOverview
+      initialStats={stats}
+      initialFeed={feed}
+      chapters={chapters}
+      memberOnboarding={memberOnboarding}
+    />
   );
 }

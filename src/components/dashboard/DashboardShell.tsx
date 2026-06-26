@@ -22,6 +22,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import PublicIcon from "@mui/icons-material/Public";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
 import SchoolIcon from "@mui/icons-material/School";
 import SecurityIcon from "@mui/icons-material/Security";
 import EmailIcon from "@mui/icons-material/Email";
@@ -304,6 +305,18 @@ const NAV: NavItem[] = [
     href: "/dashboard/courses/certificate-requests",
     module: MODULE_SLUGS.courses,
     icon: <FactCheckOutlinedIcon />,
+  },
+  {
+    label: "Coach meetings",
+    href: "/dashboard/onboarding/coach-meetings",
+    module: MODULE_SLUGS.courses,
+    icon: <HandshakeOutlinedIcon />,
+  },
+  {
+    label: "First mission",
+    href: "/dashboard/onboarding/first-missions",
+    module: MODULE_SLUGS.courses,
+    icon: <FlagOutlined />,
   },
   {
     label: "Notifications",
