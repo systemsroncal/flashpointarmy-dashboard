@@ -18,6 +18,14 @@ export type SessionCardModel = {
   locked: boolean;
 };
 
+const TRAINING_LESSONS_PANEL_SX = {
+  borderRadius: 2,
+  border: "1px solid rgba(212, 175, 55, 0.55)",
+  boxShadow: "0 0 0 1px rgba(0,0,0,0.5), 0 24px 48px rgba(0,0,0,0.45)",
+  bgcolor: "rgba(22,22,26,0.96)",
+  p: { xs: 2.5, sm: 3 },
+} as const;
+
 const SESSION_CARD_TOUCH_SX = {
   touchAction: "manipulation",
   WebkitTapHighlightColor: "rgba(255,215,0,0.22)",
@@ -179,6 +187,7 @@ export function CourseGridClient({
   editCourseHref,
   sectionTitle,
   sectionSubtitle,
+  panelVariant = "default",
 }: {
   courseSlug: string;
   courseTitle: string;
@@ -188,54 +197,89 @@ export function CourseGridClient({
   /** Overrides the heading above the lesson grid. */
   sectionTitle?: string;
   sectionSubtitle?: string;
+  /** `training` = solid card panel like `/dashboard/training` (title + subtitle + grid). */
+  panelVariant?: "default" | "training";
 }) {
   const sorted = [...sessions].sort((a, b) => a.sort_order - b.sort_order);
   const heading = sectionTitle ?? courseTitle;
+  const useTrainingPanel = panelVariant === "training";
+
+  const header = (
+    <>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 1,
+          mb: sectionSubtitle ? 0.75 : useTrainingPanel ? 2 : 0,
+        }}
+      >
+        <Typography
+          variant={sectionTitle ? "h6" : "h5"}
+          sx={{ fontWeight: sectionTitle ? 800 : 900, color: "#fff" }}
+        >
+          {heading}
+        </Typography>
+        {editCourseHref ? (
+          <Button
+            component={Link}
+            href={editCourseHref}
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon fontSize="small" />}
+            sx={{ flexShrink: 0, minHeight: 44, touchAction: "manipulation" }}
+          >
+            Edit course
+          </Button>
+        ) : null}
+      </Box>
+      {sectionSubtitle ? (
+        <Typography
+          sx={{
+            color: "rgba(255,255,255,0.78)",
+            lineHeight: 1.65,
+            fontSize: { xs: "0.95rem", sm: "1rem" },
+            width: "100%",
+            mb: useTrainingPanel ? 2.5 : 0,
+          }}
+        >
+          {sectionSubtitle}
+        </Typography>
+      ) : null}
+    </>
+  );
+
+  const grid = (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "repeat(2, minmax(0, 1fr))",
+          sm: "repeat(3, minmax(0, 1fr))",
+          md: "repeat(4, minmax(0, 1fr))",
+        },
+        gap: { xs: 1.25, sm: 1.5 },
+      }}
+    >
+      {sorted.map((s) => (
+        <SessionCard key={s.id} session={s} courseSlug={courseSlug} authorLabel={authorLabel} />
+      ))}
+    </Box>
+  );
+
+  if (useTrainingPanel) {
+    return (
+      <Paper elevation={0} sx={TRAINING_LESSONS_PANEL_SX}>
+        {header}
+        {grid}
+      </Paper>
+    );
+  }
 
   return (
     <Box>
-      <Box sx={{ mb: 2 }}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 1,
-            mb: sectionSubtitle ? 0.75 : 0,
-          }}
-        >
-          <Typography
-            variant={sectionTitle ? "h6" : "h5"}
-            sx={{ fontWeight: sectionTitle ? 800 : 900, color: "#fff" }}
-          >
-            {heading}
-          </Typography>
-          {editCourseHref ? (
-            <Button
-              component={Link}
-              href={editCourseHref}
-              size="small"
-              variant="outlined"
-              startIcon={<EditIcon fontSize="small" />}
-              sx={{ flexShrink: 0, minHeight: 44, touchAction: "manipulation" }}
-            >
-              Edit course
-            </Button>
-          ) : null}
-        </Box>
-        {sectionSubtitle ? (
-          <Typography
-            sx={{
-              color: "rgba(255,255,255,0.78)",
-              lineHeight: 1.65,
-              fontSize: { xs: "0.95rem", sm: "1rem" },
-              width: "100%",
-            }}
-          >
-            {sectionSubtitle}
-          </Typography>
-        ) : null}
-      </Box>
+      <Box sx={{ mb: 2 }}>{header}</Box>
       <Paper
         sx={{
           p: { xs: 1.5, sm: 2 },
@@ -244,21 +288,7 @@ export function CourseGridClient({
           bgcolor: "rgba(0,0,0,0.35)",
         }}
       >
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "repeat(2, minmax(0, 1fr))",
-              sm: "repeat(3, minmax(0, 1fr))",
-              md: "repeat(4, minmax(0, 1fr))",
-            },
-            gap: { xs: 1.25, sm: 1.5 },
-          }}
-        >
-          {sorted.map((s) => (
-            <SessionCard key={s.id} session={s} courseSlug={courseSlug} authorLabel={authorLabel} />
-          ))}
-        </Box>
+        {grid}
       </Paper>
     </Box>
   );

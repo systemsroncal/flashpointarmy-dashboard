@@ -105,16 +105,22 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
     courseIntroVideo = dbIntro || envIntro || null;
   }
 
+  const isBiblicalCitizenship = slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG;
+
   return (
     <Box
       sx={{
         minHeight: "60vh",
         py: 2,
         px: { xs: 0.5, sm: 1 },
-        backgroundImage: `
+        ...(isBiblicalCitizenship
+          ? {}
+          : {
+              backgroundImage: `
           repeating-linear-gradient(105deg, transparent, transparent 14px, rgba(32,32,36,0.4) 14px, rgba(32,32,36,0.4) 28px),
           linear-gradient(180deg, #101012 0%, #070708 100%)
         `,
+            }),
       }}
     >
       {courseIntroVideo ? <CourseIntroVideoBlock videoUrl={courseIntroVideo} /> : null}
@@ -124,14 +130,13 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
         authorLabel={authorLabel}
         sessions={cards}
         editCourseHref={editCourseHref}
-        sectionTitle={
-          slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG ? "Course Lessons" : undefined
-        }
+        sectionTitle={isBiblicalCitizenship ? "Course Lessons" : undefined}
         sectionSubtitle={
-          slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG
+          isBiblicalCitizenship
             ? "Complete all 8 lessons to unlock the next phase of your journey and continue serving through FlashPoint Army Chapters."
             : undefined
         }
+        panelVariant={isBiblicalCitizenship ? "training" : "default"}
       />
     </Box>
   );

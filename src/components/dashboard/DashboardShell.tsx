@@ -982,10 +982,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Collapse>
           </>
         ) : null}
+        {showSidebarJourney ? (
+          <Box sx={{ px: 1.5, pt: 1, pb: 0.5 }}>
+            <SidebarYourJourney snapshot={user.member_onboarding!} />
+          </Box>
+        ) : null}
       </List>
       {showSidebarJourney ? (
         <Box sx={{ flexShrink: 0, px: 1.5, pt: 0.5, pb: 1 }}>
-          <SidebarYourJourney snapshot={user.member_onboarding!} />
           <Button
             component={Link}
             href="/dashboard/training"
@@ -994,7 +998,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             startIcon={<AdjustIcon />}
             onClick={closeMobileDrawer}
             sx={{
-              mt: 1.25,
               fontWeight: 800,
               color: "#0a0a0a",
               bgcolor: "primary.main",

@@ -8,6 +8,8 @@ import {
 import { flashpointYellow } from "@/theme/tokens";
 import { Box, Typography } from "@mui/material";
 
+const JOURNEY_FONT = 'var(--font-konkhmer-sleokchher), "Konkhmer Sleokchher", cursive';
+
 type Step = {
   number: number;
   title: string;
@@ -55,6 +57,8 @@ export function SidebarYourJourney({ snapshot }: Props) {
         border: "1px solid rgba(255, 255, 255, 0.12)",
         bgcolor: "rgba(28, 28, 32, 0.95)",
         p: 1.5,
+        fontFamily: JOURNEY_FONT,
+        "& .MuiTypography-root": { fontFamily: JOURNEY_FONT },
       }}
     >
       <Typography
@@ -79,6 +83,7 @@ export function SidebarYourJourney({ snapshot }: Props) {
                 bgcolor: flashpointYellow,
                 color: "#0a0a0a",
                 fontWeight: 800,
+                fontFamily: JOURNEY_FONT,
                 fontSize: "0.72rem",
                 display: "flex",
                 alignItems: "center",

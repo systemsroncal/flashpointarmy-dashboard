@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
-import { Barlow } from "next/font/google";
+import { Barlow, Konkhmer_Sleokchher } from "next/font/google";
 import { MaintenanceBannerGate } from "@/components/MaintenanceBannerGate";
 import { AppProviders } from "@/components/providers/AppProviders";
 import "./globals.css";
@@ -11,6 +11,13 @@ const barlow = Barlow({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-barlow",
+});
+
+const konkhmerSleokchher = Konkhmer_Sleokchher({
+  weight: "400",
+  subsets: ["latin", "khmer"],
+  display: "swap",
+  variable: "--font-konkhmer-sleokchher",
 });
 
 export const metadata: Metadata = {
@@ -34,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${barlow.variable} ${barlow.className}`}>
+    <html lang="en" className={`${barlow.variable} ${barlow.className} ${konkhmerSleokchher.variable}`}>
       <body>
         <AppRouterCacheProvider options={{ key: "css" }}>
           <AppProviders>
