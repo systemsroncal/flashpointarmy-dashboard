@@ -84,7 +84,7 @@ export default async function DashboardHomeContent() {
   const roleNames = await loadUserRoleNames(supabase, user.id);
   const memberOnboarding =
     isMemberOnboardingAudience(roleNames)
-      ? await loadMemberOnboardingSnapshot(supabase, user.id)
+      ? await loadMemberOnboardingSnapshot(supabase, user.id, roleNames)
       : null;
 
   return (

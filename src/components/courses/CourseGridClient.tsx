@@ -177,21 +177,44 @@ export function CourseGridClient({
   authorLabel,
   sessions,
   editCourseHref,
+  sectionTitle,
+  sectionSubtitle,
 }: {
   courseSlug: string;
   courseTitle: string;
   authorLabel: string;
   sessions: SessionCardModel[];
   editCourseHref?: string | null;
+  /** Overrides the heading above the lesson grid. */
+  sectionTitle?: string;
+  sectionSubtitle?: string;
 }) {
   const sorted = [...sessions].sort((a, b) => a.sort_order - b.sort_order);
+  const heading = sectionTitle ?? courseTitle;
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 900, color: "#fff" }}>
-          {courseTitle}
-        </Typography>
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 2 }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant={sectionTitle ? "h6" : "h5"}
+            sx={{ fontWeight: sectionTitle ? 800 : 900, color: "#fff", mb: sectionSubtitle ? 0.75 : 0 }}
+          >
+            {heading}
+          </Typography>
+          {sectionSubtitle ? (
+            <Typography
+              sx={{
+                color: "rgba(255,255,255,0.78)",
+                lineHeight: 1.65,
+                fontSize: { xs: "0.95rem", sm: "1rem" },
+                maxWidth: 720,
+              }}
+            >
+              {sectionSubtitle}
+            </Typography>
+          ) : null}
+        </Box>
         {editCourseHref ? (
           <Button
             component={Link}

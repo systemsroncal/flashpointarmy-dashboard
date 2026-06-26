@@ -9,11 +9,14 @@ export type TrainingStepStatus = "pending" | "in_progress" | "completed";
 export type CoachMeetingStepStatus = "pending" | "in_progress" | "completed";
 export type FirstMissionStepStatus = "locked" | "in_progress" | "completed";
 
+export type MissionRankAudience = "local_leader" | "member";
+
 export type MemberOnboardingSnapshot = {
   training: TrainingStepStatus;
   coachMeeting: CoachMeetingStepStatus;
   firstMission: FirstMissionStepStatus;
   rankLabel: string;
+  rankAudience: MissionRankAudience;
 };
 
 /** Members and local leaders see the onboarding panel on National overview. */
@@ -23,7 +26,8 @@ export function isMemberOnboardingAudience(roleNames: string[]): boolean {
 
 export async function loadMemberOnboardingSnapshot(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  roleNames: string[]
 ): Promise<MemberOnboardingSnapshot> {
   const [training, coachMeetingRow, firstMissionRow] = await Promise.all([
     loadTrainingStepStatus(supabase, userId),
@@ -36,6 +40,7 @@ export async function loadMemberOnboardingSnapshot(
     coachMeeting: coachMeetingRow.status,
     firstMission: firstMissionRow.status,
     rankLabel: "Recruit",
+    rankAudience: roleNames.includes("local_leader") ? "local_leader" : "member",
   };
 }
 

@@ -11,6 +11,7 @@ import { StateChapterFilterControls } from "@/components/forms/StateChapterFilte
 import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import type { AdminStaffOption } from "@/lib/onboarding/onboarding-records";
 import type { CoachMeetingStepStatus, TrainingStepStatus } from "@/lib/onboarding/member-onboarding-status";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Alert,
@@ -68,7 +69,6 @@ type Props = {
   chapterOptions: ChapterSearchRow[];
 };
 
-const HIDDEN_ACTIONS_SX = { display: "none" } as const;
 
 export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
   const [rows, setRows] = useState<Row[]>([]);
@@ -251,9 +251,7 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
                     <TableCell>Coach meeting</TableCell>
                     <TableCell>Coach</TableCell>
                     <TableCell>Coaching date/time</TableCell>
-                    <TableCell align="right" sx={HIDDEN_ACTIONS_SX}>
-                      Actions
-                    </TableCell>
+                    <TableCell align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -292,7 +290,15 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
                         </TableCell>
                         <TableCell>{row.coach_meeting.coach_name ?? "—"}</TableCell>
                         <TableCell>{formatCoachMeetingWhen(row.coach_meeting.coaching_at)}</TableCell>
-                        <TableCell align="right" sx={HIDDEN_ACTIONS_SX} />
+                        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="small"
+                            startIcon={<EditOutlinedIcon />}
+                            onClick={() => openEdit(row)}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}

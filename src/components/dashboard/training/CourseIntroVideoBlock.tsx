@@ -1,43 +1,75 @@
 "use client";
 
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+
+const INTRO_COPY =
+  "Every member of FlashPoint Army Chapters begins with the same foundation. Through this training, you'll explore the Biblical principles, constitutional foundations, and historical context that have shaped our nation. This course is designed to equip you with the knowledge needed to engage your community with conviction, wisdom, and purpose. It is presented in partnership with Patriot Academy.";
 
 type Props = {
   videoUrl: string;
 };
 
-/** Former training intro — shown on Biblical Citizenship course grid. */
+/** Biblical Citizenship course hero — intro copy and training intro video. */
 export function CourseIntroVideoBlock({ videoUrl }: Props) {
   const trimmed = videoUrl.trim();
   if (!trimmed) return null;
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        mb: 2,
-        p: { xs: 2, sm: 2.5 },
-        borderRadius: 2,
-        border: "1px solid rgba(212, 175, 55, 0.45)",
-        bgcolor: "rgba(22, 22, 28, 0.92)",
-      }}
-    >
-      <Typography sx={{ color: "#fff", fontWeight: 700, mb: 1.5, fontSize: "1.05rem" }}>
-        Course introduction
-      </Typography>
-      <Box
+    <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+      <Typography
+        component="h1"
         sx={{
-          position: "relative",
-          borderRadius: 2,
-          overflow: "hidden",
-          bgcolor: "#000",
-          aspectRatio: "16/9",
-          border: "1px solid rgba(255,255,255,0.08)",
+          fontWeight: 900,
+          color: "#fff",
+          fontSize: { xs: "1.75rem", sm: "2.25rem" },
+          lineHeight: 1.2,
+          mb: 1,
         }}
       >
-        <CourseVideoPlyr videoUrl={trimmed} initialSeconds={0} onPersistSeconds={() => {}} />
+        Biblical Citizenship
+      </Typography>
+      <Typography
+        sx={{
+          color: "rgba(255,255,255,0.82)",
+          fontSize: { xs: "1rem", sm: "1.05rem" },
+          lineHeight: 1.6,
+          mb: { xs: 2.5, sm: 3 },
+          maxWidth: 720,
+        }}
+      >
+        Your Foundational Training for FlashPoint Army Chapters
+      </Typography>
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+          gap: { xs: 2.5, md: 3 },
+          alignItems: "start",
+        }}
+      >
+        <Typography
+          sx={{
+            color: "rgba(255,255,255,0.78)",
+            lineHeight: 1.75,
+            fontSize: { xs: "0.95rem", sm: "1rem" },
+          }}
+        >
+          {INTRO_COPY}
+        </Typography>
+
+        <Box
+          sx={{
+            position: "relative",
+            borderRadius: 1,
+            overflow: "hidden",
+            aspectRatio: "16/9",
+          }}
+        >
+          <CourseVideoPlyr videoUrl={trimmed} initialSeconds={0} onPersistSeconds={() => {}} />
+        </Box>
       </Box>
-    </Paper>
+    </Box>
   );
 }

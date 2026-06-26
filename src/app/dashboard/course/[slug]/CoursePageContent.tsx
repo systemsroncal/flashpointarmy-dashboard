@@ -124,6 +124,14 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
         authorLabel={authorLabel}
         sessions={cards}
         editCourseHref={editCourseHref}
+        sectionTitle={
+          slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG ? "Course Lessons" : undefined
+        }
+        sectionSubtitle={
+          slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG
+            ? "Complete all 8 lessons to unlock the next phase of your journey and continue serving through FlashPoint Army Chapters."
+            : undefined
+        }
       />
     </Box>
   );
