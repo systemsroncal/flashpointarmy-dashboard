@@ -64,7 +64,7 @@ export function SidebarYourJourney({ snapshot }: Props) {
       <Typography
         sx={{
           color: flashpointYellow,
-          fontWeight: 800,
+          fontWeight: 500,
           fontSize: "0.95rem",
           mb: 1.5,
         }}
@@ -98,7 +98,7 @@ export function SidebarYourJourney({ snapshot }: Props) {
               <Typography
                 sx={{
                   color: "#fff",
-                  fontWeight: 700,
+                  fontWeight: 500,
                   fontSize: "0.78rem",
                   lineHeight: 1.35,
                   mb: 0.2,
