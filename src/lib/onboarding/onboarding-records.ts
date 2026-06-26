@@ -1,11 +1,13 @@
 import {
+  chunkIdsForInQuery,
   listDashboardUsersByIdsWithAuthFallback,
   listRoleNamesByUserIds,
   listUserIdsByRoleNames,
 } from "@/lib/admin/dashboard-user-queries";
+import { matchesStateChapterFilter } from "@/lib/chapters/chapter-search";
 import {
   BIBLICAL_CITIZENSHIP_COURSE_SLUG,
-  isUserCourseComplete,
+  loadCountableCourseSessionIds,
 } from "@/lib/courses/course-completion";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
@@ -50,8 +52,39 @@ export type OnboardingMemberRow = {
   training_status: TrainingStepStatus;
 };
 
+export type OnboardingListQuery = {
+  page: number;
+  perPage: number;
+  chapterId: string;
+  state: string;
+  q: string;
+  coachMeetingStatus?: CoachMeetingStepStatus | "all";
+  firstMissionStatus?: FirstMissionStepStatus | "all";
+};
+
 const ADMIN_ROLE_NAMES = ["admin", "super_admin", "sub_admin"] as const;
 const MEMBER_ROLE_NAMES = ["member", "local_leader"] as const;
+
+let cachedCountableSessionIds: string[] | null = null;
+
+export function resolveTrainingStepStatus(
+  completedCount: number,
+  totalSessions: number
+): TrainingStepStatus {
+  if (totalSessions <= 0) return "pending";
+  if (completedCount >= totalSessions) return "completed";
+  if (completedCount <= 0) return "pending";
+  return "in_progress";
+}
+
+async function loadCountableSessionIdsCached(supabase: SupabaseClient): Promise<string[]> {
+  if (cachedCountableSessionIds) return cachedCountableSessionIds;
+  cachedCountableSessionIds = await loadCountableCourseSessionIds(
+    supabase,
+    BIBLICAL_CITIZENSHIP_COURSE_SLUG
+  );
+  return cachedCountableSessionIds;
+}
 
 export async function listOnboardingMemberUserIds(admin: SupabaseClient): Promise<string[]> {
   return listUserIdsByRoleNames(admin, [...MEMBER_ROLE_NAMES]);
@@ -79,51 +112,166 @@ function roleLabelFromSlugs(slugs: string[]): string {
   return slugs.join(", ") || "—";
 }
 
-async function countCompletedSessionsForUser(
-  supabase: SupabaseClient,
-  userId: string,
-  sessionIds: string[]
-): Promise<number> {
-  if (!sessionIds.length) return 0;
-  const { count } = await supabase
-    .from("course_session_progress")
-    .select("session_id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .in("session_id", sessionIds)
-    .not("completed_at", "is", null);
-  return count ?? 0;
+function displayNameFromUser(u: {
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
+  email: string;
+}): string {
+  return (
+    [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
+    u.display_name?.trim() ||
+    u.email.split("@")[0] ||
+    "—"
+  );
 }
 
-let cachedSessionIds: string[] | null = null;
+/** Lightweight directory of members + local leaders (no course progress). */
+export async function loadOnboardingMemberBaseIndex(
+  admin: SupabaseClient
+): Promise<Omit<OnboardingMemberRow, "training_status">[]> {
+  const userIds = await listOnboardingMemberUserIds(admin);
+  if (!userIds.length) return [];
 
-async function loadBiblicalCitizenshipSessionIds(supabase: SupabaseClient): Promise<string[]> {
-  if (cachedSessionIds) return cachedSessionIds;
-  const { data: course } = await supabase
-    .from("courses")
-    .select("id")
-    .eq("slug", BIBLICAL_CITIZENSHIP_COURSE_SLUG)
-    .maybeSingle();
-  if (!course?.id) {
-    cachedSessionIds = [];
-    return cachedSessionIds;
+  const [users, roleMap, { data: chapters }] = await Promise.all([
+    listDashboardUsersByIdsWithAuthFallback(admin, userIds, { healMirror: false }),
+    listRoleNamesByUserIds(admin, userIds),
+    admin.from("chapters").select("id, name, state"),
+  ]);
+
+  const chapterById = new Map(
+    (chapters ?? []).map((c) => [c.id as string, c as { id: string; name: string; state: string | null }])
+  );
+
+  return users
+    .map((u) => {
+      const slugs = roleMap.get(u.id) ?? [];
+      const chapterId = u.primary_chapter_id;
+      const chapter = chapterId ? chapterById.get(chapterId) : null;
+      return {
+        user_id: u.id,
+        name: displayNameFromUser(u),
+        email: u.email,
+        role_label: roleLabelFromSlugs(slugs),
+        chapter_id: chapterId,
+        chapter_name: chapter?.name ?? null,
+        chapter_state: chapter?.state ?? null,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
+
+async function loadCoachMeetingStatusIndex(
+  admin: SupabaseClient
+): Promise<Map<string, CoachMeetingStepStatus>> {
+  const out = new Map<string, CoachMeetingStepStatus>();
+  const { data } = await admin.from("member_coach_meetings").select("user_id, status");
+  for (const row of data ?? []) {
+    out.set(row.user_id as string, row.status as CoachMeetingStepStatus);
   }
-  const { data: sessions } = await supabase
-    .from("course_sessions")
-    .select("id")
-    .eq("course_id", course.id);
-  cachedSessionIds = (sessions ?? []).map((s) => s.id as string);
-  return cachedSessionIds;
+  return out;
+}
+
+async function loadFirstMissionStatusIndex(
+  admin: SupabaseClient
+): Promise<Map<string, FirstMissionStepStatus>> {
+  const out = new Map<string, FirstMissionStepStatus>();
+  const { data } = await admin.from("member_first_missions").select("user_id, status");
+  for (const row of data ?? []) {
+    out.set(row.user_id as string, row.status as FirstMissionStepStatus);
+  }
+  return out;
+}
+
+function filterBaseIndex(
+  base: Omit<OnboardingMemberRow, "training_status">[],
+  query: OnboardingListQuery,
+  chapterOptions: { id: string; name: string; state: string }[]
+): Omit<OnboardingMemberRow, "training_status">[] {
+  const chapterRows = chapterOptions.map((c) => ({
+    id: c.id,
+    name: c.name,
+    city: null as string | null,
+    state: c.state,
+  }));
+
+  let list = base.filter((row) =>
+    matchesStateChapterFilter(row.chapter_id, chapterRows, query.state, query.chapterId)
+  );
+
+  const q = query.q.trim().toLowerCase();
+  if (q.length >= 2) {
+    list = list.filter((row) => {
+      const blob = [row.name, row.email, row.chapter_name ?? "", row.chapter_state ?? ""]
+        .join(" ")
+        .toLowerCase();
+      return blob.includes(q);
+    });
+  }
+
+  return list;
+}
+
+export async function queryOnboardingMembersPaginated(
+  admin: SupabaseClient,
+  query: OnboardingListQuery,
+  chapterOptions: { id: string; name: string; state: string }[]
+): Promise<{ rows: OnboardingMemberRow[]; total: number; page: number; perPage: number }> {
+  const page = Math.max(0, query.page);
+  const perPage = Math.min(200, Math.max(1, query.perPage));
+
+  const [baseIndex, coachStatusIndex, firstMissionStatusIndex] = await Promise.all([
+    loadOnboardingMemberBaseIndex(admin),
+    query.coachMeetingStatus && query.coachMeetingStatus !== "all"
+      ? loadCoachMeetingStatusIndex(admin)
+      : Promise.resolve(null),
+    query.firstMissionStatus && query.firstMissionStatus !== "all"
+      ? loadFirstMissionStatusIndex(admin)
+      : Promise.resolve(null),
+  ]);
+
+  let filtered = filterBaseIndex(baseIndex, query, chapterOptions);
+
+  if (query.coachMeetingStatus && query.coachMeetingStatus !== "all" && coachStatusIndex) {
+    filtered = filtered.filter(
+      (row) => (coachStatusIndex.get(row.user_id) ?? "pending") === query.coachMeetingStatus
+    );
+  }
+
+  if (query.firstMissionStatus && query.firstMissionStatus !== "all" && firstMissionStatusIndex) {
+    filtered = filtered.filter(
+      (row) => (firstMissionStatusIndex.get(row.user_id) ?? "locked") === query.firstMissionStatus
+    );
+  }
+
+  const total = filtered.length;
+  const pageSlice = filtered.slice(page * perPage, page * perPage + perPage);
+  const pageIds = pageSlice.map((r) => r.user_id);
+  const trainingMap = await loadTrainingStepStatusesForUsers(admin, pageIds);
+
+  const rows: OnboardingMemberRow[] = pageSlice.map((row) => ({
+    ...row,
+    training_status: trainingMap.get(row.user_id) ?? "pending",
+  }));
+
+  return { rows, total, page, perPage };
 }
 
 export async function loadTrainingStepStatus(
   supabase: SupabaseClient,
   userId: string
 ): Promise<TrainingStepStatus> {
-  const complete = await isUserCourseComplete(supabase, userId, BIBLICAL_CITIZENSHIP_COURSE_SLUG);
-  if (complete) return "completed";
-  const sessionIds = await loadBiblicalCitizenshipSessionIds(supabase);
-  const completedCount = await countCompletedSessionsForUser(supabase, userId, sessionIds);
-  return completedCount > 0 ? "in_progress" : "pending";
+  const sessionIds = await loadCountableSessionIdsCached(supabase);
+  if (!sessionIds.length) return "pending";
+
+  const { count } = await supabase
+    .from("course_session_progress")
+    .select("session_id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .in("session_id", sessionIds)
+    .not("completed_at", "is", null);
+
+  return resolveTrainingStepStatus(count ?? 0, sessionIds.length);
 }
 
 export async function loadTrainingStepStatusesForUsers(
@@ -133,36 +281,33 @@ export async function loadTrainingStepStatusesForUsers(
   const out = new Map<string, TrainingStepStatus>();
   if (!userIds.length) return out;
 
-  const sessionIds = await loadBiblicalCitizenshipSessionIds(admin);
+  const sessionIds = await loadCountableSessionIdsCached(admin);
   if (!sessionIds.length) {
     for (const id of userIds) out.set(id, "pending");
     return out;
   }
 
-  const { data: prog } = await admin
-    .from("course_session_progress")
-    .select("user_id, session_id, completed_at")
-    .in("user_id", userIds)
-    .in("session_id", sessionIds);
-
   const completedByUser = new Map<string, Set<string>>();
-  for (const row of prog ?? []) {
-    if (!row.completed_at) continue;
-    const uid = row.user_id as string;
-    const set = completedByUser.get(uid) ?? new Set<string>();
-    set.add(row.session_id as string);
-    completedByUser.set(uid, set);
+  for (const part of chunkIdsForInQuery(userIds, 80)) {
+    const { data: prog } = await admin
+      .from("course_session_progress")
+      .select("user_id, session_id, completed_at")
+      .in("user_id", part)
+      .in("session_id", sessionIds);
+
+    for (const row of prog ?? []) {
+      if (!row.completed_at) continue;
+      const uid = row.user_id as string;
+      const set = completedByUser.get(uid) ?? new Set<string>();
+      set.add(row.session_id as string);
+      completedByUser.set(uid, set);
+    }
   }
 
   for (const uid of userIds) {
     const set = completedByUser.get(uid);
-    if (set && sessionIds.every((id) => set.has(id))) {
-      out.set(uid, "completed");
-    } else if (set && set.size > 0) {
-      out.set(uid, "in_progress");
-    } else {
-      out.set(uid, "pending");
-    }
+    const completedCount = set?.size ?? 0;
+    out.set(uid, resolveTrainingStepStatus(completedCount, sessionIds.length));
   }
   return out;
 }
@@ -214,58 +359,23 @@ export async function loadFirstMissionForUser(
   };
 }
 
-export async function loadOnboardingMemberRows(admin: SupabaseClient): Promise<OnboardingMemberRow[]> {
-  const userIds = await listOnboardingMemberUserIds(admin);
-  if (!userIds.length) return [];
-
-  const [users, roleMap, trainingMap, { data: chapters }] = await Promise.all([
-    listDashboardUsersByIdsWithAuthFallback(admin, userIds),
-    listRoleNamesByUserIds(admin, userIds),
-    loadTrainingStepStatusesForUsers(admin, userIds),
-    admin.from("chapters").select("id, name, state"),
-  ]);
-
-  const chapterById = new Map(
-    (chapters ?? []).map((c) => [c.id as string, c as { id: string; name: string; state: string | null }])
-  );
-
-  return users
-    .map((u) => {
-      const slugs = roleMap.get(u.id) ?? [];
-      const chapterId = u.primary_chapter_id;
-      const chapter = chapterId ? chapterById.get(chapterId) : null;
-      const name =
-        [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
-        u.display_name?.trim() ||
-        u.email.split("@")[0] ||
-        "—";
-      return {
-        user_id: u.id,
-        name,
-        email: u.email,
-        role_label: roleLabelFromSlugs(slugs),
-        chapter_id: chapterId,
-        chapter_name: chapter?.name ?? null,
-        chapter_state: chapter?.state ?? null,
-        training_status: trainingMap.get(u.id) ?? "pending",
-      };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-}
-
 export async function loadCoachMeetingsMap(
   admin: SupabaseClient,
   userIds: string[]
 ): Promise<Map<string, CoachMeetingRecord>> {
   const out = new Map<string, CoachMeetingRecord>();
   if (!userIds.length) return out;
-  const { data } = await admin
-    .from("member_coach_meetings")
-    .select("user_id, status, coach_id, coaching_at, description, observations, updated_at")
-    .in("user_id", userIds);
-  for (const row of (data ?? []) as CoachMeetingRecord[]) {
-    out.set(row.user_id, row);
+
+  for (const part of chunkIdsForInQuery(userIds, 100)) {
+    const { data } = await admin
+      .from("member_coach_meetings")
+      .select("user_id, status, coach_id, coaching_at, description, observations, updated_at")
+      .in("user_id", part);
+    for (const row of (data ?? []) as CoachMeetingRecord[]) {
+      out.set(row.user_id, row);
+    }
   }
+
   for (const id of userIds) {
     if (!out.has(id)) {
       out.set(id, {
@@ -288,13 +398,17 @@ export async function loadFirstMissionsMap(
 ): Promise<Map<string, FirstMissionRecord>> {
   const out = new Map<string, FirstMissionRecord>();
   if (!userIds.length) return out;
-  const { data } = await admin
-    .from("member_first_missions")
-    .select("user_id, status, tutor_id, description, observations, updated_at")
-    .in("user_id", userIds);
-  for (const row of (data ?? []) as FirstMissionRecord[]) {
-    out.set(row.user_id, row);
+
+  for (const part of chunkIdsForInQuery(userIds, 100)) {
+    const { data } = await admin
+      .from("member_first_missions")
+      .select("user_id, status, tutor_id, description, observations, updated_at")
+      .in("user_id", part);
+    for (const row of (data ?? []) as FirstMissionRecord[]) {
+      out.set(row.user_id, row);
+    }
   }
+
   for (const id of userIds) {
     if (!out.has(id)) {
       out.set(id, {
@@ -316,4 +430,14 @@ export function displayNameForStaff(
 ): string {
   if (!staffId) return "—";
   return staffById.get(staffId)?.label ?? "—";
+}
+
+/** @deprecated Use queryOnboardingMembersPaginated */
+export async function loadOnboardingMemberRows(admin: SupabaseClient): Promise<OnboardingMemberRow[]> {
+  const { rows } = await queryOnboardingMembersPaginated(
+    admin,
+    { page: 0, perPage: 200, chapterId: "all", state: "all", q: "" },
+    []
+  );
+  return rows;
 }

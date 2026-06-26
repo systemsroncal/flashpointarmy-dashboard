@@ -50,7 +50,7 @@ export function MemberOnboardingProgressCard({ snapshot }: Props) {
           Complete your onboarding
         </Typography>
         <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.78)" }}>
-          Current Rank:{" "}
+          Mission Rank:{" "}
           <Box component="span" sx={{ color: "#fff", fontWeight: 700 }}>
             {snapshot.rankLabel}
           </Box>

@@ -67,6 +67,14 @@ function userCompletedAllSessions(
   return sessionIds.every((id) => done.has(id));
 }
 
+/** Learner-facing countable session ids (excludes quiz-only placeholder sessions). */
+export async function loadCountableCourseSessionIds(
+  supabase: SupabaseClient,
+  courseSlug = BIBLICAL_CITIZENSHIP_COURSE_SLUG
+): Promise<string[]> {
+  return loadCourseSessionIds(supabase, courseSlug);
+}
+
 /** Whether a user finished every session in the course. */
 export async function isUserCourseComplete(
   supabase: SupabaseClient,

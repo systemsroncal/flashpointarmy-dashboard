@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  Link as MuiLink,
   Paper,
   TextField,
   Typography,
@@ -29,8 +30,8 @@ type Props = {
   courseSlug?: string;
   /** Human-readable course name shown in the prompt. */
   courseTitle?: string;
-  /** Compact layout for course grid page */
-  variant?: "default" | "compact";
+  /** `training` = Patriot Academy CTA on training landing only */
+  variant?: "default" | "compact" | "training";
 };
 
 export function ExternalTrainingCertificateBanner({
@@ -51,12 +52,13 @@ export function ExternalTrainingCertificateBanner({
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
+    if (variant === "training") return;
     try {
       if (localStorage.getItem(DISMISS_KEY) === "1") setDismissed(true);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [variant]);
 
   const resetForm = useCallback(() => {
     setConfirmed(false);
@@ -66,6 +68,11 @@ export function ExternalTrainingCertificateBanner({
     setError(null);
   }, []);
 
+  function openForm() {
+    resetForm();
+    setFormOpen(true);
+  }
+
   function handleNo() {
     try {
       localStorage.setItem(DISMISS_KEY, "1");
@@ -73,11 +80,6 @@ export function ExternalTrainingCertificateBanner({
       /* ignore */
     }
     setDismissed(true);
-  }
-
-  function handleYes() {
-    resetForm();
-    setFormOpen(true);
   }
 
   async function handleSubmit() {
@@ -141,7 +143,7 @@ export function ExternalTrainingCertificateBanner({
     }
   }
 
-  if (!showPrompt || dismissed) return null;
+  if (!showPrompt || (variant !== "training" && dismissed)) return null;
 
   if (submitted) {
     return (
@@ -157,7 +159,7 @@ export function ExternalTrainingCertificateBanner({
     fontWeight: 700,
     fontSize: { xs: "1.1rem", sm: "1.2rem" },
     lineHeight: 1.45,
-    mb: 1.25,
+    mb: variant === "training" ? 0 : 1.25,
   } as const;
 
   const bodySx = {
@@ -166,6 +168,121 @@ export function ExternalTrainingCertificateBanner({
     lineHeight: 1.75,
     fontSize: { xs: "1rem", sm: "1.05rem" },
   } as const;
+
+  const formDialog = (
+    <Dialog open={formOpen} onClose={() => !submitting && setFormOpen(false)} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ fontSize: "1.15rem", fontWeight: 700 }}>
+        Submit your {courseTitle} certificate
+      </DialogTitle>
+      <DialogContent>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
+          Fill in the information below and upload your certificate. This is for people who already completed the{" "}
+          <strong>{courseTitle}</strong> course at another organization.
+        </Typography>
+
+        {error ? (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        ) : null}
+
+        <FormControlLabel
+          control={<Checkbox checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />}
+          label={`I have completed the ${courseTitle} course`}
+          sx={{ display: "flex", alignItems: "flex-start", mb: 2, "& .MuiFormControlLabel-label": { lineHeight: 1.6 } }}
+        />
+
+        <TextField
+          label="Completion date"
+          type="date"
+          value={completionDate}
+          onChange={(e) => setCompletionDate(e.target.value)}
+          fullWidth
+          InputLabelProps={{ shrink: true }}
+          sx={{ mb: 2 }}
+        />
+
+        <TextField
+          label="Organization / chapter where you completed it"
+          value={organization}
+          onChange={(e) => setOrganization(e.target.value)}
+          fullWidth
+          multiline
+          minRows={2}
+          sx={{ mb: 2 }}
+        />
+
+        <Button
+          component="label"
+          variant="outlined"
+          startIcon={<UploadFileIcon />}
+          fullWidth
+          sx={{ mb: 1, justifyContent: "flex-start", py: 1.25 }}
+        >
+          {file ? file.name : "Certificate upload (image or PDF)"}
+          <input
+            type="file"
+            hidden
+            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
+        </Button>
+        {file && file.type.startsWith("image/") ? (
+          <Box
+            component="img"
+            src={URL.createObjectURL(file)}
+            alt="Certificate preview"
+            sx={{ mt: 1, maxWidth: "100%", maxHeight: 160, borderRadius: 1, border: "1px solid", borderColor: "divider" }}
+          />
+        ) : null}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={() => setFormOpen(false)} disabled={submitting}>
+          Cancel
+        </Button>
+        <Button variant="contained" onClick={() => void handleSubmit()} disabled={submitting}>
+          {submitting ? <CircularProgress size={22} color="inherit" /> : "Send"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  if (variant === "training") {
+    return (
+      <>
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, sm: 2.5 },
+            borderRadius: 2,
+            border: "1px solid rgba(212, 175, 55, 0.45)",
+            bgcolor: "rgba(22, 22, 28, 0.92)",
+          }}
+        >
+          <Typography sx={titleSx}>Start Biblical Citizenship</Typography>
+          <Typography sx={{ ...bodySx, mb: 0 }}>
+            Already completed this course through Patriot Academy?{" "}
+            <MuiLink
+              component="button"
+              type="button"
+              onClick={openForm}
+              sx={{
+                color: "primary.main",
+                fontWeight: 700,
+                cursor: "pointer",
+                verticalAlign: "baseline",
+                textDecoration: "underline",
+                "&:hover": { color: "primary.light" },
+              }}
+            >
+              Continue Here
+            </MuiLink>
+          </Typography>
+        </Paper>
+        {formDialog}
+      </>
+    );
+  }
 
   return (
     <>
@@ -194,7 +311,7 @@ export function ExternalTrainingCertificateBanner({
           <Button
             variant="contained"
             color="primary"
-            onClick={handleYes}
+            onClick={openForm}
             sx={{ fontWeight: 700, minHeight: 48, px: 3, fontSize: "1rem" }}
           >
             Yes
@@ -214,82 +331,7 @@ export function ExternalTrainingCertificateBanner({
           </Button>
         </Box>
       </Paper>
-
-      <Dialog open={formOpen} onClose={() => !submitting && setFormOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontSize: "1.15rem", fontWeight: 700 }}>
-          Submit your {courseTitle} certificate
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
-            Fill in the information below and upload your certificate. This is for people who already completed the{" "}
-            <strong>{courseTitle}</strong> course at another organization.
-          </Typography>
-
-          {error ? (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          ) : null}
-
-          <FormControlLabel
-            control={<Checkbox checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />}
-            label={`I have completed the ${courseTitle} course`}
-            sx={{ display: "flex", alignItems: "flex-start", mb: 2, "& .MuiFormControlLabel-label": { lineHeight: 1.6 } }}
-          />
-
-          <TextField
-            label="Completion date"
-            type="date"
-            value={completionDate}
-            onChange={(e) => setCompletionDate(e.target.value)}
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
-            label="Organization / chapter where you completed it"
-            value={organization}
-            onChange={(e) => setOrganization(e.target.value)}
-            fullWidth
-            multiline
-            minRows={2}
-            sx={{ mb: 2 }}
-          />
-
-          <Button
-            component="label"
-            variant="outlined"
-            startIcon={<UploadFileIcon />}
-            fullWidth
-            sx={{ mb: 1, justifyContent: "flex-start", py: 1.25 }}
-          >
-            {file ? file.name : "Certificate upload (image or PDF)"}
-            <input
-              type="file"
-              hidden
-              accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-          </Button>
-          {file && file.type.startsWith("image/") ? (
-            <Box
-              component="img"
-              src={URL.createObjectURL(file)}
-              alt="Certificate preview"
-              sx={{ mt: 1, maxWidth: "100%", maxHeight: 160, borderRadius: 1, border: "1px solid", borderColor: "divider" }}
-            />
-          ) : null}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setFormOpen(false)} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={() => void handleSubmit()} disabled={submitting}>
-            {submitting ? <CircularProgress size={22} color="inherit" /> : "Send"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {formDialog}
     </>
   );
 }

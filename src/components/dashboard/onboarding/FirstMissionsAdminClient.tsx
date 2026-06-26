@@ -3,10 +3,9 @@
 import { OnboardingStatusChip } from "@/components/dashboard/onboarding/onboarding-admin-utils";
 import { AdminStaffSearchAutocomplete } from "@/components/forms/AdminStaffSearchAutocomplete";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
-import { matchesStateChapterFilter, type ChapterSearchRow } from "@/lib/chapters/chapter-search";
+import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import type { AdminStaffOption } from "@/lib/onboarding/onboarding-records";
 import type { FirstMissionStepStatus, TrainingStepStatus } from "@/lib/onboarding/member-onboarding-status";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Alert,
@@ -27,12 +26,14 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type FirstMissionData = {
   user_id: string;
@@ -61,15 +62,21 @@ type Props = {
   chapterOptions: ChapterSearchRow[];
 };
 
+const HIDDEN_ACTIONS_SX = { display: "none" } as const;
+
 export function FirstMissionsAdminClient({ chapterOptions }: Props) {
   const [rows, setRows] = useState<Row[]>([]);
   const [adminStaff, setAdminStaff] = useState<AdminStaffOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchCommitted, setSearchCommitted] = useState("");
   const [filterState, setFilterState] = useState("all");
   const [filterChapterId, setFilterChapterId] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | FirstMissionStepStatus>("all");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState<Row | null>(null);
@@ -80,45 +87,47 @@ export function FirstMissionsAdminClient({ chapterOptions }: Props) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const loadList = useCallback(async () => {
+  const fetchRows = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch("/api/onboarding/first-missions");
-      const json = (await res.json()) as { error?: string; rows?: Row[]; adminStaff?: AdminStaffOption[] };
+      const params = new URLSearchParams({
+        page: String(page),
+        perPage: String(rowsPerPage),
+        chapterId: filterChapterId,
+        state: filterState,
+        status: statusFilter,
+      });
+      if (searchCommitted.length >= 2) {
+        params.set("q", searchCommitted);
+      }
+      const res = await fetch(`/api/onboarding/first-missions?${params.toString()}`, { cache: "no-store" });
+      const json = (await res.json()) as {
+        error?: string;
+        rows?: Row[];
+        total?: number;
+        adminStaff?: AdminStaffOption[];
+      };
       if (!res.ok) throw new Error(json.error ?? "Failed to load.");
       setRows(json.rows ?? []);
-      setAdminStaff(json.adminStaff ?? []);
+      setTotalCount(json.total ?? 0);
+      if (json.adminStaff?.length) setAdminStaff(json.adminStaff);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load.");
       setRows([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, rowsPerPage, filterState, filterChapterId, searchCommitted, statusFilter]);
 
   useEffect(() => {
-    void loadList();
-  }, [loadList]);
+    void fetchRows();
+  }, [fetchRows]);
 
-  const filteredRows = useMemo(() => {
-    let list = rows;
-    if (statusFilter !== "all") {
-      list = list.filter((r) => r.first_mission.status === statusFilter);
-    }
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
-      list = list.filter((r) => {
-        const blob = [r.name, r.email, r.chapter_name ?? "", r.first_mission.tutor_name ?? ""]
-          .join(" ")
-          .toLowerCase();
-        return blob.includes(q);
-      });
-    }
-    return list.filter((r) =>
-      matchesStateChapterFilter(r.chapter_id, chapterOptions, filterState, filterChapterId)
-    );
-  }, [rows, statusFilter, searchQuery, filterState, filterChapterId, chapterOptions]);
+  useEffect(() => {
+    setPage(0);
+  }, [filterState, filterChapterId, searchCommitted, statusFilter]);
 
   function openEdit(row: Row) {
     setEditRow(row);
@@ -148,7 +157,7 @@ export function FirstMissionsAdminClient({ chapterOptions }: Props) {
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Save failed.");
       setEditOpen(false);
-      await loadList();
+      await fetchRows();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Save failed.");
     } finally {
@@ -162,8 +171,8 @@ export function FirstMissionsAdminClient({ chapterOptions }: Props) {
         First mission
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Manage first mission status for members and local leaders. Training status reflects Biblical Citizenship course
-        progress and is read-only here.
+        Manage first mission status for members and local leaders. Click a row to update. Training status reflects
+        Biblical Citizenship course progress (100% = Completed, not started = Pending, partial progress = In progress).
       </Typography>
 
       {loadError ? (
@@ -179,6 +188,10 @@ export function FirstMissionsAdminClient({ chapterOptions }: Props) {
             placeholder="Search name, email, coach/tutor…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") setSearchCommitted(searchQuery.trim());
+            }}
+            onBlur={() => setSearchCommitted(searchQuery.trim())}
             fullWidth
             InputProps={{
               startAdornment: (
@@ -211,64 +224,83 @@ export function FirstMissionsAdminClient({ chapterOptions }: Props) {
         />
       </Paper>
 
-      <Paper sx={{ bgcolor: "rgba(0,0,0,0.35)", overflow: "auto" }}>
+      <Paper sx={{ bgcolor: "rgba(0,0,0,0.35)", maxWidth: "100%", overflow: "hidden" }}>
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
             <CircularProgress />
           </Box>
         ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Person</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Chapter</TableCell>
-                <TableCell>Training</TableCell>
-                <TableCell>First mission</TableCell>
-                <TableCell>Coach / tutor</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} sx={{ py: 4, textAlign: "center", color: "text.secondary" }}>
-                    No members match your filters.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredRows.map((row) => (
-                  <TableRow key={row.user_id} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={600}>
-                        {row.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {row.email}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{row.role_label}</TableCell>
-                    <TableCell>
-                      {row.chapter_name ?? "—"}
-                      {row.chapter_state ? ` (${row.chapter_state})` : ""}
-                    </TableCell>
-                    <TableCell>
-                      <OnboardingStatusChip status={row.training_status} />
-                    </TableCell>
-                    <TableCell>
-                      <OnboardingStatusChip status={row.first_mission.status} />
-                    </TableCell>
-                    <TableCell>{row.first_mission.tutor_name ?? "—"}</TableCell>
-                    <TableCell align="right">
-                      <Button size="small" startIcon={<EditOutlinedIcon />} onClick={() => openEdit(row)}>
-                        Update
-                      </Button>
+          <>
+            <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Person</TableCell>
+                    <TableCell>Role</TableCell>
+                    <TableCell>Chapter</TableCell>
+                    <TableCell>Training</TableCell>
+                    <TableCell>First mission</TableCell>
+                    <TableCell>Coach / tutor</TableCell>
+                    <TableCell align="right" sx={HIDDEN_ACTIONS_SX}>
+                      Actions
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                </TableHead>
+                <TableBody>
+                  {rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} sx={{ py: 4, textAlign: "center", color: "text.secondary" }}>
+                        No members match your filters.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    rows.map((row) => (
+                      <TableRow
+                        key={row.user_id}
+                        hover
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => openEdit(row)}
+                      >
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>
+                            {row.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {row.email}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{row.role_label}</TableCell>
+                        <TableCell>
+                          {row.chapter_name ?? "—"}
+                          {row.chapter_state ? ` (${row.chapter_state})` : ""}
+                        </TableCell>
+                        <TableCell>
+                          <OnboardingStatusChip status={row.training_status} />
+                        </TableCell>
+                        <TableCell>
+                          <OnboardingStatusChip status={row.first_mission.status} />
+                        </TableCell>
+                        <TableCell>{row.first_mission.tutor_name ?? "—"}</TableCell>
+                        <TableCell align="right" sx={HIDDEN_ACTIONS_SX} />
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              component="div"
+              count={totalCount}
+              page={page}
+              onPageChange={(_, nextPage) => setPage(nextPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[10, 25, 50, 100]}
+            />
+          </>
         )}
       </Paper>
 

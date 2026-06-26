@@ -1,13 +1,11 @@
 import { CourseGridClient, type SessionCardModel } from "@/components/courses/CourseGridClient";
-import { ExternalTrainingCertificateBanner } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
+import { CourseIntroVideoBlock } from "@/components/dashboard/training/CourseIntroVideoBlock";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { isQuizOnlySession } from "@/lib/courses/session-counting";
-import { shouldShowExternalCertificatePrompt } from "@/lib/training/certificate-requests";
 import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
-import { createClient } from "@/utils/supabase/server";
 import { requireServerUser } from "@/lib/auth/server-session";
 import { Box, Paper, Typography } from "@mui/material";
 
@@ -91,9 +89,21 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   const roleNames = await loadUserRoleNames(supabase, user.id);
   const canEditCourse = isElevatedRole(roleNames);
   const editCourseHref = canEditCourse ? `/dashboard/courses/${course.id}/edit` : null;
-  const showExternalCertPrompt =
-    slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG &&
-    (await shouldShowExternalCertificatePrompt(supabase, user.id, slug));
+
+  let courseIntroVideo: string | null = null;
+  if (slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG) {
+    const envIntro = process.env.NEXT_PUBLIC_TRAINING_INTRO_VIDEO?.trim() ?? "";
+    const { data: trainingRow } = await supabase
+      .from("training_settings")
+      .select("intro_video_url")
+      .eq("id", 1)
+      .maybeSingle();
+    const dbIntro =
+      trainingRow && typeof trainingRow.intro_video_url === "string"
+        ? trainingRow.intro_video_url.trim()
+        : "";
+    courseIntroVideo = dbIntro || envIntro || null;
+  }
 
   return (
     <Box
@@ -107,12 +117,7 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
         `,
       }}
     >
-      <ExternalTrainingCertificateBanner
-        showPrompt={showExternalCertPrompt}
-        courseSlug={slug}
-        courseTitle={course.title as string}
-        variant="compact"
-      />
+      {courseIntroVideo ? <CourseIntroVideoBlock videoUrl={courseIntroVideo} /> : null}
       <CourseGridClient
         courseSlug={course.slug as string}
         courseTitle={course.title as string}

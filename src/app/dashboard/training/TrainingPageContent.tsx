@@ -1,5 +1,6 @@
 import { TrainingCommandLanding } from "@/components/dashboard/training/TrainingCommandLanding";
 import { MODULE_SLUGS } from "@/config/modules";
+import { DASHBOARD_WELCOME_VIDEO_URL } from "@/lib/dashboard/welcome-video";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -48,7 +49,8 @@ export default async function TrainingPageContent() {
 
   return (
     <TrainingCommandLanding
-      introVideoUrl={intro || null}
+      welcomeVideoUrl={DASHBOARD_WELCOME_VIDEO_URL}
+      courseIntroVideoUrl={intro || null}
       showExternalCertPrompt={showExternalCertPrompt}
       externalCourseTitle={externalCourseTitle}
       introVideoAdmin={

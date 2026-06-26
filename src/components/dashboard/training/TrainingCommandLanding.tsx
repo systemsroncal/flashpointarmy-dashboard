@@ -1,16 +1,16 @@
 "use client";
 
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
-import { Box, Button, Link as MuiLink, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import Link from "next/link";
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { ExternalTrainingCertificateBanner } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
 import { TrainingIntroVideoAdmin } from "@/components/dashboard/training/TrainingIntroVideoAdmin";
 
-const checklist = [
-  "This is your briefing room.",
-  "Your equipping ground.",
-  "Your launch point.",
+const assignmentSteps = [
+  "Watch the introduction from Gene Bailey below.",
+  "Complete all lessons in the Biblical Citizenship course at your own pace.",
+  'If you have already completed this course through Patriot Academy, simply select "I\'ve Already Completed This Course" to continue your journey.',
 ];
 
 type IntroVideoAdminProps = {
@@ -19,26 +19,27 @@ type IntroVideoAdminProps = {
 };
 
 type Props = {
-  /** Optional intro video (YouTube/Vimeo/MP4 URL). */
-  introVideoUrl?: string | null;
+  /** Welcome video (Gene Bailey) — embedded on this page. */
+  welcomeVideoUrl?: string | null;
+  /** Course intro URL stored in training_settings (admin editor only; shown on course page). */
+  courseIntroVideoUrl?: string | null;
   /** Primary CTA course path, e.g. `/dashboard/course/biblical-citizenship`. */
   primaryCourseHref?: string;
-  /** Ask if training was completed at another organization. */
+  /** Patriot Academy certificate prompt above the main card. */
   showExternalCertPrompt?: boolean;
-  /** Display name for the primary training course (certificate prompt). */
   externalCourseTitle?: string;
-  /** Shown to super_admin / admin: edit URL stored in `training_settings`. */
   introVideoAdmin?: IntroVideoAdminProps | null;
 };
 
 export function TrainingCommandLanding({
-  introVideoUrl,
+  welcomeVideoUrl,
+  courseIntroVideoUrl: _courseIntroVideoUrl,
   primaryCourseHref = "/dashboard/course/biblical-citizenship",
   showExternalCertPrompt = false,
   externalCourseTitle = "Biblical Citizenship",
   introVideoAdmin,
 }: Props) {
-  const trimmedIntro = introVideoUrl?.trim() ?? "";
+  const trimmedWelcome = welcomeVideoUrl?.trim() ?? "";
 
   return (
     <Box
@@ -101,6 +102,7 @@ export function TrainingCommandLanding({
         <ExternalTrainingCertificateBanner
           showPrompt={showExternalCertPrompt}
           courseTitle={externalCourseTitle}
+          variant="training"
         />
       </Box>
 
@@ -129,24 +131,34 @@ export function TrainingCommandLanding({
         >
           Welcome to FlashPoint Army Training Command
         </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.82)", mb: 2, lineHeight: 1.6 }}>
-          Are you ready to step into disciplined, faith-driven leadership and deepen your understanding of Biblical
-          citizenship?
+
+        <Typography sx={{ color: "rgba(255,255,255,0.88)", fontWeight: 600, mb: 1.5, lineHeight: 1.5 }}>
+          Every mission begins with preparation.
+        </Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.82)", mb: 2.5, lineHeight: 1.7 }}>
+          Before leading, serving, or participating in your local chapter, every member is asked to complete the Biblical
+          Citizenship course. This foundational training will equip you with the Biblical principles, historical
+          context, and civic understanding that unite every FlashPoint Army Chapter across the nation.
+        </Typography>
+
+        <Typography sx={{ color: "rgba(255,255,255,0.92)", fontWeight: 700, mb: 1.25, fontSize: "1.05rem" }}>
+          Your First Assignment
         </Typography>
         <Box component="ul" sx={{ listStyle: "none", m: 0, p: 0, mb: 2 }}>
-          {checklist.map((line) => (
+          {assignmentSteps.map((line) => (
             <Box
               key={line}
               component="li"
               sx={{ display: "flex", alignItems: "flex-start", gap: 1, mb: 1 }}
             >
-              <CheckBoxIcon sx={{ color: "#2e7d32", fontSize: 22, mt: 0.1 }} />
-              <Typography sx={{ color: "rgba(255,255,255,0.9)" }}>{line}</Typography>
+              <CheckBoxIcon sx={{ color: "#2e7d32", fontSize: 22, mt: 0.1, flexShrink: 0 }} />
+              <Typography sx={{ color: "rgba(255,255,255,0.9)", lineHeight: 1.65 }}>{line}</Typography>
             </Box>
           ))}
         </Box>
-        <Typography sx={{ color: "rgba(255,255,255,0.85)", mb: 1.5 }}>
-          Watch the introduction below and prepare to engage.
+
+        <Typography sx={{ color: "rgba(255,255,255,0.78)", mb: 2, lineHeight: 1.65, fontStyle: "italic" }}>
+          Your progress will be saved automatically as you move through each lesson.
         </Typography>
 
         <Box
@@ -160,9 +172,9 @@ export function TrainingCommandLanding({
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          {trimmedIntro ? (
+          {trimmedWelcome ? (
             <CourseVideoPlyr
-              videoUrl={trimmedIntro}
+              videoUrl={trimmedWelcome}
               initialSeconds={0}
               onPersistSeconds={() => {}}
             />
@@ -179,13 +191,7 @@ export function TrainingCommandLanding({
                 textAlign: "center",
               }}
             >
-              <Typography variant="body2">
-                Intro video not configured. Set{" "}
-                <Box component="code" sx={{ color: "primary.light" }}>
-                  NEXT_PUBLIC_TRAINING_INTRO_VIDEO
-                </Box>{" "}
-                to a YouTube, Vimeo, or MP4 URL.
-              </Typography>
+              <Typography variant="body2">Welcome video is not configured.</Typography>
             </Box>
           )}
         </Box>
@@ -196,23 +202,25 @@ export function TrainingCommandLanding({
             letterSpacing: 2,
             color: "#fff",
             fontSize: { xs: "1.5rem", sm: "1.75rem" },
-            mb: 0.5,
-            mt: 3,
+            mb: 1,
+            mt: 1,
           }}
         >
           THE MISSION
         </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.88)", fontWeight: 700, mb: 1.5 }}>
-          Your Training Assignment
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.78)", mb: 1.5, lineHeight: 1.65 }}>
-          In partnership with Patriot Academy, this track equips believers to understand liberty, think critically, and
-          engage their communities with Biblical clarity.
+        <Typography sx={{ color: "rgba(255,255,255,0.82)", mb: 1.5, lineHeight: 1.7 }}>
+          In partnership with Patriot Academy, this training prepares believers to understand liberty, think Biblically,
+          and engage their communities with wisdom, conviction, and purpose.
         </Typography>
         <Typography sx={{ color: "rgba(255,255,255,0.9)", fontWeight: 600, mb: 0.5 }}>
-          This is not passive learning.
+          This is more than a course.
         </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.75)", mb: 2.5 }}>This is preparation.</Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.78)", mb: 1 }}>
+          It is the foundation for every chapter, every leader, and every mission that follows.
+        </Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.85)", fontWeight: 600, mb: 2.5 }}>
+          Complete your training. Then prepare to take action.
+        </Typography>
 
         <Button
           component={Link}
@@ -231,13 +239,6 @@ export function TrainingCommandLanding({
         >
           Begin Your Training
         </Button>
-
-        <Typography variant="caption" sx={{ display: "block", mt: 2, color: "text.secondary", textAlign: "center" }}>
-          Course URL example:{" "}
-          <MuiLink component={Link} href={primaryCourseHref} color="primary">
-            {primaryCourseHref}
-          </MuiLink>
-        </Typography>
 
         {introVideoAdmin ? <TrainingIntroVideoAdmin {...introVideoAdmin} /> : null}
       </Box>
