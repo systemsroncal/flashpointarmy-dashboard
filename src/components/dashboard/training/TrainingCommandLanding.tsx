@@ -218,7 +218,7 @@ export function TrainingCommandLanding({
             fontWeight: 800,
             fontSize: { xs: "0.95rem", sm: "1rem" },
             "@media (min-width: 1101px)": {
-              fontSize: "1.2rem",
+              fontSize: "1.5rem",
               py: 1.5,
               minHeight: 52,
             },
