@@ -1,35 +1,24 @@
 #!/usr/bin/env bash
 # Run on the VPS from the repo root (or any cwd; script cd's to project root).
 #
-# PRODUCTION (app.fparmychapters.com) — zero config, run as root:
-#   cd /home/admin/web/app.fparmychapters.com/public_html
-#   bash scripts/deploy-from-github.sh
+# ROUTINE DEPLOY (Hestia VPS, as root):
 #
-# DEV (dev.fparmychapters.com) — use the dev wrapper or set env vars:
-#   cd /home/admin/web/dev.fparmychapters.com/public_html
-#   bash scripts/deploy-dev.sh
-#   # or:
-#   GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
+#   Production (main, no env vars):
+#     cd /home/admin/web/app.fparmychapters.com/public_html
+#     bash scripts/deploy-from-github.sh
 #
-# Env (optional overrides; prod clone fills defaults automatically):
-#   GIT_BRANCH      — prod default: main
-#   PM2_APP_NAME    — prod default: app-fparmychapters
-#   APP_PORT        — prod default: 3000
-#   SKIP_PM2=1      — skip stop/restart (only pull + build)
-#   DEPLOY_SOFT_PULL=1 — use `git pull` only (fails if untracked files block merge). Default: reset to origin + clean.
-#   SKIP_DEPLOY_ENV_WARN=1 — skip warning when .env.production is missing (e.g. vars injected elsewhere).
-#   MAINTENANCE_MODE=1 in .env.production — full-site /maintenance redirect (optional).
-#   MAINTENANCE_BANNER=0 — hide the white top maintenance bar (default: shown).
+#   Dev (set branch, PM2 name, and port):
+#     cd /home/admin/web/dev.fparmychapters.com/public_html
+#     GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
 #
-# .env.production on the VPS is NEVER deleted by this script: it is gitignored, excluded from
-# `git clean`, backed up before sync, and restored if missing after reset/clean. Do not use
-# `git clean -fdx` manually (that removes ignored files). Prefer this script over a manual
-# `git reset --hard` before deploy — the script already resets to origin.
+# Optional env:
+#   SKIP_PM2=1           — pull + build only (no PM2 restart)
+#   DEPLOY_SOFT_PULL=1   — git pull instead of reset --hard
+#   SKIP_DEPLOY_ENV_WARN=1
 #
-# Hestia VPS: run as root. npm ci/build run as admin; PM2 runs as the same user that invoked
-# this script (root PM2 on this host — do not also use `sudo -u admin pm2`).
-#
-# Deploy BOTH sites: bash scripts/deploy-both-sites.sh (from prod clone, as root).
+# .env.production is never deleted (gitignored + backed up before sync).
+# Run as root: npm ci/build as admin, PM2 as root (do not use `sudo -u admin pm2`).
+# Both sites: bash scripts/deploy-both-sites.sh (from prod clone).
 
 set -euo pipefail
 
@@ -62,9 +51,9 @@ elif [[ "$is_dev_clone" -eq 1 ]]; then
   [[ -z "${PM2_APP_NAME:-}" ]] && missing+=("PM2_APP_NAME")
   [[ -z "${APP_PORT:-}" ]] && missing+=("APP_PORT")
   if [[ ${#missing[@]} -gt 0 ]]; then
-    echo "[deploy] ERROR: dev clone requires explicit deploy target (missing: ${missing[*]})." >&2
-    echo "[deploy] Run: bash scripts/deploy-dev.sh" >&2
-    echo "[deploy] Or:  GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh" >&2
+    echo "[deploy] ERROR: dev clone requires GIT_BRANCH, PM2_APP_NAME, and APP_PORT." >&2
+    echo "[deploy] Run:" >&2
+    echo "  GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh" >&2
     exit 1
   fi
   BRANCH="$GIT_BRANCH"

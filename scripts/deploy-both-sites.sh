@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-# Hestia VPS: deploy prod + dev on one host. Run as root from the prod clone:
+# Hestia VPS: deploy prod + dev. Run as root from prod clone:
 #   cd /home/admin/web/app.fparmychapters.com/public_html
 #   bash scripts/deploy-both-sites.sh
 #
-# Prod: app.fparmychapters.com → main, port 3000, app-fparmychapters
-# Dev:  dev.fparmychapters.com → dev,  port 3001, dev-fparmychapters
-#
-# Env overrides: APP_ROOT, DEV_ROOT, DEPLOY_OWNER, SKIP_PM2=1, DEPLOY_SOFT_PULL=1
+# Same as running deploy-from-github.sh on each clone (prod with no env; dev with GIT_BRANCH/PM2/PORT).
 
 set -euo pipefail
 
