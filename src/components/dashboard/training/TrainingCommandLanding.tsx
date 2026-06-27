@@ -92,7 +92,7 @@ export function TrainingCommandLanding({
 
       <Box
         sx={{
-          maxWidth: 720,
+          maxWidth: 1100,
           mx: "auto",
           position: "relative",
           zIndex: 1,
@@ -216,6 +216,12 @@ export function TrainingCommandLanding({
             minHeight: 48,
             touchAction: "manipulation",
             fontWeight: 800,
+            fontSize: { xs: "0.95rem", sm: "1rem" },
+            "@media (min-width: 1101px)": {
+              fontSize: "1.2rem",
+              py: 1.5,
+              minHeight: 52,
+            },
             color: "#0a0a0a",
             bgcolor: "primary.main",
             "&:hover": { bgcolor: "primary.light" },

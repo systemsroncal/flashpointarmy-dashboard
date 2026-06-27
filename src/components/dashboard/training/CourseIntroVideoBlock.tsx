@@ -17,33 +17,6 @@ export function CourseIntroVideoBlock({ videoUrl }: Props) {
 
   return (
     <Box sx={{ mb: { xs: 3, sm: 4 } }}>
-      <Typography
-        component="h1"
-        sx={{
-          fontWeight: 900,
-          color: "#fff",
-          fontSize: { xs: "1.75rem", sm: "2.25rem" },
-          lineHeight: 1.2,
-          mb: 1,
-          textAlign: "center",
-        }}
-      >
-        Biblical Citizenship
-      </Typography>
-      <Typography
-        sx={{
-          color: "rgba(255,255,255,0.82)",
-          fontSize: { xs: "1rem", sm: "1.05rem" },
-          lineHeight: 1.6,
-          mb: { xs: 2.5, sm: 3 },
-          maxWidth: 720,
-          mx: "auto",
-          textAlign: "center",
-        }}
-      >
-        Your Foundational Training for FlashPoint Army Chapters
-      </Typography>
-
       <Box
         sx={{
           display: "grid",
@@ -52,16 +25,44 @@ export function CourseIntroVideoBlock({ videoUrl }: Props) {
           alignItems: "center",
         }}
       >
-        <Typography
-          sx={{
-            color: "rgba(255,255,255,0.78)",
-            lineHeight: 1.75,
-            fontSize: { xs: "0.95rem", sm: "1rem" },
-            alignSelf: "center",
-          }}
-        >
-          {INTRO_COPY}
-        </Typography>
+        <Box sx={{ alignSelf: "center" }}>
+          <Typography
+            component="h1"
+            sx={{
+              fontWeight: 900,
+              color: "#fff",
+              fontSize: { xs: "1.75rem", sm: "2.25rem" },
+              lineHeight: 1.2,
+              mb: 1,
+              textAlign: { xs: "center", md: "left" },
+            }}
+          >
+            Biblical Citizenship
+          </Typography>
+          <Typography
+            component="p"
+            sx={{
+              color: "rgba(255,255,255,0.88)",
+              fontSize: { xs: "1.125rem", sm: "1.35rem" },
+              fontWeight: 600,
+              lineHeight: 1.45,
+              mb: { xs: 2, sm: 2.5 },
+              textAlign: { xs: "center", md: "left" },
+            }}
+          >
+            Your Foundational Training for FlashPoint Army Chapters
+          </Typography>
+          <Typography
+            sx={{
+              color: "rgba(255,255,255,0.78)",
+              lineHeight: 1.75,
+              fontSize: { xs: "0.95rem", sm: "1rem" },
+              textAlign: { xs: "center", md: "left" },
+            }}
+          >
+            {INTRO_COPY}
+          </Typography>
+        </Box>
 
         <Box
           sx={{
