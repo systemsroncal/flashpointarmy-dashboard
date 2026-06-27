@@ -206,9 +206,11 @@ export function TrainingCommandLanding({
           Complete your training. Then prepare to take action.
         </Typography>
 
+  const courseStartHref = `${primaryCourseHref}${primaryCourseHref.includes("?") ? "&" : "?"}start=lessons`;
+
         <Button
           component={Link}
-          href={primaryCourseHref}
+          href={courseStartHref}
           variant="contained"
           fullWidth
           sx={{

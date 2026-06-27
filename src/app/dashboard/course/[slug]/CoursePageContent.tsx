@@ -1,4 +1,5 @@
 import { CourseGridClient, type SessionCardModel } from "@/components/courses/CourseGridClient";
+import { BiblicalCitizenshipCourseShell } from "@/components/dashboard/training/BiblicalCitizenshipCourseShell";
 import { CourseIntroVideoBlock } from "@/components/dashboard/training/CourseIntroVideoBlock";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { isQuizOnlySession } from "@/lib/courses/session-counting";
@@ -7,9 +8,16 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { requireServerUser } from "@/lib/auth/server-session";
+import { shouldShowExternalCertificatePrompt } from "@/lib/training/certificate-requests";
 import { Box, Paper, Typography } from "@mui/material";
 
-export default async function CoursePageContent({ slug }: { slug: string }) {
+export default async function CoursePageContent({
+  slug,
+  startAtLessons = false,
+}: {
+  slug: string;
+  startAtLessons?: boolean;
+}) {
   const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
@@ -106,6 +114,36 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   }
 
   const isBiblicalCitizenship = slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG;
+  const showExternalCertPrompt = isBiblicalCitizenship
+    ? await shouldShowExternalCertificatePrompt(supabase, user.id)
+    : false;
+  const courseTitle = (course.title as string)?.trim() || "Biblical Citizenship";
+
+  const introBlock =
+    courseIntroVideo && isBiblicalCitizenship ? (
+      <CourseIntroVideoBlock
+        videoUrl={courseIntroVideo}
+        showExternalCertPrompt={showExternalCertPrompt}
+        courseTitle={courseTitle}
+      />
+    ) : null;
+
+  const lessonsBlock = (
+    <CourseGridClient
+      courseSlug={course.slug as string}
+      courseTitle={courseTitle}
+      authorLabel={authorLabel}
+      sessions={cards}
+      editCourseHref={editCourseHref}
+      sectionTitle={isBiblicalCitizenship ? "Course Lessons" : undefined}
+      sectionSubtitle={
+        isBiblicalCitizenship
+          ? "Complete all 8 lessons to unlock the next phase of your journey and continue serving through FlashPoint Army Chapters."
+          : undefined
+      }
+      panelVariant={isBiblicalCitizenship ? "training" : "default"}
+    />
+  );
 
   return (
     <Box
@@ -123,21 +161,18 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
             }),
       }}
     >
-      {courseIntroVideo ? <CourseIntroVideoBlock videoUrl={courseIntroVideo} /> : null}
-      <CourseGridClient
-        courseSlug={course.slug as string}
-        courseTitle={course.title as string}
-        authorLabel={authorLabel}
-        sessions={cards}
-        editCourseHref={editCourseHref}
-        sectionTitle={isBiblicalCitizenship ? "Course Lessons" : undefined}
-        sectionSubtitle={
-          isBiblicalCitizenship
-            ? "Complete all 8 lessons to unlock the next phase of your journey and continue serving through FlashPoint Army Chapters."
-            : undefined
-        }
-        panelVariant={isBiblicalCitizenship ? "training" : "default"}
-      />
+      {isBiblicalCitizenship ? (
+        <BiblicalCitizenshipCourseShell
+          startAtLessons={startAtLessons}
+          intro={introBlock}
+          lessons={lessonsBlock}
+        />
+      ) : (
+        <>
+          {introBlock}
+          {lessonsBlock}
+        </>
+      )}
     </Box>
   );
 }

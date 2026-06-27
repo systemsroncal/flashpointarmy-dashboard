@@ -1,6 +1,7 @@
 "use client";
 
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
+import { ExternalTrainingCertificateBanner } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
 import { Box, Typography } from "@mui/material";
 
 const INTRO_COPY =
@@ -8,10 +9,16 @@ const INTRO_COPY =
 
 type Props = {
   videoUrl: string;
+  showExternalCertPrompt?: boolean;
+  courseTitle?: string;
 };
 
 /** Biblical Citizenship course hero — intro copy and training intro video. */
-export function CourseIntroVideoBlock({ videoUrl }: Props) {
+export function CourseIntroVideoBlock({
+  videoUrl,
+  showExternalCertPrompt = false,
+  courseTitle = "Biblical Citizenship",
+}: Props) {
   const trimmed = videoUrl.trim();
   if (!trimmed) return null;
 
@@ -58,10 +65,19 @@ export function CourseIntroVideoBlock({ videoUrl }: Props) {
               lineHeight: 1.75,
               fontSize: { xs: "0.95rem", sm: "1rem" },
               textAlign: { xs: "center", md: "left" },
+              mb: showExternalCertPrompt ? { xs: 2, sm: 2.5 } : 0,
             }}
           >
             {INTRO_COPY}
           </Typography>
+          {showExternalCertPrompt ? (
+            <ExternalTrainingCertificateBanner
+              showPrompt={showExternalCertPrompt}
+              courseTitle={courseTitle}
+              variant="inline"
+              align="left"
+            />
+          ) : null}
         </Box>
 
         <Box

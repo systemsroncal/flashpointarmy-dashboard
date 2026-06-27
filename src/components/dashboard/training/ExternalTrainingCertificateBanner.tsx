@@ -32,6 +32,8 @@ type Props = {
   courseTitle?: string;
   /** `inline` = simple Patriot Academy link below training CTA */
   variant?: "default" | "compact" | "inline";
+  /** Text alignment for `inline` variant (course page left column uses `left`). */
+  align?: "center" | "left";
 };
 
 export function ExternalTrainingCertificateBanner({
@@ -39,6 +41,7 @@ export function ExternalTrainingCertificateBanner({
   courseSlug = BIBLICAL_CITIZENSHIP_COURSE_SLUG,
   courseTitle = "Biblical Citizenship",
   variant = "default",
+  align = "center",
 }: Props) {
   const router = useRouter();
   const [dismissed, setDismissed] = useState(false);
@@ -151,7 +154,7 @@ export function ExternalTrainingCertificateBanner({
         <Typography
           sx={{
             mt: 1.5,
-            textAlign: "center",
+            textAlign: align === "left" ? { xs: "center", md: "left" } : "center",
             color: "rgba(255,255,255,0.78)",
             fontSize: "0.9rem",
             lineHeight: 1.65,
@@ -269,7 +272,7 @@ export function ExternalTrainingCertificateBanner({
         <Typography
           sx={{
             mt: 1.5,
-            textAlign: "center",
+            textAlign: align === "left" ? { xs: "center", md: "left" } : "center",
             color: "rgba(255,255,255,0.78)",
             fontSize: "0.92rem",
             lineHeight: 1.65,

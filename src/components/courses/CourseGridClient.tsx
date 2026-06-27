@@ -270,7 +270,7 @@ export function CourseGridClient({
 
   if (useTrainingPanel) {
     return (
-      <Paper elevation={0} sx={TRAINING_LESSONS_PANEL_SX}>
+      <Paper id="course-lessons" elevation={0} sx={TRAINING_LESSONS_PANEL_SX}>
         {header}
         {grid}
       </Paper>
