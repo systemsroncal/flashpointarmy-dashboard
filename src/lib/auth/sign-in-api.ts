@@ -13,6 +13,12 @@ export async function signInViaApi(
   if (res.ok) return { ok: true };
 
   const message = (data.error || "").trim();
+  if (data.code === "server_config") {
+    return {
+      ok: false,
+      message: message || "Sign-in is not configured on this server. Contact support.",
+    };
+  }
   if (data.code === "invalid_credentials" || /invalid login credentials/i.test(message)) {
     return {
       ok: false,
@@ -20,7 +26,7 @@ export async function signInViaApi(
         "That email or password did not match our records. Check your email, turn off Caps Lock if needed, and use the temporary password from your welcome message (any letter case is fine). If you already chose your own password, use Reset password below.",
     };
   }
-  if (/failed to fetch|network/i.test(message)) {
+  if (data.code === "network_error" || /failed to fetch|fetch failed|network/i.test(message)) {
     return {
       ok: false,
       message:

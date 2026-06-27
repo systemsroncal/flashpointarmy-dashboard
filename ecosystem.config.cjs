@@ -16,7 +16,8 @@
  * 4) PM2 (manual bootstrap) or routine deploy script (one app at a time):
  *      cd /home/admin/web/dev.fparmychapters.com/public_html
  *      GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
- *    deploy-from-github.sh does NOT load this file (avoids stopping the other site).
+ *    Or both at once (root on Hestia):
+ *      bash /home/admin/web/app.fparmychapters.com/public_html/scripts/deploy-both-sites.sh
  *
  * Edit `cwd` if your Hestia paths differ.
  */
@@ -30,6 +31,7 @@ module.exports = {
       args: ["3000"],
       env: {
         NODE_ENV: "production",
+        NODE_OPTIONS: "--dns-result-order=ipv4first",
       },
     },
     {
@@ -40,6 +42,7 @@ module.exports = {
       args: ["3001"],
       env: {
         NODE_ENV: "production",
+        NODE_OPTIONS: "--dns-result-order=ipv4first",
       },
     },
   ],

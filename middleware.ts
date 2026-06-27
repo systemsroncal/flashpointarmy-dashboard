@@ -13,6 +13,12 @@ import { type NextRequest, NextResponse } from "next/server";
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
+  // Auth routes call Supabase in the handler; skip session refresh here to avoid
+  // duplicate outbound requests (VPS DNS/IPv6 issues can make login time out).
+  if (path.startsWith("/api/auth/")) {
+    return NextResponse.next();
+  }
+
   if (isMaintenanceMode()) {
     if (isMaintenanceExemptPath(path)) {
       return NextResponse.next();

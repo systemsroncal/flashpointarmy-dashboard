@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 # Run on the VPS from the repo root (or any cwd; script cd's to project root).
-# Usage: bash scripts/deploy-from-github.sh
-# Env:
-#   GIT_BRANCH      — default main
-#   PM2_APP_NAME    — default app-fparmychapters (use another name for dev, e.g. dev-fparmychapters)
-#   APP_PORT        — default 3000 (Next.js reads PORT; dev on same host should use e.g. 3001)
+#
+# PRODUCTION (app.fparmychapters.com) — zero config, run as root:
+#   cd /home/admin/web/app.fparmychapters.com/public_html
+#   bash scripts/deploy-from-github.sh
+#
+# DEV (dev.fparmychapters.com) — use the dev wrapper or set env vars:
+#   cd /home/admin/web/dev.fparmychapters.com/public_html
+#   bash scripts/deploy-dev.sh
+#   # or:
+#   GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
+#
+# Env (optional overrides; prod clone fills defaults automatically):
+#   GIT_BRANCH      — prod default: main
+#   PM2_APP_NAME    — prod default: app-fparmychapters
+#   APP_PORT        — prod default: 3000
 #   SKIP_PM2=1      — skip stop/restart (only pull + build)
 #   DEPLOY_SOFT_PULL=1 — use `git pull` only (fails if untracked files block merge). Default: reset to origin + clean.
 #   SKIP_DEPLOY_ENV_WARN=1 — skip warning when .env.production is missing (e.g. vars injected elsewhere).
@@ -16,24 +26,56 @@
 # `git clean -fdx` manually (that removes ignored files). Prefer this script over a manual
 # `git reset --hard` before deploy — the script already resets to origin.
 #
-# PM2 user: always run deploy as the SAME user that owns PM2 (root *or* admin — never mix).
-# Root on Hestia (repo owned by admin): script auto-runs `git config --global --add safe.directory`.
-# Examples:
-#   Prod (root PM2):  cd .../app.fparmychapters.com/public_html && bash scripts/deploy-from-github.sh
-#   Dev (root PM2):   cd .../dev.fparmychapters.com/public_html && GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh
-#   Dev (admin PM2):  sudo -u admin bash -lc 'cd .../dev.../public_html && GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh'
+# Hestia VPS: run as root. npm ci/build run as admin; PM2 runs as the same user that invoked
+# this script (root PM2 on this host — do not also use `sudo -u admin pm2`).
 #
-# Two apps on one host: each deploy only recycles its own PM2 name + port (3000 prod, 3001 dev).
-# Use ecosystem.config.cjs manually once to register both apps; routine deploy uses pm2-next-start.sh only.
+# Deploy BOTH sites: bash scripts/deploy-both-sites.sh (from prod clone, as root).
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-BRANCH="${GIT_BRANCH:-main}"
-PM2_NAME="${PM2_APP_NAME:-app-fparmychapters}"
-APP_PORT="${APP_PORT:-3000}"
+CURRENT_USER="$(id -un)"
+DEPLOY_OWNER="${DEPLOY_OWNER:-admin}"
+
+PROD_CLONE_MARKER="app.fparmychapters.com"
+DEV_CLONE_MARKER="dev.fparmychapters.com"
+
+is_prod_clone=0
+is_dev_clone=0
+[[ "$ROOT" == *"${PROD_CLONE_MARKER}"* ]] && is_prod_clone=1
+[[ "$ROOT" == *"${DEV_CLONE_MARKER}"* ]] && is_dev_clone=1
+
+if [[ "$is_prod_clone" -eq 1 && "$is_dev_clone" -eq 1 ]]; then
+  echo "[deploy] ERROR: clone path matches prod and dev markers: ${ROOT}" >&2
+  exit 1
+fi
+
+if [[ "$is_prod_clone" -eq 1 ]]; then
+  BRANCH="${GIT_BRANCH:-main}"
+  PM2_NAME="${PM2_APP_NAME:-app-fparmychapters}"
+  APP_PORT="${APP_PORT:-3000}"
+elif [[ "$is_dev_clone" -eq 1 ]]; then
+  missing=()
+  [[ -z "${GIT_BRANCH:-}" ]] && missing+=("GIT_BRANCH")
+  [[ -z "${PM2_APP_NAME:-}" ]] && missing+=("PM2_APP_NAME")
+  [[ -z "${APP_PORT:-}" ]] && missing+=("APP_PORT")
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "[deploy] ERROR: dev clone requires explicit deploy target (missing: ${missing[*]})." >&2
+    echo "[deploy] Run: bash scripts/deploy-dev.sh" >&2
+    echo "[deploy] Or:  GIT_BRANCH=dev PM2_APP_NAME=dev-fparmychapters APP_PORT=3001 bash scripts/deploy-from-github.sh" >&2
+    exit 1
+  fi
+  BRANCH="$GIT_BRANCH"
+  PM2_NAME="$PM2_APP_NAME"
+  APP_PORT="$APP_PORT"
+else
+  BRANCH="${GIT_BRANCH:-main}"
+  PM2_NAME="${PM2_APP_NAME:-app-fparmychapters}"
+  APP_PORT="${APP_PORT:-3000}"
+fi
+
 export PORT="${APP_PORT}"
 
 ENV_FILE=".env.production"
@@ -94,6 +136,65 @@ ensure_git_safe_directory() {
   exit 1
 }
 
+# Non-interactive sudo only — never prompt for a password during deploy.
+maybe_sudo() {
+  if [[ "$CURRENT_USER" == "root" ]]; then
+    "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo -n "$@" 2>/dev/null || true
+  fi
+}
+
+run_as_deploy_owner() {
+  if [[ "$CURRENT_USER" == "root" ]] && id "$DEPLOY_OWNER" >/dev/null 2>&1; then
+    sudo -n -u "$DEPLOY_OWNER" "$@"
+  else
+    "$@"
+  fi
+}
+
+# PM2 must stay under one user on the host (here: root). npm/build still run as admin.
+run_pm2() {
+  "$@"
+}
+
+ensure_repo_owned_by_deploy_owner() {
+  if [[ "$CURRENT_USER" == "root" ]] && id "$DEPLOY_OWNER" >/dev/null 2>&1; then
+    chown -R "$DEPLOY_OWNER:$DEPLOY_OWNER" "$ROOT"
+    echo "[deploy] OK: repo owned by ${DEPLOY_OWNER} (npm/build as ${DEPLOY_OWNER}, pm2 as ${CURRENT_USER})"
+  fi
+}
+
+# Root-owned node_modules/.next break npm ci + next build when npm runs as admin (EACCES / TAR_ENTRY_ERROR).
+prepare_build_workspace() {
+  local needs_clean=0
+  local reason=""
+
+  if [[ -d node_modules ]] && ! run_as_deploy_owner test -w node_modules 2>/dev/null; then
+    needs_clean=1
+    reason="node_modules not writable by ${DEPLOY_OWNER}"
+  fi
+  if [[ -d .next ]] && ! run_as_deploy_owner test -w .next 2>/dev/null; then
+    needs_clean=1
+    reason="${reason:+$reason; }.next not writable by ${DEPLOY_OWNER}"
+  fi
+
+  if [[ "$needs_clean" -eq 0 ]]; then
+    return 0
+  fi
+
+  if [[ "$CURRENT_USER" != "root" ]]; then
+    echo "[deploy] ERROR: ${reason} (often root-owned from an earlier deploy)." >&2
+    echo "[deploy] Run as root:" >&2
+    echo "  chown -R ${DEPLOY_OWNER}:${DEPLOY_OWNER} ${ROOT} && rm -rf ${ROOT}/node_modules ${ROOT}/.next" >&2
+    exit 1
+  fi
+
+  echo "[deploy] Removing root-owned node_modules + .next for clean install (${reason})"
+  rm -rf node_modules .next
+  chown -R "$DEPLOY_OWNER:$DEPLOY_OWNER" "$ROOT"
+}
+
 port_holders() {
   ss -ltnp "sport = :${APP_PORT}" 2>/dev/null || true
 }
@@ -119,10 +220,10 @@ kill_pids_on_port() {
   while read -r pid; do
     [[ -n "$pid" ]] || continue
     ppid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
-    pkill -9 -P "$pid" 2>/dev/null || sudo pkill -9 -P "$pid" 2>/dev/null || true
-    kill -9 "$pid" 2>/dev/null || sudo kill -9 "$pid" 2>/dev/null || true
+    pkill -9 -P "$pid" 2>/dev/null || maybe_sudo pkill -9 -P "$pid"
+    kill -9 "$pid" 2>/dev/null || maybe_sudo kill -9 "$pid"
     if [[ -n "${ppid:-}" && "$ppid" != "1" ]]; then
-      kill -9 "$ppid" 2>/dev/null || sudo kill -9 "$ppid" 2>/dev/null || true
+      kill -9 "$ppid" 2>/dev/null || maybe_sudo kill -9 "$ppid"
     fi
     killed=1
   done < <(pids_listening_on_port "$port")
@@ -131,7 +232,7 @@ kill_pids_on_port() {
 
 kill_next_on_port() {
   local port="$1"
-  pkill -9 -f "next start -p ${port}" 2>/dev/null || sudo pkill -9 -f "next start -p ${port}" 2>/dev/null || true
+  pkill -9 -f "next start -p ${port}" 2>/dev/null || maybe_sudo pkill -9 -f "next start -p ${port}"
 }
 
 # Hestia hosts often have PM2 under root AND admin — stop both or the other user respawns the port.
@@ -139,9 +240,12 @@ stop_pm2_app_everywhere() {
   local name="$1"
   pm2 stop "$name" 2>/dev/null || true
   pm2 delete "$name" 2>/dev/null || true
-  if id admin >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
-    sudo -u admin pm2 stop "$name" 2>/dev/null || true
-    sudo -u admin pm2 delete "$name" 2>/dev/null || true
+  if [[ "$CURRENT_USER" == "root" ]] && id "$DEPLOY_OWNER" >/dev/null 2>&1; then
+    sudo -n -u "$DEPLOY_OWNER" pm2 stop "$name" 2>/dev/null || true
+    sudo -n -u "$DEPLOY_OWNER" pm2 delete "$name" 2>/dev/null || true
+  elif [[ "$CURRENT_USER" == "$DEPLOY_OWNER" ]]; then
+    maybe_sudo pm2 stop "$name"
+    maybe_sudo pm2 delete "$name"
   fi
 }
 
@@ -159,7 +263,7 @@ free_listen_port() {
 
     echo "[deploy] Port ${port} busy — attempt ${attempt}/5"
     if command -v fuser >/dev/null 2>&1; then
-      fuser -k "${port}/tcp" 2>/dev/null || sudo fuser -k "${port}/tcp" 2>/dev/null || true
+      fuser -k "${port}/tcp" 2>/dev/null || maybe_sudo fuser -k "${port}/tcp"
     fi
     kill_next_on_port "$port"
     kill_pids_on_port "$port" || true
@@ -187,17 +291,21 @@ start_pm2_app() {
     return 0
   fi
 
-  echo "[deploy] PM2 recycle: ${name} on port ${port} (user: $(whoami))"
+  echo "[deploy] PM2 recycle: ${name} on port ${port} (pm2 user: $(whoami))"
 
   stop_pm2_app_everywhere "$name"
   sleep 1
   free_listen_port "$port"
 
-  # Always start this app alone — do NOT use ecosystem.config.cjs here (loads prod+dev and can stop the other site).
-  echo "[deploy] pm2 start scripts/pm2-next-start.sh ${port} (name: ${name})"
-  NODE_ENV=production pm2 start scripts/pm2-next-start.sh --name "$name" --interpreter bash -- "$port"
+  if run_pm2 pm2 describe "$name" >/dev/null 2>&1; then
+    echo "[deploy] pm2 restart ${name}"
+    run_pm2 env NODE_ENV=production pm2 restart "$name" --update-env
+  else
+    echo "[deploy] pm2 start scripts/pm2-next-start.sh ${port} (name: ${name}, cwd: ${ROOT})"
+    run_pm2 env NODE_ENV=production pm2 start scripts/pm2-next-start.sh --name "$name" --interpreter bash --cwd "$ROOT" --update-env -- "$port"
+  fi
 
-  pm2 save
+  run_pm2 pm2 save
   echo "[deploy] PM2 saved process list (other PM2 apps on this host were not touched)"
 
   sleep 3
@@ -217,9 +325,10 @@ if [[ "${SKIP_DEPLOY_ENV_WARN:-}" != "1" ]]; then
   fi
 fi
 
-echo "[deploy] $(pwd) branch=$BRANCH PORT=$PORT pm2=$PM2_NAME user=$(whoami)"
+echo "[deploy] $(pwd) branch=$BRANCH PORT=$PORT pm2=$PM2_NAME user=$(whoami) owner=$DEPLOY_OWNER"
 
 ensure_git_safe_directory
+ensure_repo_owned_by_deploy_owner
 warn_if_env_tracked
 backup_env_files
 
@@ -238,9 +347,11 @@ else
 fi
 
 restore_env_files
+prepare_build_workspace
 
-npm ci
-npm run build
+echo "[deploy] npm ci + build as ${DEPLOY_OWNER}"
+run_as_deploy_owner npm ci
+run_as_deploy_owner npm run build
 
 test -f .next/BUILD_ID && echo "[deploy] BUILD OK"
 

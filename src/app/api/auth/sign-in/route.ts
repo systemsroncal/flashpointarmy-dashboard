@@ -2,10 +2,27 @@ import { normalizeAuthEmail } from "@/lib/auth/normalize-auth-email";
 import { isInvalidLoginCredentialsError } from "@/lib/auth/sign-in-credentials";
 import { signInPasswordCandidates } from "@/lib/auth/sign-in-password";
 import { createClient } from "@/utils/supabase/server";
+import {
+  getPublicSupabaseAnonKey,
+  getPublicSupabaseUrl,
+} from "@/utils/supabase/public-env";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
+    const supabaseUrl = getPublicSupabaseUrl();
+    const supabaseKey = getPublicSupabaseAnonKey();
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Sign-in is not configured on this server (missing Supabase URL or anon key in .env.production).",
+          code: "server_config",
+        },
+        { status: 503 }
+      );
+    }
+
     const body = (await req.json()) as { email?: string; password?: string };
     const normalizedEmail = normalizeAuthEmail(body.email ?? "");
     const rawPassword = body.password ?? "";
@@ -36,9 +53,19 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error: lastMessage,
-        code: "invalid_credentials",
+        code: /failed to fetch|fetch failed|network|econnrefused|etimedout|enotfound/i.test(
+          lastMessage
+        )
+          ? "network_error"
+          : "invalid_credentials",
       },
-      { status: 401 }
+      {
+        status: /failed to fetch|fetch failed|network|econnrefused|etimedout|enotfound/i.test(
+          lastMessage
+        )
+          ? 503
+          : 401,
+      }
     );
   } catch (e) {
     return NextResponse.json(
