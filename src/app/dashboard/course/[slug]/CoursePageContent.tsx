@@ -123,7 +123,7 @@ export default async function CoursePageContent({
     courseIntroVideo && isBiblicalCitizenship ? (
       <CourseIntroVideoBlock
         videoUrl={courseIntroVideo}
-        showExternalCertPrompt={showExternalCertPrompt}
+        showCertificateCta={showExternalCertPrompt}
         courseTitle={courseTitle}
       />
     ) : null;

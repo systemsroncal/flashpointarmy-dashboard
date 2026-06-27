@@ -4,7 +4,7 @@ import { Box } from "@mui/material";
 import { useEffect, type ReactNode } from "react";
 
 type Props = {
-  /** When true (from Training → Start Biblical Citizenship), skip hero and focus Course Lessons. */
+  /** From Training → Start Biblical Citizenship: scroll to Course Lessons (hero stays visible). */
   startAtLessons: boolean;
   intro: ReactNode;
   lessons: ReactNode;
@@ -13,16 +13,16 @@ type Props = {
 export function BiblicalCitizenshipCourseShell({ startAtLessons, intro, lessons }: Props) {
   useEffect(() => {
     if (!startAtLessons) return;
-    const el = document.getElementById("course-lessons");
-    if (!el) return;
-    requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: "auto", block: "start" });
-    });
+    const scrollToLessons = () => {
+      document.getElementById("course-lessons")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    const t = window.setTimeout(scrollToLessons, 150);
+    return () => window.clearTimeout(t);
   }, [startAtLessons]);
 
   return (
     <Box>
-      {!startAtLessons ? intro : null}
+      {intro}
       {lessons}
     </Box>
   );

@@ -9,14 +9,15 @@ const INTRO_COPY =
 
 type Props = {
   videoUrl: string;
-  showExternalCertPrompt?: boolean;
+  /** Show Patriot Academy certificate CTA below intro copy (course page). */
+  showCertificateCta?: boolean;
   courseTitle?: string;
 };
 
 /** Biblical Citizenship course hero — intro copy and training intro video. */
 export function CourseIntroVideoBlock({
   videoUrl,
-  showExternalCertPrompt = false,
+  showCertificateCta = false,
   courseTitle = "Biblical Citizenship",
 }: Props) {
   const trimmed = videoUrl.trim();
@@ -65,14 +66,14 @@ export function CourseIntroVideoBlock({
               lineHeight: 1.75,
               fontSize: { xs: "0.95rem", sm: "1rem" },
               textAlign: { xs: "center", md: "left" },
-              mb: showExternalCertPrompt ? { xs: 2, sm: 2.5 } : 0,
+              mb: showCertificateCta ? { xs: 2, sm: 2.5 } : 0,
             }}
           >
             {INTRO_COPY}
           </Typography>
-          {showExternalCertPrompt ? (
+          {showCertificateCta ? (
             <ExternalTrainingCertificateBanner
-              showPrompt={showExternalCertPrompt}
+              showPrompt
               courseTitle={courseTitle}
               variant="inline"
               align="left"
