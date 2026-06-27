@@ -40,7 +40,6 @@ export function TrainingCommandLanding({
   introVideoAdmin,
 }: Props) {
   const trimmedWelcome = welcomeVideoUrl?.trim() ?? "";
-  const courseStartHref = `${primaryCourseHref}${primaryCourseHref.includes("?") ? "&" : "?"}start=lessons`;
 
   return (
     <Box
@@ -209,7 +208,7 @@ export function TrainingCommandLanding({
 
         <Button
           component={Link}
-          href={courseStartHref}
+          href={primaryCourseHref}
           variant="contained"
           fullWidth
           sx={{

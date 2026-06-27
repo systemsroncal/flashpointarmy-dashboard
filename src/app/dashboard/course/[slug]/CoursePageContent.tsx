@@ -1,5 +1,4 @@
 import { CourseGridClient, type SessionCardModel } from "@/components/courses/CourseGridClient";
-import { BiblicalCitizenshipCourseShell } from "@/components/dashboard/training/BiblicalCitizenshipCourseShell";
 import { CourseIntroVideoBlock } from "@/components/dashboard/training/CourseIntroVideoBlock";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { isQuizOnlySession } from "@/lib/courses/session-counting";
@@ -11,13 +10,7 @@ import { requireServerUser } from "@/lib/auth/server-session";
 import { shouldShowExternalCertificatePrompt } from "@/lib/training/certificate-requests";
 import { Box, Paper, Typography } from "@mui/material";
 
-export default async function CoursePageContent({
-  slug,
-  startAtLessons = false,
-}: {
-  slug: string;
-  startAtLessons?: boolean;
-}) {
+export default async function CoursePageContent({ slug }: { slug: string }) {
   const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
@@ -161,18 +154,8 @@ export default async function CoursePageContent({
             }),
       }}
     >
-      {isBiblicalCitizenship ? (
-        <BiblicalCitizenshipCourseShell
-          startAtLessons={startAtLessons}
-          intro={introBlock}
-          lessons={lessonsBlock}
-        />
-      ) : (
-        <>
-          {introBlock}
-          {lessonsBlock}
-        </>
-      )}
+      {introBlock}
+      {lessonsBlock}
     </Box>
   );
 }

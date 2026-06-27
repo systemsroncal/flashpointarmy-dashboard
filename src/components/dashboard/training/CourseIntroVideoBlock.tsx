@@ -2,7 +2,9 @@
 
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { ExternalTrainingCertificateBanner } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
-import { Box, Typography } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { Box, IconButton, Typography } from "@mui/material";
+import Link from "next/link";
 
 const INTRO_COPY =
   "Every member of FlashPoint Army Chapters begins with the same foundation. Through this training, you'll explore the Biblical principles, constitutional foundations, and historical context that have shaped our nation. This course is designed to equip you with the knowledge needed to engage your community with conviction, wisdom, and purpose. It is presented in partnership with Patriot Academy.";
@@ -25,6 +27,19 @@ export function CourseIntroVideoBlock({
 
   return (
     <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+      <IconButton
+        component={Link}
+        href="/dashboard/training"
+        aria-label="Back to Training"
+        sx={{
+          color: "rgba(255,255,255,0.88)",
+          mb: { xs: 1.5, sm: 2 },
+          ml: { xs: -0.5, md: 0 },
+          "&:hover": { color: "primary.main", bgcolor: "rgba(255,255,255,0.06)" },
+        }}
+      >
+        <ArrowBackIcon sx={{ fontSize: 28 }} />
+      </IconButton>
       <Box
         sx={{
           display: "grid",
