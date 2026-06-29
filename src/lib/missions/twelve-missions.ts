@@ -1,4 +1,5 @@
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { faMapMarker } from "@fortawesome/free-solid-svg-icons";
 import {
   faBookmark,
   faBuilding,
@@ -8,7 +9,6 @@ import {
   faFlag,
   faHandshake,
   faHouse,
-  faMap,
   faPenToSquare,
   faStar,
   faUser,
@@ -36,7 +36,7 @@ export const TWELVE_MISSIONS_SECTIONS: MissionSection[] = [
         number: 1,
         title: "Be a force multiplier — host a bibcit class",
         partner: "Partner: Patriot Academy · Flashpoint Coach Dashboard",
-        icon: faMap,
+        icon: faMapMarker,
       },
       {
         number: 2,

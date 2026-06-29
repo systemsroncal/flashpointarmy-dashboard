@@ -94,14 +94,13 @@ export function MissionsLanding() {
                       }
                     }}
                     sx={{
-                      p: { xs: 1.5, sm: 2 },
+                      position: "relative",
+                      overflow: "hidden",
                       borderRadius: 2,
                       bgcolor: "rgb(245, 245, 245)",
                       border: "1px solid #e0e0e0",
                       minHeight: { xs: 120, sm: 132 },
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: { xs: 1.25, sm: 1.5 },
+                      height: "100%",
                       cursor: "pointer",
                       transition: "box-shadow 0.2s, border-color 0.2s",
                       "&:hover": {
@@ -112,6 +111,9 @@ export function MissionsLanding() {
                   >
                     <Box
                       sx={{
+                        position: "absolute",
+                        left: "5px",
+                        top: "6px",
                         width: 28,
                         height: 28,
                         borderRadius: 0.75,
@@ -122,48 +124,59 @@ export function MissionsLanding() {
                         fontWeight: 800,
                         fontSize: "0.8rem",
                         color: "#fff",
-                        flexShrink: 0,
+                        zIndex: 1,
                       }}
                     >
                       {mission.number}
                     </Box>
 
-                    <FontAwesomeIcon
-                      icon={mission.icon}
-                      style={{
-                        fontSize: "2.5rem",
-                        color: "#737373",
-                        flexShrink: 0,
-                        marginTop: 2,
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: { xs: 1.25, sm: 1.5 },
+                        p: { xs: 1.5, sm: 2 },
+                        height: "100%",
+                        boxSizing: "border-box",
                       }}
-                    />
-
-                    <Box sx={{ flex: 1, minWidth: 0, pt: 0.15 }}>
-                      <Typography
-                        sx={{
-                          fontWeight: 800,
-                          fontSize: { xs: "0.88rem", sm: "0.95rem" },
-                          lineHeight: 1.35,
-                          color: "#111",
-                          mb: 0.75,
+                    >
+                      <FontAwesomeIcon
+                        icon={mission.icon}
+                        style={{
+                          fontSize: "calc(2.5rem - 2px)",
+                          color: "#737373",
+                          flexShrink: 0,
+                          marginTop: 2,
                         }}
-                      >
-                        {mission.title}
-                      </Typography>
-                      <Stack spacing={0.15}>
-                        {descriptionLines.map((line) => (
-                          <Typography
-                            key={line}
-                            sx={{
-                              fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                              color: "#666",
-                              lineHeight: 1.45,
-                            }}
-                          >
-                            {line}
-                          </Typography>
-                        ))}
-                      </Stack>
+                      />
+
+                      <Box sx={{ flex: 1, minWidth: 0, pt: 0.15 }}>
+                        <Typography
+                          sx={{
+                            fontWeight: 800,
+                            fontSize: { xs: "0.88rem", sm: "0.95rem" },
+                            lineHeight: 1.35,
+                            color: "#111",
+                            mb: 0.75,
+                          }}
+                        >
+                          {mission.title}
+                        </Typography>
+                        <Stack spacing={0.15}>
+                          {descriptionLines.map((line) => (
+                            <Typography
+                              key={line}
+                              sx={{
+                                fontSize: { xs: "0.72rem", sm: "0.78rem" },
+                                color: "#666",
+                                lineHeight: 1.45,
+                              }}
+                            >
+                              {line}
+                            </Typography>
+                          ))}
+                        </Stack>
+                      </Box>
                     </Box>
                   </Box>
                 );
