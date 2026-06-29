@@ -20,8 +20,8 @@ const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 const COLORS = {
   noActivity: "#1c1a1a",
   low: "#676767",
-  moderate: "#949494",
-  high: "#bdbdbd",
+  moderate: "#f1900f",
+  high: "#18d018",
   stroke: "rgba(255, 215, 0, 0.35)",
   selected: "#FFD700",
 };
