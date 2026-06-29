@@ -46,7 +46,7 @@ export function MissionsLanding() {
       <Paper
         elevation={0}
         sx={{
-          maxWidth: 1200,
+          maxWidth: 1460,
           mx: "auto",
           borderRadius: 3,
           bgcolor: "#fff",
@@ -122,7 +122,7 @@ export function MissionsLanding() {
                         alignItems: "center",
                         justifyContent: "center",
                         fontWeight: 800,
-                        fontSize: "0.8rem",
+                        fontSize: "calc(0.8rem - 2px)",
                         color: "#fff",
                         zIndex: 1,
                       }}

@@ -41,7 +41,7 @@ export const TWELVE_MISSIONS_SECTIONS: MissionSection[] = [
       {
         number: 2,
         title: "Plan celebrations on key holidays",
-        partner: "July 4 · Constitution Day · Veterans Day · Bill of Rights Day · Memorial Day",
+        partner: "July 4 . Constitution Day . Veterans Day . Bill of Rights Day . Memorial Day",
         icon: faStar,
       },
       {
