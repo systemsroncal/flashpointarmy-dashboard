@@ -18,12 +18,20 @@ import { US_STATES, usStateById } from "@/data/usStates";
 const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 
 const COLORS = {
-  noChapters: "#1c1a1a",
-  hasChapters: "#1b5e20",
-  hasChaptersMid: "#2e7d32",
+  noActivity: "#1c1a1a",
+  low: "#676767",
+  moderate: "#949494",
+  high: "#c9a227",
   stroke: "rgba(255, 215, 0, 0.35)",
   selected: "#FFD700",
 };
+
+const LEGEND_ITEMS = [
+  { c: COLORS.noActivity, t: "No activity" },
+  { c: COLORS.low, t: "Low (chapters 1–4 or ref. leaders/members)" },
+  { c: COLORS.moderate, t: "Moderate (chapters 5–20 or ref. leaders/members)" },
+  { c: COLORS.high, t: "High (21+ chapters or strong ref. reach)" },
+] as const;
 
 type MapView = { zoom: number; center: [number, number] };
 
@@ -52,9 +60,51 @@ type RsmGeo = {
   svgPath?: string;
 };
 
-/** Visual-only thresholds: reference leaders+members (from city JSON) layer onto map fill. */
-const REFERENCE_TIER_MID = 15;
+/** Reference leaders+members tiers layered onto map fill. */
+const REFERENCE_TIER_MODERATE = 15;
 const REFERENCE_TIER_HIGH = 150;
+
+type ActivityTier = "none" | "low" | "moderate" | "high";
+
+function tierRank(tier: ActivityTier): number {
+  switch (tier) {
+    case "none":
+      return 0;
+    case "low":
+      return 1;
+    case "moderate":
+      return 2;
+    case "high":
+      return 3;
+  }
+}
+
+function chapterTier(chapters: number): ActivityTier {
+  if (chapters >= 21) return "high";
+  if (chapters >= 5) return "moderate";
+  if (chapters >= 1) return "low";
+  return "none";
+}
+
+function referenceTier(refTotal: number): ActivityTier {
+  if (refTotal >= REFERENCE_TIER_HIGH) return "high";
+  if (refTotal >= REFERENCE_TIER_MODERATE) return "moderate";
+  if (refTotal > 0) return "low";
+  return "none";
+}
+
+function colorForTier(tier: ActivityTier): string {
+  switch (tier) {
+    case "high":
+      return COLORS.high;
+    case "moderate":
+      return COLORS.moderate;
+    case "low":
+      return COLORS.low;
+    default:
+      return COLORS.noActivity;
+  }
+}
 
 export function UsaChapterActivityMap({
   chapterCountByState,
@@ -98,16 +148,17 @@ export function UsaChapterActivityMap({
 
   const fillForState = useCallback(
     (code: string | null) => {
-      if (!code) return COLORS.noChapters;
+      if (!code) return COLORS.noActivity;
       const chapters = chapterCountByState.get(code) ?? 0;
       const ref = referenceSplitByState?.get(code);
-      const refLeaders = ref?.leaders ?? 0;
-      const refMembers = ref?.members ?? 0;
-      const refTotal = refLeaders + refMembers;
-      if (chapters <= 0 && refTotal <= 0) return COLORS.noChapters;
-      if (chapters >= 5 || refTotal >= REFERENCE_TIER_HIGH) return COLORS.hasChapters;
-      if (chapters >= 1 || refTotal >= REFERENCE_TIER_MID) return COLORS.hasChaptersMid;
-      return COLORS.hasChaptersMid;
+      const refTotal = (ref?.leaders ?? 0) + (ref?.members ?? 0);
+      const chapterRank = tierRank(chapterTier(chapters));
+      const refRank = tierRank(referenceTier(refTotal));
+      const tier =
+        chapterRank >= refRank
+          ? chapterTier(chapters)
+          : referenceTier(refTotal);
+      return colorForTier(tier);
     },
     [chapterCountByState, referenceSplitByState]
   );
@@ -212,11 +263,7 @@ export function UsaChapterActivityMap({
         <Typography variant="caption" sx={{ fontWeight: 700, color: "grey.400" }}>
           Legend
         </Typography>
-        {[
-          { c: COLORS.noChapters, t: "No activity" },
-          { c: COLORS.hasChaptersMid, t: "Moderate (chapters 1–4 or ref. leaders/members)" },
-          { c: COLORS.hasChapters, t: "High (5+ chapters or strong ref. reach)" },
-        ].map((item) => (
+        {LEGEND_ITEMS.map((item) => (
           <Box key={item.t} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Box
               sx={{
