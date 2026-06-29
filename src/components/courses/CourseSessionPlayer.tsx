@@ -10,6 +10,8 @@ import {
   insertCourseCompletedFeed,
   insertCourseSessionCompletedFeed,
 } from "@/lib/community/training-feed";
+import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
+import { CoachMeetingBookingPanel } from "@/components/dashboard/coach-meeting/CoachMeetingBookingPanel";
 import type { QuizElementPayload } from "@/types/course-content";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -137,6 +139,8 @@ export function CourseSessionPlayer({
     const requested = parseTrainingDebugQueryParam(searchParams.get("trainingDebug"));
     return isTrainingDebugActiveClient(requested);
   }, [trainingDebug, searchParams]);
+  const isFinalBiblicalSession =
+    courseSlug === BIBLICAL_CITIZENSHIP_COURSE_SLUG && !nextSlug;
   const supabase = useMemo(() => createClient(), []);
   const [completed, setCompleted] = useState(initialCompleted);
   const [busyComplete, setBusyComplete] = useState(false);
@@ -564,13 +568,46 @@ export function CourseSessionPlayer({
           sx={{
             flex: 1,
             display: "flex",
+            flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
             minHeight: 40,
             px: 1,
           }}
         >
-          {completed ? (
+          {isFinalBiblicalSession ? (
+            <CoachMeetingBookingPanel
+              markCompleteSlot={
+                completed ? (
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<CheckCircleOutlineIcon />}
+                    disabled
+                    sx={{ minHeight: 48 }}
+                  >
+                    Session completed
+                  </Button>
+                ) : !markCompleteAllowed && videoElementIds.length > 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 360, py: 1 }}>
+                    Watch at least 60% of each video (your saved position counts when you return). If you have
+                    already finished a video before, you can mark the session complete at any time.
+                  </Typography>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<CheckCircleOutlineIcon />}
+                    disabled={busyComplete}
+                    onClick={() => void markComplete()}
+                    sx={{ minHeight: 48, touchAction: "manipulation" }}
+                  >
+                    Mark session as completed
+                  </Button>
+                )
+              }
+            />
+          ) : completed ? (
             <Button
               variant="contained"
               color="success"
