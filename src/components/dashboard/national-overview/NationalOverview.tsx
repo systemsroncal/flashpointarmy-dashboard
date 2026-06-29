@@ -28,7 +28,7 @@ import { MemberOnboardingProgressCard } from "./MemberOnboardingProgressCard";
 import { UsaChapterActivityMap } from "./UsaChapterActivityMap";
 import type { MemberOnboardingSnapshot } from "@/lib/onboarding/member-onboarding-status";
 
-type ChapterRow = { id: string; name: string; state: string };
+type ChapterRow = { id: string; name: string; state: string; status?: string | null };
 
 const drawerLikeScrollbarSx = {
   scrollbarWidth: "thin" as const,
@@ -119,6 +119,7 @@ export function NationalOverview({
   const chapterCountByState = useMemo(() => {
     const m = new Map<string, number>();
     for (const c of chapterRows) {
+      if (c.status && c.status !== "approved") continue;
       const st = c.state?.trim().toUpperCase().slice(0, 2);
       if (!st) continue;
       m.set(st, (m.get(st) ?? 0) + 1);
@@ -147,7 +148,7 @@ export function NationalOverview({
   const reloadOverviewData = useCallback(async () => {
     try {
       const supabase = createClient();
-      const { data: chData } = await supabase.from("chapters").select("id,name,state").order("name");
+      const { data: chData } = await supabase.from("chapters").select("id,name,state,status").order("name");
       const rows = chData ?? [];
       setChapterRows(rows);
 
@@ -418,7 +419,7 @@ export function NationalOverview({
                       const rl = ref?.leaders ?? 0;
                       const rm = ref?.members ?? 0;
                       return [
-                        ["Chapters", popupData.activeChapters + rl, "#0ea5e9"],
+                        ["Chapters", popupData.activeChapters, "#0ea5e9"],
                         ["Registered Members", popupData.registeredMembers + rm + rl, "#15803d"],
                         ["Upcoming Gatherings", popupData.upcomingGatherings, "#ca8a04"],
                         ["Local Leaders", popupData.localLeaders + rl, "#7c3aed"],

@@ -75,7 +75,11 @@ export default async function DashboardHomeContent() {
 
   let chapters: { id: string; name: string; state: string }[] = [];
   try {
-    const { data } = await supabase.from("chapters").select("id,name,state").order("name");
+    const { data } = await supabase
+      .from("chapters")
+      .select("id,name,state,status")
+      .eq("status", "approved")
+      .order("name");
     chapters = data ?? [];
   } catch {
     chapters = [];

@@ -21,7 +21,7 @@ const COLORS = {
   noActivity: "#1c1a1a",
   low: "#676767",
   moderate: "#949494",
-  high: "#c9a227",
+  high: "#bdbdbd",
   stroke: "rgba(255, 215, 0, 0.35)",
   selected: "#FFD700",
 };
@@ -60,36 +60,13 @@ type RsmGeo = {
   svgPath?: string;
 };
 
-/** Reference leaders+members tiers layered onto map fill. */
-const REFERENCE_TIER_MODERATE = 15;
-const REFERENCE_TIER_HIGH = 150;
-
 type ActivityTier = "none" | "low" | "moderate" | "high";
 
-function tierRank(tier: ActivityTier): number {
-  switch (tier) {
-    case "none":
-      return 0;
-    case "low":
-      return 1;
-    case "moderate":
-      return 2;
-    case "high":
-      return 3;
-  }
-}
-
-function chapterTier(chapters: number): ActivityTier {
-  if (chapters >= 21) return "high";
-  if (chapters >= 5) return "moderate";
-  if (chapters >= 1) return "low";
-  return "none";
-}
-
-function referenceTier(refTotal: number): ActivityTier {
-  if (refTotal >= REFERENCE_TIER_HIGH) return "high";
-  if (refTotal >= REFERENCE_TIER_MODERATE) return "moderate";
-  if (refTotal > 0) return "low";
+/** Chapters and reference leaders+members share the same tier thresholds. */
+function activityTier(count: number): ActivityTier {
+  if (count >= 21) return "high";
+  if (count >= 5) return "moderate";
+  if (count >= 1) return "low";
   return "none";
 }
 
@@ -152,12 +129,8 @@ export function UsaChapterActivityMap({
       const chapters = chapterCountByState.get(code) ?? 0;
       const ref = referenceSplitByState?.get(code);
       const refTotal = (ref?.leaders ?? 0) + (ref?.members ?? 0);
-      const chapterRank = tierRank(chapterTier(chapters));
-      const refRank = tierRank(referenceTier(refTotal));
-      const tier =
-        chapterRank >= refRank
-          ? chapterTier(chapters)
-          : referenceTier(refTotal);
+      const chapterTier = activityTier(chapters);
+      const tier = chapterTier !== "none" ? chapterTier : activityTier(refTotal);
       return colorForTier(tier);
     },
     [chapterCountByState, referenceSplitByState]
