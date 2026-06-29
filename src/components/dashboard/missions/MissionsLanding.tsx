@@ -2,7 +2,7 @@
 
 import { TWELVE_MISSIONS_SECTIONS } from "@/lib/missions/twelve-missions";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Paper, Stack, Typography } from "@mui/material";
 
 export function MissionsLanding() {
   return (
@@ -74,80 +74,100 @@ export function MissionsLanding() {
                 gap: { xs: 1.5, sm: 2 },
               }}
             >
-              {section.missions.map((mission) => (
-                <Paper
-                  key={mission.number}
-                  variant="outlined"
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    borderColor: "#e0e0e0",
-                    minHeight: 168,
-                    display: "flex",
-                    flexDirection: "column",
-                    cursor: "pointer",
-                    transition: "box-shadow 0.2s, border-color 0.2s",
-                    "&:hover": {
-                      borderColor: "#c9a227",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-                    },
-                  }}
-                  onClick={() => {
-                    /* prototype — mission selection TBD */
-                  }}
-                >
-                  <Box sx={{ display: "flex", gap: 1.25, mb: 1 }}>
+              {section.missions.map((mission) => {
+                const descriptionLines = mission.partner
+                  .split(" · ")
+                  .map((line) => line.trim())
+                  .filter(Boolean);
+
+                return (
+                  <Box
+                    key={mission.number}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      /* prototype — mission selection TBD */
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                      }
+                    }}
+                    sx={{
+                      p: { xs: 1.5, sm: 2 },
+                      borderRadius: 2,
+                      bgcolor: "rgb(245, 245, 245)",
+                      border: "1px solid #e0e0e0",
+                      minHeight: { xs: 120, sm: 132 },
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: { xs: 1.25, sm: 1.5 },
+                      cursor: "pointer",
+                      transition: "box-shadow 0.2s, border-color 0.2s",
+                      "&:hover": {
+                        borderColor: "#c9a227",
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                      },
+                    }}
+                  >
                     <Box
                       sx={{
                         width: 28,
                         height: 28,
                         borderRadius: 0.75,
-                        bgcolor: "#f0f0f0",
+                        bgcolor: "#737373",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         fontWeight: 800,
                         fontSize: "0.8rem",
-                        color: "#555",
+                        color: "#fff",
                         flexShrink: 0,
                       }}
                     >
                       {mission.number}
                     </Box>
-                    <Box
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        bgcolor: "#fafafa",
-                        border: "1px solid #eee",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#333",
+
+                    <FontAwesomeIcon
+                      icon={mission.icon}
+                      style={{
+                        fontSize: "2.5rem",
+                        color: "#737373",
                         flexShrink: 0,
+                        marginTop: 2,
                       }}
-                    >
-                      <FontAwesomeIcon icon={mission.icon} style={{ fontSize: 20 }} />
+                    />
+
+                    <Box sx={{ flex: 1, minWidth: 0, pt: 0.15 }}>
+                      <Typography
+                        sx={{
+                          fontWeight: 800,
+                          fontSize: { xs: "0.88rem", sm: "0.95rem" },
+                          lineHeight: 1.35,
+                          color: "#111",
+                          mb: 0.75,
+                        }}
+                      >
+                        {mission.title}
+                      </Typography>
+                      <Stack spacing={0.15}>
+                        {descriptionLines.map((line) => (
+                          <Typography
+                            key={line}
+                            sx={{
+                              fontSize: { xs: "0.72rem", sm: "0.78rem" },
+                              color: "#666",
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            {line}
+                          </Typography>
+                        ))}
+                      </Stack>
                     </Box>
                   </Box>
-                  <Typography
-                    sx={{
-                      fontWeight: 800,
-                      fontSize: "0.92rem",
-                      lineHeight: 1.35,
-                      color: "#111",
-                      mb: 1,
-                      flex: 1,
-                    }}
-                  >
-                    {mission.title}
-                  </Typography>
-                  <Typography sx={{ fontSize: "0.72rem", color: "#666", lineHeight: 1.45 }}>
-                    {mission.partner}
-                  </Typography>
-                </Paper>
-              ))}
+                );
+              })}
             </Box>
           </Box>
         ))}

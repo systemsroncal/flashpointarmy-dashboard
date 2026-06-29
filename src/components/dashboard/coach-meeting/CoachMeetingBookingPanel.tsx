@@ -1,5 +1,6 @@
 "use client";
 
+import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import {
   loadCoachMeetings,
   saveCoachMeeting,
@@ -77,6 +78,20 @@ function isPastDate(iso: string): boolean {
   return d < today;
 }
 
+function displayNameFromUser(user: {
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
+  email: string;
+}): string {
+  return (
+    [user.first_name, user.last_name].filter(Boolean).join(" ").trim() ||
+    user.display_name?.trim() ||
+    user.email.split("@")[0] ||
+    ""
+  );
+}
+
 type Props = {
   /** Rendered beside the schedule button (e.g. Mark session as completed). */
   markCompleteSlot: ReactNode;
@@ -84,13 +99,14 @@ type Props = {
 
 export function CoachMeetingBookingPanel({ markCompleteSlot }: Props) {
   const router = useRouter();
+  const user = useDashboardUser();
+  const userName = useMemo(() => displayNameFromUser(user), [user]);
+  const userEmail = user.email.trim();
   const [bookings, setBookings] = useState<CoachMeetingBooking[]>([]);
   const [bookOpen, setBookOpen] = useState(false);
   const [detail, setDetail] = useState<CoachMeetingBooking | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [topic, setTopic] = useState(TOPICS[0]!);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState(TIME_SLOTS[1]!);
@@ -124,13 +140,17 @@ export function CoachMeetingBookingPanel({ markCompleteSlot }: Props) {
   }
 
   function handleBook() {
-    if (!name.trim() || !email.trim() || !selectedDate) {
-      setBookedMessage("Please fill in your name, email, and a date.");
+    if (!userName || !userEmail) {
+      setBookedMessage("Your account profile is missing a name or email.");
+      return;
+    }
+    if (!selectedDate) {
+      setBookedMessage("Please select a date.");
       return;
     }
     const saved = saveCoachMeeting({
-      name: name.trim(),
-      email: email.trim(),
+      name: userName,
+      email: userEmail,
       topic,
       date: selectedDate,
       time: selectedTime,
@@ -215,8 +235,8 @@ export function CoachMeetingBookingPanel({ markCompleteSlot }: Props) {
         <DialogTitle sx={{ fontWeight: 800 }}>Request a coach meeting</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.65 }}>
-            Choose a date and time for your first coach check-in. This is a preview flow — your
-            selection is saved locally in this browser only.
+            Choose a date and time for your first coach check-in. Your name and email from your
+            account will be used automatically.
           </Typography>
 
           {bookedMessage ? (
@@ -226,21 +246,6 @@ export function CoachMeetingBookingPanel({ markCompleteSlot }: Props) {
           ) : null}
 
           <Stack spacing={2}>
-            <TextField
-              label="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              fullWidth
-              required
-            />
             <TextField
               select
               label="Meeting topic"

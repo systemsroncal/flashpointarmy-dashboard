@@ -550,7 +550,7 @@ export function CourseSessionPlayer({
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={1.5}
-        alignItems="stretch"
+        alignItems={{ xs: "stretch", sm: "flex-start" }}
         justifyContent="space-between"
         sx={{ mb: 2, pt: { xs: 1, sm: 0.5 } }}
       >
@@ -560,7 +560,7 @@ export function CourseSessionPlayer({
           disabled={!prevSlug}
           variant="outlined"
           startIcon={<ArrowBackIcon />}
-          sx={{ minHeight: 48, touchAction: "manipulation" }}
+          sx={{ minHeight: 48, alignSelf: { sm: "flex-start" }, touchAction: "manipulation" }}
         >
           Previous
         </Button>
@@ -641,7 +641,7 @@ export function CourseSessionPlayer({
           disabled={!nextSlug || nextLocked}
           variant="outlined"
           endIcon={<ArrowForwardIcon />}
-          sx={{ minHeight: 48, touchAction: "manipulation" }}
+          sx={{ minHeight: 48, alignSelf: { sm: "flex-start" }, touchAction: "manipulation" }}
         >
           Next
         </Button>
