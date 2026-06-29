@@ -36,12 +36,7 @@ const TIME_SLOTS = [
   "4:00 PM",
 ];
 
-const TOPICS = [
-  "First coach check-in",
-  "Mission planning",
-  "Chapter launch support",
-  "Training follow-up",
-];
+const MEETING_TOPIC = "Meeting coach";
 
 function formatDisplayDate(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
@@ -107,7 +102,6 @@ export function CoachMeetingBookingPanel({ markCompleteSlot }: Props) {
   const [detail, setDetail] = useState<CoachMeetingBooking | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
 
-  const [topic, setTopic] = useState(TOPICS[0]!);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState(TIME_SLOTS[1]!);
   const [bookedMessage, setBookedMessage] = useState<string | null>(null);
@@ -151,7 +145,7 @@ export function CoachMeetingBookingPanel({ markCompleteSlot }: Props) {
     const saved = saveCoachMeeting({
       name: userName,
       email: userEmail,
-      topic,
+      topic: MEETING_TOPIC,
       date: selectedDate,
       time: selectedTime,
     });
@@ -249,15 +243,11 @@ export function CoachMeetingBookingPanel({ markCompleteSlot }: Props) {
             <TextField
               select
               label="Meeting topic"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
+              value={MEETING_TOPIC}
               fullWidth
+              slotProps={{ input: { readOnly: true } }}
             >
-              {TOPICS.map((t) => (
-                <MenuItem key={t} value={t}>
-                  {t}
-                </MenuItem>
-              ))}
+              <MenuItem value={MEETING_TOPIC}>{MEETING_TOPIC}</MenuItem>
             </TextField>
 
             <Box>
