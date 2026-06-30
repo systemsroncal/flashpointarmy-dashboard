@@ -1,11 +1,12 @@
 "use client";
 
+import { US_STATES_GEO_URL } from "@/lib/maps/us-states-geo";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { Box, IconButton, Paper, Typography } from "@mui/material";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ComposableMap,
   Geographies,
@@ -14,8 +15,6 @@ import {
 } from "react-simple-maps";
 
 import { US_STATES, usStateById } from "@/data/usStates";
-
-const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 
 const COLORS = {
   noActivity: "#1c1a1a",
@@ -105,10 +104,34 @@ export function UsaChapterActivityMap({
   children: ReactNode;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [geography, setGeography] = useState<object | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const [mapView, setMapView] = useState<MapView>({
     zoom: 1,
     center: [-98, 38] as [number, number],
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    setGeoError(null);
+    void fetch(US_STATES_GEO_URL, { cache: "force-cache" })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<object>;
+      })
+      .then((data) => {
+        if (!cancelled) setGeography(data);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setGeography(null);
+          setGeoError(err instanceof Error ? err.message : "Failed to load map data.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleMoveEnd = useCallback(
     (pos: { coordinates: [number, number]; zoom: number }) => {
@@ -255,6 +278,22 @@ export function UsaChapterActivityMap({
         ))}
       </Box>
 
+      {geoError ? (
+        <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
+          <Typography variant="body2" color="error.main" sx={{ mb: 1 }}>
+            Could not load the map. Please refresh the page.
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {geoError}
+          </Typography>
+        </Box>
+      ) : !geography ? (
+        <Box sx={{ px: 2, py: 6, textAlign: "center" }}>
+          <Typography variant="body2" color="text.secondary">
+            Loading map…
+          </Typography>
+        </Box>
+      ) : (
       <ComposableMap
         projection="geoAlbersUsa"
         width={900}
@@ -275,7 +314,7 @@ export function UsaChapterActivityMap({
           maxZoom={8}
           onMoveEnd={handleMoveEnd}
         >
-          <Geographies geography={GEO_URL}>
+          <Geographies geography={geography}>
             {({ geographies }) =>
               geographies.map((geo) => {
                 const g = geo as RsmGeo;
@@ -316,6 +355,7 @@ export function UsaChapterActivityMap({
           </Geographies>
         </ZoomableGroup>
       </ComposableMap>
+      )}
 
       {popupOpen ? (
         <Paper

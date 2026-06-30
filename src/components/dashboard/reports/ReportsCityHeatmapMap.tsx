@@ -5,7 +5,7 @@ import { Box, LinearProgress, Stack, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 
-const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
+import { US_STATES_GEO_URL } from "@/lib/maps/us-states-geo";
 
 const BASE_FILL = "rgb(18, 20, 32)";
 const STATE_BORDER = "rgba(255, 215, 0, 0.72)";
@@ -160,7 +160,7 @@ export function ReportsCityHeatmapMap({
                 </filter>
               </defs>
 
-              <Geographies geography={GEO_URL}>
+              <Geographies geography={US_STATES_GEO_URL}>
                 {({ geographies }) =>
                   geographies.map((geo) => {
                     const g = geo as RsmGeo;
@@ -220,7 +220,7 @@ export function ReportsCityHeatmapMap({
                 );
               })}
 
-              <Geographies geography={GEO_URL}>
+              <Geographies geography={US_STATES_GEO_URL}>
                 {({ geographies }) =>
                   geographies.map((geo) => {
                     const g = geo as RsmGeo;

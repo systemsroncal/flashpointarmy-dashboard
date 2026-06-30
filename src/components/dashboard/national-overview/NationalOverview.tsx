@@ -25,8 +25,33 @@ import { loadCommunityActivityFeed } from "@/lib/community/community-activity-fe
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
 import { ChapterMapInviteCta } from "./ChapterMapInviteCta";
 import { MemberOnboardingProgressCard } from "./MemberOnboardingProgressCard";
-import { UsaChapterActivityMap } from "./UsaChapterActivityMap";
 import type { MemberOnboardingSnapshot } from "@/lib/onboarding/member-onboarding-status";
+import dynamic from "next/dynamic";
+
+const UsaChapterActivityMap = dynamic(
+  () =>
+    import("./UsaChapterActivityMap").then((mod) => ({ default: mod.UsaChapterActivityMap })),
+  {
+    ssr: false,
+    loading: () => (
+      <Box
+        sx={{
+          minHeight: { xs: 320, sm: 400, md: 480 },
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 1,
+          border: "1px solid rgba(255, 215, 0, 0.3)",
+          bgcolor: "rgba(0,0,0,0.35)",
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          Loading map…
+        </Typography>
+      </Box>
+    ),
+  }
+);
 
 type ChapterRow = { id: string; name: string; state: string; status?: string | null };
 

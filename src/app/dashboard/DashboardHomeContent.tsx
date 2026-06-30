@@ -86,10 +86,14 @@ export default async function DashboardHomeContent() {
   }
 
   const roleNames = await loadUserRoleNames(supabase, user.id);
-  const memberOnboarding =
-    isMemberOnboardingAudience(roleNames)
-      ? await loadMemberOnboardingSnapshot(supabase, user.id, roleNames)
-      : null;
+  let memberOnboarding = null;
+  if (isMemberOnboardingAudience(roleNames)) {
+    try {
+      memberOnboarding = await loadMemberOnboardingSnapshot(supabase, user.id, roleNames);
+    } catch {
+      memberOnboarding = null;
+    }
+  }
 
   return (
     <NationalOverview

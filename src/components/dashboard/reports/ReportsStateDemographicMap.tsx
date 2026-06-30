@@ -6,7 +6,7 @@ import { Box, LinearProgress, Stack, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
-const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
+import { US_STATES_GEO_URL } from "@/lib/maps/us-states-geo";
 
 const COLORS = {
   empty: "rgb(22, 22, 42)",
@@ -188,7 +188,7 @@ export function ReportsStateDemographicMap({
               projectionConfig={{ scale: 980 }}
               style={{ width: "100%", height: "auto", display: "block" }}
             >
-              <Geographies geography={GEO_URL}>
+              <Geographies geography={US_STATES_GEO_URL}>
                 {({ geographies }) =>
                   geographies.map((geo) => {
                     const g = geo as RsmGeo;
