@@ -274,11 +274,13 @@ export function ExternalTrainingCertificateBanner({
             mt: 1.5,
             textAlign: align === "left" ? { xs: "center", md: "left" } : "center",
             color: "rgba(255,255,255,0.78)",
-            fontSize: "0.92rem",
+            fontSize: "19px",
             lineHeight: 1.65,
           }}
         >
-          Already completed this course through Patriot Academy?{" "}
+          Already completed this course
+          <br />
+          through Patriot Academy?{" "}
           <MuiLink
             component="button"
             type="button"

@@ -180,32 +180,6 @@ export function TrainingCommandLanding({
           )}
         </Box>
 
-        <Typography
-          sx={{
-            fontWeight: 900,
-            letterSpacing: 2,
-            color: "#fff",
-            fontSize: { xs: "1.5rem", sm: "1.75rem" },
-            mb: 1,
-            mt: 1,
-          }}
-        >
-          THE MISSION
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.82)", mb: 1.5, lineHeight: 1.7 }}>
-          In partnership with Patriot Academy, this training prepares believers to understand liberty, think Biblically,
-          and engage their communities with wisdom, conviction, and purpose.
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.9)", fontWeight: 600, mb: 0.5 }}>
-          This is more than a course.
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.78)", mb: 1 }}>
-          It is the foundation for every chapter, every leader, and every mission that follows.
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.85)", fontWeight: 600, mb: 2.5 }}>
-          Complete your training. Then prepare to take action.
-        </Typography>
-
         <Button
           component={Link}
           href={primaryCourseHref}
