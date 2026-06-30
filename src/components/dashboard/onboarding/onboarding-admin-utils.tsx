@@ -8,6 +8,7 @@ export function OnboardingStatusChip({ status }: { status: string }) {
   if (status === "completed") color = "success";
   else if (status === "in_progress") color = "warning";
   else if (status === "pending") color = "info";
+  else if (status === "locked") color = "default";
   return <Chip size="small" label={formatOnboardingStepLabel(status)} color={color} variant="outlined" />;
 }
 

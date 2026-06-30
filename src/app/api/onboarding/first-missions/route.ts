@@ -13,7 +13,7 @@ import { requireApiAuth } from "@/lib/auth/server-session";
 import { NextResponse } from "next/server";
 
 function parseFirstMissionStatus(raw: string | null): FirstMissionStepStatus | "all" {
-  if (raw === "locked" || raw === "in_progress" || raw === "completed") return raw;
+  if (raw === "locked" || raw === "pending" || raw === "in_progress" || raw === "completed") return raw;
   return "all";
 }
 

@@ -11,11 +11,12 @@ import {
   insertCourseSessionCompletedFeed,
 } from "@/lib/community/training-feed";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
-import { CoachMeetingBookingPanel } from "@/components/dashboard/coach-meeting/CoachMeetingBookingPanel";
+import { coachMeetingScheduleLabel } from "@/lib/onboarding/coach-meeting-labels";
 import type { QuizElementPayload } from "@/types/course-content";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import {
   Alert,
@@ -141,6 +142,10 @@ export function CourseSessionPlayer({
   }, [trainingDebug, searchParams]);
   const isFinalBiblicalSession =
     courseSlug === BIBLICAL_CITIZENSHIP_COURSE_SLUG && !nextSlug;
+  const coachMeetingAudience = user.role_names.includes("local_leader")
+    ? ("local_leader" as const)
+    : ("member" as const);
+  const scheduleCoachLabel = coachMeetingScheduleLabel(coachMeetingAudience);
   const supabase = useMemo(() => createClient(), []);
   const [completed, setCompleted] = useState(initialCompleted);
   const [busyComplete, setBusyComplete] = useState(false);
@@ -376,6 +381,13 @@ export function CourseSessionPlayer({
             last_name: user.last_name,
             courseTitle,
           });
+          if (courseSlug === BIBLICAL_CITIZENSHIP_COURSE_SLUG) {
+            try {
+              await fetch("/api/onboarding/coach-meetings/unlock", { method: "POST" });
+            } catch {
+              /* best-effort */
+            }
+          }
         }
       } catch {
         /* feed is best-effort */
@@ -576,37 +588,52 @@ export function CourseSessionPlayer({
           }}
         >
           {isFinalBiblicalSession ? (
-            <CoachMeetingBookingPanel
-              markCompleteSlot={
-                completed ? (
-                  <Button
-                    variant="contained"
-                    color="success"
-                    startIcon={<CheckCircleOutlineIcon />}
-                    disabled
-                    sx={{ minHeight: 48 }}
-                  >
-                    Session completed
-                  </Button>
-                ) : !markCompleteAllowed && videoElementIds.length > 0 ? (
-                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 360, py: 1 }}>
-                    Watch at least 60% of each video (your saved position counts when you return). If you have
-                    already finished a video before, you can mark the session complete at any time.
-                  </Typography>
-                ) : (
-                  <Button
-                    variant="contained"
-                    color="success"
-                    startIcon={<CheckCircleOutlineIcon />}
-                    disabled={busyComplete}
-                    onClick={() => void markComplete()}
-                    sx={{ minHeight: 48, touchAction: "manipulation" }}
-                  >
-                    Mark session as completed
-                  </Button>
-                )
-              }
-            />
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.5}
+              alignItems="stretch"
+              justifyContent="center"
+              sx={{ width: "100%", maxWidth: 560 }}
+            >
+              {completed ? (
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircleOutlineIcon />}
+                  disabled
+                  sx={{ minHeight: 48 }}
+                >
+                  Session completed
+                </Button>
+              ) : !markCompleteAllowed && videoElementIds.length > 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 360, py: 1 }}>
+                  Watch at least 60% of each video (your saved position counts when you return). If you have
+                  already finished a video before, you can mark the session complete at any time.
+                </Typography>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircleOutlineIcon />}
+                  disabled={busyComplete}
+                  onClick={() => void markComplete()}
+                  sx={{ minHeight: 48, touchAction: "manipulation" }}
+                >
+                  Mark session as completed
+                </Button>
+              )}
+              <Button
+                component={completed ? Link : "button"}
+                href={completed ? "/dashboard/training/coach-meeting" : undefined}
+                variant="contained"
+                color="primary"
+                disabled={!completed}
+                startIcon={<CalendarMonthIcon />}
+                sx={{ minHeight: 48, fontWeight: 700, touchAction: "manipulation", whiteSpace: "nowrap" }}
+              >
+                {scheduleCoachLabel}
+              </Button>
+            </Stack>
           ) : completed ? (
             <Button
               variant="contained"

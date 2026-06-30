@@ -1,25 +1,20 @@
 "use client";
 
 import { MissionRankInfoDialog } from "@/components/dashboard/national-overview/MissionRankInfoDialog";
+import { coachMeetingStepTitle } from "@/lib/onboarding/coach-meeting-labels";
 import {
   formatOnboardingStepLabel,
   type MemberOnboardingSnapshot,
 } from "@/lib/onboarding/member-onboarding-status";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { Box, IconButton, Paper, Tooltip, Typography } from "@mui/material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type StepKey = keyof Pick<MemberOnboardingSnapshot, "training" | "coachMeeting" | "firstMission">;
 
-const STEPS: { key: StepKey; label: string }[] = [
-  { key: "training", label: "Training" },
-  { key: "coachMeeting", label: "Coach Meeting" },
-  { key: "firstMission", label: "First Mission" },
-];
-
 function statusColor(status: string): string {
   if (status === "completed") return "#22c55e";
-  if (status === "in_progress") return "#eab308";
+  if (status === "in_progress" || status === "pending") return "#f1900f";
   if (status === "locked") return "rgba(255,255,255,0.35)";
   return "rgba(255,255,255,0.55)";
 }
@@ -30,6 +25,15 @@ type Props = {
 
 export function MemberOnboardingProgressCard({ snapshot }: Props) {
   const [rankInfoOpen, setRankInfoOpen] = useState(false);
+
+  const steps = useMemo(
+    (): { key: StepKey; label: string }[] => [
+      { key: "training", label: "Training" },
+      { key: "coachMeeting", label: coachMeetingStepTitle(snapshot.rankAudience) },
+      { key: "firstMission", label: "Choose Your Mission" },
+    ],
+    [snapshot.rankAudience]
+  );
 
   return (
     <>
@@ -85,7 +89,7 @@ export function MemberOnboardingProgressCard({ snapshot }: Props) {
             gap: { xs: 1.5, sm: 2 },
           }}
         >
-          {STEPS.map(({ key, label }) => {
+          {steps.map(({ key, label }) => {
             const status = snapshot[key];
             const color = statusColor(status);
             return (
@@ -109,7 +113,10 @@ export function MemberOnboardingProgressCard({ snapshot }: Props) {
                       borderRadius: "50%",
                       bgcolor: color,
                       flexShrink: 0,
-                      boxShadow: status === "in_progress" ? `0 0 6px ${color}` : "none",
+                      boxShadow:
+                        status === "in_progress" || status === "pending"
+                          ? `0 0 6px ${color}`
+                          : "none",
                     }}
                   />
                   <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)", fontSize: "0.92rem" }}>

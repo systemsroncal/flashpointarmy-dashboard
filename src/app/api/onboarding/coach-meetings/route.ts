@@ -7,13 +7,21 @@ import {
   loadCoachMeetingsMap,
   queryOnboardingMembersPaginated,
 } from "@/lib/onboarding/onboarding-records";
+import { resolveCoachMeetingStepStatus } from "@/lib/onboarding/member-onboarding-status";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { NextResponse } from "next/server";
 
 function parseCoachMeetingStatus(raw: string | null): CoachMeetingStepStatus | "all" {
-  if (raw === "pending" || raw === "in_progress" || raw === "completed") return raw;
+  if (
+    raw === "locked" ||
+    raw === "pending" ||
+    raw === "in_progress" ||
+    raw === "completed"
+  ) {
+    return raw;
+  }
   return "all";
 }
 
@@ -62,11 +70,19 @@ export async function GET(req: Request) {
 
   const rows = pageResult.rows.map((m) => {
     const record = coachMeetings.get(m.user_id)!;
+    const hasPersistedRow = record.updated_at !== new Date(0).toISOString();
+    const effectiveStatus = resolveCoachMeetingStepStatus(
+      m.training_status,
+      record.status,
+      hasPersistedRow
+    );
     const coach = record.coach_id ? staffById.get(record.coach_id) : null;
     return {
       ...m,
       coach_meeting: {
         ...record,
+        status: effectiveStatus,
+        db_status: record.status,
         coach_name: coach?.label ?? null,
         coach_email: coach?.email ?? null,
       },

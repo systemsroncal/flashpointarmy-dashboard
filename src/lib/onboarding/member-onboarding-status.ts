@@ -7,8 +7,8 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type TrainingStepStatus = "pending" | "in_progress" | "completed";
-export type CoachMeetingStepStatus = "pending" | "in_progress" | "completed";
-export type FirstMissionStepStatus = "locked" | "in_progress" | "completed";
+export type CoachMeetingStepStatus = "locked" | "pending" | "in_progress" | "completed";
+export type FirstMissionStepStatus = "locked" | "pending" | "in_progress" | "completed";
 
 export type MissionRankAudience = "local_leader" | "member";
 
@@ -27,6 +27,28 @@ export function isMemberOnboardingAudience(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "member" || n === "local_leader");
 }
 
+export function resolveCoachMeetingStepStatus(
+  training: TrainingStepStatus,
+  rowStatus: CoachMeetingStepStatus | null,
+  hasPersistedRow: boolean
+): CoachMeetingStepStatus {
+  if (training !== "completed") return "locked";
+  if (!hasPersistedRow) return "pending";
+  if (rowStatus === "locked") return "pending";
+  return rowStatus ?? "pending";
+}
+
+export function resolveFirstMissionStepStatus(
+  coachMeeting: CoachMeetingStepStatus,
+  rowStatus: FirstMissionStepStatus | null,
+  hasPersistedRow: boolean
+): FirstMissionStepStatus {
+  if (coachMeeting !== "completed") return "locked";
+  if (!hasPersistedRow) return "pending";
+  if (rowStatus === "locked") return "pending";
+  return rowStatus ?? "pending";
+}
+
 export async function loadMemberOnboardingSnapshot(
   supabase: SupabaseClient,
   userId: string,
@@ -39,10 +61,24 @@ export async function loadMemberOnboardingSnapshot(
     loadTrainingLessonCounts(supabase, userId),
   ]);
 
+  const hasCoachRow = coachMeetingRow.updated_at !== new Date(0).toISOString();
+  const coachMeeting = resolveCoachMeetingStepStatus(
+    training,
+    coachMeetingRow.status,
+    hasCoachRow
+  );
+
+  const hasFirstMissionRow = firstMissionRow.updated_at !== new Date(0).toISOString();
+  const firstMission = resolveFirstMissionStepStatus(
+    coachMeeting,
+    firstMissionRow.status,
+    hasFirstMissionRow
+  );
+
   return {
     training,
-    coachMeeting: coachMeetingRow.status,
-    firstMission: firstMissionRow.status,
+    coachMeeting,
+    firstMission,
     rankLabel: "Recruit",
     rankAudience: roleNames.includes("local_leader") ? "local_leader" : "member",
     trainingCompletedLessons: lessonCounts.completed,
@@ -52,14 +88,14 @@ export async function loadMemberOnboardingSnapshot(
 
 export function formatOnboardingStepLabel(status: string): string {
   switch (status) {
+    case "locked":
+      return "Locked";
     case "pending":
       return "Pending";
     case "in_progress":
       return "In progress";
     case "completed":
       return "Completed";
-    case "locked":
-      return "Locked";
     default:
       return status;
   }

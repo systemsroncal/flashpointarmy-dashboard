@@ -168,7 +168,7 @@ export function FirstMissionsAdminClient({ chapterOptions }: Props) {
   return (
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
-        First mission
+        Mission Selected
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Manage first mission status for members and local leaders. Click a row to update. Training status reflects

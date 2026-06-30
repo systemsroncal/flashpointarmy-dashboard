@@ -15,12 +15,17 @@ import type {
   FirstMissionStepStatus,
   TrainingStepStatus,
 } from "@/lib/onboarding/member-onboarding-status";
+import { resolveCoachMeetingStepStatus } from "@/lib/onboarding/member-onboarding-status";
 
 export type CoachMeetingRecord = {
   user_id: string;
   status: CoachMeetingStepStatus;
   coach_id: string | null;
   coaching_at: string | null;
+  ends_at: string | null;
+  duration_minutes: number;
+  meeting_type: string;
+  topic: string | null;
   description: string | null;
   observations: string | null;
   updated_at: string;
@@ -233,9 +238,15 @@ export async function queryOnboardingMembersPaginated(
   let filtered = filterBaseIndex(baseIndex, query, chapterOptions);
 
   if (query.coachMeetingStatus && query.coachMeetingStatus !== "all" && coachStatusIndex) {
-    filtered = filtered.filter(
-      (row) => (coachStatusIndex.get(row.user_id) ?? "pending") === query.coachMeetingStatus
-    );
+    const filterIds = filtered.map((row) => row.user_id);
+    const trainingForFilter = await loadTrainingStepStatusesForUsers(admin, filterIds);
+    filtered = filtered.filter((row) => {
+      const hasRow = coachStatusIndex.has(row.user_id);
+      const dbStatus = coachStatusIndex.get(row.user_id) ?? "locked";
+      const training = trainingForFilter.get(row.user_id) ?? "pending";
+      const effective = resolveCoachMeetingStepStatus(training, dbStatus, hasRow);
+      return effective === query.coachMeetingStatus;
+    });
   }
 
   if (query.firstMissionStatus && query.firstMissionStatus !== "all" && firstMissionStatusIndex) {
@@ -326,7 +337,9 @@ export async function loadCoachMeetingForUser(
 ): Promise<CoachMeetingRecord> {
   const { data } = await supabase
     .from("member_coach_meetings")
-    .select("user_id, status, coach_id, coaching_at, description, observations, updated_at")
+    .select(
+      "user_id, status, coach_id, coaching_at, ends_at, duration_minutes, meeting_type, topic, description, observations, updated_at"
+    )
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -335,9 +348,13 @@ export async function loadCoachMeetingForUser(
   }
   return {
     user_id: userId,
-    status: "pending",
+    status: "locked",
     coach_id: null,
     coaching_at: null,
+    ends_at: null,
+    duration_minutes: 30,
+    meeting_type: "onboarding_call",
+    topic: null,
     description: null,
     observations: null,
     updated_at: new Date(0).toISOString(),
@@ -377,7 +394,9 @@ export async function loadCoachMeetingsMap(
   for (const part of chunkIdsForInQuery(userIds, 100)) {
     const { data } = await admin
       .from("member_coach_meetings")
-      .select("user_id, status, coach_id, coaching_at, description, observations, updated_at")
+      .select(
+        "user_id, status, coach_id, coaching_at, ends_at, duration_minutes, meeting_type, topic, description, observations, updated_at"
+      )
       .in("user_id", part);
     for (const row of (data ?? []) as CoachMeetingRecord[]) {
       out.set(row.user_id, row);
@@ -388,9 +407,13 @@ export async function loadCoachMeetingsMap(
     if (!out.has(id)) {
       out.set(id, {
         user_id: id,
-        status: "pending",
+        status: "locked",
         coach_id: null,
         coaching_at: null,
+        ends_at: null,
+        duration_minutes: 30,
+        meeting_type: "onboarding_call",
+        topic: null,
         description: null,
         observations: null,
         updated_at: new Date(0).toISOString(),

@@ -6,6 +6,7 @@ import {
   OnboardingStatusChip,
   toDatetimeLocalValue,
 } from "@/components/dashboard/onboarding/onboarding-admin-utils";
+import { coachMeetingRoleTag, coachMeetingTypeLabel } from "@/lib/onboarding/coach-meeting-labels";
 import { AdminStaffSearchAutocomplete } from "@/components/forms/AdminStaffSearchAutocomplete";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
 import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
@@ -14,7 +15,7 @@ import type { CoachMeetingStepStatus, TrainingStepStatus } from "@/lib/onboardin
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import {
-  Alert,
+  Chip,
   Box,
   Button,
   CircularProgress,
@@ -46,6 +47,10 @@ type CoachMeetingData = {
   status: CoachMeetingStepStatus;
   coach_id: string | null;
   coaching_at: string | null;
+  ends_at: string | null;
+  duration_minutes: number;
+  meeting_type: string;
+  topic: string | null;
   description: string | null;
   observations: string | null;
   updated_at: string;
@@ -89,6 +94,9 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
   const [status, setStatus] = useState<CoachMeetingStepStatus>("pending");
   const [coachId, setCoachId] = useState("");
   const [coachingAt, setCoachingAt] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [meetingType, setMeetingType] = useState<"coach_meeting" | "onboarding_call">("onboarding_call");
+  const [topic, setTopic] = useState("");
   const [description, setDescription] = useState("");
   const [observations, setObservations] = useState("");
   const [saving, setSaving] = useState(false);
@@ -141,6 +149,11 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
     setStatus(row.coach_meeting.status);
     setCoachId(row.coach_meeting.coach_id ?? "");
     setCoachingAt(toDatetimeLocalValue(row.coach_meeting.coaching_at));
+    setDurationMinutes(row.coach_meeting.duration_minutes ?? 30);
+    setMeetingType(
+      row.coach_meeting.meeting_type === "coach_meeting" ? "coach_meeting" : "onboarding_call"
+    );
+    setTopic(row.coach_meeting.topic ?? "");
     setDescription(row.coach_meeting.description ?? "");
     setObservations(row.coach_meeting.observations ?? "");
     setSaveError(null);
@@ -159,6 +172,9 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
           status,
           coach_id: coachId || null,
           coaching_at: fromDatetimeLocalValue(coachingAt),
+          duration_minutes: durationMinutes,
+          meeting_type: meetingType,
+          topic,
           description,
           observations,
         }),
@@ -180,8 +196,8 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
         Coach meetings
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Manage coach meeting status for members and local leaders. Click a row to update. Training status reflects
-        Biblical Citizenship course progress (100% = Completed, not started = Pending, partial progress = In progress).
+        Manage coach meetings and onboarding calls for members and local leaders. Mark as completed to
+        unlock Choose Your Mission for the applicant.
       </Typography>
 
       {loadError ? (
@@ -218,6 +234,7 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
               onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
             >
               <MenuItem value="all">All</MenuItem>
+              <MenuItem value="locked">Locked</MenuItem>
               <MenuItem value="pending">Pending</MenuItem>
               <MenuItem value="in_progress">In progress</MenuItem>
               <MenuItem value="completed">Completed</MenuItem>
@@ -244,20 +261,22 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Person</TableCell>
-                    <TableCell>Role</TableCell>
+                    <TableCell>Applicant</TableCell>
+                    <TableCell>Audience</TableCell>
                     <TableCell>Chapter</TableCell>
                     <TableCell>Training</TableCell>
-                    <TableCell>Coach meeting</TableCell>
+                    <TableCell>Meeting status</TableCell>
+                    <TableCell>Topic</TableCell>
+                    <TableCell>Scheduled</TableCell>
+                    <TableCell>Ends</TableCell>
                     <TableCell>Coach</TableCell>
-                    <TableCell>Coaching date/time</TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} sx={{ py: 4, textAlign: "center", color: "text.secondary" }}>
+                      <TableCell colSpan={10} sx={{ py: 4, textAlign: "center", color: "text.secondary" }}>
                         No members match your filters.
                       </TableCell>
                     </TableRow>
@@ -276,8 +295,17 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
                           <Typography variant="caption" color="text.secondary">
                             {row.email}
                           </Typography>
+                          <Typography variant="caption" display="block" color="text.secondary">
+                            {row.role_label}
+                          </Typography>
                         </TableCell>
-                        <TableCell>{row.role_label}</TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={coachMeetingRoleTag(row.coach_meeting.meeting_type)}
+                            variant="outlined"
+                          />
+                        </TableCell>
                         <TableCell>
                           {row.chapter_name ?? "—"}
                           {row.chapter_state ? ` (${row.chapter_state})` : ""}
@@ -288,8 +316,12 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
                         <TableCell>
                           <OnboardingStatusChip status={row.coach_meeting.status} />
                         </TableCell>
-                        <TableCell>{row.coach_meeting.coach_name ?? "—"}</TableCell>
+                        <TableCell>
+                          {row.coach_meeting.topic ?? coachMeetingTypeLabel(row.coach_meeting.meeting_type)}
+                        </TableCell>
                         <TableCell>{formatCoachMeetingWhen(row.coach_meeting.coaching_at)}</TableCell>
+                        <TableCell>{formatCoachMeetingWhen(row.coach_meeting.ends_at)}</TableCell>
+                        <TableCell>{row.coach_meeting.coach_name ?? "—"}</TableCell>
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                           <Button
                             size="small"
@@ -322,7 +354,7 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
       </Paper>
 
       <Dialog open={editOpen} onClose={() => !saving && setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Update coach meeting</DialogTitle>
+        <DialogTitle>Update meeting</DialogTitle>
         <DialogContent dividers>
           {editRow ? (
             <Stack spacing={2} sx={{ pt: 0.5 }}>
@@ -339,11 +371,26 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
                   value={status}
                   onChange={(e) => setStatus(e.target.value as CoachMeetingStepStatus)}
                 >
+                  <MenuItem value="locked">Locked</MenuItem>
                   <MenuItem value="pending">Pending</MenuItem>
                   <MenuItem value="in_progress">In progress</MenuItem>
                   <MenuItem value="completed">Completed</MenuItem>
                 </Select>
               </FormControl>
+              <FormControl fullWidth>
+                <InputLabel>Meeting type</InputLabel>
+                <Select
+                  label="Meeting type"
+                  value={meetingType}
+                  onChange={(e) =>
+                    setMeetingType(e.target.value as "coach_meeting" | "onboarding_call")
+                  }
+                >
+                  <MenuItem value="coach_meeting">Coach Meeting (Local leader)</MenuItem>
+                  <MenuItem value="onboarding_call">Onboarding Call (Member)</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} fullWidth />
               <AdminStaffSearchAutocomplete
                 options={adminStaff}
                 valueId={coachId}
@@ -351,12 +398,20 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
                 label="Coach"
               />
               <TextField
-                label="Coaching date/time"
+                label="Start date/time"
                 type="datetime-local"
                 value={coachingAt}
                 onChange={(e) => setCoachingAt(e.target.value)}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Duration (minutes)"
+                type="number"
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(Number(e.target.value) || 30)}
+                fullWidth
+                inputProps={{ min: 15, max: 240, step: 15 }}
               />
               <TextField
                 label="Description"

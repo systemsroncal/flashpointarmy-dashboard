@@ -1,6 +1,8 @@
 "use client";
 
 import AdjustIcon from "@mui/icons-material/Adjust";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import WhereToVoteIcon from "@mui/icons-material/WhereToVote";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -75,6 +77,7 @@ import { MobilizeNavNotificationsBadge } from "@/components/mobilize/MobilizeNav
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { SidebarYourJourney } from "./SidebarYourJourney";
+import { TrainingNavSubmenu } from "@/components/dashboard/training/TrainingNavSubmenu";
 import {
   AvatarWithGraduateIcon,
   CourseGraduateCongratulationsDialog,
@@ -234,6 +237,47 @@ const SETTINGS_MODULES = new Set<string>([
   MODULE_SLUGS.donations,
 ]);
 
+const MISSION_PIPELINE_HREFS = new Set<string>([
+  "/dashboard/courses/certificate-requests",
+  "/dashboard/onboarding/coach-meetings",
+  "/dashboard/onboarding/biblical-citizenship-progress",
+  "/dashboard/onboarding/first-missions",
+  "/dashboard/onboarding/ready-for-chapter",
+]);
+
+const MISSION_PIPELINE_NAV: NavItem[] = [
+  {
+    label: "Certificate requests",
+    href: "/dashboard/courses/certificate-requests",
+    module: MODULE_SLUGS.courses,
+    icon: <FactCheckOutlinedIcon />,
+  },
+  {
+    label: "Coach meetings",
+    href: "/dashboard/onboarding/coach-meetings",
+    module: MODULE_SLUGS.courses,
+    icon: <HandshakeOutlinedIcon />,
+  },
+  {
+    label: "Biblical Citizenship Progress",
+    href: "/dashboard/onboarding/biblical-citizenship-progress",
+    module: MODULE_SLUGS.courses,
+    icon: <TimelineIcon />,
+  },
+  {
+    label: "Mission Selected",
+    href: "/dashboard/onboarding/first-missions",
+    module: MODULE_SLUGS.courses,
+    icon: <FlagOutlined />,
+  },
+  {
+    label: "Ready for Chapter",
+    href: "/dashboard/onboarding/ready-for-chapter",
+    module: MODULE_SLUGS.courses,
+    icon: <WhereToVoteIcon />,
+  },
+];
+
 const ORDERS_DRAWER_NAV_BASE: NavItem[] = [
   {
     label: "Orders",
@@ -303,24 +347,6 @@ const NAV: NavItem[] = [
     href: "/dashboard/courses",
     module: MODULE_SLUGS.courses,
     icon: <MenuBookIcon />,
-  },
-  {
-    label: "Certificate requests",
-    href: "/dashboard/courses/certificate-requests",
-    module: MODULE_SLUGS.courses,
-    icon: <FactCheckOutlinedIcon />,
-  },
-  {
-    label: "Coach meetings",
-    href: "/dashboard/onboarding/coach-meetings",
-    module: MODULE_SLUGS.courses,
-    icon: <HandshakeOutlinedIcon />,
-  },
-  {
-    label: "First mission",
-    href: "/dashboard/onboarding/first-missions",
-    module: MODULE_SLUGS.courses,
-    icon: <FlagOutlined />,
   },
   {
     label: "Notifications",
@@ -415,6 +441,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [graduateCongratsOpen, setGraduateCongratsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [missionPipelineOpen, setMissionPipelineOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -469,8 +496,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   });
   const settingsAllowedByRole =
     user.role_names.includes("admin") || user.role_names.includes("super_admin");
+  const missionPipelineAllowed = settingsAllowedByRole;
+  const missionPipelineNav = missionPipelineAllowed
+    ? MISSION_PIPELINE_NAV.filter((item) => can(permissions, item.module, "read"))
+    : [];
   const settingsNav = settingsAllowedByRole
     ? allVisibleNav.filter((item) => {
+        if (MISSION_PIPELINE_HREFS.has(item.href)) return false;
         if (!SETTINGS_MODULES.has(item.module)) return false;
         if (item.module === MODULE_SLUGS.reports) {
           return user.role_names.includes("super_admin");
@@ -478,9 +510,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         return true;
       })
     : [];
-  const visibleNav = allVisibleNav.filter((item) => !SETTINGS_MODULES.has(item.module));
+  const visibleNav = allVisibleNav.filter(
+    (item) => !SETTINGS_MODULES.has(item.module) && !MISSION_PIPELINE_HREFS.has(item.href)
+  );
   const ordersNav = ORDERS_DRAWER_NAV_BASE.filter((item) => can(permissions, item.module, "read"));
   const settingsHasActive = settingsNav.some((item) => isNavItemSelected(item, pathname));
+  const missionPipelineHasActive = missionPipelineNav.some((item) =>
+    isNavItemSelected(item, pathname)
+  );
   const ordersHasActive = ordersNav.some((item) => isNavItemSelected(item, pathname));
   const showSystemNotificationBell =
     user.role_names.includes("admin") || user.role_names.includes("super_admin");
@@ -538,6 +575,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [settingsHasActive]);
 
   useEffect(() => {
+    if (missionPipelineHasActive) setMissionPipelineOpen(true);
+  }, [missionPipelineHasActive]);
+
+  useEffect(() => {
     if (ordersHasActive) setOrdersOpen(true);
   }, [ordersHasActive]);
 
@@ -567,6 +608,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const showSidebarJourney =
     !isMobilize && isMemberOnboardingAudience(user.role_names) && user.member_onboarding;
+  const showTrainingSubmenu = showSidebarJourney && Boolean(user.member_onboarding);
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -766,6 +808,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         ) : (
           visibleNav.map((item) => {
             const selected = isNavItemSelected(item, pathname);
+            if (item.href === "/dashboard/training" && showTrainingSubmenu && user.member_onboarding) {
+              return (
+                <TrainingNavSubmenu
+                  key={item.href}
+                  snapshot={user.member_onboarding}
+                  selectedParent={selected || pathname.startsWith("/dashboard/training/")}
+                  onNavigate={closeMobileDrawer}
+                  navItemTouchSx={NAV_ITEM_TOUCH_SX}
+                  navSelectedSx={NAV_SELECTED_SX}
+                />
+              );
+            }
             return (
               <ListItem key={item.href} disablePadding>
                 <ListItemButton
@@ -887,6 +941,91 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                             color: selected
                               ? "primary.main"
                               : "rgba(255,255,255,0.88)",
+                          }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </Collapse>
+          </>
+        ) : null}
+        {!isMobilize && missionPipelineNav.length > 0 ? (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => setMissionPipelineOpen((prev) => !prev)}
+                selected={missionPipelineHasActive}
+                data-tour="nav-mission-pipeline-group"
+                sx={{
+                  ...NAV_ITEM_TOUCH_SX,
+                  py: 0.75,
+                  "&.Mui-selected": NAV_SELECTED_SX,
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: missionPipelineHasActive
+                      ? "primary.main"
+                      : "rgba(255,255,255,0.92)",
+                    minWidth: 38,
+                  }}
+                >
+                  <AdjustIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Mission Pipeline"
+                  primaryTypographyProps={{
+                    variant: "body2",
+                    fontWeight: 600,
+                    fontSize: "calc(0.82rem + 3px)",
+                    color: missionPipelineHasActive
+                      ? "primary.main"
+                      : "rgba(255,255,255,0.88)",
+                  }}
+                />
+                {missionPipelineOpen ? (
+                  <ExpandLessIcon fontSize="small" />
+                ) : (
+                  <ExpandMoreIcon fontSize="small" />
+                )}
+              </ListItemButton>
+            </ListItem>
+            <Collapse in={missionPipelineOpen} timeout="auto" unmountOnExit>
+              <List disablePadding>
+                {missionPipelineNav.map((item) => {
+                  const selected = isNavItemSelected(item, pathname);
+                  return (
+                    <ListItem key={item.href} disablePadding>
+                      <ListItemButton
+                        component={Link}
+                        href={item.href}
+                        selected={selected}
+                        data-tour={`nav-${item.href.replace(/\//g, "-")}`}
+                        onClick={closeMobileDrawer}
+                        sx={{
+                          ...NAV_ITEM_TOUCH_SX,
+                          py: 0.65,
+                          pl: 4.5,
+                          "&.Mui-selected": NAV_SELECTED_SX,
+                        }}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
+                            minWidth: 36,
+                          }}
+                        >
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.label}
+                          primaryTypographyProps={{
+                            variant: "body2",
+                            fontWeight: 500,
+                            fontSize: "calc(0.8rem + 3px)",
+                            color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
                           }}
                         />
                       </ListItemButton>

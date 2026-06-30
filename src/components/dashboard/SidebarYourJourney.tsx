@@ -1,6 +1,9 @@
 "use client";
 
 import {
+  coachMeetingStepTitle,
+} from "@/lib/onboarding/coach-meeting-labels";
+import {
   computeJourneyProgressPercent,
   formatOnboardingStepLabel,
   type MemberOnboardingSnapshot,
@@ -10,13 +13,13 @@ import { Box, Typography } from "@mui/material";
 
 const JOURNEY_FONT = 'var(--font-konkhmer-sleokchher), "Konkhmer Sleokchher", cursive';
 
-type Step = {
-  number: number;
-  title: string;
-  detail: string;
-};
+function stepBadgeStyle(status: string): { bg: string; color: string } {
+  if (status === "completed") return { bg: "#22c55e", color: "#fff" };
+  if (status === "in_progress" || status === "pending") return { bg: flashpointYellow, color: "#0a0a0a" };
+  return { bg: "#6b7280", color: "#fff" };
+}
 
-function buildSteps(snapshot: MemberOnboardingSnapshot): Step[] {
+function buildSteps(snapshot: MemberOnboardingSnapshot) {
   const totalLessons = snapshot.trainingTotalLessons;
   const trainingDetail =
     snapshot.training === "completed"
@@ -28,16 +31,19 @@ function buildSteps(snapshot: MemberOnboardingSnapshot): Step[] {
       number: 1,
       title: "Complete Biblical Citizenship",
       detail: trainingDetail,
+      status: snapshot.training,
     },
     {
       number: 2,
-      title: "Meet Your Coach",
+      title: coachMeetingStepTitle(snapshot.rankAudience),
       detail: formatOnboardingStepLabel(snapshot.coachMeeting),
+      status: snapshot.coachMeeting,
     },
     {
       number: 3,
       title: "Choose Your Mission",
       detail: formatOnboardingStepLabel(snapshot.firstMission),
+      status: snapshot.firstMission,
     },
   ];
 }
@@ -73,51 +79,54 @@ export function SidebarYourJourney({ snapshot }: Props) {
       </Typography>
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25, mb: 1.5 }}>
-        {steps.map((step) => (
-          <Box key={step.number} sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
-            <Box
-              sx={{
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                bgcolor: flashpointYellow,
-                color: "#0a0a0a",
-                fontWeight: 800,
-                fontFamily: JOURNEY_FONT,
-                fontSize: "0.72rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                mt: 0.15,
-              }}
-            >
-              {step.number}
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
+        {steps.map((step) => {
+          const badge = stepBadgeStyle(step.status);
+          return (
+            <Box key={step.number} sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+              <Box
                 sx={{
-                  color: "#fff",
-                  fontWeight: 500,
-                  fontSize: "0.78rem",
-                  lineHeight: 1.35,
-                  mb: 0.2,
-                }}
-              >
-                {step.title}
-              </Typography>
-              <Typography
-                sx={{
-                  color: "rgba(255,255,255,0.5)",
+                  width: 22,
+                  height: 22,
+                  borderRadius: "50%",
+                  bgcolor: badge.bg,
+                  color: badge.color,
+                  fontWeight: 800,
+                  fontFamily: JOURNEY_FONT,
                   fontSize: "0.72rem",
-                  lineHeight: 1.35,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  mt: 0.15,
                 }}
               >
-                {step.detail}
-              </Typography>
+                {step.number}
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    color: "#fff",
+                    fontWeight: 500,
+                    fontSize: "0.78rem",
+                    lineHeight: 1.35,
+                    mb: 0.2,
+                  }}
+                >
+                  {step.title}
+                </Typography>
+                <Typography
+                  sx={{
+                    color: "rgba(255,255,255,0.5)",
+                    fontSize: "0.72rem",
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {step.detail}
+                </Typography>
+              </Box>
             </Box>
-          </Box>
-        ))}
+          );
+        })}
       </Box>
 
       <Box
