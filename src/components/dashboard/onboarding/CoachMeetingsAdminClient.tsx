@@ -197,8 +197,8 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
         Coach meetings
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Manage coach meetings and onboarding calls for members and local leaders. Mark as completed to
-        unlock Choose Your Mission for the applicant.
+        Manage coach meeting and onboarding call booking requests from members and local leaders who
+        completed Biblical Citizenship. Assign coaches configured in Settings → Coaches.
       </Typography>
 
       {loadError ? (
@@ -397,6 +397,7 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
                 valueId={coachId}
                 onChangeId={setCoachId}
                 label="Coach"
+                placeholder="Search coaches…"
               />
               <TextField
                 label="Start date/time"

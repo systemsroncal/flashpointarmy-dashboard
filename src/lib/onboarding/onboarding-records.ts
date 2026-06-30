@@ -65,6 +65,7 @@ export type OnboardingListQuery = {
   q: string;
   coachMeetingStatus?: CoachMeetingStepStatus | "all";
   firstMissionStatus?: FirstMissionStepStatus | "all";
+  trainingCompletedOnly?: boolean;
 };
 
 const ADMIN_ROLE_NAMES = ["admin", "super_admin", "sub_admin"] as const;
@@ -253,6 +254,12 @@ export async function queryOnboardingMembersPaginated(
     filtered = filtered.filter(
       (row) => (firstMissionStatusIndex.get(row.user_id) ?? "locked") === query.firstMissionStatus
     );
+  }
+
+  if (query.trainingCompletedOnly) {
+    const filterIds = filtered.map((row) => row.user_id);
+    const trainingForFilter = await loadTrainingStepStatusesForUsers(admin, filterIds);
+    filtered = filtered.filter((row) => trainingForFilter.get(row.user_id) === "completed");
   }
 
   const total = filtered.length;

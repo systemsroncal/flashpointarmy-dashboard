@@ -8,6 +8,7 @@ type Props = {
   valueId: string;
   onChangeId: (id: string) => void;
   label?: string;
+  placeholder?: string;
   disabled?: boolean;
 };
 
@@ -16,6 +17,7 @@ export function AdminStaffSearchAutocomplete({
   valueId,
   onChangeId,
   label = "Coach",
+  placeholder = "Search administrators…",
   disabled = false,
 }: Props) {
   const value = options.find((o) => o.id === valueId) ?? null;
@@ -49,7 +51,7 @@ export function AdminStaffSearchAutocomplete({
         );
       }}
       renderInput={(params) => (
-        <TextField {...params} label={label} placeholder="Search administrators…" />
+        <TextField {...params} label={label} placeholder={placeholder} />
       )}
     />
   );

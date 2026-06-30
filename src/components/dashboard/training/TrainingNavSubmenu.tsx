@@ -152,24 +152,24 @@ export function TrainingNavSubmenu({
               );
               const bullet = bulletColor(item.status, enabled);
               const content = (
-                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, py: 0.65, pl: 1.5 }}>
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, py: 0.5, pl: "3px" }}>
                   <Box
                     aria-hidden
                     sx={{
-                      width: 28,
+                      width: 13,
                       borderTop: "1px dashed rgba(255,255,255,0.28)",
-                      mt: 1.1,
+                      mt: 0.85,
                       flexShrink: 0,
                     }}
                   />
                   <Box
                     sx={{
-                      width: 14,
+                      width: 10,
                       height: 10,
-                      borderRadius: 999,
+                      borderRadius: "50%",
                       bgcolor: bullet,
                       flexShrink: 0,
-                      mt: 0.85,
+                      mt: 0.55,
                       boxShadow:
                         item.status === "in_progress" && enabled
                           ? "inset 0 1px 2px rgba(255,255,255,0.45)"
@@ -211,13 +211,14 @@ export function TrainingNavSubmenu({
                         ...navItemTouchSx,
                         py: 0,
                         px: 0,
+                        pl: "3px",
                         "&.Mui-selected": { bgcolor: "rgba(255,215,0,0.06)" },
                       }}
                     >
                       {content}
                     </ListItemButton>
                   ) : (
-                    <Box sx={{ px: 0, width: "100%", cursor: "default" }}>{content}</Box>
+                    <Box sx={{ px: 0, pl: "3px", width: "100%", cursor: "default" }}>{content}</Box>
                   )}
                 </ListItem>
               );

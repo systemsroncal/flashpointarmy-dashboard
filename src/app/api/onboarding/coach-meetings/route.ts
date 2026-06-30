@@ -3,7 +3,9 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import type { CoachMeetingStepStatus } from "@/lib/onboarding/member-onboarding-status";
 import {
-  listAdminStaffOptions,
+  listCoachOptionsForAssignment,
+} from "@/lib/onboarding/coach-assignees";
+import {
   loadCoachMeetingsMap,
   queryOnboardingMembersPaginated,
 } from "@/lib/onboarding/onboarding-records";
@@ -46,6 +48,7 @@ export async function GET(req: Request) {
   const state = url.searchParams.get("state") || "all";
   const q = (url.searchParams.get("q") || "").trim();
   const coachMeetingStatus = parseCoachMeetingStatus(url.searchParams.get("status"));
+  const trainingCompletedOnly = url.searchParams.get("eligibleOnly") !== "0";
 
   const admin = createAdminClient();
   const { data: chapters } = await admin.from("chapters").select("id, name, state").order("name");
@@ -58,10 +61,10 @@ export async function GET(req: Request) {
   const [pageResult, adminStaff] = await Promise.all([
     queryOnboardingMembersPaginated(
       admin,
-      { page, perPage, chapterId, state, q, coachMeetingStatus },
+      { page, perPage, chapterId, state, q, coachMeetingStatus, trainingCompletedOnly },
       chapterOptions
     ),
-    listAdminStaffOptions(admin),
+    listCoachOptionsForAssignment(admin),
   ]);
 
   const userIds = pageResult.rows.map((m) => m.user_id);

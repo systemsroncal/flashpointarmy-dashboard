@@ -27,6 +27,7 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
 import SchoolIcon from "@mui/icons-material/School";
+import SportsIcon from "@mui/icons-material/Sports";
 import SecurityIcon from "@mui/icons-material/Security";
 import EmailIcon from "@mui/icons-material/Email";
 import AssessmentIcon from "@mui/icons-material/Assessment";
@@ -347,6 +348,12 @@ const NAV: NavItem[] = [
     href: "/dashboard/courses",
     module: MODULE_SLUGS.courses,
     icon: <MenuBookIcon />,
+  },
+  {
+    label: "Coaches",
+    href: "/dashboard/settings/coaches",
+    module: MODULE_SLUGS.courses,
+    icon: <SportsIcon />,
   },
   {
     label: "Notifications",

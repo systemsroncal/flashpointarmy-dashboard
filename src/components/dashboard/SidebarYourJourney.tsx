@@ -1,17 +1,21 @@
 "use client";
 
-import {
-  coachMeetingStepTitle,
-} from "@/lib/onboarding/coach-meeting-labels";
+import { coachMeetingStepTitle } from "@/lib/onboarding/coach-meeting-labels";
 import {
   computeJourneyProgressPercent,
   formatOnboardingStepLabel,
   type MemberOnboardingSnapshot,
 } from "@/lib/onboarding/member-onboarding-status";
+import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { flashpointYellow } from "@/theme/tokens";
 import { Box, Typography } from "@mui/material";
+import Link from "next/link";
 
 const JOURNEY_FONT = 'var(--font-konkhmer-sleokchher), "Konkhmer Sleokchher", cursive';
+
+const BC_HREF = `/dashboard/course/${BIBLICAL_CITIZENSHIP_COURSE_SLUG}`;
+const COACH_HREF = "/dashboard/training/coach-meeting";
+const MISSIONS_HREF = "/dashboard/missions";
 
 function stepBadgeStyle(status: string): { bg: string; color: string } {
   if (status === "completed") return { bg: "#22c55e", color: "#fff" };
@@ -19,7 +23,16 @@ function stepBadgeStyle(status: string): { bg: string; color: string } {
   return { bg: "#6b7280", color: "#fff" };
 }
 
-function buildSteps(snapshot: MemberOnboardingSnapshot) {
+type JourneyStep = {
+  number: number;
+  title: string;
+  detail: string;
+  status: string;
+  href: string | null;
+  enabled: boolean;
+};
+
+function buildSteps(snapshot: MemberOnboardingSnapshot): JourneyStep[] {
   const totalLessons = snapshot.trainingTotalLessons;
   const trainingDetail =
     snapshot.training === "completed"
@@ -32,18 +45,24 @@ function buildSteps(snapshot: MemberOnboardingSnapshot) {
       title: "Complete Biblical Citizenship",
       detail: trainingDetail,
       status: snapshot.training,
+      href: BC_HREF,
+      enabled: true,
     },
     {
       number: 2,
       title: coachMeetingStepTitle(snapshot.rankAudience),
       detail: formatOnboardingStepLabel(snapshot.coachMeeting),
       status: snapshot.coachMeeting,
+      href: COACH_HREF,
+      enabled: snapshot.training === "completed",
     },
     {
       number: 3,
       title: "Choose Your Mission",
       detail: formatOnboardingStepLabel(snapshot.firstMission),
       status: snapshot.firstMission,
+      href: MISSIONS_HREF,
+      enabled: snapshot.coachMeeting === "completed",
     },
   ];
 }
@@ -81,6 +100,17 @@ export function SidebarYourJourney({ snapshot }: Props) {
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25, mb: 1.5 }}>
         {steps.map((step) => {
           const badge = stepBadgeStyle(step.status);
+          const titleSx = {
+            color: step.enabled ? "#fff" : "rgba(255,255,255,0.38)",
+            fontWeight: 500,
+            fontSize: "0.78rem",
+            lineHeight: 1.35,
+            mb: 0.2,
+            textDecoration: "none",
+            cursor: step.enabled ? "pointer" : "default",
+            "&:hover": step.enabled ? { color: flashpointYellow } : undefined,
+          };
+
           return (
             <Box key={step.number} sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
               <Box
@@ -103,17 +133,13 @@ export function SidebarYourJourney({ snapshot }: Props) {
                 {step.number}
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  sx={{
-                    color: "#fff",
-                    fontWeight: 500,
-                    fontSize: "0.78rem",
-                    lineHeight: 1.35,
-                    mb: 0.2,
-                  }}
-                >
-                  {step.title}
-                </Typography>
+                {step.enabled && step.href ? (
+                  <Typography component={Link} href={step.href} sx={titleSx}>
+                    {step.title}
+                  </Typography>
+                ) : (
+                  <Typography sx={titleSx}>{step.title}</Typography>
+                )}
                 <Typography
                   sx={{
                     color: "rgba(255,255,255,0.5)",
