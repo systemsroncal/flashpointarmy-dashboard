@@ -354,8 +354,8 @@ export function NationalOverview({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        bgcolor: `${s.color}55`,
-                        boxShadow: `0 0 14px ${s.color}44`,
+                        bgcolor: s.color,
+                        boxShadow: `0 0 27px ${s.color}`,
                         border: `1px solid ${s.color}`,
                       }}
                     >

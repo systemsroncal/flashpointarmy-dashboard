@@ -19,10 +19,11 @@ const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 
 const COLORS = {
   noActivity: "#1c1a1a",
-  low: "#676767",
-  moderate: "#f1900f",
+  low: "#f1900f",
+  moderate: "#676767",
   high: "#18d018",
   stroke: "rgba(255, 215, 0, 0.35)",
+  stateBorder: "#ffffff",
   selected: "#FFD700",
 };
 
@@ -289,7 +290,7 @@ export function UsaChapterActivityMap({
                     style={{
                       default: {
                         fill: base,
-                        stroke: selected ? COLORS.selected : COLORS.stroke,
+                        stroke: selected ? COLORS.selected : COLORS.stateBorder,
                         strokeWidth: selected ? 1.5 : 0.6,
                         outline: "none",
                         cursor: code ? "pointer" : "default",
@@ -297,13 +298,14 @@ export function UsaChapterActivityMap({
                       hover: {
                         fill: code ? base : base,
                         stroke: COLORS.selected,
-                        strokeWidth: 1.2,
+                        strokeWidth: 2.2,
                         outline: "none",
                         filter: code ? "brightness(1.15)" : undefined,
                       },
                       pressed: {
                         fill: base,
                         stroke: COLORS.selected,
+                        strokeWidth: 2.2,
                         outline: "none",
                       },
                     }}
