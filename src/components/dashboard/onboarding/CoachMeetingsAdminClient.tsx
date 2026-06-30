@@ -15,6 +15,7 @@ import type { CoachMeetingStepStatus, TrainingStepStatus } from "@/lib/onboardin
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import {
+  Alert,
   Chip,
   Box,
   Button,
