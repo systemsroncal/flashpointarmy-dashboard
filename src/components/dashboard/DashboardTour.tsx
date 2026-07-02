@@ -278,8 +278,9 @@ export function DashboardTourProvider({
   const contextValue = useMemo(() => ({ startTour }), [startTour]);
 
   /**
-   * One-time auto-tour: only on first visit to dashboard home, before the user
-   * has finished or skipped it. After that, use the (?) help button.
+   * Optional one-time auto-tour (disabled by default). When enabled, only runs on
+   * first dashboard home visit before the user finishes or skips it. Otherwise
+   * use the (?) help button.
    */
   useEffect(() => {
     if (!driverReady) return;

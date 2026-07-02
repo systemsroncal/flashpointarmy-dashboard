@@ -575,9 +575,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     setProfileOpen(false);
   }, []);
 
-  const autoStartMainTour =
-    pathname === "/dashboard" || pathname === "/dashboard/";
-
   useEffect(() => {
     if (settingsHasActive) setSettingsOpen(true);
   }, [settingsHasActive]);
@@ -1252,7 +1249,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       openProfileDrawer={openProfileDrawerForTour}
       closeProfileDrawer={closeProfileDrawerForTour}
       setProfileEditMode={setProfileEditMode}
-      autoStartMainTour={autoStartMainTour}
     >
     <DashboardPresenceProvider userId={user.id}>
       <Box sx={{ minHeight: "100vh" }}>
@@ -1298,7 +1294,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <Box sx={{ flexGrow: 1 }} />
           <RoleWelcomeVideoPrompt />
           <DashboardTourHelpButton />
-          <HeaderAccountSettingsButton onOpenProfile={() => setProfileOpen(true)} />
           <Box data-tour="header-notifications" sx={{ display: "inline-flex", alignItems: "center" }}>
             {showSystemNotificationBell ? (
               <NotificationMenu userId={user.id} />
@@ -1306,6 +1301,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <AnnouncementsNavBadge />
             )}
           </Box>
+          <HeaderAccountSettingsButton onOpenProfile={() => setProfileOpen(true)} />
         </Toolbar>
       </AppBar>
 

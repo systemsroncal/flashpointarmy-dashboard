@@ -11,16 +11,23 @@ type Props = {
   href?: string | null;
   /** Smaller text for sidebar / nav. */
   size?: "default" | "small";
+  lineHeight?: number;
 };
 
-export function OnboardingStatusWithInfo({ label, tooltip, href, size = "default" }: Props) {
+export function OnboardingStatusWithInfo({
+  label,
+  tooltip,
+  href,
+  size = "default",
+  lineHeight = 1.35,
+}: Props) {
   const fontSize = size === "small" ? "0.68rem" : "0.72rem";
   const linkable = Boolean(href);
 
   const labelSx = {
     color: size === "small" ? "inherit" : "rgba(255,255,255,0.5)",
     fontSize,
-    lineHeight: 1.35,
+    lineHeight,
     ...(linkable
       ? {
           cursor: "pointer",

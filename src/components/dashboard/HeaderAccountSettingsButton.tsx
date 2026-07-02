@@ -14,8 +14,6 @@ import {
   Popover,
   Tooltip,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from "@mui/material";
 import { useState } from "react";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
@@ -25,8 +23,6 @@ export function HeaderAccountSettingsButton({
 }: {
   onOpenProfile: () => void;
 }) {
-  const theme = useTheme();
-  const desktop = useMediaQuery(theme.breakpoints.up("sm"));
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const open = Boolean(anchor);
@@ -56,18 +52,8 @@ export function HeaderAccountSettingsButton({
           aria-expanded={open ? "true" : undefined}
           data-tour="header-account-settings"
           size="small"
-          sx={{
-            borderRadius: 1.5,
-            px: desktop ? 1.25 : 0.75,
-            gap: 0.75,
-          }}
         >
           <SettingsOutlinedIcon fontSize="small" />
-          {desktop ? (
-            <Typography component="span" variant="body2" sx={{ fontWeight: 600, lineHeight: 1 }}>
-              Settings
-            </Typography>
-          ) : null}
         </IconButton>
       </Tooltip>
       <Popover

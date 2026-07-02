@@ -122,14 +122,23 @@ export function SidebarYourJourney({ snapshot }: Props) {
         Your Journey
       </Typography>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25, mb: 1.5 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.25,
+          mb: 1.5,
+          lineHeight: 1,
+          "& .MuiTypography-root": { lineHeight: 1 },
+        }}
+      >
         {steps.map((step) => {
           const badge = stepBadgeStyle(step.status);
           const titleSx = {
             color: step.enabled ? "#fff" : "rgba(255,255,255,0.38)",
             fontWeight: 500,
             fontSize: "0.78rem",
-            lineHeight: 1.35,
+            lineHeight: 1,
             mb: 0.2,
             textDecoration: "none",
             cursor: step.enabled ? "pointer" : "default",
@@ -170,13 +179,14 @@ export function SidebarYourJourney({ snapshot }: Props) {
                     label={step.statusLabel}
                     tooltip={step.statusTooltip}
                     href={step.statusHref}
+                    lineHeight={1}
                   />
                   {step.extraDetail ? (
                     <Typography
                       sx={{
                         color: "rgba(255,255,255,0.45)",
                         fontSize: "0.68rem",
-                        lineHeight: 1.35,
+                        lineHeight: 1,
                       }}
                     >
                       {step.extraDetail}
