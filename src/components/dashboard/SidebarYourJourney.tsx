@@ -1,11 +1,17 @@
 "use client";
 
-import { coachMeetingStepTitle } from "@/lib/onboarding/coach-meeting-labels";
+import { coachMeetingStepHref, coachMeetingStepTitle } from "@/lib/onboarding/coach-meeting-labels";
+import {
+  coachMeetingStepDisplay,
+  firstMissionStepDisplay,
+  firstMissionStepTitle,
+} from "@/lib/onboarding/onboarding-step-display";
 import {
   computeJourneyProgressPercent,
-  formatOnboardingStepLabel,
   type MemberOnboardingSnapshot,
 } from "@/lib/onboarding/member-onboarding-status";
+import { resolveOnboardingStepStatusHref } from "@/lib/onboarding/onboarding-navigation";
+import { OnboardingStatusWithInfo } from "@/components/dashboard/onboarding/OnboardingStatusWithInfo";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { flashpointYellow } from "@/theme/tokens";
 import { Box, Typography } from "@mui/material";
@@ -14,54 +20,67 @@ import Link from "next/link";
 const JOURNEY_FONT = 'var(--font-konkhmer-sleokchher), "Konkhmer Sleokchher", cursive';
 
 const BC_HREF = `/dashboard/course/${BIBLICAL_CITIZENSHIP_COURSE_SLUG}`;
-const COACH_HREF = "/dashboard/training/coach-meeting";
 const MISSIONS_HREF = "/dashboard/missions";
-
-function stepBadgeStyle(status: string): { bg: string; color: string } {
-  if (status === "completed") return { bg: "#22c55e", color: "#fff" };
-  if (status === "in_progress" || status === "pending") return { bg: flashpointYellow, color: "#0a0a0a" };
-  return { bg: "#6b7280", color: "#fff" };
-}
 
 type JourneyStep = {
   number: number;
+  stepKey: "training" | "coachMeeting" | "firstMission";
   title: string;
-  detail: string;
+  statusLabel: string;
+  statusTooltip: string;
   status: string;
   href: string | null;
+  statusHref: string | null;
   enabled: boolean;
+  extraDetail?: string;
 };
 
 function buildSteps(snapshot: MemberOnboardingSnapshot): JourneyStep[] {
   const totalLessons = snapshot.trainingTotalLessons;
-  const trainingDetail =
+  const trainingExtra =
     snapshot.training === "completed"
-      ? "Completed"
+      ? undefined
       : `${snapshot.trainingCompletedLessons}/${totalLessons || "—"} Lessons`;
+
+  const coachDisplay = coachMeetingStepDisplay(snapshot.coachMeeting, snapshot.rankAudience);
+  const missionDisplay = firstMissionStepDisplay(snapshot.firstMission, snapshot.rankAudience);
 
   return [
     {
       number: 1,
+      stepKey: "training",
       title: "Complete Biblical Citizenship",
-      detail: trainingDetail,
+      statusLabel: snapshot.training === "completed" ? "Completed" : "In Progress",
+      statusTooltip:
+        snapshot.training === "completed"
+          ? "Biblical Citizenship training is complete."
+          : "Continue your Biblical Citizenship lessons. Your progress is saved automatically.",
       status: snapshot.training,
       href: BC_HREF,
+      statusHref: resolveOnboardingStepStatusHref("training", snapshot),
       enabled: true,
+      extraDetail: trainingExtra,
     },
     {
       number: 2,
+      stepKey: "coachMeeting",
       title: coachMeetingStepTitle(snapshot.rankAudience),
-      detail: formatOnboardingStepLabel(snapshot.coachMeeting),
+      statusLabel: coachDisplay.label,
+      statusTooltip: coachDisplay.tooltip,
       status: snapshot.coachMeeting,
-      href: COACH_HREF,
+      href: coachMeetingStepHref(snapshot.rankAudience),
+      statusHref: resolveOnboardingStepStatusHref("coachMeeting", snapshot),
       enabled: snapshot.training === "completed",
     },
     {
       number: 3,
-      title: "Choose Your Mission",
-      detail: formatOnboardingStepLabel(snapshot.firstMission),
+      stepKey: "firstMission",
+      title: firstMissionStepTitle(),
+      statusLabel: missionDisplay.label,
+      statusTooltip: missionDisplay.tooltip,
       status: snapshot.firstMission,
       href: MISSIONS_HREF,
+      statusHref: resolveOnboardingStepStatusHref("firstMission", snapshot),
       enabled: snapshot.coachMeeting === "completed",
     },
   ];
@@ -70,6 +89,12 @@ function buildSteps(snapshot: MemberOnboardingSnapshot): JourneyStep[] {
 type Props = {
   snapshot: MemberOnboardingSnapshot;
 };
+
+function stepBadgeStyle(status: string): { bg: string; color: string } {
+  if (status === "completed") return { bg: "#22c55e", color: "#fff" };
+  if (status === "in_progress" || status === "pending") return { bg: flashpointYellow, color: "#0a0a0a" };
+  return { bg: "#6b7280", color: "#fff" };
+}
 
 export function SidebarYourJourney({ snapshot }: Props) {
   const steps = buildSteps(snapshot);
@@ -140,15 +165,24 @@ export function SidebarYourJourney({ snapshot }: Props) {
                 ) : (
                   <Typography sx={titleSx}>{step.title}</Typography>
                 )}
-                <Typography
-                  sx={{
-                    color: "rgba(255,255,255,0.5)",
-                    fontSize: "0.72rem",
-                    lineHeight: 1.35,
-                  }}
-                >
-                  {step.detail}
-                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.15 }}>
+                  <OnboardingStatusWithInfo
+                    label={step.statusLabel}
+                    tooltip={step.statusTooltip}
+                    href={step.statusHref}
+                  />
+                  {step.extraDetail ? (
+                    <Typography
+                      sx={{
+                        color: "rgba(255,255,255,0.45)",
+                        fontSize: "0.68rem",
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {step.extraDetail}
+                    </Typography>
+                  ) : null}
+                </Box>
               </Box>
             </Box>
           );

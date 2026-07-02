@@ -204,7 +204,7 @@ export function CoachMeetingBookingForm({ audience }: Props) {
   if (record?.status === "completed") {
     return (
       <Alert severity="success">
-        Your {topic.toLowerCase()} has been marked completed. You can proceed to Choose Your Mission.
+        Your {topic.toLowerCase()} has been marked completed. You can proceed to Choose Your First Mission.
       </Alert>
     );
   }

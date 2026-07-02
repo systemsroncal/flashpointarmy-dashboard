@@ -326,6 +326,13 @@ export function buildMainDashboardTourEntries(
       sidebarHook
     ),
     stepForSelector(
+      "header-account-settings",
+      '[data-tour="header-account-settings"]',
+      "Account settings",
+      "Open Settings in the top bar to change your password or edit your profile. This is the quickest way to update your sign-in details.",
+      "bottom"
+    ),
+    stepForSelector(
       "header-notifications",
       '[data-tour="header-notifications"]',
       elevated && input.showSystemNotificationBell ? "System notifications" : "Announcements",

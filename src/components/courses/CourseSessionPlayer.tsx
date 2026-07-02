@@ -11,7 +11,8 @@ import {
   insertCourseSessionCompletedFeed,
 } from "@/lib/community/training-feed";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
-import { coachMeetingScheduleLabel } from "@/lib/onboarding/coach-meeting-labels";
+import { coachMeetingScheduleLabel, coachMeetingStepHref } from "@/lib/onboarding/coach-meeting-labels";
+import { MARK_COMPLETE_MIN_SAVED_FRACTION } from "@/lib/onboarding/video-progress-threshold";
 import type { QuizElementPayload } from "@/types/course-content";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -57,7 +58,7 @@ function videoDurationStorageKey(elementId: string): string {
 }
 
 /** Minimum saved watch progress before "Mark session as completed" is offered. */
-const MARK_COMPLETE_MIN_SAVED_FRACTION = 0.6;
+const MARK_COMPLETE_MIN_SAVED_FRACTION_LOCAL = MARK_COMPLETE_MIN_SAVED_FRACTION;
 
 function isVideoDoneFlag(value: unknown): boolean {
   return value === 1 || value === true;
@@ -95,7 +96,7 @@ function isVideoEligibleForMarkComplete(
   const saved = numericVideoPositions(positions)[elementId] ?? 0;
   const dur = durations[elementId];
   if (!dur || dur <= 0) return false;
-  return saved / dur >= MARK_COMPLETE_MIN_SAVED_FRACTION;
+  return saved / dur >= MARK_COMPLETE_MIN_SAVED_FRACTION_LOCAL;
 }
 
 export function CourseSessionPlayer({
@@ -146,6 +147,7 @@ export function CourseSessionPlayer({
     ? ("local_leader" as const)
     : ("member" as const);
   const scheduleCoachLabel = coachMeetingScheduleLabel(coachMeetingAudience);
+  const nextStepHref = coachMeetingStepHref(coachMeetingAudience);
   const supabase = useMemo(() => createClient(), []);
   const [completed, setCompleted] = useState(initialCompleted);
   const [busyComplete, setBusyComplete] = useState(false);
@@ -624,7 +626,7 @@ export function CourseSessionPlayer({
               )}
               <Button
                 component={completed ? Link : "button"}
-                href={completed ? "/dashboard/training/coach-meeting" : undefined}
+                href={completed ? nextStepHref : undefined}
                 variant="contained"
                 color="primary"
                 disabled={!completed}

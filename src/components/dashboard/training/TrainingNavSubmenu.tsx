@@ -1,12 +1,20 @@
 "use client";
 
-import { coachMeetingStepTitle } from "@/lib/onboarding/coach-meeting-labels";
+import { coachMeetingStepHref, coachMeetingStepTitle } from "@/lib/onboarding/coach-meeting-labels";
 import {
-  formatOnboardingStepLabel,
+  coachMeetingStepDisplay,
+  firstMissionStepDisplay,
+  firstMissionStepTitle,
+  trainingStepDisplay,
+} from "@/lib/onboarding/onboarding-step-display";
+import {
   type MemberOnboardingSnapshot,
   type TrainingStepStatus,
 } from "@/lib/onboarding/member-onboarding-status";
-import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
+import { resolveOnboardingStepStatusHref } from "@/lib/onboarding/onboarding-navigation";
+import { OnboardingStatusWithInfo } from "@/components/dashboard/onboarding/OnboardingStatusWithInfo";
+import { faCheck, faLock, faUnlock } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SchoolIcon from "@mui/icons-material/School";
@@ -29,13 +37,38 @@ type SubItem = {
   href: string | null;
   status: string;
   trainingStatus?: TrainingStepStatus;
+  statusLabel: string;
+  statusTooltip: string;
+  statusHref: string | null;
 };
 
 function bulletColor(status: string, enabled: boolean): string {
-  if (!enabled) return "#9ca3af";
   if (status === "completed") return "#22c55e";
+  if (!enabled || status === "locked") return "#9ca3af";
   if (status === "in_progress" || status === "pending") return "#f1900f";
   return "#9ca3af";
+}
+
+function statusBulletIcon(status: string) {
+  if (status === "completed") return faCheck;
+  if (status === "locked") return faLock;
+  return faUnlock;
+}
+
+function isSubItemSelected(item: SubItem, pathname: string): boolean {
+  if (item.key === "bc") {
+    return pathname === "/dashboard/training";
+  }
+  if (!item.href) return false;
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
+function isSubItemRouteActive(item: SubItem, pathname: string): boolean {
+  if (item.key === "bc") {
+    return pathname === "/dashboard/training";
+  }
+  if (!item.href) return false;
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
 function isItemEnabled(item: SubItem, snapshot: MemberOnboardingSnapshot): boolean {
@@ -47,27 +80,40 @@ function isItemEnabled(item: SubItem, snapshot: MemberOnboardingSnapshot): boole
 
 function buildSubItems(snapshot: MemberOnboardingSnapshot): SubItem[] {
   const coachLabel = coachMeetingStepTitle(snapshot.rankAudience);
+  const trainingDisplay = trainingStepDisplay(snapshot.training);
+  const coachDisplay = coachMeetingStepDisplay(snapshot.coachMeeting, snapshot.rankAudience);
+  const missionDisplay = firstMissionStepDisplay(snapshot.firstMission, snapshot.rankAudience);
+
   return [
     {
       key: "bc",
       label: "Biblical Citizenship",
-      href: `/dashboard/course/${BIBLICAL_CITIZENSHIP_COURSE_SLUG}`,
+      href: "/dashboard/training",
       status: snapshot.training,
       trainingStatus: snapshot.training,
+      statusLabel: trainingDisplay.label,
+      statusTooltip: trainingDisplay.tooltip,
+      statusHref: resolveOnboardingStepStatusHref("training", snapshot),
     },
     {
       key: "coach",
       label: coachLabel,
-      href: "/dashboard/training/coach-meeting",
+      href: coachMeetingStepHref(snapshot.rankAudience),
       status: snapshot.coachMeeting,
       trainingStatus: snapshot.training,
+      statusLabel: coachDisplay.label,
+      statusTooltip: coachDisplay.tooltip,
+      statusHref: resolveOnboardingStepStatusHref("coachMeeting", snapshot),
     },
     {
       key: "mission",
-      label: "Choose Your Mission",
+      label: firstMissionStepTitle(),
       href: "/dashboard/missions",
       status: snapshot.firstMission,
       trainingStatus: snapshot.training,
+      statusLabel: missionDisplay.label,
+      statusTooltip: missionDisplay.tooltip,
+      statusHref: resolveOnboardingStepStatusHref("firstMission", snapshot),
     },
   ];
 }
@@ -89,9 +135,7 @@ export function TrainingNavSubmenu({
 }: Props) {
   const pathname = usePathname();
   const subItems = useMemo(() => buildSubItems(snapshot), [snapshot]);
-  const subActive = subItems.some(
-    (item) => item.href && (pathname === item.href || pathname.startsWith(`${item.href}/`))
-  );
+  const subActive = subItems.some((item) => isSubItemRouteActive(item, pathname));
   const [open, setOpen] = useState(selectedParent || subActive);
 
   useEffect(() => {
@@ -147,10 +191,9 @@ export function TrainingNavSubmenu({
           <List disablePadding sx={{ position: "relative" }}>
             {subItems.map((item) => {
               const enabled = isItemEnabled(item, snapshot);
-              const selected = Boolean(
-                item.href && (pathname === item.href || pathname.startsWith(`${item.href}/`))
-              );
+              const selected = isSubItemSelected(item, pathname);
               const bullet = bulletColor(item.status, enabled);
+              const bulletIcon = statusBulletIcon(item.status);
               const content = (
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, py: 0.5, pl: "3px" }}>
                   <Box
@@ -158,24 +201,31 @@ export function TrainingNavSubmenu({
                     sx={{
                       width: 13,
                       borderTop: "1px dashed rgba(255,255,255,0.28)",
-                      mt: 0.85,
+                      mt: 0.95,
                       flexShrink: 0,
                     }}
                   />
                   <Box
+                    aria-hidden
                     sx={{
-                      width: 10,
-                      height: 10,
+                      width: 15,
+                      height: 15,
                       borderRadius: "50%",
                       bgcolor: bullet,
                       flexShrink: 0,
-                      mt: 0.55,
+                      mt: 0.45,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: item.status === "completed" ? "#fff" : "#0a0a0a",
                       boxShadow:
                         item.status === "in_progress" && enabled
                           ? "inset 0 1px 2px rgba(255,255,255,0.45)"
                           : "none",
                     }}
-                  />
+                  >
+                    <FontAwesomeIcon icon={bulletIcon} style={{ width: 8, height: 8, fontSize: 8 }} />
+                  </Box>
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Box
                       sx={{
@@ -193,7 +243,12 @@ export function TrainingNavSubmenu({
                         fontSize: "0.68rem",
                       }}
                     >
-                      {formatOnboardingStepLabel(item.status)}
+                      <OnboardingStatusWithInfo
+                        label={item.statusLabel}
+                        tooltip={item.statusTooltip}
+                        href={enabled ? null : item.statusHref}
+                        size="small"
+                      />
                     </Box>
                   </Box>
                 </Box>

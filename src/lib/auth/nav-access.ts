@@ -13,6 +13,7 @@ export function isLocalLeaderNonElevated(roleNames: string[]): boolean {
 }
 
 const LOCAL_LEADER_HIDDEN_MODULES = new Set<string>([
+  MODULE_SLUGS.chapters,
   MODULE_SLUGS.logs,
   MODULE_SLUGS.admins,
   MODULE_SLUGS.courses,
@@ -41,11 +42,22 @@ const MEMBER_NAV_MODULES = new Set<string>([
 ]);
 
 /**
+ * Chapters admin directory — not for member / local leader accounts.
+ */
+function isChaptersNavHiddenForRoles(roleNames: string[]): boolean {
+  if (isElevatedRole(roleNames) || isSubAdminUser(roleNames)) return false;
+  return roleNames.includes("member") || roleNames.includes("local_leader");
+}
+
+/**
  * Role-based nav visibility before `can(permissions, …, read)`.
  * Elevated users: no extra hiding here.
  */
 export function isNavModuleAllowedForRoles(moduleSlug: string, roleNames: string[]): boolean {
   if (isElevatedRole(roleNames)) return true;
+  if (moduleSlug === MODULE_SLUGS.chapters && isChaptersNavHiddenForRoles(roleNames)) {
+    return false;
+  }
   if (isSubAdminUser(roleNames)) {
     return SUB_ADMIN_NAV_MODULES.has(moduleSlug);
   }

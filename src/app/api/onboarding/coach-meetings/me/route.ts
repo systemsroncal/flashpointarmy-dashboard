@@ -56,6 +56,12 @@ export async function POST(req: Request) {
   if (!isMemberOnboardingAudience(roleNames)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
+  if (roleNames.includes("member") && !roleNames.includes("local_leader")) {
+    return NextResponse.json(
+      { error: "Members complete Mission Briefing instead of booking a call." },
+      { status: 403 }
+    );
+  }
 
   const training = await loadTrainingStepStatus(supabase, user.id);
   if (training !== "completed") {

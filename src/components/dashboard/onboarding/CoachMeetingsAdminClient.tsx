@@ -388,7 +388,7 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
                   }
                 >
                   <MenuItem value="coach_meeting">Coach Meeting (Local leader)</MenuItem>
-                  <MenuItem value="onboarding_call">Onboarding Call (Member)</MenuItem>
+                  <MenuItem value="onboarding_call">Mission Briefing (Member)</MenuItem>
                 </Select>
               </FormControl>
               <TextField label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} fullWidth />

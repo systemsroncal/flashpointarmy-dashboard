@@ -72,6 +72,7 @@ import { DashboardPresenceProvider } from "@/contexts/DashboardPresenceContext";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/client";
 import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
+import { HeaderAccountSettingsButton } from "./HeaderAccountSettingsButton";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { MobilizeNavNotificationsBadge } from "@/components/mobilize/MobilizeNavNotificationsBadge";
@@ -1297,6 +1298,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <Box sx={{ flexGrow: 1 }} />
           <RoleWelcomeVideoPrompt />
           <DashboardTourHelpButton />
+          <HeaderAccountSettingsButton onOpenProfile={() => setProfileOpen(true)} />
           <Box data-tour="header-notifications" sx={{ display: "inline-flex", alignItems: "center" }}>
             {showSystemNotificationBell ? (
               <NotificationMenu userId={user.id} />

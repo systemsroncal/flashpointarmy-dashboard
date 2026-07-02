@@ -1,11 +1,16 @@
 "use client";
 
 import { MissionRankInfoDialog } from "@/components/dashboard/national-overview/MissionRankInfoDialog";
+import { OnboardingStatusWithInfo } from "@/components/dashboard/onboarding/OnboardingStatusWithInfo";
 import { coachMeetingStepTitle } from "@/lib/onboarding/coach-meeting-labels";
 import {
-  formatOnboardingStepLabel,
-  type MemberOnboardingSnapshot,
-} from "@/lib/onboarding/member-onboarding-status";
+  coachMeetingStepDisplay,
+  firstMissionStepDisplay,
+  firstMissionStepTitle,
+  trainingStepDisplay,
+} from "@/lib/onboarding/onboarding-step-display";
+import type { MemberOnboardingSnapshot } from "@/lib/onboarding/member-onboarding-status";
+import { resolveOnboardingStepStatusHref } from "@/lib/onboarding/onboarding-navigation";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { Box, IconButton, Paper, Tooltip, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
@@ -27,12 +32,45 @@ export function MemberOnboardingProgressCard({ snapshot }: Props) {
   const [rankInfoOpen, setRankInfoOpen] = useState(false);
 
   const steps = useMemo(
-    (): { key: StepKey; label: string }[] => [
-      { key: "training", label: "Training" },
-      { key: "coachMeeting", label: coachMeetingStepTitle(snapshot.rankAudience) },
-      { key: "firstMission", label: "Choose Your Mission" },
-    ],
-    [snapshot.rankAudience]
+    (): {
+      key: StepKey;
+      label: string;
+      statusLabel: string;
+      tooltip: string;
+      status: string;
+      statusHref: string | null;
+    }[] => {
+      const training = trainingStepDisplay(snapshot.training);
+      const coach = coachMeetingStepDisplay(snapshot.coachMeeting, snapshot.rankAudience);
+      const mission = firstMissionStepDisplay(snapshot.firstMission, snapshot.rankAudience);
+      return [
+        {
+          key: "training",
+          label: "Training",
+          statusLabel: training.label,
+          tooltip: training.tooltip,
+          status: snapshot.training,
+          statusHref: resolveOnboardingStepStatusHref("training", snapshot),
+        },
+        {
+          key: "coachMeeting",
+          label: coachMeetingStepTitle(snapshot.rankAudience),
+          statusLabel: coach.label,
+          tooltip: coach.tooltip,
+          status: snapshot.coachMeeting,
+          statusHref: resolveOnboardingStepStatusHref("coachMeeting", snapshot),
+        },
+        {
+          key: "firstMission",
+          label: firstMissionStepTitle(),
+          statusLabel: mission.label,
+          tooltip: mission.tooltip,
+          status: snapshot.firstMission,
+          statusHref: resolveOnboardingStepStatusHref("firstMission", snapshot),
+        },
+      ];
+    },
+    [snapshot]
   );
 
   return (
@@ -89,8 +127,7 @@ export function MemberOnboardingProgressCard({ snapshot }: Props) {
             gap: { xs: 1.5, sm: 2 },
           }}
         >
-          {steps.map(({ key, label }) => {
-            const status = snapshot[key];
+          {steps.map(({ key, label, statusLabel, tooltip, status, statusHref }) => {
             const color = statusColor(status);
             return (
               <Box key={key}>
@@ -119,9 +156,14 @@ export function MemberOnboardingProgressCard({ snapshot }: Props) {
                           : "none",
                     }}
                   />
-                  <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.72)", fontSize: "0.92rem" }}>
-                    {formatOnboardingStepLabel(status)}
-                  </Typography>
+                  <Box sx={{ color: "rgba(255,255,255,0.72)", fontSize: "0.92rem" }}>
+                    <OnboardingStatusWithInfo
+                      label={statusLabel}
+                      tooltip={tooltip}
+                      href={statusHref}
+                      size="default"
+                    />
+                  </Box>
                 </Box>
               </Box>
             );

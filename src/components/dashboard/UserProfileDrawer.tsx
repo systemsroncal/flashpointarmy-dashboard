@@ -10,6 +10,7 @@ import { usStateByCode } from "@/data/usStates";
 import { createClient } from "@/utils/supabase/client";
 import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import {
   Alert,
@@ -27,6 +28,7 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
 type ProfileRow = {
   first_name: string | null;
@@ -87,6 +89,7 @@ export function UserProfileDrawer({
   const [avatarNonce, setAvatarNonce] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -457,6 +460,14 @@ export function UserProfileDrawer({
                 >
                   Edit profile
                 </Button>
+                <Button
+                  startIcon={<LockOutlinedIcon />}
+                  variant="outlined"
+                  sx={{ mt: 1 }}
+                  onClick={() => setPasswordOpen(true)}
+                >
+                  Change password
+                </Button>
               </Box>
             ) : (
               <Box
@@ -586,6 +597,7 @@ export function UserProfileDrawer({
         )}
       </Box>
       </Box>
+      <ChangePasswordDialog open={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </Drawer>
   );
 }

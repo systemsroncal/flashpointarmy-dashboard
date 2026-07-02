@@ -38,6 +38,7 @@ export function pathnameToTourModuleKey(
 const PROFILE_AND_CHROME_STEP_IDS = [
   "sidebar-profile",
   "sidebar-sign-out",
+  "header-account-settings",
   "header-notifications",
   "header-tour-help",
 ] as const;
