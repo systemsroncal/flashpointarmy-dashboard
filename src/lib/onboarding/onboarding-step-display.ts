@@ -14,44 +14,11 @@ export type StepDisplay = {
 
 const FIRST_MISSION_TOTAL = 5;
 
-function firstMissionLockedTooltip(audience: MissionRankAudience): string {
-  return audience === "local_leader"
-    ? "Complete your coach meeting to unlock this step."
-    : "Complete your Mission Briefing to unlock this step.";
-}
-
-/** Display label + tooltip for step 2 (Meet Your Coach / Mission Briefing). */
+/** Display label + tooltip for step 2 (Mission Briefing — members and local leaders). */
 export function coachMeetingStepDisplay(
   status: CoachMeetingStepStatus,
-  audience: MissionRankAudience
+  _audience?: MissionRankAudience
 ): StepDisplay {
-  if (audience === "local_leader") {
-    switch (status) {
-      case "locked":
-        return {
-          label: "Locked",
-          tooltip: "Complete Biblical Citizenship to unlock this step.",
-        };
-      case "pending":
-        return {
-          label: "Schedule Your Call",
-          tooltip: "Choose a convenient time to meet with a Chapter Coach.",
-        };
-      case "in_progress":
-        return {
-          label: "Appointment Scheduled",
-          tooltip: "Awaiting your scheduled onboarding call.",
-        };
-      case "completed":
-        return {
-          label: "Completed",
-          tooltip: "You're ready to choose your first mission.",
-        };
-      default:
-        return { label: status, tooltip: "" };
-    }
-  }
-
   switch (status) {
     case "locked":
       return {
@@ -82,14 +49,14 @@ export function coachMeetingStepDisplay(
 /** Display label + tooltip for step 3 (Choose Your First Mission). */
 export function firstMissionStepDisplay(
   status: FirstMissionStepStatus,
-  audience: MissionRankAudience,
+  _audience?: MissionRankAudience,
   missionsCompleted = 0
 ): StepDisplay {
   switch (status) {
     case "locked":
       return {
         label: "Locked",
-        tooltip: firstMissionLockedTooltip(audience),
+        tooltip: "Complete your Mission Briefing to unlock this step.",
       };
     case "pending":
       return {

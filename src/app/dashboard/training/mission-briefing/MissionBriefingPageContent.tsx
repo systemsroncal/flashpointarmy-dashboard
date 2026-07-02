@@ -29,9 +29,6 @@ async function MissionBriefingPageInner() {
   if (!isMemberOnboardingAudience(roleNames)) {
     redirect("/dashboard/training");
   }
-  if (roleNames.includes("local_leader")) {
-    redirect("/dashboard/training/coach-meeting");
-  }
 
   const snapshot = await loadMemberOnboardingSnapshot(supabase, user.id, roleNames);
   if (snapshot.training !== "completed") {

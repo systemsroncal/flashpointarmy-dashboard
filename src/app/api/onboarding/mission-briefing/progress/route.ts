@@ -1,21 +1,17 @@
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isMissionBriefingAudience } from "@/lib/onboarding/mission-briefing-audience";
 import { requireServerUser } from "@/lib/auth/server-session";
 import { NextResponse } from "next/server";
 
-function isMemberOnly(roleNames: string[]): boolean {
-  return roleNames.includes("member") && !roleNames.includes("local_leader");
-}
-
-type Body = {
-  video_position_seconds?: number;
+type Body = {  video_position_seconds?: number;
   video_duration_seconds?: number | null;
 };
 
 export async function PATCH(req: Request) {
   const { supabase, user } = await requireServerUser();
   const roleNames = await loadUserRoleNames(supabase, user.id);
-  if (!isMemberOnly(roleNames)) {
-    return NextResponse.json({ error: "Mission Briefing is for members only." }, { status: 403 });
+  if (!isMissionBriefingAudience(roleNames)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
   let body: Body;

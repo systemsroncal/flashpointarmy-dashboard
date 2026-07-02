@@ -6,10 +6,13 @@ import {
   MARK_COMPLETE_MIN_SAVED_FRACTION,
 } from "@/lib/onboarding/video-progress-threshold";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import { Alert, Box, Button, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Dialog, DialogContent, Stack, Typography } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+const REDIRECT_DELAY_MS = 4000;
+const MISSIONS_HREF = "/dashboard/missions";
 
 type Props = {
   videoUrl: string;
@@ -31,6 +34,8 @@ export function MissionBriefingPlayer({
   const [completed, setCompleted] = useState(briefingCompleted);
   const [busyMark, setBusyMark] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [thanksOpen, setThanksOpen] = useState(false);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedRef = useRef(false);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -47,6 +52,12 @@ export function MissionBriefingPlayer({
     } catch {
       /* best-effort */
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -77,6 +88,10 @@ export function MissionBriefingPlayer({
         return;
       }
       setCompleted(true);
+      setThanksOpen(true);
+      redirectTimerRef.current = setTimeout(() => {
+        router.push(MISSIONS_HREF);
+      }, REDIRECT_DELAY_MS);
       router.refresh();
     } finally {
       setBusyMark(false);
@@ -148,7 +163,7 @@ export function MissionBriefingPlayer({
         </Button>
         <Button
           component={chooseMissionEnabled ? Link : "button"}
-          href={chooseMissionEnabled ? "/dashboard/missions" : undefined}
+          href={chooseMissionEnabled ? MISSIONS_HREF : undefined}
           variant="contained"
           disabled={!chooseMissionEnabled}
           sx={{
@@ -172,6 +187,24 @@ export function MissionBriefingPlayer({
           Choose Your First Mission
         </Button>
       </Stack>
+
+      <Dialog open={thanksOpen} maxWidth="sm" fullWidth>
+        <DialogContent sx={{ py: 3 }}>
+          <Box sx={{ textAlign: "center" }}>
+            <CheckCircleOutlineIcon sx={{ fontSize: 48, color: "success.main", mb: 1.5 }} />
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1.5 }}>
+              Thank you!
+            </Typography>
+            <Typography color="text.secondary" sx={{ lineHeight: 1.7, mb: 2 }}>
+              You have completed your Mission Briefing. You will now be redirected to choose your first
+              mission.
+            </Typography>
+            <Button component={Link} href={MISSIONS_HREF} variant="contained" sx={{ fontWeight: 700 }}>
+              Choose Your First Mission
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
