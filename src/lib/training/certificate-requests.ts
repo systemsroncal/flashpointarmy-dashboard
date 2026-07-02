@@ -2,7 +2,15 @@ import {
   BIBLICAL_CITIZENSHIP_COURSE_SLUG,
   isUserCourseComplete,
 } from "@/lib/courses/course-completion";
+import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+/** Member / local leader certificate upload — off for now; re-enable when ready. */
+export function isExternalCertificateSubmissionEnabled(roleNames: string[]): boolean {
+  if (isElevatedRole(roleNames)) return true;
+  if (roleNames.includes("member") || roleNames.includes("local_leader")) return false;
+  return true;
+}
 
 export type CertificateRequestStatus = "pending" | "approved" | "rejected";
 
@@ -51,8 +59,12 @@ export async function userHasPendingCertificateRequest(
 export async function shouldShowExternalCertificatePrompt(
   supabase: SupabaseClient,
   userId: string,
-  courseSlug = BIBLICAL_CITIZENSHIP_COURSE_SLUG
+  courseSlug = BIBLICAL_CITIZENSHIP_COURSE_SLUG,
+  roleNames?: string[]
 ): Promise<boolean> {
+  const roles = roleNames ?? (await loadUserRoleNames(supabase, userId));
+  if (!isExternalCertificateSubmissionEnabled(roles)) return false;
+
   const complete = await isUserCourseComplete(supabase, userId, courseSlug);
   if (complete) return false;
   const courseId = await resolveCourseIdBySlug(supabase, courseSlug);

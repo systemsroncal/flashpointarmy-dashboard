@@ -4,6 +4,8 @@ import {
   fileExtensionForKind,
   validateAvatarFile,
 } from "@/lib/upload/validate-image";
+import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isExternalCertificateSubmissionEnabled } from "@/lib/training/certificate-requests";
 import { writeTrainingCertificate } from "@/lib/uploads/local-public-image";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { NextResponse } from "next/server";
@@ -16,7 +18,15 @@ function isPdf(buf: ArrayBuffer): boolean {
 export async function POST(req: Request) {
   const authResult = await requireApiAuth();
   if ("response" in authResult) return authResult.response;
-  const { user } = authResult;
+  const { supabase, user } = authResult;
+
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  if (!isExternalCertificateSubmissionEnabled(roleNames)) {
+    return NextResponse.json(
+      { error: "Certificate upload is not available at this time." },
+      { status: 403 }
+    );
+  }
 
   const formData = await req.formData();
   const file = formData.get("file");

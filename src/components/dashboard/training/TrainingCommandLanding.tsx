@@ -10,7 +10,6 @@ import { TrainingIntroVideoAdmin } from "@/components/dashboard/training/Trainin
 const assignmentSteps = [
   "Watch the introduction from Gene Bailey below.",
   "Complete all lessons in the Biblical Citizenship course at your own pace.",
-  'If you have already completed this course through Patriot Academy, select "Continue Here" below to continue your journey.',
 ];
 
 type IntroVideoAdminProps = {

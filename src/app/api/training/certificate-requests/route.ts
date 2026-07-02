@@ -6,6 +6,7 @@ import { loadUserRoleNames, isElevatedRole } from "@/lib/auth/user-roles";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import {
+  isExternalCertificateSubmissionEnabled,
   resolveCourseIdBySlug,
   type CertificateRequestRow,
 } from "@/lib/training/certificate-requests";
@@ -125,6 +126,14 @@ export async function POST(req: Request) {
   const authResult = await requireApiAuth();
   if ("response" in authResult) return authResult.response;
   const { supabase, user } = authResult;
+
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  if (!isExternalCertificateSubmissionEnabled(roleNames)) {
+    return NextResponse.json(
+      { error: "Certificate submission is not available at this time." },
+      { status: 403 }
+    );
+  }
 
   let body: PostBody;
   try {
