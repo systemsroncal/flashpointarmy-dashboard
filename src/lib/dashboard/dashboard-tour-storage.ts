@@ -72,6 +72,36 @@ export function markAutoTourCompleted(userId: string): void {
   }
 }
 
+const POST_LOGIN_AUTO_TOUR_SESSION_KEY = "fpa_post_login_auto_tour_v1";
+
+/** Set after a successful sign-in so the dashboard can run the one-time auto tour. */
+export function markPostLoginAutoTourPending(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(POST_LOGIN_AUTO_TOUR_SESSION_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isPostLoginAutoTourPending(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return sessionStorage.getItem(POST_LOGIN_AUTO_TOUR_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function clearPostLoginAutoTourPending(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(POST_LOGIN_AUTO_TOUR_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Remove the given step ids from the per-user "seen" set (used to restart a module's tour). */
 export function clearSeenTourStepIds(userId: string, stepIds: string[]): void {
   if (typeof window === "undefined" || stepIds.length === 0) return;

@@ -15,8 +15,10 @@ import {
   pickEntriesForModuleVisit,
 } from "@/lib/dashboard/dashboard-tour-routes";
 import {
+  clearPostLoginAutoTourPending,
   getSeenTourStepIds,
   hasAutoTourCompleted,
+  isPostLoginAutoTourPending,
   markAutoTourCompleted,
   markTourStepSeen,
 } from "@/lib/dashboard/dashboard-tour-storage";
@@ -60,7 +62,6 @@ type DashboardTourProviderProps = {
   openProfileDrawer: () => void;
   closeProfileDrawer: () => void;
   setProfileEditMode: (edit: boolean) => void;
-  autoStartMainTour?: boolean;
 };
 
 async function loadDriver(): Promise<typeof import("driver.js")> {
@@ -72,8 +73,8 @@ function noopOverlayClick(): void {
 }
 
 /**
- * "auto" = one-time automatic tour on first dashboard home visit. Marks each
- *   step as seen and sets a global "auto tour done" flag when finished or skipped.
+ * "auto" = one-time automatic tour right after sign-in. Marks each step as seen
+ *   and sets a global "auto tour done" flag when finished or skipped.
  * "help" = manual tour via the (?) header button. Does NOT mutate seen state.
  */
 type RunMode = "auto" | "help";
@@ -154,7 +155,6 @@ export function DashboardTourProvider({
   openProfileDrawer,
   closeProfileDrawer,
   setProfileEditMode,
-  autoStartMainTour = false,
 }: DashboardTourProviderProps) {
   const pathname = usePathname();
   const driverRef = useRef<Driver | null>(null);
@@ -278,14 +278,16 @@ export function DashboardTourProvider({
   const contextValue = useMemo(() => ({ startTour }), [startTour]);
 
   /**
-   * Optional one-time auto-tour (disabled by default). When enabled, only runs on
-   * first dashboard home visit before the user finishes or skips it. Otherwise
-   * use the (?) help button.
+   * One-time auto-tour after sign-in only (flag set on login page). After that,
+   * use the (?) help button. Does not run on refresh or in-app navigation.
    */
   useEffect(() => {
     if (!driverReady) return;
-    if (!autoStartMainTour) return;
-    if (hasAutoTourCompleted(userId)) return;
+    if (!isPostLoginAutoTourPending()) return;
+    if (hasAutoTourCompleted(userId)) {
+      clearPostLoginAutoTourPending();
+      return;
+    }
     if (pathname.startsWith("/dashboard/mobilize")) return;
     if (autoTourStartedRef.current) return;
 
@@ -295,7 +297,12 @@ export function DashboardTourProvider({
     let cancelled = false;
 
     const tryAutoTour = async () => {
-      if (cancelled || autoTourStartedRef.current || hasAutoTourCompleted(userId)) return;
+      if (cancelled || autoTourStartedRef.current) return;
+      if (!isPostLoginAutoTourPending()) return;
+      if (hasAutoTourCompleted(userId)) {
+        clearPostLoginAutoTourPending();
+        return;
+      }
 
       try {
         const supabase = createClient();
@@ -322,11 +329,13 @@ export function DashboardTourProvider({
       );
       if (entries.length === 0) {
         markAutoTourCompleted(userId);
+        clearPostLoginAutoTourPending();
         autoTourStartedRef.current = true;
         return;
       }
 
       autoTourStartedRef.current = true;
+      clearPostLoginAutoTourPending();
       await runTourEntries({ entries, mode: "auto" });
     };
 
@@ -343,7 +352,7 @@ export function DashboardTourProvider({
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [autoStartMainTour, driverReady, pathname, runTourEntries, userId]);
+  }, [driverReady, pathname, runTourEntries, userId]);
 
   useEffect(() => {
     return () => {
