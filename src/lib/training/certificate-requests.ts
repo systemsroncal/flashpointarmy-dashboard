@@ -5,10 +5,10 @@ import {
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** Member / local leader certificate upload — off for now; re-enable when ready. */
+/** Member / local leader certificate request form — on; file upload step is hidden in UI for now. */
 export function isExternalCertificateSubmissionEnabled(roleNames: string[]): boolean {
   if (isElevatedRole(roleNames)) return true;
-  if (roleNames.includes("member") || roleNames.includes("local_leader")) return false;
+  if (roleNames.includes("member") || roleNames.includes("local_leader")) return true;
   return true;
 }
 
@@ -102,4 +102,8 @@ export async function markAllCourseSessionsCompleteForUser(
   }
 
   return { sessionCount: sessions?.length ?? 0 };
+}
+
+export function hasCertificateAttachment(url: string | null | undefined): boolean {
+  return Boolean(url?.trim());
 }

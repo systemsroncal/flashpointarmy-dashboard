@@ -1,6 +1,7 @@
 "use client";
 
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import {
@@ -20,8 +21,10 @@ import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
 export function HeaderAccountSettingsButton({
   onOpenProfile,
+  onSignOut,
 }: {
   onOpenProfile: () => void;
+  onSignOut: () => void;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -39,6 +42,11 @@ export function HeaderAccountSettingsButton({
   function openPassword() {
     closeMenu();
     setPasswordOpen(true);
+  }
+
+  function signOut() {
+    closeMenu();
+    onSignOut();
   }
 
   return (
@@ -73,7 +81,7 @@ export function HeaderAccountSettingsButton({
             Account settings
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Profile, password, and sign-in options
+            Profile, password, and sign-out
           </Typography>
         </Box>
         <Divider />
@@ -95,6 +103,16 @@ export function HeaderAccountSettingsButton({
             <ListItemText
               primary="Change password"
               secondary="Update your sign-in password"
+              secondaryTypographyProps={{ variant: "caption" }}
+            />
+          </MenuItem>
+          <MenuItem onClick={signOut}>
+            <ListItemIcon>
+              <LogoutOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Sign out"
+              secondary="End your session and return to login"
               secondaryTypographyProps={{ variant: "caption" }}
             />
           </MenuItem>

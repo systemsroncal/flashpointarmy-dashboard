@@ -52,7 +52,22 @@ export function OnboardingStatusWithInfo({
         </Typography>
       )}
       {tooltip ? (
-        <Tooltip title={tooltip} enterTouchDelay={0} arrow>
+        <Tooltip
+          title={tooltip}
+          enterTouchDelay={0}
+          arrow
+          slotProps={{
+            tooltip: {
+              sx: {
+                fontSize: size === "small" ? "0.8rem" : "0.85rem",
+                lineHeight: 1.45,
+                maxWidth: 300,
+                px: 1.25,
+                py: 0.75,
+              },
+            },
+          }}
+        >
           <IconButton
             size="small"
             aria-label={`Status info: ${label}`}

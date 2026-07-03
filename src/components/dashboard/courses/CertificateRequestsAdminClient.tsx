@@ -3,6 +3,7 @@
 import {
   CertificateFilePreview,
 } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
+import { hasCertificateAttachment } from "@/lib/training/certificate-requests";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
 import { matchesStateChapterFilter, type ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import SearchIcon from "@mui/icons-material/Search";
@@ -387,11 +388,17 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                 <Typography variant="subtitle2" color="text.secondary">
                   Certificate
                 </Typography>
-                <CertificateFilePreview
-                  url={detail.certificate_url}
-                  mime={detail.certificate_mime}
-                  fileName={detail.certificate_file_name}
-                />
+                {hasCertificateAttachment(detail.certificate_url) ? (
+                  <CertificateFilePreview
+                    url={detail.certificate_url}
+                    mime={detail.certificate_mime}
+                    fileName={detail.certificate_file_name}
+                  />
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No file was attached to this request.
+                  </Typography>
+                )}
               </Box>
 
               {detail.status === "pending" ? (

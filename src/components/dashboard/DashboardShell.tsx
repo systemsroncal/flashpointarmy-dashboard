@@ -14,7 +14,6 @@ import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import GroupsIcon from "@mui/icons-material/Groups";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -1206,33 +1205,30 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Typography>
           </Box>
         </Box>
-        <ListItemButton
-          data-tour="sidebar-sign-out"
-          {...(isMobilize
-            ? ({ component: Link, href: "/dashboard" } as const)
-            : ({ component: "button", type: "button" } as const))}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (isMobilize) {
+        {isMobilize ? (
+          <ListItemButton
+            data-tour="sidebar-sign-out"
+            component={Link}
+            href="/dashboard"
+            onClick={(e) => {
+              e.stopPropagation();
               closeMobileDrawer();
-              return;
-            }
-            void handleSignOut();
-          }}
-          sx={{
-            mt: 0.5,
-            ...NAV_ITEM_TOUCH_SX,
-            ...(isMobilize ? MOBILIZE_DASHBOARD_NAV_ITEM_SX : { borderRadius: 1 }),
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: 38, color: "rgba(255,255,255,0.92)" }}>
-            {isMobilize ? <ArrowBackIcon fontSize="small" /> : <ExitToAppIcon fontSize="small" />}
-          </ListItemIcon>
-          <ListItemText
-            primary={isMobilize ? "Dashboard" : "Sign out"}
-            primaryTypographyProps={{ variant: "body2", fontSize: "calc(0.875rem + 3px)" }}
-          />
-        </ListItemButton>
+            }}
+            sx={{
+              mt: 0.5,
+              ...NAV_ITEM_TOUCH_SX,
+              ...MOBILIZE_DASHBOARD_NAV_ITEM_SX,
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 38, color: "rgba(255,255,255,0.92)" }}>
+              <ArrowBackIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Dashboard"
+              primaryTypographyProps={{ variant: "body2", fontSize: "calc(0.875rem + 3px)" }}
+            />
+          </ListItemButton>
+        ) : null}
         </Box>
       </Box>
     </Box>
@@ -1301,7 +1297,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <AnnouncementsNavBadge />
             )}
           </Box>
-          <HeaderAccountSettingsButton onOpenProfile={() => setProfileOpen(true)} />
+          <HeaderAccountSettingsButton
+            onOpenProfile={() => setProfileOpen(true)}
+            onSignOut={() => void handleSignOut()}
+          />
         </Toolbar>
       </AppBar>
 

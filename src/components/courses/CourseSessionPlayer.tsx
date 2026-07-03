@@ -12,6 +12,7 @@ import {
 } from "@/lib/community/training-feed";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { coachMeetingScheduleLabel, coachMeetingStepHref } from "@/lib/onboarding/coach-meeting-labels";
+import { isMissionBriefingNavigationEnabled } from "@/lib/onboarding/onboarding-step-access";
 import { MARK_COMPLETE_MIN_SAVED_FRACTION } from "@/lib/onboarding/video-progress-threshold";
 import type { QuizElementPayload } from "@/types/course-content";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -624,17 +625,19 @@ export function CourseSessionPlayer({
                   Mark session as completed
                 </Button>
               )}
-              <Button
-                component={completed ? Link : "button"}
-                href={completed ? nextStepHref : undefined}
-                variant="contained"
-                color="primary"
-                disabled={!completed}
-                startIcon={<CalendarMonthIcon />}
-                sx={{ minHeight: 48, fontWeight: 700, touchAction: "manipulation", whiteSpace: "nowrap" }}
-              >
-                {scheduleCoachLabel}
-              </Button>
+              {isMissionBriefingNavigationEnabled() ? (
+                <Button
+                  component={completed ? Link : "button"}
+                  href={completed ? nextStepHref : undefined}
+                  variant="contained"
+                  color="primary"
+                  disabled={!completed}
+                  startIcon={<CalendarMonthIcon />}
+                  sx={{ minHeight: 48, fontWeight: 700, touchAction: "manipulation", whiteSpace: "nowrap" }}
+                >
+                  {scheduleCoachLabel}
+                </Button>
+              ) : null}
             </Stack>
           ) : completed ? (
             <Button
@@ -662,18 +665,18 @@ export function CourseSessionPlayer({
             </Button>
           )}
         </Box>
-        <Button
-          component={nextSlug && !nextLocked ? Link : "button"}
-          href={
-            nextSlug && !nextLocked ? `/dashboard/course/${courseSlug}/session/${nextSlug}` : undefined
-          }
-          disabled={!nextSlug || nextLocked}
-          variant="outlined"
-          endIcon={<ArrowForwardIcon />}
-          sx={{ minHeight: 48, alignSelf: { sm: "flex-start" }, touchAction: "manipulation" }}
-        >
-          Next
-        </Button>
+        {nextSlug ? (
+          <Button
+            component={!nextLocked ? Link : "button"}
+            href={!nextLocked ? `/dashboard/course/${courseSlug}/session/${nextSlug}` : undefined}
+            disabled={nextLocked}
+            variant="outlined"
+            endIcon={<ArrowForwardIcon />}
+            sx={{ minHeight: 48, alignSelf: { sm: "flex-start" }, touchAction: "manipulation" }}
+          >
+            Next
+          </Button>
+        ) : null}
       </Stack>
       {nextLocked && nextSlug ? (
         <Typography variant="caption" color="warning.main">

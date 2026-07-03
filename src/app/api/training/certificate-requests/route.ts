@@ -156,9 +156,6 @@ export async function POST(req: Request) {
   if (!organizationName) {
     return NextResponse.json({ error: "Organization / chapter is required." }, { status: 400 });
   }
-  if (!certificateUrl) {
-    return NextResponse.json({ error: "Certificate upload is required." }, { status: 400 });
-  }
 
   const courseId = await resolveCourseIdBySlug(supabase, courseSlug);
   if (!courseId) return NextResponse.json({ error: "Course not found." }, { status: 404 });

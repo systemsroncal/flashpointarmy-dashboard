@@ -12,6 +12,10 @@ import {
   type TrainingStepStatus,
 } from "@/lib/onboarding/member-onboarding-status";
 import { resolveOnboardingStepStatusHref } from "@/lib/onboarding/onboarding-navigation";
+import {
+  isFirstMissionNavigationEnabled,
+  isMissionBriefingNavigationEnabled,
+} from "@/lib/onboarding/onboarding-step-access";
 import { OnboardingStatusWithInfo } from "@/components/dashboard/onboarding/OnboardingStatusWithInfo";
 import { faCheck, faLock, faUnlock } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -76,6 +80,13 @@ function isItemEnabled(item: SubItem, snapshot: MemberOnboardingSnapshot): boole
   if (item.key === "coach") return item.status !== "locked";
   if (item.key === "mission") return snapshot.coachMeeting === "completed";
   return false;
+}
+
+function isSubItemNavigable(item: SubItem, snapshot: MemberOnboardingSnapshot): boolean {
+  if (!isItemEnabled(item, snapshot) || !item.href) return false;
+  if (item.key === "coach" && !isMissionBriefingNavigationEnabled()) return false;
+  if (item.key === "mission" && !isFirstMissionNavigationEnabled()) return false;
+  return true;
 }
 
 function buildSubItems(snapshot: MemberOnboardingSnapshot): SubItem[] {
@@ -191,6 +202,7 @@ export function TrainingNavSubmenu({
           <List disablePadding sx={{ position: "relative" }}>
             {subItems.map((item) => {
               const enabled = isItemEnabled(item, snapshot);
+              const navigable = isSubItemNavigable(item, snapshot);
               const selected = isSubItemSelected(item, pathname);
               const bullet = bulletColor(item.status, enabled);
               const bulletIcon = statusBulletIcon(item.status);
@@ -246,7 +258,7 @@ export function TrainingNavSubmenu({
                       <OnboardingStatusWithInfo
                         label={item.statusLabel}
                         tooltip={item.statusTooltip}
-                        href={enabled ? null : item.statusHref}
+                        href={navigable ? null : item.statusHref}
                         size="small"
                       />
                     </Box>
@@ -256,7 +268,7 @@ export function TrainingNavSubmenu({
 
               return (
                 <ListItem key={item.key} disablePadding sx={{ pl: 0 }}>
-                  {enabled && item.href ? (
+                  {navigable && item.href ? (
                     <ListItemButton
                       component={Link}
                       href={item.href}

@@ -18,8 +18,8 @@ import { US_STATES, usStateById } from "@/data/usStates";
 
 const COLORS = {
   noActivity: "#1c1a1a",
-  low: "#f1900f",
-  moderate: "#676767",
+  low: "#676767",
+  moderate: "#f1900f",
   high: "#18d018",
   stroke: "rgba(255, 215, 0, 0.35)",
   stateBorder: "#ffffff",

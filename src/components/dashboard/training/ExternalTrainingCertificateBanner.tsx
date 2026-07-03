@@ -1,9 +1,10 @@
 "use client";
 
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
+import { hasCertificateAttachment } from "@/lib/training/certificate-requests";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
+import DownloadIcon from "@mui/icons-material/Download";
 import {
   Alert,
   Box,
@@ -49,7 +50,6 @@ export function ExternalTrainingCertificateBanner({
   const [confirmed, setConfirmed] = useState(false);
   const [completionDate, setCompletionDate] = useState("");
   const [organization, setOrganization] = useState("");
-  const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -67,7 +67,6 @@ export function ExternalTrainingCertificateBanner({
     setConfirmed(false);
     setCompletionDate("");
     setOrganization("");
-    setFile(null);
     setError(null);
   }, []);
 
@@ -99,27 +98,9 @@ export function ExternalTrainingCertificateBanner({
       setError("Organization / chapter is required.");
       return;
     }
-    if (!file) {
-      setError("Please upload your certificate (image or PDF).");
-      return;
-    }
 
     setSubmitting(true);
     try {
-      const uploadFd = new FormData();
-      uploadFd.append("file", file);
-      const uploadRes = await fetch("/api/training/certificate-requests/upload", {
-        method: "POST",
-        body: uploadFd,
-      });
-      const uploadJson = (await uploadRes.json()) as {
-        error?: string;
-        url?: string;
-        file_name?: string;
-        mime?: string;
-      };
-      if (!uploadRes.ok) throw new Error(uploadJson.error ?? "Upload failed.");
-
       const submitRes = await fetch("/api/training/certificate-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,9 +109,6 @@ export function ExternalTrainingCertificateBanner({
           completed_training_confirmed: true,
           completion_date: completionDate,
           organization_name: organization.trim(),
-          certificate_url: uploadJson.url,
-          certificate_file_name: uploadJson.file_name ?? file.name,
-          certificate_mime: uploadJson.mime ?? file.type,
         }),
       });
       const submitJson = (await submitRes.json()) as { error?: string };
@@ -160,14 +138,14 @@ export function ExternalTrainingCertificateBanner({
             lineHeight: 1.65,
           }}
         >
-          Thank you. We received your certificate for the <strong>{courseTitle}</strong> course. A team member will
+          Thank you. We received your request for the <strong>{courseTitle}</strong> course. A team member will
           review it and update your account.
         </Typography>
       );
     }
     return (
       <Alert severity="info" icon={<CheckCircleOutlineIcon />} sx={{ mb: 2 }}>
-        Thank you. We received your certificate for the <strong>{courseTitle}</strong> course. A team member will
+        Thank you. We received your request for the <strong>{courseTitle}</strong> course. A team member will
         review it and update your account. You do not need to submit again unless we ask you to.
       </Alert>
     );
@@ -191,11 +169,11 @@ export function ExternalTrainingCertificateBanner({
   const formDialog = (
     <Dialog open={formOpen} onClose={() => !submitting && setFormOpen(false)} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontSize: "1.15rem", fontWeight: 700 }}>
-        Submit your {courseTitle} certificate
+        Submit your {courseTitle} certificate request
       </DialogTitle>
       <DialogContent>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
-          Fill in the information below and upload your certificate. This is for people who already completed the{" "}
+          Fill in the information below. This is for people who already completed the{" "}
           <strong>{courseTitle}</strong> course at another organization.
         </Typography>
 
@@ -228,32 +206,7 @@ export function ExternalTrainingCertificateBanner({
           fullWidth
           multiline
           minRows={2}
-          sx={{ mb: 2 }}
         />
-
-        <Button
-          component="label"
-          variant="outlined"
-          startIcon={<UploadFileIcon />}
-          fullWidth
-          sx={{ mb: 1, justifyContent: "flex-start", py: 1.25 }}
-        >
-          {file ? file.name : "Certificate upload (image or PDF)"}
-          <input
-            type="file"
-            hidden
-            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
-        </Button>
-        {file && file.type.startsWith("image/") ? (
-          <Box
-            component="img"
-            src={URL.createObjectURL(file)}
-            alt="Certificate preview"
-            sx={{ mt: 1, maxWidth: "100%", maxHeight: 160, borderRadius: 1, border: "1px solid", borderColor: "divider" }}
-          />
-        ) : null}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={() => setFormOpen(false)} disabled={submitting}>
@@ -322,7 +275,7 @@ export function ExternalTrainingCertificateBanner({
           program — not on this website. If that is you, you do not need to watch every lesson here again.
         </Typography>
         <Typography sx={{ ...bodySx, mb: 2.5 }}>
-          Tap <strong>Yes</strong> to send a photo or PDF of your completion certificate. Our team will check it and
+          Tap <strong>Yes</strong> to tell us where and when you completed it. Our team will review your request and
           update your account when approved.
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
@@ -354,7 +307,7 @@ export function ExternalTrainingCertificateBanner({
   );
 }
 
-/** Preview certificate in admin detail dialog */
+/** Preview or download certificate in admin detail dialog */
 export function CertificateFilePreview({
   url,
   mime,
@@ -364,21 +317,27 @@ export function CertificateFilePreview({
   mime: string | null;
   fileName: string | null;
 }) {
+  if (!hasCertificateAttachment(url)) return null;
+
   const src = publicAssetSrc(url);
   const isPdf = mime === "application/pdf" || url.toLowerCase().endsWith(".pdf");
+  const label = fileName ?? (isPdf ? "Certificate.pdf" : "Certificate");
 
   if (isPdf) {
     return (
       <Box sx={{ mt: 1 }}>
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-          {fileName ?? "Certificate.pdf"}
-        </Typography>
-        <Box
-          component="iframe"
-          src={src}
-          title="Certificate PDF"
-          sx={{ width: "100%", height: 420, border: "1px solid", borderColor: "divider", borderRadius: 1 }}
-        />
+        <Button
+          component="a"
+          href={src}
+          download={label}
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          sx={{ justifyContent: "flex-start" }}
+        >
+          Download {label}
+        </Button>
       </Box>
     );
   }
@@ -387,7 +346,7 @@ export function CertificateFilePreview({
     <Box
       component="img"
       src={src}
-      alt={fileName ?? "Certificate"}
+      alt={label}
       sx={{ mt: 1, maxWidth: "100%", maxHeight: 420, borderRadius: 1, border: "1px solid", borderColor: "divider" }}
     />
   );

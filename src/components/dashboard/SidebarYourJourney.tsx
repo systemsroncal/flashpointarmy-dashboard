@@ -11,6 +11,10 @@ import {
   type MemberOnboardingSnapshot,
 } from "@/lib/onboarding/member-onboarding-status";
 import { resolveOnboardingStepStatusHref } from "@/lib/onboarding/onboarding-navigation";
+import {
+  isFirstMissionNavigationEnabled,
+  isMissionBriefingNavigationEnabled,
+} from "@/lib/onboarding/onboarding-step-access";
 import { OnboardingStatusWithInfo } from "@/components/dashboard/onboarding/OnboardingStatusWithInfo";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { flashpointYellow } from "@/theme/tokens";
@@ -68,7 +72,10 @@ function buildSteps(snapshot: MemberOnboardingSnapshot): JourneyStep[] {
       statusLabel: coachDisplay.label,
       statusTooltip: coachDisplay.tooltip,
       status: snapshot.coachMeeting,
-      href: coachMeetingStepHref(snapshot.rankAudience),
+      href:
+        isMissionBriefingNavigationEnabled() && snapshot.training === "completed"
+          ? coachMeetingStepHref(snapshot.rankAudience)
+          : null,
       statusHref: resolveOnboardingStepStatusHref("coachMeeting", snapshot),
       enabled: snapshot.training === "completed",
     },
@@ -79,7 +86,10 @@ function buildSteps(snapshot: MemberOnboardingSnapshot): JourneyStep[] {
       statusLabel: missionDisplay.label,
       statusTooltip: missionDisplay.tooltip,
       status: snapshot.firstMission,
-      href: MISSIONS_HREF,
+      href:
+        isFirstMissionNavigationEnabled() && snapshot.coachMeeting === "completed"
+          ? MISSIONS_HREF
+          : null,
       statusHref: resolveOnboardingStepStatusHref("firstMission", snapshot),
       enabled: snapshot.coachMeeting === "completed",
     },
@@ -141,8 +151,8 @@ export function SidebarYourJourney({ snapshot }: Props) {
             lineHeight: 1,
             mb: 0.2,
             textDecoration: "none",
-            cursor: step.enabled ? "pointer" : "default",
-            "&:hover": step.enabled ? { color: flashpointYellow } : undefined,
+            cursor: step.enabled && step.href ? "pointer" : "default",
+            "&:hover": step.enabled && step.href ? { color: flashpointYellow } : undefined,
           };
 
           return (
