@@ -4,6 +4,7 @@ import {
   loadTrainingLessonCounts,
   loadTrainingStepStatus,
 } from "@/lib/onboarding/onboarding-records";
+import { resolveCurrentMissionRankLabel, type MissionRankProgress } from "@/lib/onboarding/mission-rank-info";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type TrainingStepStatus = "pending" | "in_progress" | "completed";
@@ -75,12 +76,19 @@ export async function loadMemberOnboardingSnapshot(
     hasFirstMissionRow
   );
 
-  return {
+  const rankAudience: MissionRankAudience = roleNames.includes("local_leader")
+    ? "local_leader"
+    : "member";
+  const partial: MissionRankProgress = {
     training,
     coachMeeting,
     firstMission,
-    rankLabel: "Recruit",
-    rankAudience: roleNames.includes("local_leader") ? "local_leader" : "member",
+    rankAudience,
+  };
+
+  return {
+    ...partial,
+    rankLabel: resolveCurrentMissionRankLabel(partial),
     trainingCompletedLessons: lessonCounts.completed,
     trainingTotalLessons: lessonCounts.total,
   };

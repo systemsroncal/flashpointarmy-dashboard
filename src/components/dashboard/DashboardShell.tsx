@@ -356,7 +356,7 @@ const NAV: NavItem[] = [
     icon: <SportsIcon />,
   },
   {
-    label: "Notifications",
+    label: "Mission Updates",
     href: "/dashboard/notifications",
     module: MODULE_SLUGS.communications,
     icon: <CampaignIcon />,

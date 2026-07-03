@@ -8,6 +8,7 @@ import {
   preferNonEmptyAddr,
 } from "@/lib/admin/dashboard-user-queries";
 import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
@@ -21,7 +22,12 @@ export default async function LeadersPageContent() {
   const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
-  if (!can(permissions, MODULE_SLUGS.leaders, "read")) {
+  const roles = await loadUserRoleNames(supabase, user.id);
+
+  if (
+    !isNavModuleAllowedForRoles(MODULE_SLUGS.leaders, roles) ||
+    !can(permissions, MODULE_SLUGS.leaders, "read")
+  ) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
         <Typography color="error">You do not have access to Leaders.</Typography>
@@ -29,7 +35,6 @@ export default async function LeadersPageContent() {
     );
   }
 
-  const roles = await loadUserRoleNames(supabase, user.id);
   const chapterStaff = isChapterStaffRole(roles);
   const isSuperAdmin = roles.includes("super_admin");
   const isLocalLeader = roles.includes("local_leader");

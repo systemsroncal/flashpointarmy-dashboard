@@ -14,6 +14,7 @@ export function isLocalLeaderNonElevated(roleNames: string[]): boolean {
 
 const LOCAL_LEADER_HIDDEN_MODULES = new Set<string>([
   MODULE_SLUGS.chapters,
+  MODULE_SLUGS.leaders,
   MODULE_SLUGS.logs,
   MODULE_SLUGS.admins,
   MODULE_SLUGS.courses,
