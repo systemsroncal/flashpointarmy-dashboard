@@ -116,11 +116,33 @@ async function resolveOwnerId(admin, email) {
     .maybeSingle();
   if (mirror?.id) return mirror.id;
 
-  const { data: authData, error } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  if (error) throw new Error(`auth listUsers: ${error.message}`);
-  const match = (authData?.users ?? []).find((u) => u.email?.toLowerCase() === normalized);
-  if (!match?.id) throw new Error(`Owner not found: ${email}`);
-  return match.id;
+  const perPage = 1000;
+  for (let page = 1; page <= 50; page += 1) {
+    const { data: authData, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error) throw new Error(`auth listUsers: ${error.message}`);
+    const users = authData?.users ?? [];
+    const match = users.find((u) => u.email?.toLowerCase() === normalized);
+    if (match?.id) return match.id;
+    if (users.length < perPage) break;
+  }
+  throw new Error(`Owner not found: ${email}`);
+}
+
+async function findExistingStateChapter(admin, stateCode, name) {
+  const { data: byRegion } = await admin
+    .from("mobilize_groups")
+    .select("id, name, region_code")
+    .eq("region_code", stateCode)
+    .limit(1)
+    .maybeSingle();
+  if (byRegion?.id) return byRegion;
+
+  const { data: byName } = await admin
+    .from("mobilize_groups")
+    .select("id, name, region_code")
+    .eq("name", name)
+    .maybeSingle();
+  return byName ?? null;
 }
 
 async function columnExists(admin, table, column) {
@@ -157,7 +179,13 @@ async function main() {
   });
 
   const ownerId = await resolveOwnerId(admin, ownerEmail);
+  const hasWallPolicy = await columnExists(admin, "mobilize_groups", "wall_post_policy");
   const hasResourcesPolicy = await columnExists(admin, "mobilize_groups", "resources_post_policy");
+  if (!hasWallPolicy) {
+    console.warn(
+      "Column mobilize_groups.wall_post_policy missing — apply migration 036_mobilize_group_cover_wall.sql."
+    );
+  }
   if (!hasResourcesPolicy) {
     console.warn(
       "Column mobilize_groups.resources_post_policy missing — apply migration 054_mobilize_group_resources.sql. " +
@@ -182,14 +210,14 @@ async function main() {
       continue;
     }
 
-    const { data: existing } = await admin
-      .from("mobilize_groups")
-      .select("id, name, created_by")
-      .eq("name", name)
-      .maybeSingle();
+    const existing = await findExistingStateChapter(admin, state.code, name);
 
     if (existing?.id) {
-      console.log(`skip (exists): ${name}`);
+      const label =
+        existing.region_code === state.code
+          ? `skip (exists region ${state.code}): ${existing.name}`
+          : `skip (exists name): ${name}`;
+      console.log(label);
       skipped += 1;
       continue;
     }
@@ -209,10 +237,12 @@ async function main() {
       longitude: geo.lng,
       visibility: "public",
       event_create_policy: "leader_only",
-      wall_post_policy: "leaders_only",
       region_code: state.code,
       created_by: ownerId,
     };
+    if (hasWallPolicy) {
+      row.wall_post_policy = "leaders_only";
+    }
     if (hasResourcesPolicy) {
       row.resources_post_policy = "all_approved";
     }
