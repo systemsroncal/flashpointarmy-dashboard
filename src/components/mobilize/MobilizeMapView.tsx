@@ -70,14 +70,14 @@ function safeFitSearchCircle(map: L.Map, origin: MapSearchOrigin) {
   if (!Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) return;
   const km = Math.max(Number(origin.radiusKm) || 1, 1);
   const radiusM = km * 1000;
-  /** Tighter radius → allow closer max zoom so the search circle fills the pane. */
-  const maxZoom = km <= 10 ? 16 : km <= 25 ? 15 : km <= 50 ? 14 : 13;
   try {
     const circle = L.circle([origin.lat, origin.lng], { radius: radiusM });
-    const b = circle.getBounds().pad(0.1);
+    const b = circle.getBounds().pad(0.08);
     const size = map.getSize();
     if (size.x < 2 || size.y < 2) return;
-    map.fitBounds(b, { padding: [40, 40], maxZoom, animate: true });
+    /** Let fitBounds pick zoom; cap only for very large radii so the circle still fills the pane. */
+    const maxZoom = km <= 5 ? 17 : km <= 15 ? 16 : km <= 35 ? 15 : km <= 75 ? 14 : 12;
+    map.fitBounds(b, { padding: [32, 32], maxZoom, animate: true });
   } catch {
     /* container has no size or invalid bounds */
   }
@@ -106,7 +106,7 @@ function FitSearchRadiusView({
       }
       safeFitSearchCircle(map, searchOrigin);
     };
-    const timers = [0, 160, 360, 700, 1100].map((ms) => window.setTimeout(run, ms));
+    const timers = [0, 120, 320, 640, 1000, 1400].map((ms) => window.setTimeout(run, ms));
     return () => timers.forEach((id) => clearTimeout(id));
   }, [map, searchOrigin?.lat, searchOrigin?.lng, searchOrigin?.radiusKm, searchOrigin]);
 
@@ -147,7 +147,7 @@ function RecenterOnCue({
       safeFitSearchCircle(map, searchOrigin);
     };
     /** Same pattern as initial fit: map size may be stale until after layout. */
-    const timers = [0, 40, 120, 280, 520, 900].map((ms) => window.setTimeout(run, ms));
+    const timers = [0, 80, 200, 400, 700, 1100, 1500].map((ms) => window.setTimeout(run, ms));
     return () => timers.forEach((id) => clearTimeout(id));
   }, [map, recenterNonce, searchOrigin?.lat, searchOrigin?.lng, searchOrigin?.radiusKm, searchOrigin]);
   return null;

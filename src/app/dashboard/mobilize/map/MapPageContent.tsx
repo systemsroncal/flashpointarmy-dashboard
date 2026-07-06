@@ -12,12 +12,9 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
-  FormLabel,
   IconButton,
   InputLabel,
   MenuItem,
-  Radio,
-  RadioGroup,
   Select,
   Skeleton,
   Stack,
@@ -75,7 +72,7 @@ export default function MobilizeMapPageContent() {
   const dashboardUser = useDashboardUser();
   const [canCreateGroup, setCanCreateGroup] = useState(false);
   const [originMode, setOriginMode] = useState<OriginMode>("address");
-  const [browseMode, setBrowseMode] = useState<BrowseMode>("list");
+  const [browseMode, setBrowseMode] = useState<BrowseMode>("map");
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -220,7 +217,9 @@ export default function MobilizeMapPageContent() {
       }
       setManualPos({ lat: hit.lat, lng: hit.lon });
       setManualSearchAddress(hit.display_name);
-      toast("Address located. The map will use this point while “Use address” is selected.", "success");
+      setBrowseMode("map");
+      setRecenterNonce((n) => n + 1);
+      toast("Address located. Map zoomed to your search radius.", "success");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Geocode error.", "error");
     }
@@ -369,47 +368,37 @@ export default function MobilizeMapPageContent() {
       </Stack>
 
       <MobilizeContentPanel>
-      <FormControl component="fieldset" variant="standard" sx={{ mb: 2 }}>
-        <FormLabel component="legend" sx={{ color: "text.secondary", fontSize: "0.875rem", mb: 0.5 }}>
-          Search origin (map & radius)
-        </FormLabel>
-        <RadioGroup
-          row
+      <Stack direction={{ xs: "column", lg: "row" }} spacing={1} sx={{ mb: 2 }} alignItems={{ lg: "center" }}>
+        <ToggleButtonGroup
+          size="small"
           value={originMode}
-          onChange={(_, v) => setOriginMode(v as OriginMode)}
-          sx={{ flexWrap: "wrap", gap: 0.5 }}
+          exclusive
+          onChange={(_, v) => v && setOriginMode(v as OriginMode)}
+          aria-label="Search origin"
+          sx={{ flexShrink: 0 }}
         >
-          <FormControlLabel value="gps" control={<Radio size="small" color="warning" />} label="Use GPS" />
-          <FormControlLabel
-            value="address"
-            control={<Radio size="small" color="warning" />}
-            label="Use address (type & geocode)"
-          />
-        </RadioGroup>
-        {originMode === "gps" && !userPos ? (
-          <Typography variant="caption" color="warning.main" display="block" sx={{ mt: 0.5 }}>
-            No GPS yet: allow browser location or switch to “Use address” and set a point.
-          </Typography>
-        ) : null}
-        {originMode === "address" && !manualPos ? (
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-            Enter an address and tap “Use this point” to place the marker and radius circle.
-          </Typography>
-        ) : null}
-      </FormControl>
-
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 2 }} alignItems={{ sm: "flex-start" }}>
+          <ToggleButton value="gps">GPS</ToggleButton>
+          <ToggleButton value="address">Address</ToggleButton>
+        </ToggleButtonGroup>
         <TextField
-          label="My address"
           size="small"
           fullWidth
-          sx={{ flex: 1, minWidth: 220 }}
+          sx={{ flex: 1, minWidth: { xs: "100%", lg: 200 } }}
           value={manualSearchAddress}
           onChange={(e) => setManualSearchAddress(e.target.value)}
-          placeholder="Street, city, state…"
+          placeholder={originMode === "gps" ? "Using your location" : "Street, city, state…"}
           disabled={originMode === "gps"}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && originMode === "address") void geocodeManualSearchAddress();
+          }}
         />
-        <Button variant="outlined" onClick={() => void geocodeManualSearchAddress()} disabled={originMode === "gps"}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => void geocodeManualSearchAddress()}
+          disabled={originMode === "gps"}
+          sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+        >
           Use this point
         </Button>
         {manualPos && originMode === "address" ? (
@@ -420,25 +409,16 @@ export default function MobilizeMapPageContent() {
               setManualPos(null);
               setManualSearchAddress("");
             }}
+            sx={{ flexShrink: 0 }}
           >
-            Clear point
+            Clear
           </Button>
         ) : null}
-      </Stack>
-
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2 }} flexWrap="wrap">
-        <TextField
-          label="Search name"
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ minWidth: 200 }}
-        />
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel id="radius-label">Radius (km)</InputLabel>
+        <FormControl size="small" sx={{ minWidth: 110, flexShrink: 0 }}>
+          <InputLabel id="radius-label">Radius</InputLabel>
           <Select
             labelId="radius-label"
-            label="Radius (km)"
+            label="Radius"
             value={radiusKm}
             onChange={(e) => setRadiusKm(Number(e.target.value))}
             disabled={!searchOrigin}
@@ -450,6 +430,27 @@ export default function MobilizeMapPageContent() {
             ))}
           </Select>
         </FormControl>
+      </Stack>
+
+      {originMode === "gps" && !userPos ? (
+        <Typography variant="caption" color="warning.main" display="block" sx={{ mb: 2, mt: -1 }}>
+          Allow browser location or switch to Address and set a point.
+        </Typography>
+      ) : null}
+      {originMode === "address" && !manualPos ? (
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2, mt: -1 }}>
+          Enter an address and tap Use this point to search nearby groups.
+        </Typography>
+      ) : null}
+
+      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2 }} flexWrap="wrap">
+        <TextField
+          label="Search name"
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ minWidth: 200 }}
+        />
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel id="sort-label">Sort</InputLabel>
           <Select

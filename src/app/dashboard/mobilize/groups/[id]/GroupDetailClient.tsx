@@ -71,6 +71,8 @@ import { MobilizeAnnouncementMediaGrid } from "@/components/mobilize/MobilizeAnn
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import { MobilizeGroupReportsPanel } from "@/components/mobilize/MobilizeGroupReportsPanel";
 import MobilizeGroupResourcesPanel from "@/components/mobilize/MobilizeGroupResourcesPanel";
+import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupStateFlag";
+import { resolveMobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -87,6 +89,7 @@ type Group = {
   wall_post_policy?: string;
   resources_post_policy?: string;
   cover_image_url?: string | null;
+  region_code?: string | null;
   created_by: string;
   created_at: string;
 };
@@ -803,6 +806,48 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     return publicAssetSrc(cover);
   }, [group]);
 
+  const groupStateInfo = useMemo(() => {
+    if (!group) return null;
+    return resolveMobilizeGroupStateInfo({
+      regionCode: group.region_code,
+      address: group.address,
+      name: group.name,
+    });
+  }, [group]);
+
+  const groupBrandingTitle = useMemo(
+    () => (
+      <Box sx={{ textAlign: "center" }}>
+        <Typography
+          variant="overline"
+          sx={{
+            display: "block",
+            letterSpacing: { xs: 2, sm: 3 },
+            fontWeight: 800,
+            color: "primary.main",
+            fontSize: { xs: "0.68rem", sm: "0.75rem" },
+            lineHeight: 1.3,
+          }}
+        >
+          FLASH POINT ARMY
+        </Typography>
+        <Typography
+          variant="h4"
+          fontWeight={800}
+          sx={{
+            color: "#fff",
+            lineHeight: 1.15,
+            fontSize: { xs: "1.35rem", sm: "1.75rem", md: "2rem" },
+            textShadow: "0 2px 16px rgba(0,0,0,0.55)",
+          }}
+        >
+          {group?.name}
+        </Typography>
+      </Box>
+    ),
+    [group?.name]
+  );
+
   const groupMetaChips = useMemo(() => {
     if (!group) return null;
     return (
@@ -858,23 +903,55 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     return (
       <Box sx={{ mb: 2 }}>
         <Box
-          component="img"
-          src={groupCoverSrc}
-          alt=""
           sx={{
-            width: "100%",
-            minHeight: 280,
-            maxHeight: 400,
-            objectFit: "cover",
+            position: "relative",
             borderRadius: 2,
+            overflow: "hidden",
             mb: 1.5,
-            display: "block",
-            bgcolor: "rgba(0,0,0,0.25)",
           }}
-        />
-        <Typography variant="h4" fontWeight={700}>
-          {group.name}
-        </Typography>
+        >
+          <Box
+            component="img"
+            src={groupCoverSrc}
+            alt=""
+            sx={{
+              width: "100%",
+              minHeight: 280,
+              maxHeight: 400,
+              objectFit: "cover",
+              display: "block",
+              bgcolor: "rgba(0,0,0,0.25)",
+            }}
+          />
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.82) 100%)",
+              pointerEvents: "none",
+            }}
+          />
+          {groupStateInfo ? (
+            <Box sx={{ position: "absolute", top: 16, right: 16, zIndex: 2 }}>
+              <MobilizeGroupStateFlag state={groupStateInfo} size={80} />
+            </Box>
+          ) : null}
+          <Box
+            sx={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 2,
+              px: 2,
+              pb: 2.5,
+              pt: 6,
+            }}
+          >
+            {groupBrandingTitle}
+          </Box>
+        </Box>
         <Box sx={{ mt: 1 }}>{groupMetaChips}</Box>
         {group.description ? (
           <Typography variant="body2" sx={{ mt: 1 }}>
@@ -889,45 +966,65 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         {joinCallToAction}
       </Box>
     );
-  }, [group, groupCoverSrc, groupMetaChips, joinCallToAction]);
+  }, [group, groupBrandingTitle, groupCoverSrc, groupMetaChips, groupStateInfo, joinCallToAction]);
 
   const compactHeader = useMemo(() => {
     if (!group) return null;
     return (
-      <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 2 }}>
-        <Box
-          component="img"
-          src={groupCoverSrc}
-          alt=""
-          sx={{
-            width: 72,
-            height: 72,
-            borderRadius: 1,
-            objectFit: "cover",
-            flexShrink: 0,
-            bgcolor: "rgba(0,0,0,0.25)",
-          }}
-        />
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="h5" fontWeight={700} lineHeight={1.25}>
-            {group.name}
+      <Box sx={{ position: "relative", mb: 2 }}>
+        {groupStateInfo ? (
+          <Box sx={{ position: "absolute", top: 0, right: 0, zIndex: 2 }}>
+            <MobilizeGroupStateFlag state={groupStateInfo} size={56} />
+          </Box>
+        ) : null}
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ pr: groupStateInfo ? 7 : 0 }}>
+          <Box
+            component="img"
+            src={groupCoverSrc}
+            alt=""
+            sx={{
+              width: 72,
+              height: 72,
+              borderRadius: 1,
+              objectFit: "cover",
+              flexShrink: 0,
+              bgcolor: "rgba(0,0,0,0.25)",
+            }}
+          />
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              variant="overline"
+              sx={{
+                display: "block",
+                letterSpacing: 2,
+                fontWeight: 800,
+                color: "primary.main",
+                fontSize: "0.65rem",
+                lineHeight: 1.2,
+              }}
+            >
+              FLASH POINT ARMY
+            </Typography>
+            <Typography variant="h5" fontWeight={800} lineHeight={1.25} sx={{ textAlign: "center" }}>
+              {group.name}
+            </Typography>
+          </Box>
+        </Stack>
+        <Box sx={{ mt: 1 }}>{groupMetaChips}</Box>
+        {group.description ? (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+            {group.description}
           </Typography>
-          <Box sx={{ mt: 0.75 }}>{groupMetaChips}</Box>
-          {group.description ? (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-              {group.description}
-            </Typography>
-          ) : null}
-          {group.address ? (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {group.address}
-            </Typography>
-          ) : null}
-          {joinCallToAction}
-        </Box>
-      </Stack>
+        ) : null}
+        {group.address ? (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            {group.address}
+          </Typography>
+        ) : null}
+        {joinCallToAction}
+      </Box>
     );
-  }, [group, groupCoverSrc, groupMetaChips, joinCallToAction]);
+  }, [group, groupCoverSrc, groupMetaChips, groupStateInfo, joinCallToAction]);
 
   if (loading || !group) {
     return <Skeleton height={320} />;
