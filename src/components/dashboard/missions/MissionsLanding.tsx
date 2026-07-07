@@ -8,7 +8,6 @@ import {
 } from "@/lib/missions/twelve-missions";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Stack, Typography } from "@mui/material";
-import type { KeyboardEvent } from "react";
 
 function MissionCardItem({ mission }: { mission: MissionCard }) {
   const accent = MISSION_DIFFICULTY_COLORS[mission.difficulty];
@@ -20,18 +19,6 @@ function MissionCardItem({ mission }: { mission: MissionCard }) {
       href={isLink ? mission.url : undefined}
       target={isLink ? "_blank" : undefined}
       rel={isLink ? "noopener noreferrer" : undefined}
-      role={!isLink && !mission.comingSoon ? "button" : undefined}
-      tabIndex={!isLink && !mission.comingSoon ? 0 : undefined}
-      onClick={() => {
-        if (mission.comingSoon || isLink) return;
-        /* prototype — mission selection TBD */
-      }}
-      onKeyDown={(e: KeyboardEvent) => {
-        if (mission.comingSoon || isLink) return;
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-        }
-      }}
       sx={{
         position: "relative",
         overflow: "hidden",
@@ -44,9 +31,9 @@ function MissionCardItem({ mission }: { mission: MissionCard }) {
         display: "block",
         textDecoration: "none",
         color: "inherit",
-        cursor: mission.comingSoon ? "default" : "pointer",
+        cursor: isLink ? "pointer" : "default",
         transition: "box-shadow 0.2s, transform 0.2s",
-        ...(!mission.comingSoon && {
+        ...(isLink && {
           "&:hover": {
             boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
             transform: "translateY(-1px)",
@@ -285,7 +272,7 @@ export function MissionsLanding() {
 
                 <Box
                   sx={{
-                    bgcolor: phase.bodyBg,
+                    bgcolor: "#fff",
                     p: { xs: 1.5, sm: 2, md: 2.5 },
                   }}
                 >

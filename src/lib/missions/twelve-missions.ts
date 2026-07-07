@@ -45,7 +45,6 @@ export type MissionPhase = {
   subtitle?: string;
   difficulty: MissionDifficulty;
   headerBg: string;
-  bodyBg: string;
   missions: MissionCard[];
 };
 
@@ -56,7 +55,6 @@ export const MISSION_PHASES: MissionPhase[] = [
     subtitle: "Very easy wins. These require almost no commitment.",
     difficulty: "beginner",
     headerBg: "#1f5c38",
-    bodyBg: "#184a2e",
     missions: [
       {
         number: 1,
@@ -99,7 +97,6 @@ export const MISSION_PHASES: MissionPhase[] = [
     subtitle: "Now they're engaged.",
     difficulty: "beginner",
     headerBg: "#1e5c56",
-    bodyBg: "#174a46",
     missions: [
       {
         number: 5,
@@ -125,7 +122,6 @@ export const MISSION_PHASES: MissionPhase[] = [
     title: "PHASE 3 — Influence Your Community",
     difficulty: "intermediate",
     headerBg: "#6b5420",
-    bodyBg: "#564318",
     missions: [
       {
         number: 7,
@@ -160,7 +156,6 @@ export const MISSION_PHASES: MissionPhase[] = [
     subtitle: "Only serious people reach here.",
     difficulty: "advanced",
     headerBg: "#525252",
-    bodyBg: "#424242",
     missions: [
       {
         number: 10,
