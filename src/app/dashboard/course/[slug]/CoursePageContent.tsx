@@ -91,35 +91,18 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   const canEditCourse = isElevatedRole(roleNames);
   const editCourseHref = canEditCourse ? `/dashboard/courses/${course.id}/edit` : null;
 
-  let courseIntroVideo: string | null = null;
-  if (slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG) {
-    const envIntro = process.env.NEXT_PUBLIC_TRAINING_INTRO_VIDEO?.trim() ?? "";
-    const { data: trainingRow } = await supabase
-      .from("training_settings")
-      .select("intro_video_url")
-      .eq("id", 1)
-      .maybeSingle();
-    const dbIntro =
-      trainingRow && typeof trainingRow.intro_video_url === "string"
-        ? trainingRow.intro_video_url.trim()
-        : "";
-    courseIntroVideo = dbIntro || envIntro || null;
-  }
-
   const isBiblicalCitizenship = slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG;
   const showExternalCertPrompt = isBiblicalCitizenship
     ? await shouldShowExternalCertificatePrompt(supabase, user.id)
     : false;
   const courseTitle = (course.title as string)?.trim() || "Biblical Citizenship";
 
-  const introBlock =
-    courseIntroVideo && isBiblicalCitizenship ? (
-      <CourseIntroVideoBlock
-        videoUrl={courseIntroVideo}
-        showCertificateCta={showExternalCertPrompt}
-        courseTitle={courseTitle}
-      />
-    ) : null;
+  const introBlock = isBiblicalCitizenship ? (
+    <CourseIntroVideoBlock
+      showCertificateCta={showExternalCertPrompt}
+      courseTitle={courseTitle}
+    />
+  ) : null;
 
   const lessonsBlock = (
     <CourseGridClient

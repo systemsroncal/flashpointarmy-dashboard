@@ -1,30 +1,28 @@
 "use client";
 
-import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
+import { BIBLICAL_CITIZENSHIP_POSTER_SRC } from "@/lib/courses/course-completion";
 import { ExternalTrainingCertificateBanner } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Box, IconButton, Typography } from "@mui/material";
+import Image from "next/image";
 import Link from "next/link";
 
 const INTRO_COPY =
   "Every member of FlashPoint Army Chapters begins with the same foundation. Through this training, you'll explore the Biblical principles, constitutional foundations, and historical context that have shaped our nation. This course is designed to equip you with the knowledge needed to engage your community with conviction, wisdom, and purpose. It is presented in partnership with Patriot Academy.";
 
 type Props = {
-  videoUrl: string;
+  posterSrc?: string;
   /** Show Patriot Academy certificate CTA below intro copy (course page). */
   showCertificateCta?: boolean;
   courseTitle?: string;
 };
 
-/** Biblical Citizenship course hero — intro copy and training intro video. */
+/** Biblical Citizenship course hero — intro copy and course poster. */
 export function CourseIntroVideoBlock({
-  videoUrl,
+  posterSrc = BIBLICAL_CITIZENSHIP_POSTER_SRC,
   showCertificateCta = false,
   courseTitle = "Biblical Citizenship",
 }: Props) {
-  const trimmed = videoUrl.trim();
-  if (!trimmed) return null;
-
   return (
     <Box sx={{ mb: { xs: 3, sm: 4 } }}>
       <IconButton
@@ -99,14 +97,24 @@ export function CourseIntroVideoBlock({
         <Box
           sx={{
             position: "relative",
-            borderRadius: 1,
+            borderRadius: 1.5,
             overflow: "hidden",
-            aspectRatio: "16/9",
+            aspectRatio: "1 / 1",
             alignSelf: "center",
             width: "100%",
+            maxWidth: { md: 420 },
+            mx: { xs: "auto", md: 0 },
+            boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
           }}
         >
-          <CourseVideoPlyr videoUrl={trimmed} initialSeconds={0} onPersistSeconds={() => {}} />
+          <Image
+            src={posterSrc}
+            alt="Biblical Citizenship in Modern America — Full Course"
+            fill
+            sizes="(max-width: 900px) 100vw, 420px"
+            style={{ objectFit: "cover" }}
+            priority
+          />
         </Box>
       </Box>
     </Box>

@@ -8,6 +8,9 @@ import { fetchCourseSessionProgressForSessions } from "@/lib/courses/fetch-cours
 /** Primary training course — `/dashboard/course/biblical-citizenship`. */
 export const BIBLICAL_CITIZENSHIP_COURSE_SLUG = "biblical-citizenship";
 
+/** Course hero poster on `/dashboard/course/biblical-citizenship` (right column). */
+export const BIBLICAL_CITIZENSHIP_POSTER_SRC = "/courses/biblical-citizenship-poster.png";
+
 export type TrainingGraduateBadgeRole = "local_leader" | "member";
 
 /** Graduate badge is only shown for members and local leaders (not admin-only accounts). */
