@@ -1,6 +1,5 @@
 "use client";
 
-import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupStateFlag";
 import {
   MOBILIZE_CHAPTER_FEED_BANNER_ASPECT,
   mobilizeChapterBannerHeading,
@@ -50,19 +49,13 @@ export function MobilizeChapterFeedBanner({ coverSrc, chapterName, stateInfo }: 
           pointerEvents: "none",
         }}
       />
-      {stateInfo ? (
-        <Box sx={{ position: "absolute", top: { xs: 12, sm: 16 }, right: { xs: 12, sm: 16 }, zIndex: 2 }}>
-          <MobilizeGroupStateFlag state={stateInfo} size={72} />
-        </Box>
-      ) : null}
       <Stack
         alignItems="center"
-        spacing={0.5}
+        justifyContent="center"
+        spacing={0}
         sx={{
           position: "absolute",
-          top: { xs: 16, sm: 20 },
-          left: 0,
-          right: 0,
+          inset: 0,
           zIndex: 2,
           px: 2,
         }}
@@ -72,27 +65,15 @@ export function MobilizeChapterFeedBanner({ coverSrc, chapterName, stateInfo }: 
           src="/logos/fp-army-chapters-white.png"
           alt="FP Army Chapters"
           sx={{
-            height: { xs: 36, sm: 44, md: 52 },
+            height: { xs: 32, sm: 40, md: 46 },
             width: "auto",
-            maxWidth: "min(92%, 420px)",
+            maxWidth: "min(88%, 380px)",
             objectFit: "contain",
             display: "block",
+            mb: { xs: 2, sm: 2.5, md: 3 },
             filter: "drop-shadow(0 2px 10px rgba(0,0,0,0.45))",
           }}
         />
-      </Stack>
-      <Stack
-        alignItems="center"
-        justifyContent="center"
-        spacing={0.25}
-        sx={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 2,
-          px: 2,
-          pt: { xs: 4, sm: 5 },
-        }}
-      >
         <Typography
           component="p"
           sx={{
@@ -112,6 +93,7 @@ export function MobilizeChapterFeedBanner({ coverSrc, chapterName, stateInfo }: 
           component="p"
           sx={{
             m: 0,
+            mt: 0.5,
             fontWeight: 900,
             letterSpacing: { xs: 4, sm: 6 },
             color: "#fff",

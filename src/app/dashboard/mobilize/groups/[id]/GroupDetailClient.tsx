@@ -66,10 +66,6 @@ import {
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
 import {
   isMobilizeGroupListed,
-  labelEventCreatePolicy,
-  labelGroupListingVisibility,
-  labelResourcesPostPolicy,
-  labelWallPostPolicy,
   mobilizeGroupListingVisibilityFromListed,
 } from "@/lib/mobilize/group-ui-labels";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
@@ -864,32 +860,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     });
   }, [group]);
 
-  const groupMetaChips = useMemo(() => {
-    if (!group) return null;
-    return (
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-        <Chip size="small" label={group.group_type} />
-        <Chip size="small" label={labelGroupListingVisibility(group.visibility)} />
-        <Chip size="small" label={labelEventCreatePolicy(group.event_create_policy)} variant="outlined" />
-        <Chip
-          size="small"
-          label={labelWallPostPolicy(group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved")}
-          variant="outlined"
-        />
-        <Chip
-          size="small"
-          label={labelResourcesPostPolicy(
-            group.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved"
-          )}
-          variant="outlined"
-        />
-        {membership ? (
-          <Chip size="small" label={`You: ${membership.membership_status}`} color="primary" />
-        ) : null}
-      </Box>
-    );
-  }, [group, membership]);
-
   const joinCallToAction = useMemo(() => {
     if (showJoin) {
       return (
@@ -923,7 +893,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           chapterName={group.name}
           stateInfo={groupStateInfo}
         />
-        <Box sx={{ mt: 1.5 }}>{groupMetaChips}</Box>
         {group.description ? (
           <Typography variant="body2" sx={{ mt: 1 }}>
             {group.description}
@@ -937,7 +906,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         {joinCallToAction}
       </Box>
     );
-  }, [group, groupCoverSrc, groupMetaChips, groupStateInfo, joinCallToAction]);
+  }, [group, groupCoverSrc, groupStateInfo, joinCallToAction]);
 
   const compactHeader = useMemo(() => {
     if (!group) return null;
@@ -982,7 +951,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             </Typography>
           </Box>
         </Stack>
-        <Box sx={{ mt: 1 }}>{groupMetaChips}</Box>
         {group.description ? (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
             {group.description}
@@ -996,7 +964,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         {joinCallToAction}
       </Box>
     );
-  }, [group, groupCoverSrc, groupMetaChips, groupStateInfo, joinCallToAction]);
+  }, [group, groupCoverSrc, groupStateInfo, joinCallToAction]);
 
   if (loading || !group) {
     return <Skeleton height={320} />;

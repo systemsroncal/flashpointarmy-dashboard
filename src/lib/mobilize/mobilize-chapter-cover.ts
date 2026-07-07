@@ -3,7 +3,7 @@ import type { MobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
 export const MOBILIZE_DEFAULT_CHAPTER_COVER_URL =
   "https://fparmychapters.com/wp-content/uploads/2026/07/Chapters-Cover.jpg";
 
-export const MOBILIZE_CHAPTER_FEED_BANNER_ASPECT = "16 / 9" as const;
+export const MOBILIZE_CHAPTER_FEED_BANNER_ASPECT = "16 / 7" as const;
 
 export function mobilizeChapterCoverSrc(coverUrl?: string | null): string {
   const trimmed = coverUrl?.trim();
