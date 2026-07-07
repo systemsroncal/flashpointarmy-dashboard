@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
+import { resolveMobilizeGroupStateCode } from "@/lib/mobilize/group-state-flag";
 import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
@@ -104,6 +105,50 @@ function LeaderPill({ L, compact = false }: { L: MobilizeGroupLeaderBrief; compa
         {L.full_name}
       </Typography>
     </Stack>
+  );
+}
+
+function chapterStateInitials(name: string, address?: string | null): string {
+  const code = resolveMobilizeGroupStateCode({ name, address });
+  if (code) return code;
+  const stripped = name.replace(/\s+chapter\s*$/i, "").trim();
+  if (stripped.length >= 2) return stripped.slice(0, 2).toUpperCase();
+  return (stripped || name).slice(0, 2).toUpperCase() || "?";
+}
+
+function ChapterStateBadge({
+  name,
+  address,
+  size,
+}: {
+  name: string;
+  address?: string | null;
+  size: number;
+}) {
+  const initials = chapterStateInitials(name, address);
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        bgcolor: "#0d0d0d",
+        color: "primary.main",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 800,
+        fontSize: initials.length > 2 ? size * 0.26 : size * 0.34,
+        letterSpacing: 0.4,
+        flexShrink: 0,
+        border: "1px solid rgba(255, 215, 0, 0.4)",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+        lineHeight: 1,
+      }}
+    >
+      {initials}
+    </Box>
   );
 }
 
@@ -266,16 +311,39 @@ export default function MobilizeGroupsBrowseTable({
         <TableHead>
           <TableRow>
             {mapStacked ? (
-              <TableCell sx={{ fontWeight: 700, color: "text.secondary", minWidth: Math.max(200, thumbSize + 120) }}>
-                Chapter
-              </TableCell>
+              <>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    color: "text.secondary",
+                    width: { xs: "auto", md: "34%" },
+                    maxWidth: { md: 240 },
+                    minWidth: { xs: 160, md: 0 },
+                  }}
+                >
+                  Chapter
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    display: { xs: "none", md: "table-cell" },
+                    width: 108,
+                    fontWeight: 700,
+                    color: "text.secondary",
+                    whiteSpace: "nowrap",
+                    px: 1,
+                  }}
+                >
+                  &nbsp;
+                </TableCell>
+              </>
             ) : (
               <>
                 <TableCell sx={{ width: thumbColWidth, py: 1 }} />
                 <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Name</TableCell>
               </>
             )}
-            <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: mapStacked ? "30%" : undefined, minWidth: mapStacked ? 0 : 140 }}>
+            <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: mapStacked ? { xs: "32%", md: "28%" } : undefined, minWidth: mapStacked ? 0 : 140 }}>
               Leaders
             </TableCell>
             <TableCell
@@ -315,7 +383,11 @@ export default function MobilizeGroupsBrowseTable({
             const groupInfo = (
               <Stack spacing={0.75} sx={{ minWidth: 0 }}>
                 <Stack direction="row" spacing={1.25} alignItems="flex-start">
-                  <Box component="img" src={cover} alt="" sx={coverImgSx} />
+                  {mapStacked ? (
+                    <ChapterStateBadge name={g.name} address={g.address} size={thumbSize} />
+                  ) : (
+                    <Box component="img" src={cover} alt="" sx={coverImgSx} />
+                  )}
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Typography
                       component={Link}
@@ -358,7 +430,9 @@ export default function MobilizeGroupsBrowseTable({
                   </Box>
                 </Stack>
                 {mapStacked ? (
-                  <Box sx={{ pt: 0.25 }}>{renderJoinActions(g, "start")}</Box>
+                  <Box sx={{ display: { xs: "block", md: "none" }, pt: 0.25 }}>
+                    {renderJoinActions(g, "start")}
+                  </Box>
                 ) : null}
               </Stack>
             );
@@ -375,7 +449,21 @@ export default function MobilizeGroupsBrowseTable({
                 }}
               >
                 {mapStacked ? (
-                  <TableCell sx={{ py: 0.85, verticalAlign: "top" }}>{groupInfo}</TableCell>
+                  <>
+                    <TableCell sx={{ py: 0.85, verticalAlign: "top" }}>{groupInfo}</TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{
+                        display: { xs: "none", md: "table-cell" },
+                        verticalAlign: "middle",
+                        py: 0.85,
+                        px: 1,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {renderJoinActions(g)}
+                    </TableCell>
+                  </>
                 ) : (
                   <>
                     <TableCell sx={{ py: 1 }}>
@@ -403,7 +491,7 @@ export default function MobilizeGroupsBrowseTable({
                     </TableCell>
                   </>
                 )}
-                <TableCell sx={{ verticalAlign: "top", width: mapStacked ? "30%" : undefined }}>
+                <TableCell sx={{ verticalAlign: "top", width: mapStacked ? { xs: "32%", md: "28%" } : undefined }}>
                   {leaders.length ? (
                     <Stack spacing={mapStacked ? 0.45 : 0.65} sx={{ maxWidth: "100%", minWidth: 0 }}>
                       {leaders.slice(0, mapStacked ? 3 : 4).map((L) => (
