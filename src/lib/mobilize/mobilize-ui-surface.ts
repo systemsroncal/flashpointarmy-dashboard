@@ -12,6 +12,21 @@ export const mobilizePanelSx: SxProps<Theme> = {
   boxSizing: "border-box",
 };
 
+/** Chapter detail: page column fills viewport below dashboard chrome. */
+export const mobilizeChapterDetailRootSx: SxProps<Theme> = {
+  display: "flex",
+  flexDirection: "column",
+  minHeight: "calc(100dvh - 5.5rem - env(safe-area-inset-bottom, 0px))",
+};
+
+/** White panel grows to consume remaining chapter detail height. */
+export const mobilizeChapterDetailPanelFillSx: SxProps<Theme> = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
+};
+
 export const mobilizeCardSx: SxProps<Theme> = {
   bgcolor: "#fafafa",
   borderColor: "rgba(0,0,0,0.1)",

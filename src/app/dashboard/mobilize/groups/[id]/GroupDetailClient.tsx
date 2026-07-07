@@ -52,12 +52,15 @@ import {
   canViewMobilizeGroupMemberContent,
 } from "@/lib/mobilize/mobilize-content-access";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
+import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
 import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import {
   mobilizeCalendarDaySx,
   mobilizeCardSx,
+  mobilizeChapterDetailPanelFillSx,
+  mobilizeChapterDetailRootSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
@@ -75,6 +78,7 @@ import { MobilizeAnnouncementMediaGrid } from "@/components/mobilize/MobilizeAnn
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import { MobilizeGroupReportsPanel } from "@/components/mobilize/MobilizeGroupReportsPanel";
 import MobilizeGroupResourcesPanel from "@/components/mobilize/MobilizeGroupResourcesPanel";
+import { MobilizeChapterFeedBanner } from "@/components/mobilize/MobilizeChapterFeedBanner";
 import { MobilizeChapterUpdatesPanel } from "@/components/mobilize/MobilizeChapterUpdatesPanel";
 import { MobilizeTypeDeleteDialog } from "@/components/mobilize/MobilizeTypeDeleteDialog";
 import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupStateFlag";
@@ -848,10 +852,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   const groupCoverSrc = useMemo(() => {
     if (!group) return "";
-    const cover =
-      group.cover_image_url?.trim() ||
-      "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=80";
-    return publicAssetSrc(cover);
+    return publicAssetSrc(mobilizeChapterCoverSrc(group.cover_image_url));
   }, [group]);
 
   const groupStateInfo = useMemo(() => {
@@ -862,39 +863,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       name: group.name,
     });
   }, [group]);
-
-  const groupBrandingTitle = useMemo(
-    () => (
-      <Box sx={{ textAlign: "center" }}>
-        <Typography
-          variant="overline"
-          sx={{
-            display: "block",
-            letterSpacing: { xs: 2, sm: 3 },
-            fontWeight: 800,
-            color: "primary.main",
-            fontSize: { xs: "0.68rem", sm: "0.75rem" },
-            lineHeight: 1.3,
-          }}
-        >
-          FLASH POINT ARMY
-        </Typography>
-        <Typography
-          variant="h4"
-          fontWeight={800}
-          sx={{
-            color: "#fff",
-            lineHeight: 1.15,
-            fontSize: { xs: "1.35rem", sm: "1.75rem", md: "2rem" },
-            textShadow: "0 2px 16px rgba(0,0,0,0.55)",
-          }}
-        >
-          {group?.name}
-        </Typography>
-      </Box>
-    ),
-    [group?.name]
-  );
 
   const groupMetaChips = useMemo(() => {
     if (!group) return null;
@@ -950,57 +918,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     if (!group) return null;
     return (
       <Box sx={{ mb: 2 }}>
-        <Box
-          sx={{
-            position: "relative",
-            borderRadius: 2,
-            overflow: "hidden",
-            mb: 1.5,
-          }}
-        >
-          <Box
-            component="img"
-            src={groupCoverSrc}
-            alt=""
-            sx={{
-              width: "100%",
-              minHeight: 280,
-              maxHeight: 400,
-              objectFit: "cover",
-              display: "block",
-              bgcolor: "rgba(0,0,0,0.25)",
-            }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.82) 100%)",
-              pointerEvents: "none",
-            }}
-          />
-          {groupStateInfo ? (
-            <Box sx={{ position: "absolute", top: 16, right: 16, zIndex: 2 }}>
-              <MobilizeGroupStateFlag state={groupStateInfo} size={80} />
-            </Box>
-          ) : null}
-          <Box
-            sx={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 2,
-              px: 2,
-              pb: 2.5,
-              pt: 6,
-            }}
-          >
-            {groupBrandingTitle}
-          </Box>
-        </Box>
-        <Box sx={{ mt: 1 }}>{groupMetaChips}</Box>
+        <MobilizeChapterFeedBanner
+          coverSrc={groupCoverSrc}
+          chapterName={group.name}
+          stateInfo={groupStateInfo}
+        />
+        <Box sx={{ mt: 1.5 }}>{groupMetaChips}</Box>
         {group.description ? (
           <Typography variant="body2" sx={{ mt: 1 }}>
             {group.description}
@@ -1014,7 +937,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         {joinCallToAction}
       </Box>
     );
-  }, [group, groupBrandingTitle, groupCoverSrc, groupMetaChips, groupStateInfo, joinCallToAction]);
+  }, [group, groupCoverSrc, groupMetaChips, groupStateInfo, joinCallToAction]);
 
   const compactHeader = useMemo(() => {
     if (!group) return null;
@@ -1087,14 +1010,15 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     gap: 0.5,
   } as const;
 
-  const tallContentPanel =
-    activeTab === "members" ||
-    activeTab === "resources" ||
-    activeTab === "updates" ||
-    activeTab === "reports";
+  const tabPanelBodySx = {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+  } as const;
 
   return (
-    <Box>
+    <Box sx={mobilizeChapterDetailRootSx}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Button component={Link} href="/dashboard/mobilize/map" size="small">
           Back to chapters
@@ -1110,22 +1034,22 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       <MobilizeContentPanel
         sx={{
           mt: activeTab === "announcements" ? 2 : 0,
-          ...(tallContentPanel
-            ? { minHeight: { xs: 440, sm: 520 }, display: "flex", flexDirection: "column" }
-            : {}),
+          ...mobilizeChapterDetailPanelFillSx,
         }}
       >
       {activeTab === "announcements" && !canViewContent ? (
+        <Box sx={tabPanelBodySx}>
         <JoinToViewGate
           section="announcements"
           onJoin={joinRequest}
           showJoinButton={showJoin}
           isPending={isPendingJoin}
         />
+        </Box>
       ) : null}
 
       {activeTab === "announcements" && canViewContent ? (
-        <Box>
+        <Box sx={tabPanelBodySx}>
           {canPostWall ? (
             <>
               <TextField
@@ -1238,16 +1162,18 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "events" && !canViewContent ? (
+        <Box sx={tabPanelBodySx}>
         <JoinToViewGate
           section="events"
           onJoin={joinRequest}
           showJoinButton={showJoin}
           isPending={isPendingJoin}
         />
+        </Box>
       ) : null}
 
       {activeTab === "events" && canViewContent ? (
-        <Box>
+        <Box sx={tabPanelBodySx}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
             {(isLeader || group.event_create_policy === "any_member") ? (
               <Button variant="outlined" onClick={() => setEventOpen(true)}>
@@ -1405,16 +1331,18 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "members" && !canViewContent ? (
+        <Box sx={tabPanelBodySx}>
         <JoinToViewGate
           section="members"
           onJoin={joinRequest}
           showJoinButton={showJoin}
           isPending={isPendingJoin}
         />
+        </Box>
       ) : null}
 
       {activeTab === "members" && canViewContent ? (
-        <Box>
+        <Box sx={tabPanelBodySx}>
           {canManageMembers ? (
             <>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -1587,15 +1515,18 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "resources" && !canViewContent ? (
+        <Box sx={tabPanelBodySx}>
         <JoinToViewGate
           section="resources"
           onJoin={joinRequest}
           showJoinButton={showJoin}
           isPending={isPendingJoin}
         />
+        </Box>
       ) : null}
 
       {activeTab === "resources" && canViewContent ? (
+        <Box sx={tabPanelBodySx}>
         <MobilizeGroupResourcesPanel
           groupId={groupId}
           currentUserId={me.id}
@@ -1603,38 +1534,49 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           isSuperAdmin={isSuperAdmin}
           canPost={canPostResources}
         />
+        </Box>
       ) : null}
 
       {activeTab === "updates" && !canViewContent ? (
+        <Box sx={tabPanelBodySx}>
         <JoinToViewGate
           section="updates"
           onJoin={joinRequest}
           showJoinButton={showJoin}
           isPending={isPendingJoin}
         />
+        </Box>
       ) : null}
 
       {activeTab === "updates" && canViewContent ? (
+        <Box sx={tabPanelBodySx}>
         <MobilizeChapterUpdatesPanel groupId={groupId} chapterName={group.name} />
+        </Box>
       ) : null}
 
       {activeTab === "reports" && !canViewContent ? (
+        <Box sx={tabPanelBodySx}>
         <JoinToViewGate
           section="reports"
           onJoin={joinRequest}
           showJoinButton={showJoin}
           isPending={isPendingJoin}
         />
+        </Box>
       ) : null}
 
       {activeTab === "reports" && canViewContent && !canViewReports ? (
+        <Box sx={tabPanelBodySx}>
         <Typography color="text.secondary">
           Reports are available to group owners and leaders only.
         </Typography>
+        </Box>
       ) : null}
 
       {activeTab === "reports" && canViewContent && canViewReports ? (
+        <Box sx={tabPanelBodySx}>
         <MobilizeGroupReportsPanel groupId={groupId} />
+        </Box>
       ) : null}
       </MobilizeContentPanel>
 

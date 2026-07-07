@@ -22,6 +22,8 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
+import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
 export type MobilizeBrowseGroupRow = {
@@ -40,9 +42,6 @@ export type MobilizeBrowseGroupRow = {
   upcoming_activity_count?: number;
   my_membership_status?: string | null;
 };
-
-const DEFAULT_GROUP_COVER =
-  "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80";
 
 const leaderPillSx = {
   flexDirection: "row" as const,
@@ -310,7 +309,7 @@ export default function MobilizeGroupsBrowseTable({
                   avatar_url: null,
                   full_name,
                 }));
-            const cover = g.cover_image_url?.trim() || DEFAULT_GROUP_COVER;
+            const cover = publicAssetSrc(mobilizeChapterCoverSrc(g.cover_image_url));
             const count = g.member_count ?? 0;
             const activities = g.upcoming_activity_count ?? 0;
             const groupInfo = (
