@@ -2,8 +2,6 @@
 
 import {
   buildMainDashboardTourEntries,
-  filterEntriesWithDom,
-  filterUnseenEntries,
   type DashboardTourBuildInput,
   type TourStepEntry,
 } from "@/lib/dashboard/dashboard-tour-steps";
@@ -12,17 +10,7 @@ import { waitMs } from "@/lib/dashboard/dashboard-tour-actions";
 import {
   pathnameToTourModuleKey,
   pickAllEntriesForModuleVisit,
-  pickEntriesForModuleVisit,
 } from "@/lib/dashboard/dashboard-tour-routes";
-import {
-  clearPostLoginAutoTourPending,
-  getSeenTourStepIds,
-  hasAutoTourCompleted,
-  isPostLoginAutoTourPending,
-  markAutoTourCompleted,
-  markTourStepSeen,
-} from "@/lib/dashboard/dashboard-tour-storage";
-import { createClient } from "@/utils/supabase/client";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { IconButton, Tooltip } from "@mui/material";
 import type { Driver } from "driver.js";
@@ -34,7 +22,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type ReactNode,
 } from "react";
 
@@ -72,34 +59,17 @@ function noopOverlayClick(): void {
   /* Ignore overlay clicks — tour closes only via Skip / X. */
 }
 
-/**
- * "auto" = one-time automatic tour right after sign-in. Marks each step as seen
- *   and sets a global "auto tour done" flag when finished or skipped.
- * "help" = manual tour via the (?) header button. Does NOT mutate seen state.
- */
-type RunMode = "auto" | "help";
-
 type RunTourOptions = {
   entries: TourStepEntry[];
-  mode: RunMode;
 };
 
 function createDriverInstance(
   driverModule: typeof import("driver.js"),
   entries: TourStepEntry[],
-  userId: string,
-  mode: RunMode,
   onCleanup: () => void
 ): Driver {
   const { driver } = driverModule;
   const steps = entries.map((e) => e.step);
-  let activeStepId: string | null = null;
-
-  const shouldPersistSeen = mode === "auto";
-
-  const markActiveSeen = () => {
-    if (shouldPersistSeen && activeStepId) markTourStepSeen(userId, activeStepId);
-  };
 
   return driver({
     showProgress: true,
@@ -125,22 +95,10 @@ function createDriverInstance(
         }
       }
     },
-    onHighlighted: (_element, _step, { driver: drv }) => {
-      const idx = drv.getActiveIndex();
-      if (idx == null || idx < 0) return;
-      const nextId = entries[idx]?.id;
-      if (shouldPersistSeen && activeStepId && activeStepId !== nextId) {
-        markTourStepSeen(userId, activeStepId);
-      }
-      activeStepId = nextId ?? null;
-    },
     onCloseClick: (_element, _step, { driver: drv }) => {
-      markActiveSeen();
       drv.destroy();
     },
     onDestroyed: () => {
-      markActiveSeen();
-      activeStepId = null;
       onCleanup();
     },
   });
@@ -160,8 +118,6 @@ export function DashboardTourProvider({
   const driverRef = useRef<Driver | null>(null);
   const runningRef = useRef(false);
   const allEntriesRef = useRef<TourStepEntry[]>([]);
-  const autoTourStartedRef = useRef(false);
-  const [driverReady, setDriverReady] = useState(false);
 
   /** Keep latest callbacks in refs so internal effects/callbacks don't recreate on every render. */
   const openSidebarRef = useRef(openSidebar);
@@ -177,7 +133,7 @@ export function DashboardTourProvider({
     setProfileEditModeRef.current = setProfileEditMode;
   });
 
-  /** Keep latest nav items in a ref so the auto-tour effect can read them without re-running on every render. */
+  /** Keep latest nav items in a ref for help-tour route resolution. */
   const navItemsForRoutesRef = useRef<typeof buildInput.visibleNav>([]);
   useEffect(() => {
     navItemsForRoutesRef.current = [
@@ -203,34 +159,13 @@ export function DashboardTourProvider({
   }, []);
 
   useEffect(() => {
-    void loadDriver().then(() => setDriverReady(true));
-  }, []);
-
-  useEffect(() => {
     allEntriesRef.current = buildMainDashboardTourEntries(buildInput, tourActions);
   }, [buildInput, tourActions]);
 
   const runTourEntries = useCallback(
-    async ({ entries, mode }: RunTourOptions) => {
+    async ({ entries }: RunTourOptions) => {
       if (entries.length === 0) return;
-      /**
-       * Help-driven tours always take precedence: if anything is running we
-       * tear it down first so the (?) button can never be blocked by a
-       * lingering auto-tour instance.
-       */
-      if (runningRef.current) {
-        if (mode === "help") {
-          try {
-            driverRef.current?.destroy();
-          } catch {
-            /* ignore */
-          }
-          driverRef.current = null;
-          runningRef.current = false;
-        } else {
-          return;
-        }
-      }
+      if (runningRef.current) return;
       runningRef.current = true;
 
       try {
@@ -243,7 +178,7 @@ export function DashboardTourProvider({
         const driverModule = await loadDriver();
         driverRef.current?.destroy();
 
-        const instance = createDriverInstance(driverModule, entries, userId, mode, () => {
+        const instance = createDriverInstance(driverModule, entries, () => {
           driverRef.current = null;
           runningRef.current = false;
           cleanupTourUi();
@@ -259,7 +194,7 @@ export function DashboardTourProvider({
         }
       }
     },
-    [buildInput.settingsNav.length, cleanupTourUi, tourActions, userId]
+    [buildInput.settingsNav.length, cleanupTourUi, tourActions]
   );
 
   /** Help button: shows all tour steps for the current section on demand. */
@@ -272,87 +207,10 @@ export function DashboardTourProvider({
     const entries = pickAllEntriesForModuleVisit(moduleKey, all);
     if (entries.length === 0) return;
 
-    void runTourEntries({ entries, mode: "help" });
+    void runTourEntries({ entries });
   }, [pathname, runTourEntries]);
 
   const contextValue = useMemo(() => ({ startTour }), [startTour]);
-
-  /**
-   * One-time auto-tour after sign-in only (flag set on login page). After that,
-   * use the (?) help button. Does not run on refresh or in-app navigation.
-   */
-  useEffect(() => {
-    if (!driverReady) return;
-    if (!isPostLoginAutoTourPending()) return;
-    if (hasAutoTourCompleted(userId)) {
-      clearPostLoginAutoTourPending();
-      return;
-    }
-    if (pathname.startsWith("/dashboard/mobilize")) return;
-    if (autoTourStartedRef.current) return;
-
-    const moduleKey = pathnameToTourModuleKey(pathname, navItemsForRoutesRef.current);
-    if (!moduleKey) return;
-
-    let cancelled = false;
-
-    const tryAutoTour = async () => {
-      if (cancelled || autoTourStartedRef.current) return;
-      if (!isPostLoginAutoTourPending()) return;
-      if (hasAutoTourCompleted(userId)) {
-        clearPostLoginAutoTourPending();
-        return;
-      }
-
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.auth.getUser();
-        if (cancelled) return;
-        if (data.user?.user_metadata?.require_password_change === true) return;
-      } catch {
-        return;
-      }
-
-      await waitMs(1500);
-      if (cancelled) return;
-
-      if (allEntriesRef.current.length === 0) {
-        await waitMs(400);
-      }
-      if (cancelled) return;
-
-      const seen = getSeenTourStepIds(userId);
-      const entries = pickEntriesForModuleVisit(
-        moduleKey,
-        allEntriesRef.current,
-        seen
-      );
-      if (entries.length === 0) {
-        markAutoTourCompleted(userId);
-        clearPostLoginAutoTourPending();
-        autoTourStartedRef.current = true;
-        return;
-      }
-
-      autoTourStartedRef.current = true;
-      clearPostLoginAutoTourPending();
-      await runTourEntries({ entries, mode: "auto" });
-    };
-
-    void tryAutoTour();
-
-    const supabase = createClient();
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      void tryAutoTour();
-    });
-
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-    };
-  }, [driverReady, pathname, runTourEntries, userId]);
 
   useEffect(() => {
     return () => {

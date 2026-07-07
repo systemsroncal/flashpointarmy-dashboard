@@ -6,7 +6,6 @@ import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyA
 import { PasswordTextField } from "@/components/auth/PasswordTextField";
 import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles";
 import { signInViaApi } from "@/lib/auth/sign-in-api";
-import { markPostLoginAutoTourPending } from "@/lib/dashboard/dashboard-tour-storage";
 import { createClient } from "@/utils/supabase/client";
 import ArrowForward from "@mui/icons-material/ArrowForward";
 import { Alert, Box, Button, Link as MuiLink, TextField, Typography } from "@mui/material";
@@ -51,7 +50,6 @@ function LoginForm() {
         method: "POST",
         credentials: "include",
       });
-      markPostLoginAutoTourPending();
       router.refresh();
       router.push(redirectTo);
     } catch (unknownErr) {
