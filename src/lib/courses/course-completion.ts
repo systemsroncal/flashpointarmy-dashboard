@@ -9,7 +9,8 @@ import { fetchCourseSessionProgressForSessions } from "@/lib/courses/fetch-cours
 export const BIBLICAL_CITIZENSHIP_COURSE_SLUG = "biblical-citizenship";
 
 /** Course hero poster on `/dashboard/course/biblical-citizenship` (right column). */
-export const BIBLICAL_CITIZENSHIP_POSTER_SRC = "/courses/biblical-citizenship-poster.png";
+export const BIBLICAL_CITIZENSHIP_POSTER_SRC =
+  "https://fparmychapters.com/wp-content/uploads/2026/07/Biblical-Citizenship.png";
 
 export type TrainingGraduateBadgeRole = "local_leader" | "member";
 

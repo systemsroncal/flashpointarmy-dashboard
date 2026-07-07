@@ -4,7 +4,6 @@ import { BIBLICAL_CITIZENSHIP_POSTER_SRC } from "@/lib/courses/course-completion
 import { ExternalTrainingCertificateBanner } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Box, IconButton, Typography } from "@mui/material";
-import Image from "next/image";
 import Link from "next/link";
 
 const INTRO_COPY =
@@ -107,13 +106,18 @@ export function CourseIntroVideoBlock({
             boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
           }}
         >
-          <Image
+          <Box
+            component="img"
             src={posterSrc}
             alt="Biblical Citizenship in Modern America — Full Course"
-            fill
-            sizes="(max-width: 900px) 100vw, 420px"
-            style={{ objectFit: "cover" }}
-            priority
+            sx={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+            }}
           />
         </Box>
       </Box>
