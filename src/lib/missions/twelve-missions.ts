@@ -22,6 +22,12 @@ export const MISSION_DIFFICULTY_COLORS: Record<MissionDifficulty, string> = {
   advanced: "#737373",
 };
 
+export const MISSION_DIFFICULTY_LABELS: Record<MissionDifficulty, string> = {
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
+};
+
 export type MissionCard = {
   number: number;
   title: string;
@@ -33,104 +39,155 @@ export type MissionCard = {
   comingSoon?: boolean;
 };
 
-export const TWELVE_MISSIONS: MissionCard[] = [
+export type MissionPhase = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  difficulty: MissionDifficulty;
+  headerBg: string;
+  bodyBg: string;
+  missions: MissionCard[];
+};
+
+export const MISSION_PHASES: MissionPhase[] = [
   {
-    number: 1,
-    title: "Celebrate America",
-    description:
-      "Celebrate July 4th, Constitution Day, Veterans Day, Memorial Day, Bill of Rights Day and teach your family why they matter.",
-    icon: faFlag,
+    id: "phase-1",
+    title: "PHASE 1 — Live It",
+    subtitle: "Very easy wins. These require almost no commitment.",
     difficulty: "beginner",
+    headerBg: "#1f5c38",
+    bodyBg: "#184a2e",
+    missions: [
+      {
+        number: 1,
+        title: "Celebrate America",
+        description:
+          "Celebrate July 4th, Constitution Day, Veterans Day, Memorial Day, Bill of Rights Day and teach your family why they matter.",
+        icon: faFlag,
+        difficulty: "beginner",
+      },
+      {
+        number: 2,
+        title: "Know Your Representatives",
+        description:
+          "Learn who represents your city, county, state and Washington. Know how to contact them. Know how they vote.",
+        icon: faLandmark,
+        difficulty: "beginner",
+        url: "https://www.house.gov/representatives/find-your-representative",
+      },
+      {
+        number: 3,
+        title: "Pray for America",
+        description:
+          "Pray regularly for your nation, elected officials, schools, churches and communities. Prayer becomes a measurable mission.",
+        icon: faHandsPraying,
+        difficulty: "beginner",
+      },
+      {
+        number: 4,
+        title: "Share the Mission",
+        description:
+          "Invite friends, family and church members to join FlashPoint Army Chapters. Very simple. Everyone can do it.",
+        icon: faShareNodes,
+        difficulty: "beginner",
+      },
+    ],
   },
   {
-    number: 2,
-    title: "Know Your Representatives",
-    description:
-      "Learn who represents your city, county, state and Washington. Know how to contact them. Know how they vote.",
-    icon: faLandmark,
+    id: "phase-2",
+    title: "PHASE 2 — Learn It",
+    subtitle: "Now they're engaged.",
     difficulty: "beginner",
-    url: "https://www.house.gov/representatives/find-your-representative",
+    headerBg: "#1e5c56",
+    bodyBg: "#174a46",
+    missions: [
+      {
+        number: 5,
+        title: "Contact Your Lawmakers",
+        description:
+          "Send emails, letters, or make phone calls regarding important legislation through action alerts (such as ACT for America).",
+        icon: faBullhorn,
+        difficulty: "beginner",
+        url: "https://www.actforamerica.org/",
+      },
+      {
+        number: 6,
+        title: "Become a Biblical Citizenship Coach",
+        description: "Now it makes sense. Not before.",
+        icon: faChalkboardUser,
+        difficulty: "beginner",
+        url: "https://www.patriotacademy.com/coach/flashpointarmy",
+      },
+    ],
   },
   {
-    number: 3,
-    title: "Pray for America",
-    description:
-      "Pray regularly for your nation, elected officials, schools, churches and communities. Prayer becomes a measurable mission.",
-    icon: faHandsPraying,
-    difficulty: "beginner",
-  },
-  {
-    number: 4,
-    title: "Share the Mission",
-    description:
-      "Invite friends, family and church members to join FlashPoint Army Chapters. Very simple. Everyone can do it.",
-    icon: faShareNodes,
-    difficulty: "beginner",
-  },
-  {
-    number: 5,
-    title: "Contact Your Lawmakers",
-    description:
-      "Send emails, letters, or make phone calls regarding important legislation through action alerts (such as ACT for America).",
-    icon: faBullhorn,
-    difficulty: "beginner",
-    url: "https://www.actforamerica.org/",
-  },
-  {
-    number: 6,
-    title: "Become a Biblical Citizenship Coach",
-    description: "Now it makes sense. Not before.",
-    icon: faChalkboardUser,
-    difficulty: "beginner",
-    url: "https://www.patriotacademy.com/coach/flashpointarmy",
-  },
-  {
-    number: 7,
-    title: "Restore Faith in Schools",
-    description:
-      "Bible curriculum. Chaplains. Religious liberty. Combine these. People don't understand the difference.",
-    icon: faSchool,
+    id: "phase-3",
+    title: "PHASE 3 — Influence Your Community",
     difficulty: "intermediate",
-    url: "https://www.nsca.global/certification",
+    headerBg: "#6b5420",
+    bodyBg: "#564318",
+    missions: [
+      {
+        number: 7,
+        title: "Restore Faith in Schools",
+        description:
+          "Bible curriculum. Chaplains. Religious liberty. Combine these. People don't understand the difference.",
+        icon: faSchool,
+        difficulty: "intermediate",
+        url: "https://www.nsca.global/certification",
+      },
+      {
+        number: 8,
+        title: "Display America's Foundation",
+        description:
+          "In God We Trust. Ten Commandments. Historical monuments. This becomes one mission.",
+        icon: faBookOpen,
+        difficulty: "intermediate",
+        url: "https://rfia.org/#welcome",
+      },
+      {
+        number: 9,
+        title: "Support Parents & Families",
+        description: "Parental Rights. Family values. Schools.",
+        icon: faPeopleRoof,
+        difficulty: "intermediate",
+      },
+    ],
   },
   {
-    number: 8,
-    title: "Display America's Foundation",
-    description:
-      "In God We Trust. Ten Commandments. Historical monuments. This becomes one mission.",
-    icon: faBookOpen,
-    difficulty: "intermediate",
-    url: "https://rfia.org/#welcome",
-  },
-  {
-    number: 9,
-    title: "Support Parents & Families",
-    description: "Parental Rights. Family values. Schools.",
-    icon: faPeopleRoof,
-    difficulty: "intermediate",
-  },
-  {
-    number: 10,
-    title: "Join Your Local Chapter",
-    description:
-      "Over the next few weeks, approved leaders will begin launching local chapters across the country. As they become available, you'll be able to join a chapter, volunteer, participate in local gatherings, support community initiatives, and grow alongside other believers.",
-    icon: faUserGroup,
+    id: "phase-4",
+    title: "PHASE 4 — Lead",
+    subtitle: "Only serious people reach here.",
     difficulty: "advanced",
-    comingSoon: true,
-  },
-  {
-    number: 11,
-    title: "Encourage Biblical Leaders",
-    description: "For Liberty & Justice. Candidates. Local office. Training.",
-    icon: faUserTie,
-    difficulty: "advanced",
-  },
-  {
-    number: 12,
-    title: "Restore Constitutional Government",
-    description:
-      "Convention of States. Property Rights. Federalism. Sharia. Citizen Enumeration. This becomes the advanced civic mission.",
-    icon: faShield,
-    difficulty: "advanced",
+    headerBg: "#525252",
+    bodyBg: "#424242",
+    missions: [
+      {
+        number: 10,
+        title: "Join Your Local Chapter",
+        description:
+          "Over the next few weeks, approved leaders will begin launching local chapters across the country. As they become available, you'll be able to join a chapter, volunteer, participate in local gatherings, support community initiatives, and grow alongside other believers.",
+        icon: faUserGroup,
+        difficulty: "advanced",
+        comingSoon: true,
+      },
+      {
+        number: 11,
+        title: "Encourage Biblical Leaders",
+        description: "For Liberty & Justice. Candidates. Local office. Training.",
+        icon: faUserTie,
+        difficulty: "advanced",
+      },
+      {
+        number: 12,
+        title: "Restore Constitutional Government",
+        description:
+          "Convention of States. Property Rights. Federalism. Sharia. Citizen Enumeration. This becomes the advanced civic mission.",
+        icon: faShield,
+        difficulty: "advanced",
+      },
+    ],
   },
 ];
+
+export const TWELVE_MISSIONS: MissionCard[] = MISSION_PHASES.flatMap((phase) => phase.missions);
