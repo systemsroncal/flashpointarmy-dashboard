@@ -2,7 +2,7 @@
 
 import {
   MISSION_DIFFICULTY_STYLES,
-  TWELVE_MISSIONS_SECTIONS,
+  TWELVE_MISSIONS,
   type MissionDifficulty,
 } from "@/lib/missions/twelve-missions";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -107,161 +107,128 @@ export function MissionsLanding() {
       >
         <MissionsLegend />
 
-        {TWELVE_MISSIONS_SECTIONS.map((section) => {
-          const accent = MISSION_DIFFICULTY_STYLES[section.difficulty].color;
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" },
+            gap: { xs: 1.5, sm: 2 },
+          }}
+        >
+          {TWELVE_MISSIONS.map((mission) => {
+            const missionAccent = MISSION_DIFFICULTY_STYLES[mission.difficulty].color;
 
-          return (
-            <Box key={section.id} sx={{ mb: { xs: 3, md: 4 } }}>
-              <Box sx={{ mb: 2, pb: 1, borderBottom: `2px solid ${accent}33` }}>
-                <Typography
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: { xs: "1.05rem", sm: "1.2rem" },
-                    color: accent,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  {section.heading}
-                </Typography>
-                {section.subtitle ? (
-                  <Typography
-                    sx={{
-                      mt: 0.5,
-                      fontSize: { xs: "0.82rem", sm: "0.9rem" },
-                      color: "#666",
-                    }}
-                  >
-                    {section.subtitle}
-                  </Typography>
-                ) : null}
-              </Box>
-
+            return (
               <Box
+                key={mission.number}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  /* prototype — mission selection TBD */
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                  }
+                }}
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" },
-                  gap: { xs: 1.5, sm: 2 },
+                  position: "relative",
+                  overflow: "hidden",
+                  borderRadius: 2,
+                  bgcolor: "rgb(245, 245, 245)",
+                  border: `1px solid ${missionAccent}40`,
+                  borderLeft: `4px solid ${missionAccent}`,
+                  minHeight: { xs: 120, sm: 132 },
+                  height: "100%",
+                  cursor: "pointer",
+                  transition: "box-shadow 0.2s, border-color 0.2s",
+                  "&:hover": {
+                    borderColor: missionAccent,
+                    boxShadow: `0 8px 24px ${missionAccent}22`,
+                  },
                 }}
               >
-                {section.missions.map((mission) => {
-                  const missionAccent = MISSION_DIFFICULTY_STYLES[mission.difficulty].color;
+                <Box
+                  sx={{
+                    position: "absolute",
+                    left: "5px",
+                    top: "6px",
+                    width: 20,
+                    height: 20,
+                    borderRadius: 0.75,
+                    bgcolor: missionAccent,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 800,
+                    fontSize: "calc(0.8rem - 2px)",
+                    color: "#fff",
+                    zIndex: 1,
+                  }}
+                >
+                  {mission.number}
+                </Box>
 
-                  return (
-                    <Box
-                      key={mission.number}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => {
-                        /* prototype — mission selection TBD */
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                        }
-                      }}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: { xs: 1.25, sm: 1.5 },
+                    p: { xs: 1.5, sm: 2 },
+                    height: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <FontAwesomeIcon
+                    icon={mission.icon}
+                    style={{
+                      fontSize: "calc(2.5rem - 2px)",
+                      color: missionAccent,
+                      flexShrink: 0,
+                      marginTop: 2,
+                    }}
+                  />
+
+                  <Box sx={{ flex: 1, minWidth: 0, pt: 0.15 }}>
+                    <Typography
                       sx={{
-                        position: "relative",
-                        overflow: "hidden",
-                        borderRadius: 2,
-                        bgcolor: "rgb(245, 245, 245)",
-                        border: `1px solid ${missionAccent}40`,
-                        borderLeft: `4px solid ${missionAccent}`,
-                        minHeight: { xs: 120, sm: 132 },
-                        height: "100%",
-                        cursor: "pointer",
-                        transition: "box-shadow 0.2s, border-color 0.2s",
-                        "&:hover": {
-                          borderColor: missionAccent,
-                          boxShadow: `0 8px 24px ${missionAccent}22`,
-                        },
+                        fontWeight: 800,
+                        fontSize: { xs: "0.88rem", sm: "0.95rem" },
+                        lineHeight: 1.35,
+                        color: "#111",
+                        mb: 0.75,
                       }}
                     >
-                      <Box
+                      {mission.title}
+                    </Typography>
+                    <Stack spacing={0.15}>
+                      <Typography
                         sx={{
-                          position: "absolute",
-                          left: "5px",
-                          top: "6px",
-                          width: 20,
-                          height: 20,
-                          borderRadius: 0.75,
-                          bgcolor: missionAccent,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 800,
-                          fontSize: "calc(0.8rem - 2px)",
-                          color: "#fff",
-                          zIndex: 1,
+                          fontSize: { xs: "0.72rem", sm: "0.78rem" },
+                          color: "#666",
+                          lineHeight: 1.45,
                         }}
                       >
-                        {mission.number}
-                      </Box>
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: { xs: 1.25, sm: 1.5 },
-                          p: { xs: 1.5, sm: 2 },
-                          height: "100%",
-                          boxSizing: "border-box",
-                        }}
-                      >
-                        <FontAwesomeIcon
-                          icon={mission.icon}
-                          style={{
-                            fontSize: "calc(2.5rem - 2px)",
-                            color: missionAccent,
-                            flexShrink: 0,
-                            marginTop: 2,
+                        {mission.description}
+                      </Typography>
+                      {mission.partner ? (
+                        <Typography
+                          sx={{
+                            fontSize: { xs: "0.72rem", sm: "0.78rem" },
+                            color: "#666",
+                            lineHeight: 1.45,
+                            fontWeight: 600,
                           }}
-                        />
-
-                        <Box sx={{ flex: 1, minWidth: 0, pt: 0.15 }}>
-                          <Typography
-                            sx={{
-                              fontWeight: 800,
-                              fontSize: { xs: "0.88rem", sm: "0.95rem" },
-                              lineHeight: 1.35,
-                              color: "#111",
-                              mb: 0.75,
-                            }}
-                          >
-                            {mission.title}
-                          </Typography>
-                          <Stack spacing={0.15}>
-                            <Typography
-                              sx={{
-                                fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                                color: "#666",
-                                lineHeight: 1.45,
-                              }}
-                            >
-                              {mission.description}
-                            </Typography>
-                            {mission.partner ? (
-                              <Typography
-                                sx={{
-                                  fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                                  color: "#666",
-                                  lineHeight: 1.45,
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {mission.partner}
-                              </Typography>
-                            ) : null}
-                          </Stack>
-                        </Box>
-                      </Box>
-                    </Box>
-                  );
-                })}
+                        >
+                          {mission.partner}
+                        </Typography>
+                      ) : null}
+                    </Stack>
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          );
-        })}
+            );
+          })}
+        </Box>
       </Paper>
     </Box>
   );
