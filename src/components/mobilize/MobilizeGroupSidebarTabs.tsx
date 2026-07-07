@@ -13,6 +13,7 @@ import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlin
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
+import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import {
   Box,
   Divider,
@@ -30,6 +31,7 @@ const MOBILIZE_GROUP_TAB_ICONS: Record<MobilizeGroupTabSlug, ReactNode> = {
   events: <EventAvailableOutlinedIcon />,
   members: <GroupsOutlinedIcon />,
   resources: <FolderOpenOutlinedIcon />,
+  updates: <NotificationsActiveOutlinedIcon />,
   reports: <AssessmentOutlinedIcon />,
 };
 
@@ -84,6 +86,7 @@ export function MobilizeGroupSidebarTabs({ groupId, activeTab, onNavigate }: Pro
         setCanViewReports(
           canViewMobilizeGroupReports({
             isSuperAdmin: me.role_names.includes("super_admin"),
+            isAdmin: me.role_names.includes("admin"),
             groupCreatedBy: json.group?.created_by,
             currentUserId: me.id,
             membership: json.membership ?? null,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -44,7 +45,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id } = await ctx.params;
 
-  if (!(await isApprovedMember(auth.admin, id, auth.userId))) {
+  if (!isMobilizeSuperAdmin(auth.roleNames) && !(await isApprovedMember(auth.admin, id, auth.userId))) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

@@ -86,7 +86,7 @@ export function MobilizeGroupReportsPanel({ groupId }: Props) {
       icon: <CalendarMonthOutlinedIcon />,
     },
     {
-      label: "Announcements",
+      label: "Feed",
       value: summary.totalAnnouncements,
       icon: <AssessmentOutlinedIcon />,
     },

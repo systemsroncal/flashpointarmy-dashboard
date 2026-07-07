@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canManageMobilizeGroupContent } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -55,9 +56,14 @@ export async function PATCH(req: Request, ctx: Ctx) {
     .maybeSingle();
 
   const approved = m?.membership_status === "approved";
-  const isLeaderUser = approved && m.member_role === "leader";
+  const isLeaderUser = approved && m?.member_role === "leader";
   const isCreator = approved && event.created_by === auth.userId;
-  if (!approved || (!isLeaderUser && !isCreator)) {
+  const canManage = canManageMobilizeGroupContent({
+    roleNames: auth.roleNames,
+    isLeader: isLeaderUser,
+    isAuthor: isCreator,
+  });
+  if (!canManage) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -104,9 +110,14 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     .maybeSingle();
 
   const approved = m?.membership_status === "approved";
-  const isLeaderUser = approved && m.member_role === "leader";
+  const isLeaderUser = approved && m?.member_role === "leader";
   const isCreator = approved && event.created_by === auth.userId;
-  if (!approved || (!isLeaderUser && !isCreator)) {
+  const canManage = canManageMobilizeGroupContent({
+    roleNames: auth.roleNames,
+    isLeader: isLeaderUser,
+    isAuthor: isCreator,
+  });
+  if (!canManage) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

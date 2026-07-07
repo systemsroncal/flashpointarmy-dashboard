@@ -20,8 +20,8 @@ export function labelEventCreatePolicy(policy: string): string {
 
 export function labelWallPostPolicy(policy: string): string {
   return policy === "leaders_only"
-    ? "Announcements: leaders only"
-    : "Announcements: all members";
+    ? "Feed: leaders only"
+    : "Feed: all members";
 }
 
 export function labelResourcesPostPolicy(policy: string): string {

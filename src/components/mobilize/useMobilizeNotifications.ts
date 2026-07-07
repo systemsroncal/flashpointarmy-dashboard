@@ -37,8 +37,9 @@ export function formatMobilizeTimeAgo(iso: string): string {
   return new Date(iso).toLocaleString();
 }
 
-export function useMobilizeNotifications(options?: { playSound?: boolean }) {
+export function useMobilizeNotifications(options?: { playSound?: boolean; groupId?: string }) {
   const playSound = options?.playSound ?? false;
+  const groupId = options?.groupId?.trim() || null;
   const [data, setData] = useState<MobilizeNotificationsPayload>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -50,7 +51,8 @@ export function useMobilizeNotifications(options?: { playSound?: boolean }) {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/mobilize/notifications", { cache: "no-store" });
+      const qs = groupId ? `?groupId=${encodeURIComponent(groupId)}` : "";
+      const res = await fetch(`/api/mobilize/notifications${qs}`, { cache: "no-store" });
       const json = (await res.json()) as MobilizeNotificationsPayload & { error?: string };
       if (!res.ok) throw new Error(json.error || "Failed to load notifications.");
       setData({
@@ -63,7 +65,7 @@ export function useMobilizeNotifications(options?: { playSound?: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [groupId]);
 
   useEffect(() => {
     void load();

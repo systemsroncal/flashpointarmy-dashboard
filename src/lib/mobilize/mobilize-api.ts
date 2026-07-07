@@ -7,6 +7,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 export type MobilizeAuthOk = {
   userId: string;
   admin: ReturnType<typeof createAdminClient>;
+  roleNames: string[];
 };
 
 /**
@@ -20,5 +21,5 @@ export async function requireMobilizeRead(): Promise<MobilizeAuthOk | NextRespon
   if (!canAccessMobilizeModule(roleNames)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
-  return { userId: user.id, admin: createAdminClient() };
+  return { userId: user.id, admin: createAdminClient(), roleNames };
 }

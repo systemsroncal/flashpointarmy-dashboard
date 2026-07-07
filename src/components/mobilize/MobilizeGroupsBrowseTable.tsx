@@ -112,7 +112,7 @@ export default function MobilizeGroupsBrowseTable({
   groups,
   loading = false,
   maxHeight,
-  emptyMessage = "No groups match your filters.",
+  emptyMessage = "No chapters match your filters.",
   onJoined,
   layoutVariant = "default",
   thumbnailScale = 1,
@@ -165,7 +165,7 @@ export default function MobilizeGroupsBrowseTable({
       return (
         <Stack direction="row" alignItems="center" spacing={0.5} justifyContent={justify}>
           <Chip size="small" icon={<CheckCircleIcon />} label="Joined" color="success" variant="outlined" />
-          <Tooltip title="Open group">
+          <Tooltip title="Open chapter">
             <IconButton
               component={Link}
               href={href}
@@ -268,7 +268,7 @@ export default function MobilizeGroupsBrowseTable({
           <TableRow>
             {mapStacked ? (
               <TableCell sx={{ fontWeight: 700, color: "text.secondary", minWidth: Math.max(200, thumbSize + 120) }}>
-                Group
+                Chapter
               </TableCell>
             ) : (
               <>

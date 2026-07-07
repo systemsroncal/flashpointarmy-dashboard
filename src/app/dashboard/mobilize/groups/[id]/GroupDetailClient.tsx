@@ -47,6 +47,10 @@ import { useSearchParams } from "next/navigation";
 import { AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import { canViewMobilizeGroupReports, parseMobilizeGroupTab } from "@/lib/mobilize/group-detail-tabs";
+import {
+  canManageMobilizeGroupContent,
+  canViewMobilizeGroupMemberContent,
+} from "@/lib/mobilize/mobilize-content-access";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
@@ -71,6 +75,8 @@ import { MobilizeAnnouncementMediaGrid } from "@/components/mobilize/MobilizeAnn
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import { MobilizeGroupReportsPanel } from "@/components/mobilize/MobilizeGroupReportsPanel";
 import MobilizeGroupResourcesPanel from "@/components/mobilize/MobilizeGroupResourcesPanel";
+import { MobilizeChapterUpdatesPanel } from "@/components/mobilize/MobilizeChapterUpdatesPanel";
+import { MobilizeTypeDeleteDialog } from "@/components/mobilize/MobilizeTypeDeleteDialog";
 import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupStateFlag";
 import { resolveMobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -166,25 +172,27 @@ function JoinToViewGate({
   showJoinButton,
   isPending,
 }: {
-  section: "announcements" | "events" | "members" | "resources" | "reports";
+  section: "announcements" | "events" | "members" | "resources" | "updates" | "reports";
   onJoin: () => void;
   showJoinButton: boolean;
   isPending: boolean;
 }) {
   const sectionLabel =
     section === "announcements"
-      ? "announcements"
+      ? "the feed"
       : section === "events"
         ? "events and activities"
         : section === "resources"
           ? "resources"
-          : section === "reports"
+          : section === "updates"
+            ? "chapter updates"
+            : section === "reports"
             ? "reports"
             : "members";
 
   const message = isPending
-    ? "Your join request is pending. A group leader must approve it before you can view this section."
-    : `Join this group to view ${sectionLabel}.`;
+    ? "Your join request is pending. A chapter leader must approve it before you can view this section."
+    : `Join this chapter to view ${sectionLabel}.`;
 
   return (
     <Card variant="outlined" sx={mobilizeCardSx}>
@@ -255,6 +263,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     is_public: false,
   });
   const [deleteDialog, setDeleteDialog] = useState<{ id: string; title: string } | null>(null);
+  const [deleteMessageDialog, setDeleteMessageDialog] = useState<{ id: string; preview: string } | null>(null);
   const [removeMemberDialog, setRemoveMemberDialog] = useState<{
     userId: string;
     name: string;
@@ -345,8 +354,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const isApproved = membership?.membership_status === "approved";
   const isLeader = membership?.member_role === "leader" && isApproved;
   const isSuperAdmin = me.role_names.includes("super_admin");
+  const canViewContent = canViewMobilizeGroupMemberContent({
+    roleNames: me.role_names,
+    isApprovedMember: isApproved,
+  });
   const canViewReports = canViewMobilizeGroupReports({
     isSuperAdmin,
+    isAdmin: me.role_names.includes("admin"),
     groupCreatedBy: group?.created_by,
     currentUserId: me.id,
     membership,
@@ -389,16 +403,30 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     [ownerCandidates, editForm.leader_user_ids]
   );
 
+  function canManageMessage(m: MessageRow) {
+    return canManageMobilizeGroupContent({
+      roleNames: me.role_names,
+      isLeader,
+      isAuthor: m.author_id === me.id,
+    });
+  }
+
   function canManageEvent(e: EventRow) {
-    return isLeader || e.created_by === me.id;
+    return (
+      canManageMobilizeGroupContent({
+        roleNames: me.role_names,
+        isLeader,
+        isAuthor: e.created_by === me.id,
+      })
+    );
   }
 
   useEffect(() => {
-    if (!isApproved) return;
+    if (!canViewContent) return;
     void loadWall().catch(() => {});
     void loadEvents().catch(() => {});
     void loadMembers().catch(() => {});
-  }, [isApproved, loadWall, loadEvents, loadMembers]);
+  }, [canViewContent, loadWall, loadEvents, loadMembers]);
 
   async function joinRequest() {
     try {
@@ -446,6 +474,26 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     }
   }
 
+  async function confirmDeleteMessage() {
+    if (!deleteMessageDialog) return;
+    setWallPosting(true);
+    try {
+      const res = await fetch(
+        `/api/mobilize/groups/${groupId}/messages/${deleteMessageDialog.id}`,
+        { method: "DELETE" }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Delete failed.");
+      toast("Post deleted.", "success");
+      setDeleteMessageDialog(null);
+      await loadWall();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Delete failed.", "error");
+    } finally {
+      setWallPosting(false);
+    }
+  }
+
   async function saveMessageEdit() {
     if (!msgEdit) return;
     try {
@@ -453,7 +501,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          isLeader
+          isLeader || isSuperAdmin
             ? {
                 content: msgEdit.content.trim(),
                 image_urls: msgEdit.image_urls,
@@ -645,7 +693,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Remove failed.");
-      toast("Member removed from the group.", "success");
+      toast("Member removed from the chapter.", "success");
       setRemoveMemberDialog(null);
       await loadMembers();
       await loadGroup();
@@ -762,7 +810,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Update failed.");
-      toast("Group updated.", "success");
+      toast("Chapter updated.", "success");
       setEditOpen(false);
       await loadGroup();
       if (isApproved) await loadMembers();
@@ -983,15 +1031,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             src={groupCoverSrc}
             alt=""
             sx={{
-              width: 72,
-              height: 72,
-              borderRadius: 1,
+              width: 80,
+              height: 80,
+              borderRadius: 1.25,
               objectFit: "cover",
               flexShrink: 0,
               bgcolor: "rgba(0,0,0,0.25)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.35)",
             }}
           />
-          <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Box sx={{ minWidth: 0, flex: 1, textAlign: "left" }}>
             <Typography
               variant="overline"
               sx={{
@@ -999,13 +1048,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 letterSpacing: 2,
                 fontWeight: 800,
                 color: "primary.main",
-                fontSize: "0.65rem",
+                fontSize: "0.68rem",
                 lineHeight: 1.2,
               }}
             >
               FLASH POINT ARMY
             </Typography>
-            <Typography variant="h5" fontWeight={800} lineHeight={1.25} sx={{ textAlign: "center" }}>
+            <Typography variant="h5" fontWeight={800} lineHeight={1.2} noWrap title={group.name}>
               {group.name}
             </Typography>
           </Box>
@@ -1031,29 +1080,42 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   }
 
   const canEditGroup = isLeader || group.created_by === me.id || isSuperAdmin;
-  const canManageMembers = isLeader || group.created_by === me.id;
+  const canManageMembers = isLeader || group.created_by === me.id || isSuperAdmin;
   const gridSx = {
     display: "grid",
     gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
     gap: 0.5,
   } as const;
 
+  const tallContentPanel =
+    activeTab === "members" ||
+    activeTab === "resources" ||
+    activeTab === "updates" ||
+    activeTab === "reports";
+
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Button component={Link} href="/dashboard/mobilize/map" size="small">
-          Back to map
+          Back to chapters
         </Button>
         {canEditGroup ? (
           <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => openEditGroup()}>
-            Edit group
+            Edit chapter
           </Button>
         ) : null}
       </Stack>
       {activeTab === "announcements" ? fullHeader : compactHeader}
 
-      <MobilizeContentPanel sx={{ mt: activeTab === "announcements" ? 2 : 0 }}>
-      {activeTab === "announcements" && !isApproved ? (
+      <MobilizeContentPanel
+        sx={{
+          mt: activeTab === "announcements" ? 2 : 0,
+          ...(tallContentPanel
+            ? { minHeight: { xs: 440, sm: 520 }, display: "flex", flexDirection: "column" }
+            : {}),
+        }}
+      >
+      {activeTab === "announcements" && !canViewContent ? (
         <JoinToViewGate
           section="announcements"
           onJoin={joinRequest}
@@ -1062,7 +1124,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         />
       ) : null}
 
-      {activeTab === "announcements" && isApproved ? (
+      {activeTab === "announcements" && canViewContent ? (
         <Box>
           {canPostWall ? (
             <>
@@ -1081,7 +1143,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 onChange={setWallImages}
                 disabled={wallPosting}
               />
-              {isLeader ? (
+              {isLeader || isSuperAdmin ? (
                 <FormControl component="fieldset" sx={{ mt: 1.5 }} variant="standard">
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
                     Who can comment on this post (leaders only — not shown to members on announcements)
@@ -1112,8 +1174,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           )}
           <Box sx={{ mt: 2 }}>
             {messages.map((m) => {
-              const canEdit = isLeader || m.author_id === me.id;
+              const canManage = canManageMessage(m);
               const pol = m.comments_policy === "leaders_only" ? "Leaders only" : "Everyone";
+              const preview = m.content.trim() || "this post";
               return (
                 <Card key={m.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
                   <CardContent>
@@ -1122,7 +1185,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                         <Typography variant="caption" color="text.secondary">
                           {new Date(m.created_at).toLocaleString()} · {m.author_id.slice(0, 8)}…
                         </Typography>
-                        {isLeader ? (
+                        {isLeader || isSuperAdmin ? (
                           <Chip size="small" label={`Comments: ${pol}`} sx={{ ml: 1 }} variant="outlined" />
                         ) : null}
                         {m.content ? (
@@ -1132,21 +1195,32 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                         ) : null}
                         <MobilizeAnnouncementMediaGrid urls={m.image_urls ?? []} />
                       </Box>
-                      {canEdit ? (
-                        <Button
-                          size="small"
-                          onClick={() =>
-                            setMsgEdit({
-                              id: m.id,
-                              content: m.content,
-                              image_urls: m.image_urls ?? [],
-                              comments_policy:
-                                m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
-                            })
-                          }
-                        >
-                          Edit
-                        </Button>
+                      {canManage ? (
+                        <Stack direction="row" spacing={0.5} flexShrink={0}>
+                          <Button
+                            size="small"
+                            startIcon={<EditIcon />}
+                            onClick={() =>
+                              setMsgEdit({
+                                id: m.id,
+                                content: m.content,
+                                image_urls: m.image_urls ?? [],
+                                comments_policy:
+                                  m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
+                              })
+                            }
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            startIcon={<DeleteOutlineIcon />}
+                            onClick={() => setDeleteMessageDialog({ id: m.id, preview })}
+                          >
+                            Delete
+                          </Button>
+                        </Stack>
                       ) : null}
                     </Stack>
                   </CardContent>
@@ -1156,14 +1230,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             {!messages.length ? (
               <MobilizeSectionEmptyState
                 imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
-                message="There are no announcements in this group yet."
+                message="There are no feed posts in this chapter yet."
               />
             ) : null}
           </Box>
         </Box>
       ) : null}
 
-      {activeTab === "events" && !isApproved ? (
+      {activeTab === "events" && !canViewContent ? (
         <JoinToViewGate
           section="events"
           onJoin={joinRequest}
@@ -1172,7 +1246,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         />
       ) : null}
 
-      {activeTab === "events" && isApproved ? (
+      {activeTab === "events" && canViewContent ? (
         <Box>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
             {(isLeader || group.event_create_policy === "any_member") ? (
@@ -1262,7 +1336,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               {!events.length ? (
                 <MobilizeSectionEmptyState
                   imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.events}
-                  message="There are no upcoming events in this group."
+                  message="There are no upcoming events in this chapter."
                 />
               ) : null}
             </>
@@ -1280,7 +1354,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 </Button>
               </Stack>
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                Events for this group only.
+                Events for this chapter only.
               </Typography>
               <Box sx={{ ...gridSx, mb: 0.5 }}>
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
@@ -1330,7 +1404,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Box>
       ) : null}
 
-      {activeTab === "members" && !isApproved ? (
+      {activeTab === "members" && !canViewContent ? (
         <JoinToViewGate
           section="members"
           onJoin={joinRequest}
@@ -1339,7 +1413,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         />
       ) : null}
 
-      {activeTab === "members" && isApproved ? (
+      {activeTab === "members" && canViewContent ? (
         <Box>
           {canManageMembers ? (
             <>
@@ -1512,7 +1586,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Box>
       ) : null}
 
-      {activeTab === "resources" && !isApproved ? (
+      {activeTab === "resources" && !canViewContent ? (
         <JoinToViewGate
           section="resources"
           onJoin={joinRequest}
@@ -1521,16 +1595,30 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         />
       ) : null}
 
-      {activeTab === "resources" && isApproved ? (
+      {activeTab === "resources" && canViewContent ? (
         <MobilizeGroupResourcesPanel
           groupId={groupId}
           currentUserId={me.id}
           isLeader={isLeader}
+          isSuperAdmin={isSuperAdmin}
           canPost={canPostResources}
         />
       ) : null}
 
-      {activeTab === "reports" && !isApproved ? (
+      {activeTab === "updates" && !canViewContent ? (
+        <JoinToViewGate
+          section="updates"
+          onJoin={joinRequest}
+          showJoinButton={showJoin}
+          isPending={isPendingJoin}
+        />
+      ) : null}
+
+      {activeTab === "updates" && canViewContent ? (
+        <MobilizeChapterUpdatesPanel groupId={groupId} chapterName={group.name} />
+      ) : null}
+
+      {activeTab === "reports" && !canViewContent ? (
         <JoinToViewGate
           section="reports"
           onJoin={joinRequest}
@@ -1539,13 +1627,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         />
       ) : null}
 
-      {activeTab === "reports" && isApproved && !canViewReports ? (
+      {activeTab === "reports" && canViewContent && !canViewReports ? (
         <Typography color="text.secondary">
           Reports are available to group owners and leaders only.
         </Typography>
       ) : null}
 
-      {activeTab === "reports" && isApproved && canViewReports ? (
+      {activeTab === "reports" && canViewContent && canViewReports ? (
         <MobilizeGroupReportsPanel groupId={groupId} />
       ) : null}
       </MobilizeContentPanel>
@@ -1765,22 +1853,31 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={!!deleteDialog} onClose={() => !eventSaving && setDeleteDialog(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Delete event</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
-            Delete &quot;{deleteDialog?.title}&quot;? This cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog(null)} disabled={eventSaving}>
-            Cancel
-          </Button>
-          <Button color="error" variant="contained" onClick={() => void confirmDeleteEvent()} disabled={eventSaving}>
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <MobilizeTypeDeleteDialog
+        open={!!deleteDialog}
+        title="Delete event"
+        description={
+          <>
+            Delete <strong>{deleteDialog?.title}</strong>? This cannot be undone.
+          </>
+        }
+        loading={eventSaving}
+        onClose={() => setDeleteDialog(null)}
+        onConfirm={() => void confirmDeleteEvent()}
+      />
+
+      <MobilizeTypeDeleteDialog
+        open={!!deleteMessageDialog}
+        title="Delete post"
+        description={
+          <>
+            Delete <strong>{deleteMessageDialog?.preview}</strong>? This cannot be undone.
+          </>
+        }
+        loading={wallPosting}
+        onClose={() => setDeleteMessageDialog(null)}
+        onConfirm={() => void confirmDeleteMessage()}
+      />
 
       <Dialog open={editOpen} onClose={() => !editSaving && setEditOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit group</DialogTitle>
@@ -1995,7 +2092,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 value={msgEdit.image_urls}
                 onChange={(urls) => setMsgEdit((s) => (s ? { ...s, image_urls: urls } : s))}
               />
-              {isLeader ? (
+              {isLeader || isSuperAdmin ? (
                 <FormControl fullWidth>
                   <InputLabel id="cpol">Who can comment</InputLabel>
                   <Select

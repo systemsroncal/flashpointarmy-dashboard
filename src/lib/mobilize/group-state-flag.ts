@@ -1,3 +1,4 @@
+import { US_STATE_FLAG_URL_BY_FIPS } from "@/data/usStateFlagUrls";
 import { usStateByCode } from "@/data/usStates";
 import { normalizeUsStateFromText, parseStateFromUsAddress } from "@/lib/import/us-state";
 
@@ -6,9 +7,6 @@ export type MobilizeGroupStateInfo = {
   name: string;
   flagSrc: string;
 };
-
-const FLAG_CDN =
-  "https://cdn.jsdelivr.net/gh/CivilNet/us_state_flags@master/png";
 
 /** Resolve USPS state code from Mobilize group fields (region_code, address, or name). */
 export function resolveMobilizeGroupStateCode(input: {
@@ -33,7 +31,9 @@ export function resolveMobilizeGroupStateCode(input: {
 }
 
 export function usStateFlagSrc(code: string): string {
-  return `${FLAG_CDN}/${code.toLowerCase()}.png`;
+  const state = usStateByCode(code);
+  if (!state) return "";
+  return US_STATE_FLAG_URL_BY_FIPS[state.id] ?? "";
 }
 
 export function resolveMobilizeGroupStateInfo(input: {
@@ -45,5 +45,7 @@ export function resolveMobilizeGroupStateInfo(input: {
   if (!code) return null;
   const state = usStateByCode(code);
   if (!state) return null;
-  return { code, name: state.name, flagSrc: usStateFlagSrc(code) };
+  const flagSrc = usStateFlagSrc(code);
+  if (!flagSrc) return null;
+  return { code, name: state.name, flagSrc };
 }

@@ -25,9 +25,7 @@ import {
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import MapIcon from "@mui/icons-material/Map";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
-import ViewListIcon from "@mui/icons-material/ViewList";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
@@ -64,15 +62,16 @@ type GroupRow = {
   my_membership_status?: string | null;
 };
 
+/** Temporarily hide GPS/address search origin controls on the chapters map page. */
+const SHOW_SEARCH_ORIGIN = false;
+
 type OriginMode = "gps" | "address";
-type BrowseMode = "list" | "map";
 
 export default function MobilizeMapPageContent() {
   const toast = useMobilizeToast();
   const dashboardUser = useDashboardUser();
   const [canCreateGroup, setCanCreateGroup] = useState(false);
   const [originMode, setOriginMode] = useState<OriginMode>("address");
-  const [browseMode, setBrowseMode] = useState<BrowseMode>("map");
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -217,7 +216,6 @@ export default function MobilizeMapPageContent() {
       }
       setManualPos({ lat: hit.lat, lng: hit.lon });
       setManualSearchAddress(hit.display_name);
-      setBrowseMode("map");
       setRecenterNonce((n) => n + 1);
       toast("Address located. Map zoomed to your search radius.", "success");
     } catch (e) {
@@ -347,12 +345,11 @@ export default function MobilizeMapPageContent() {
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2} sx={{ mb: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight={700}>
-            Groups
+            Chapters
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720, lineHeight: 1.55 }}>
-            Welcome! In this section you can find groups near your area. We invite you to join a group close to your
-            location—or explore and join any group that matches your interests. Use the list or map, GPS, or an address
-            to search nearby.
+            Find FlashPoint Army chapters near you. Browse the map, explore listed chapters, and join the one that
+            fits your area and interests.
           </Typography>
         </Box>
         {canCreateGroup ? (
@@ -362,12 +359,13 @@ export default function MobilizeMapPageContent() {
             onClick={() => setCreateOpen(true)}
             sx={{ minWidth: 200 }}
           >
-            New group
+            New chapter
           </Button>
         ) : null}
       </Stack>
 
       <MobilizeContentPanel>
+      {SHOW_SEARCH_ORIGIN ? (
       <Stack direction={{ xs: "column", lg: "row" }} spacing={1} sx={{ mb: 2 }} alignItems={{ lg: "center" }}>
         <ToggleButtonGroup
           size="small"
@@ -431,15 +429,16 @@ export default function MobilizeMapPageContent() {
           </Select>
         </FormControl>
       </Stack>
+      ) : null}
 
-      {originMode === "gps" && !userPos ? (
+      {SHOW_SEARCH_ORIGIN && originMode === "gps" && !userPos ? (
         <Typography variant="caption" color="warning.main" display="block" sx={{ mb: 2, mt: -1 }}>
           Allow browser location or switch to Address and set a point.
         </Typography>
       ) : null}
-      {originMode === "address" && !manualPos ? (
+      {SHOW_SEARCH_ORIGIN && originMode === "address" && !manualPos ? (
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2, mt: -1 }}>
-          Enter an address and tap Use this point to search nearby groups.
+          Enter an address and tap Use this point to search nearby chapters.
         </Typography>
       ) : null}
 
@@ -487,106 +486,63 @@ export default function MobilizeMapPageContent() {
         </Box>
       </Stack>
 
-      <ToggleButtonGroup
-        value={browseMode}
-        exclusive
-        onChange={(_, v) => v && setBrowseMode(v)}
-        size="small"
-        sx={{ mb: 2 }}
-        aria-label="View mode"
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", lg: "11fr 9fr" },
+          gap: 2,
+          alignItems: "stretch",
+        }}
       >
-        <ToggleButton value="list" aria-label="List view" sx={{ px: 1.5 }}>
-          <Tooltip title="List">
-            <ViewListIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-        <ToggleButton value="map" aria-label="Map view" sx={{ px: 1.5 }}>
-          <Tooltip title="Map">
-            <MapIcon fontSize="small" />
-          </Tooltip>
-        </ToggleButton>
-      </ToggleButtonGroup>
-
-      {!searchOrigin ? (
-        <Typography variant="caption" color="warning.main" display="block" sx={{ mb: 1 }}>
-          {originMode === "gps"
-            ? "No GPS point: allow location or switch to “Use address” and geocode."
-            : "No address point: use “Use this point” or switch to “Use GPS”."}
-        </Typography>
-      ) : null}
-
-      {browseMode === "list" ? (
-        <Box>
+        <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Groups ({sorted.length})
+            Chapters ({sorted.length})
           </Typography>
           <MobilizeGroupsBrowseTable
             groups={sorted}
             loading={loading}
-            emptyMessage="No groups match your filters."
+            maxHeight={480}
+            emptyMessage="No chapters match your filters."
             onJoined={() => void load()}
-            thumbnailScale={3.5}
+            layoutVariant="mapStacked"
+            thumbnailScale={1}
           />
         </Box>
-      ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
-            gap: 2,
-            alignItems: "stretch",
-          }}
-        >
-          <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Groups ({sorted.length})
-            </Typography>
-            <MobilizeGroupsBrowseTable
-              groups={sorted}
-              loading={loading}
-              maxHeight={480}
-              emptyMessage="No groups match your filters."
-              onJoined={() => void load()}
-              layoutVariant="mapStacked"
-              thumbnailScale={1}
-            />
-          </Box>
-          <Box sx={{ minWidth: 0, position: "relative" }}>
-            {searchOrigin ? (
-              <Tooltip title="Zoom to search origin (GPS or address)">
-                <IconButton
-                  size="small"
-                  onClick={() => setRecenterNonce((n) => n + 1)}
-                  sx={{
-                    position: "absolute",
-                    top: 10,
-                    right: 10,
-                    zIndex: 1000,
-                    bgcolor: "rgba(0,0,0,0.55)",
-                    color: "primary.light",
-                    "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
-                  }}
-                  aria-label="Zoom to search origin"
-                >
-                  <MyLocationIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            ) : null}
-            <MobilizeMapView
-              markers={markers}
-              height={480}
-              center={mapCenter}
-              zoom={searchOrigin ? 9 : 4}
-              searchOrigin={mapSearchOrigin}
-              recenterNonce={recenterNonce}
-            />
-          </Box>
+        <Box sx={{ minWidth: 0, position: "relative" }}>
+          {searchOrigin ? (
+            <Tooltip title="Zoom to search origin (GPS or address)">
+              <IconButton
+                size="small"
+                onClick={() => setRecenterNonce((n) => n + 1)}
+                sx={{
+                  position: "absolute",
+                  top: 10,
+                  right: 10,
+                  zIndex: 1000,
+                  bgcolor: "rgba(0,0,0,0.55)",
+                  color: "primary.light",
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
+                }}
+                aria-label="Zoom to search origin"
+              >
+                <MyLocationIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
+          <MobilizeMapView
+            markers={markers}
+            height={480}
+            center={mapCenter}
+            zoom={searchOrigin ? 9 : 4}
+            searchOrigin={mapSearchOrigin}
+            recenterNonce={recenterNonce}
+          />
         </Box>
-      )}
+      </Box>
       </MobilizeContentPanel>
 
       <Dialog open={createOpen} onClose={() => !saving && setCreateOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Create group</DialogTitle>
+        <DialogTitle>Create chapter</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -684,7 +640,7 @@ export default function MobilizeMapPageContent() {
             Cancel
           </Button>
           <Button variant="contained" onClick={() => void submitCreate()} disabled={saving}>
-            Create
+            Create chapter
           </Button>
         </DialogActions>
       </Dialog>

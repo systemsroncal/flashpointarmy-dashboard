@@ -5,15 +5,17 @@ export const MOBILIZE_GROUP_TAB_SLUGS = [
   "events",
   "members",
   "resources",
+  "updates",
   "reports",
 ] as const;
 export type MobilizeGroupTabSlug = (typeof MOBILIZE_GROUP_TAB_SLUGS)[number];
 
 export const MOBILIZE_GROUP_TAB_LABELS: Record<MobilizeGroupTabSlug, string> = {
-  announcements: "Announcements",
+  announcements: "Feed",
   events: "Events",
   members: "Members",
   resources: "Resources",
+  updates: "Chapter Updates",
   reports: "Reports",
 };
 
@@ -32,6 +34,7 @@ export function parseMobilizeGroupTab(raw: string | null | undefined): MobilizeG
     raw === "events" ||
     raw === "members" ||
     raw === "resources" ||
+    raw === "updates" ||
     raw === "reports"
   ) {
     return raw;
@@ -56,11 +59,12 @@ export function mobilizeGroupTabsForNav(canViewReports: boolean): MobilizeGroupT
 
 export function canViewMobilizeGroupReports(input: {
   isSuperAdmin: boolean;
+  isAdmin?: boolean;
   groupCreatedBy: string | null | undefined;
   currentUserId: string;
   membership: { member_role: string; membership_status: string } | null;
 }): boolean {
-  if (input.isSuperAdmin) return true;
+  if (input.isSuperAdmin || input.isAdmin) return true;
   if (!input.membership || input.membership.membership_status !== "approved") return false;
   if (input.groupCreatedBy === input.currentUserId) return true;
   return input.membership.member_role === "leader";

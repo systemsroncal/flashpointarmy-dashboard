@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-images";
+import { canManageMobilizeGroupContent, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { getMobilizeWallPostAccess } from "@/lib/mobilize/mobilize-wall-post-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
@@ -29,7 +30,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 30)));
   const before = url.searchParams.get("before");
 
-  if (!(await isApprovedMember(auth.admin, id, auth.userId))) {
+  if (!isMobilizeSuperAdmin(auth.roleNames) && !(await isApprovedMember(auth.admin, id, auth.userId))) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

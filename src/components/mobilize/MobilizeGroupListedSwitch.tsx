@@ -19,12 +19,12 @@ export default function MobilizeGroupListedSwitch({ listed, onListedChange, disa
             disabled={disabled}
           />
         }
-        label="Listed on map and groups"
+        label="Listed on map and chapters"
       />
       <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: -0.5 }}>
         {listed
-          ? "Visible on the Mobilize map and groups list."
-          : "Hidden from map and list. Only accessible via the direct group URL."}
+          ? "Visible on the Mobilize map and chapters list."
+          : "Hidden from map and list. Only accessible via the direct chapter URL."}
       </Typography>
     </Box>
   );

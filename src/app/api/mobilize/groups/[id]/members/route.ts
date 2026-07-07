@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadTrainingGraduateBadgesForUsers } from "@/lib/courses/course-completion";
+import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -23,7 +24,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     .eq("user_id", auth.userId)
     .maybeSingle();
 
-  if (!me || me.membership_status !== "approved") {
+  if (!isMobilizeSuperAdmin(auth.roleNames) && (!me || me.membership_status !== "approved")) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

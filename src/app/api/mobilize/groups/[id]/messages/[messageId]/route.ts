@@ -1,22 +1,32 @@
 import { NextResponse } from "next/server";
 import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-images";
+import { canManageMobilizeGroupContent, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string; messageId: string }> };
+
+async function loadMembership(
+  admin: import("@supabase/supabase-js").SupabaseClient,
+  groupId: string,
+  userId: string
+) {
+  const { data } = await admin
+    .from("mobilize_group_members")
+    .select("member_role, membership_status")
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data;
+}
 
 export async function PATCH(req: Request, ctx: Ctx) {
   const auth = await requireMobilizeRead();
   if (auth instanceof NextResponse) return auth;
   const { id: groupId, messageId } = await ctx.params;
 
-  const { data: me } = await auth.admin
-    .from("mobilize_group_members")
-    .select("member_role, membership_status")
-    .eq("group_id", groupId)
-    .eq("user_id", auth.userId)
-    .maybeSingle();
-
-  if (!me || me.membership_status !== "approved") {
+  const me = await loadMembership(auth.admin, groupId, auth.userId);
+  const isSuperAdmin = isMobilizeSuperAdmin(auth.roleNames);
+  if (!isSuperAdmin && (!me || me.membership_status !== "approved")) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -29,9 +39,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   if (mErr || !msg) return NextResponse.json({ error: "Message not found." }, { status: 404 });
 
-  const isLeader = me.member_role === "leader";
+  const isLeader = me?.membership_status === "approved" && me.member_role === "leader";
   const isAuthor = msg.author_id === auth.userId;
-  if (!isAuthor && !isLeader) {
+  if (
+    !canManageMobilizeGroupContent({
+      roleNames: auth.roleNames,
+      isLeader,
+      isAuthor,
+    })
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -63,7 +79,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Add text or at least one image." }, { status: 400 });
   }
 
-  if ("comments_policy" in body && isLeader) {
+  if ("comments_policy" in body && (isLeader || isSuperAdmin)) {
     patch.comments_policy =
       body.comments_policy === "leaders_only" ? "leaders_only" : "everyone";
   }
@@ -82,4 +98,46 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ message: data });
+}
+
+export async function DELETE(_req: Request, ctx: Ctx) {
+  const auth = await requireMobilizeRead();
+  if (auth instanceof NextResponse) return auth;
+  const { id: groupId, messageId } = await ctx.params;
+
+  const me = await loadMembership(auth.admin, groupId, auth.userId);
+  const isSuperAdmin = isMobilizeSuperAdmin(auth.roleNames);
+  if (!isSuperAdmin && (!me || me.membership_status !== "approved")) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const { data: msg, error: mErr } = await auth.admin
+    .from("mobilize_group_messages")
+    .select("id, author_id")
+    .eq("id", messageId)
+    .eq("group_id", groupId)
+    .maybeSingle();
+
+  if (mErr || !msg) return NextResponse.json({ error: "Message not found." }, { status: 404 });
+
+  const isLeader = me?.membership_status === "approved" && me.member_role === "leader";
+  const isAuthor = msg.author_id === auth.userId;
+  if (
+    !canManageMobilizeGroupContent({
+      roleNames: auth.roleNames,
+      isLeader,
+      isAuthor,
+    })
+  ) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const { error } = await auth.admin
+    .from("mobilize_group_messages")
+    .delete()
+    .eq("id", messageId)
+    .eq("group_id", groupId);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }

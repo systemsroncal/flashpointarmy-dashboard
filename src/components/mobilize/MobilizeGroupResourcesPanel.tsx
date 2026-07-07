@@ -25,6 +25,7 @@ import {
   Typography,
 } from "@mui/material";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
+import { MobilizeTypeDeleteDialog } from "@/components/mobilize/MobilizeTypeDeleteDialog";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import { mobilizeCardSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
@@ -79,6 +80,7 @@ type Props = {
   groupId: string;
   currentUserId: string;
   isLeader: boolean;
+  isSuperAdmin?: boolean;
   canPost: boolean;
 };
 
@@ -86,6 +88,7 @@ export default function MobilizeGroupResourcesPanel({
   groupId,
   currentUserId,
   isLeader,
+  isSuperAdmin = false,
   canPost,
 }: Props) {
   const toast = useMobilizeToast();
@@ -396,7 +399,8 @@ export default function MobilizeGroupResourcesPanel({
         <Typography color="text.secondary">Loading resources…</Typography>
       ) : resources.length ? (
         resources.map((row) => {
-          const canManage = isLeader || row.author_id === currentUserId;
+          const canManage =
+            isSuperAdmin || isLeader || row.author_id === currentUserId;
           return (
             <Card key={row.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
               <CardContent>
@@ -473,22 +477,18 @@ export default function MobilizeGroupResourcesPanel({
         </DialogActions>
       </Dialog>
 
-      <Dialog open={!!deleteRow} onClose={() => !saving && setDeleteRow(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Delete resource</DialogTitle>
-        <DialogContent>
-          <Typography>
+      <MobilizeTypeDeleteDialog
+        open={!!deleteRow}
+        title="Delete resource"
+        description={
+          <>
             Remove <strong>{deleteRow?.title}</strong>? This cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteRow(null)} disabled={saving}>
-            Cancel
-          </Button>
-          <Button color="error" variant="contained" onClick={() => void confirmDelete()} disabled={saving}>
-            {saving ? "Deleting…" : "Delete"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </>
+        }
+        loading={saving}
+        onClose={() => setDeleteRow(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </Box>
   );
 }

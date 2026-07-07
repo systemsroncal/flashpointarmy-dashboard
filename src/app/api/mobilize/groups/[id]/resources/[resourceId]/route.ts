@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { normalizeMobilizeResourceUrl } from "@/lib/mobilize/resource-url";
+import { canManageMobilizeGroupContent, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string; resourceId: string }> };
@@ -9,14 +10,16 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id: groupId, resourceId } = await ctx.params;
 
-  const { data: me } = await auth.admin
+  const me = await auth.admin
     .from("mobilize_group_members")
     .select("member_role, membership_status")
     .eq("group_id", groupId)
     .eq("user_id", auth.userId)
-    .maybeSingle();
+    .maybeSingle()
+    .then(({ data }) => data);
 
-  if (!me || me.membership_status !== "approved") {
+  const isSuperAdmin = isMobilizeSuperAdmin(auth.roleNames);
+  if (!isSuperAdmin && (!me || me.membership_status !== "approved")) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -29,9 +32,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   if (rErr || !row) return NextResponse.json({ error: "Resource not found." }, { status: 404 });
 
-  const isLeader = me.member_role === "leader";
+  const isLeader = me?.membership_status === "approved" && me.member_role === "leader";
   const isAuthor = row.author_id === auth.userId;
-  if (!isAuthor && !isLeader) {
+  if (
+    !canManageMobilizeGroupContent({
+      roleNames: auth.roleNames,
+      isLeader,
+      isAuthor,
+    })
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -97,14 +106,16 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id: groupId, resourceId } = await ctx.params;
 
-  const { data: me } = await auth.admin
+  const me = await auth.admin
     .from("mobilize_group_members")
     .select("member_role, membership_status")
     .eq("group_id", groupId)
     .eq("user_id", auth.userId)
-    .maybeSingle();
+    .maybeSingle()
+    .then(({ data }) => data);
 
-  if (!me || me.membership_status !== "approved") {
+  const isSuperAdmin = isMobilizeSuperAdmin(auth.roleNames);
+  if (!isSuperAdmin && (!me || me.membership_status !== "approved")) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -117,9 +128,15 @@ export async function DELETE(_req: Request, ctx: Ctx) {
 
   if (!row) return NextResponse.json({ error: "Resource not found." }, { status: 404 });
 
-  const isLeader = me.member_role === "leader";
+  const isLeader = me?.membership_status === "approved" && me.member_role === "leader";
   const isAuthor = row.author_id === auth.userId;
-  if (!isAuthor && !isLeader) {
+  if (
+    !canManageMobilizeGroupContent({
+      roleNames: auth.roleNames,
+      isLeader,
+      isAuthor,
+    })
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

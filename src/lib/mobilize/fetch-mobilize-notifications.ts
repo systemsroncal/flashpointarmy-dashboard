@@ -42,8 +42,10 @@ function displayNameFromUser(
 
 export async function fetchMobilizeNotifications(
   admin: SupabaseClient,
-  userId: string
+  userId: string,
+  options?: { groupId?: string | null }
 ): Promise<MobilizeNotificationsPayload> {
+  const groupFilter = options?.groupId?.trim() || null;
   const { data: leaderRows, error: lErr } = await admin
     .from("mobilize_group_members")
     .select("group_id")
@@ -53,7 +55,9 @@ export async function fetchMobilizeNotifications(
 
   if (lErr) throw new Error(lErr.message);
 
-  const leaderGroupIds = (leaderRows ?? []).map((r: { group_id: string }) => r.group_id);
+  const leaderGroupIds = (leaderRows ?? [])
+    .map((r: { group_id: string }) => r.group_id)
+    .filter((id) => !groupFilter || id === groupFilter);
   let pendingJoins: { id: string; group_id: string; user_id: string; created_at: string }[] = [];
   if (leaderGroupIds.length) {
     const { data: pending, error: pErr } = await admin
@@ -73,7 +77,9 @@ export async function fetchMobilizeNotifications(
 
   if (gErr) throw new Error(gErr.message);
 
-  const myGroupIds = (myGroups ?? []).map((r: { group_id: string }) => r.group_id);
+  const myGroupIds = (myGroups ?? [])
+    .map((r: { group_id: string }) => r.group_id)
+    .filter((id) => !groupFilter || id === groupFilter);
   let recentEvents: { id: string; group_id: string; title: string; date_time: string; created_at: string }[] =
     [];
   if (myGroupIds.length) {
@@ -102,7 +108,7 @@ export async function fetchMobilizeNotifications(
   if (groupIds.length) {
     const { data: groups } = await admin.from("mobilize_groups").select("id, name").in("id", groupIds);
     for (const g of groups ?? []) {
-      groupNameById.set(g.id as string, String((g as { name?: string }).name ?? "").trim() || "Unnamed group");
+      groupNameById.set(g.id as string, String((g as { name?: string }).name ?? "").trim() || "Unnamed chapter");
     }
   }
 
@@ -132,7 +138,7 @@ export async function fetchMobilizeNotifications(
 
   const pendingJoinRequests: MobilizePendingJoinNotification[] = pendingJoins.map((p) => ({
     ...p,
-    group_name: groupNameById.get(p.group_id) ?? "Unnamed group",
+    group_name: groupNameById.get(p.group_id) ?? "Unnamed chapter",
     user_display_name: displayNameFromUser(p.user_id, duById.get(p.user_id)),
     user_email: duById.get(p.user_id)?.email ?? null,
     user_avatar_url: avatarById.get(p.user_id) ?? null,
@@ -140,7 +146,7 @@ export async function fetchMobilizeNotifications(
 
   const recentGroupEvents: MobilizeRecentEventNotification[] = recentEvents.map((e) => ({
     ...e,
-    group_name: groupNameById.get(e.group_id) ?? "Unnamed group",
+    group_name: groupNameById.get(e.group_id) ?? "Unnamed chapter",
   }));
 
   return {

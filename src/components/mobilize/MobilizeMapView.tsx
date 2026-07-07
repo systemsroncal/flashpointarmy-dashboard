@@ -315,8 +315,8 @@ export default function MobilizeMapView({
         <Box sx={{ mt: -6, textAlign: "center", pointerEvents: "none" }}>
           <Typography variant="caption" color="text.secondary">
             {searchOrigin
-              ? "No groups in this radius. Try a larger radius (km) or a different search origin."
-              : "No markers in the current filter."}
+              ? "No chapters in this radius. Try a larger radius (km) or a different search origin."
+              : "No chapter markers in the current filter."}
           </Typography>
         </Box>
       ) : null}

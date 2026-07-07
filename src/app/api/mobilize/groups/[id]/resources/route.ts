@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getMobilizeResourcesPostAccess } from "@/lib/mobilize/mobilize-resources-access";
 import { normalizeMobilizeResourceUrl } from "@/lib/mobilize/resource-url";
+import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -26,7 +27,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id } = await ctx.params;
 
-  if (!(await isApprovedMember(auth.admin, id, auth.userId))) {
+  if (!isMobilizeSuperAdmin(auth.roleNames) && !(await isApprovedMember(auth.admin, id, auth.userId))) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

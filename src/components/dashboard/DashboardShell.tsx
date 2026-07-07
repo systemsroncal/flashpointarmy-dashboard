@@ -11,7 +11,6 @@ import EventIcon from "@mui/icons-material/Event";
 import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import MapIcon from "@mui/icons-material/Map";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -55,7 +54,7 @@ import {
 import type { Theme } from "@mui/material/styles";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardTourHelpButton, DashboardTourProvider } from "@/components/dashboard/DashboardTour";
 import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
@@ -74,7 +73,6 @@ import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
 import { HeaderAccountSettingsButton } from "./HeaderAccountSettingsButton";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
-import { MobilizeNavNotificationsBadge } from "@/components/mobilize/MobilizeNavNotificationsBadge";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { SidebarYourJourney } from "./SidebarYourJourney";
@@ -87,11 +85,7 @@ import { UserProfileDrawer } from "./UserProfileDrawer";
 import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
 import { flashpointYellow } from "@/theme/tokens";
-import { MobilizeGroupSidebarTabs } from "@/components/mobilize/MobilizeGroupSidebarTabs";
-import {
-  parseMobilizeGroupDetailId,
-  parseMobilizeGroupTab,
-} from "@/lib/mobilize/group-detail-tabs";
+import { MobilizeSidebarNav } from "@/components/mobilize/MobilizeSidebarNav";
 
 const DRAWER_WIDTH = 220;
 
@@ -118,18 +112,6 @@ const MOBILIZE_DASHBOARD_NAV_ITEM_SX = {
   },
 } as const;
 
-/** Inset panel for single-group sidebar tabs (gold accent, distinct from Mobilize nav). */
-const MOBILIZE_GROUP_SIDEBAR_PANEL_SX = {
-  mx: 1,
-  mt: 1,
-  mb: 0.5,
-  borderRadius: 1.5,
-  border: "1px solid rgba(255, 215, 0, 0.22)",
-  bgcolor: "rgba(0, 0, 0, 0.28)",
-  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.04)",
-  overflow: "hidden",
-} as const;
-
 const maintenanceTop = `var(${MAINTENANCE_BANNER_OFFSET_VAR}, 0px)`;
 
 type NavItem = {
@@ -152,13 +134,13 @@ const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
     icon: <ArrowBackIcon />,
   },
   {
-    label: "Groups",
+    label: "Chapters",
     href: `${MOBILIZE_PREFIX}/map`,
     module: MODULE_SLUGS.movilization,
     icon: <MapIcon />,
   },
   {
-    label: "My Groups",
+    label: "My Chapters",
     href: `${MOBILIZE_PREFIX}/my-groups`,
     module: MODULE_SLUGS.movilization,
     icon: <Groups2OutlinedIcon />,
@@ -451,16 +433,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [missionPipelineOpen, setMissionPipelineOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const permissions = usePermissions();
   const user = useDashboardUser();
   const isMobilize =
     pathname.startsWith(MOBILIZE_PREFIX) && canAccessMobilizeModule(user.role_names);
-  const mobilizeGroupDetailId = parseMobilizeGroupDetailId(pathname);
-  const isMobilizeGroupDetail = Boolean(mobilizeGroupDetailId);
-  const activeMobilizeGroupTab = parseMobilizeGroupTab(searchParams.get("tab"));
-
-  /** Mobilize uses the same yellow nav accent as the main dashboard. */
 
   const mobilizeDrawerNav = useMemo(() => {
     const items = [...MOBILIZE_DRAWER_NAV_BASE];
@@ -671,144 +647,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         data-tour="sidebar-nav-scroll"
       >
         {isMobilize ? (
-          <>
-            {isMobilizeGroupDetail && mobilizeGroupDetailId ? (
-              <>
-                <ListItem disablePadding>
-                  <ListItemButton
-                    component={Link}
-                    href={MOBILIZE_HOME}
-                    selected={false}
-                    data-tour={mobilizeNavTourAttr(MOBILIZE_HOME)}
-                    onClick={closeMobileDrawer}
-                    sx={{
-                      ...NAV_ITEM_TOUCH_SX,
-                      py: 0.75,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                      ...MOBILIZE_DASHBOARD_NAV_ITEM_SX,
-                    }}
-                  >
-                    <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
-                      <ArrowBackIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="All groups"
-                      primaryTypographyProps={{
-                        variant: "body2",
-                        fontWeight: 600,
-                        fontSize: "calc(0.82rem + 3px)",
-                        color: "rgba(255,255,255,0.88)",
-                      }}
-                    />
-                  </ListItemButton>
-                </ListItem>
-                <Box sx={MOBILIZE_GROUP_SIDEBAR_PANEL_SX}>
-                  <Box
-                    sx={{
-                      px: 1.25,
-                      pt: 1.25,
-                      pb: 0.75,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.75,
-                    }}
-                  >
-                    <GroupsOutlinedIcon sx={{ fontSize: 18, color: flashpointYellow }} />
-                    <Typography
-                      variant="overline"
-                      sx={{
-                        color: "rgba(255,215,0,0.78)",
-                        letterSpacing: "0.12em",
-                        fontSize: "0.68rem",
-                        fontWeight: 700,
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      This group
-                    </Typography>
-                  </Box>
-                  <Divider sx={{ borderColor: "rgba(255,215,0,0.14)", mx: 1, mb: 0.75 }} />
-                  <MobilizeGroupSidebarTabs
-                    groupId={mobilizeGroupDetailId}
-                    activeTab={activeMobilizeGroupTab}
-                    onNavigate={closeMobileDrawer}
-                  />
-                </Box>
-              </>
-            ) : (
-              <>
-                <Box sx={{ px: 2, pt: 0.25, pb: 0.75 }}>
-                  <Typography
-                    variant="overline"
-                    sx={{
-                      color: "rgba(255,215,0,0.78)",
-                      letterSpacing: "0.12em",
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    Mobilize
-                  </Typography>
-                </Box>
-              {mobilizeDrawerNav.map((item) => {
-                const selected = isNavItemSelected(item, pathname);
-                const isMobilizeDashboardLink = item.href === "/dashboard";
-                return (
-                  <ListItem key={item.href} disablePadding>
-                    <ListItemButton
-                      component={Link}
-                      href={item.href}
-                      selected={selected}
-                      data-tour={mobilizeNavTourAttr(item.href)}
-                      onClick={closeMobileDrawer}
-                      sx={{
-                        ...NAV_ITEM_TOUCH_SX,
-                        py: 0.75,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.5,
-                        ...(isMobilizeDashboardLink
-                          ? MOBILIZE_DASHBOARD_NAV_ITEM_SX
-                          : {
-                              "&.Mui-selected": NAV_SELECTED_SX,
-                            }),
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
-                          minWidth: 38,
-                        }}
-                      >
-                        {item.icon}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={item.label}
-                        sx={
-                          item.href === `${MOBILIZE_PREFIX}/notifications`
-                            ? { flex: "1 1 auto", minWidth: 0, m: 0 }
-                            : undefined
-                        }
-                        primaryTypographyProps={{
-                          variant: "body2",
-                          fontWeight: 600,
-                          fontSize: "calc(0.82rem + 3px)",
-                          color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
-                        }}
-                      />
-                      {item.href === `${MOBILIZE_PREFIX}/notifications` ? (
-                        <MobilizeNavNotificationsBadge />
-                      ) : null}
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-              </>
-            )}
-          </>
+          <MobilizeSidebarNav
+            onNavigate={closeMobileDrawer}
+            showSettings={user.role_names.includes("super_admin")}
+          />
         ) : (
           visibleNav.map((item) => {
             const selected = isNavItemSelected(item, pathname);
