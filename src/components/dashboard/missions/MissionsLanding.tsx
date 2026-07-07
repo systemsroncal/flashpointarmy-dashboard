@@ -9,9 +9,15 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Stack, Typography } from "@mui/material";
 
-function MissionCardItem({ mission }: { mission: MissionCard }) {
+function MissionCardItem({
+  mission,
+  missionLinksEnabled,
+}: {
+  mission: MissionCard;
+  missionLinksEnabled: boolean;
+}) {
   const accent = MISSION_DIFFICULTY_COLORS[mission.difficulty];
-  const isLink = Boolean(mission.url) && !mission.comingSoon;
+  const isLink = Boolean(mission.url) && !mission.comingSoon && missionLinksEnabled;
 
   return (
     <Box
@@ -145,7 +151,7 @@ function MissionCardItem({ mission }: { mission: MissionCard }) {
   );
 }
 
-export function MissionsLanding() {
+export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEnabled?: boolean }) {
   return (
     <Box
       sx={{
@@ -284,7 +290,11 @@ export function MissionsLanding() {
                     }}
                   >
                     {phase.missions.map((mission) => (
-                      <MissionCardItem key={mission.number} mission={mission} />
+                      <MissionCardItem
+                        key={mission.number}
+                        mission={mission}
+                        missionLinksEnabled={missionLinksEnabled}
+                      />
                     ))}
                   </Box>
                 </Box>
