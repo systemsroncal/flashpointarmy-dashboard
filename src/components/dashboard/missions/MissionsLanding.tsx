@@ -1,60 +1,9 @@
 "use client";
 
-import {
-  MISSION_DIFFICULTY_STYLES,
-  TWELVE_MISSIONS,
-  type MissionDifficulty,
-} from "@/lib/missions/twelve-missions";
+import { MISSION_DIFFICULTY_COLORS, TWELVE_MISSIONS } from "@/lib/missions/twelve-missions";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Paper, Stack, Typography } from "@mui/material";
-
-const DIFFICULTY_ORDER: MissionDifficulty[] = ["beginner", "intermediate", "advanced"];
-
-function MissionsLegend() {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: { xs: 1.5, sm: 2.5 },
-        mb: { xs: 3, md: 4 },
-        pb: 2,
-        borderBottom: "2px solid #e8e8e8",
-      }}
-    >
-      {DIFFICULTY_ORDER.map((difficulty) => {
-        const style = MISSION_DIFFICULTY_STYLES[difficulty];
-        return (
-          <Box
-            key={difficulty}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-            }}
-          >
-            <Box
-              sx={{
-                width: 14,
-                height: 14,
-                borderRadius: "50%",
-                bgcolor: style.color,
-                flexShrink: 0,
-              }}
-            />
-            <Typography sx={{ fontSize: { xs: "0.8rem", sm: "0.88rem" }, color: "#333" }}>
-              <Box component="span" sx={{ fontWeight: 700, color: style.color }}>
-                {style.phases}
-              </Box>
-              {" · "}
-              {style.label}
-            </Typography>
-          </Box>
-        );
-      })}
-    </Box>
-  );
-}
+import type { KeyboardEvent } from "react";
 
 export function MissionsLanding() {
   return (
@@ -105,8 +54,6 @@ export function MissionsLanding() {
           p: { xs: 2, sm: 3, md: 4 },
         }}
       >
-        <MissionsLegend />
-
         <Box
           sx={{
             display: "grid",
@@ -115,17 +62,24 @@ export function MissionsLanding() {
           }}
         >
           {TWELVE_MISSIONS.map((mission) => {
-            const missionAccent = MISSION_DIFFICULTY_STYLES[mission.difficulty].color;
+            const accent = MISSION_DIFFICULTY_COLORS[mission.difficulty];
+            const isLink = Boolean(mission.url) && !mission.comingSoon;
 
             return (
               <Box
                 key={mission.number}
-                role="button"
-                tabIndex={0}
+                component={isLink ? "a" : "div"}
+                href={isLink ? mission.url : undefined}
+                target={isLink ? "_blank" : undefined}
+                rel={isLink ? "noopener noreferrer" : undefined}
+                role={!isLink && !mission.comingSoon ? "button" : undefined}
+                tabIndex={!isLink && !mission.comingSoon ? 0 : undefined}
                 onClick={() => {
+                  if (mission.comingSoon || isLink) return;
                   /* prototype — mission selection TBD */
                 }}
-                onKeyDown={(e) => {
+                onKeyDown={(e: KeyboardEvent) => {
+                  if (mission.comingSoon || isLink) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                   }
@@ -133,34 +87,62 @@ export function MissionsLanding() {
                 sx={{
                   position: "relative",
                   overflow: "hidden",
-                  borderRadius: 2,
-                  bgcolor: "rgb(245, 245, 245)",
-                  border: `1px solid ${missionAccent}40`,
-                  borderLeft: `4px solid ${missionAccent}`,
-                  minHeight: { xs: 120, sm: 132 },
+                  borderRadius: 2.5,
+                  bgcolor: "#fff",
+                  border: "1px solid #e4e4e4",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  minHeight: { xs: 128, sm: 140 },
                   height: "100%",
-                  cursor: "pointer",
-                  transition: "box-shadow 0.2s, border-color 0.2s",
-                  "&:hover": {
-                    borderColor: missionAccent,
-                    boxShadow: `0 8px 24px ${missionAccent}22`,
-                  },
+                  display: "block",
+                  textDecoration: "none",
+                  color: "inherit",
+                  cursor: mission.comingSoon ? "default" : "pointer",
+                  transition: "box-shadow 0.2s, border-color 0.2s, transform 0.2s",
+                  ...(!mission.comingSoon && {
+                    "&:hover": {
+                      borderColor: `${accent}88`,
+                      boxShadow: "0 10px 28px rgba(0,0,0,0.08)",
+                      transform: "translateY(-1px)",
+                    },
+                  }),
                 }}
               >
+                {mission.comingSoon ? (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      px: 0.9,
+                      py: 0.35,
+                      borderRadius: 1,
+                      bgcolor: "rgba(115, 115, 115, 0.1)",
+                      border: "1px solid rgba(115, 115, 115, 0.22)",
+                      fontSize: "0.62rem",
+                      fontWeight: 700,
+                      letterSpacing: 0.6,
+                      color: "#737373",
+                      zIndex: 1,
+                    }}
+                  >
+                    COMING SOON
+                  </Box>
+                ) : null}
+
                 <Box
                   sx={{
                     position: "absolute",
-                    left: "5px",
-                    top: "6px",
-                    width: 20,
-                    height: 20,
+                    left: 8,
+                    top: 8,
+                    width: 22,
+                    height: 22,
                     borderRadius: 0.75,
-                    bgcolor: missionAccent,
+                    bgcolor: accent,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontWeight: 800,
-                    fontSize: "calc(0.8rem - 2px)",
+                    fontSize: "0.78rem",
                     color: "#fff",
                     zIndex: 1,
                   }}
@@ -173,7 +155,8 @@ export function MissionsLanding() {
                     display: "flex",
                     alignItems: "flex-start",
                     gap: { xs: 1.25, sm: 1.5 },
-                    p: { xs: 1.5, sm: 2 },
+                    p: { xs: 1.75, sm: 2.25 },
+                    pt: { xs: 2.5, sm: 2.75 },
                     height: "100%",
                     boxSizing: "border-box",
                   }}
@@ -181,18 +164,18 @@ export function MissionsLanding() {
                   <FontAwesomeIcon
                     icon={mission.icon}
                     style={{
-                      fontSize: "calc(2.5rem - 2px)",
-                      color: missionAccent,
+                      fontSize: "2.35rem",
+                      color: accent,
                       flexShrink: 0,
-                      marginTop: 2,
+                      marginTop: 4,
                     }}
                   />
 
-                  <Box sx={{ flex: 1, minWidth: 0, pt: 0.15 }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography
                       sx={{
                         fontWeight: 800,
-                        fontSize: { xs: "0.88rem", sm: "0.95rem" },
+                        fontSize: { xs: "0.9rem", sm: "0.98rem" },
                         lineHeight: 1.35,
                         color: "#111",
                         mb: 0.75,
@@ -200,7 +183,18 @@ export function MissionsLanding() {
                     >
                       {mission.title}
                     </Typography>
-                    <Stack spacing={0.15}>
+                    <Stack spacing={0.25}>
+                      {mission.partner ? (
+                        <Typography
+                          sx={{
+                            fontSize: { xs: "0.72rem", sm: "0.78rem" },
+                            color: "#555",
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          {mission.partner}
+                        </Typography>
+                      ) : null}
                       <Typography
                         sx={{
                           fontSize: { xs: "0.72rem", sm: "0.78rem" },
@@ -210,18 +204,6 @@ export function MissionsLanding() {
                       >
                         {mission.description}
                       </Typography>
-                      {mission.partner ? (
-                        <Typography
-                          sx={{
-                            fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                            color: "#666",
-                            lineHeight: 1.45,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {mission.partner}
-                        </Typography>
-                      ) : null}
                     </Stack>
                   </Box>
                 </Box>

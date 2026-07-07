@@ -1,9 +1,9 @@
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faBookOpen,
+  faBullhorn,
   faChalkboardUser,
   faFlag,
-  faGraduationCap,
   faHandsPraying,
   faLandmark,
   faPeopleRoof,
@@ -16,13 +16,10 @@ import {
 
 export type MissionDifficulty = "beginner" | "intermediate" | "advanced";
 
-export const MISSION_DIFFICULTY_STYLES: Record<
-  MissionDifficulty,
-  { color: string; label: string; phases: string }
-> = {
-  beginner: { color: "#2e7d32", label: "Beginner", phases: "Phase 1–2" },
-  intermediate: { color: "#e6a800", label: "Intermediate", phases: "Phase 3" },
-  advanced: { color: "#c62828", label: "Advanced", phases: "Phase 4" },
+export const MISSION_DIFFICULTY_COLORS: Record<MissionDifficulty, string> = {
+  beginner: "#2e7d32",
+  intermediate: "#c9a227",
+  advanced: "#737373",
 };
 
 export type MissionCard = {
@@ -30,8 +27,10 @@ export type MissionCard = {
   title: string;
   description: string;
   partner?: string;
+  url?: string;
   icon: IconDefinition;
   difficulty: MissionDifficulty;
+  comingSoon?: boolean;
 };
 
 export const TWELVE_MISSIONS: MissionCard[] = [
@@ -47,9 +46,10 @@ export const TWELVE_MISSIONS: MissionCard[] = [
     number: 2,
     title: "Know Your Representatives",
     description:
-      "Learn who represents your city, county, state and Washington. Know how to contact them. Know how they vote. (This mission is absolutely missing.)",
+      "Learn who represents your city, county, state and Washington. Know how to contact them. Know how they vote.",
     icon: faLandmark,
     difficulty: "beginner",
+    url: "https://www.house.gov/representatives/find-your-representative",
   },
   {
     number: 3,
@@ -69,11 +69,12 @@ export const TWELVE_MISSIONS: MissionCard[] = [
   },
   {
     number: 5,
-    title: "Complete Biblical Citizenship",
-    description: "Become equipped. NOW they're motivated. Not first.",
-    partner: "Partner: Patriot Academy",
-    icon: faGraduationCap,
+    title: "Contact Your Lawmakers",
+    description:
+      "Send emails, letters, or make phone calls regarding important legislation through action alerts (such as ACT for America).",
+    icon: faBullhorn,
     difficulty: "beginner",
+    url: "https://www.actforamerica.org/",
   },
   {
     number: 6,
@@ -81,6 +82,7 @@ export const TWELVE_MISSIONS: MissionCard[] = [
     description: "Now it makes sense. Not before.",
     icon: faChalkboardUser,
     difficulty: "beginner",
+    url: "https://www.patriotacademy.com/coach/flashpointarmy",
   },
   {
     number: 7,
@@ -89,14 +91,16 @@ export const TWELVE_MISSIONS: MissionCard[] = [
       "Bible curriculum. Chaplains. Religious liberty. Combine these. People don't understand the difference.",
     icon: faSchool,
     difficulty: "intermediate",
+    url: "https://www.nsca.global/certification",
   },
   {
     number: 8,
-    title: "Display America's Foundations",
+    title: "Display America's Foundation",
     description:
       "In God We Trust. Ten Commandments. Historical monuments. This becomes one mission.",
     icon: faBookOpen,
     difficulty: "intermediate",
+    url: "https://rfia.org/#welcome",
   },
   {
     number: 9,
@@ -107,15 +111,17 @@ export const TWELVE_MISSIONS: MissionCard[] = [
   },
   {
     number: 10,
-    title: "Build Your Chapter",
-    description: "Become a leader. Recruit. Organize. Multiply.",
+    title: "Join Your Local Chapter",
+    description:
+      "Over the next few weeks, approved leaders will begin launching local chapters across the country. As they become available, you'll be able to join a chapter, volunteer, participate in local gatherings, support community initiatives, and grow alongside other believers.",
     icon: faUserGroup,
     difficulty: "advanced",
+    comingSoon: true,
   },
   {
     number: 11,
     title: "Encourage Biblical Leaders",
-    description: "For Liberty & Justice. Candidates. Local office Training.",
+    description: "For Liberty & Justice. Candidates. Local office. Training.",
     icon: faUserTie,
     difficulty: "advanced",
   },
