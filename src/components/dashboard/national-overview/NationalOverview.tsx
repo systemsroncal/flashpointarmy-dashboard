@@ -89,7 +89,6 @@ export function NationalOverview({
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupState, setPopupState] = useState<string | null>(null);
-  const [popupAnchor, setPopupAnchor] = useState<{ x: number; y: number } | null>(null);
   const [popupData, setPopupData] = useState<Awaited<
     ReturnType<typeof loadStatePopupStats>
   > | null>(null);
@@ -97,6 +96,7 @@ export function NationalOverview({
   const popupOpenRef = useRef(popupOpen);
   const popupStateRef = useRef(popupState);
   const mapColumnRef = useRef<HTMLDivElement>(null);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
   const [feedPanelHeight, setFeedPanelHeight] = useState<number | null>(null);
   useEffect(() => {
     popupOpenRef.current = popupOpen;
@@ -273,9 +273,19 @@ export function NationalOverview({
     };
   }, [kickReloadOverview, scheduleRealtimeOverviewReload]);
 
-  async function openStatePopup(code: string, anchor: { x: number; y: number }) {
+  const scrollMapSectionIntoView = useCallback(() => {
+    const el = mapSectionRef.current;
+    if (!el) return;
+    const headerOffset = 64;
+    const rect = el.getBoundingClientRect();
+    if (Math.abs(rect.top - headerOffset) <= 20) return;
+    const top = Math.max(0, window.scrollY + rect.top - headerOffset);
+    window.scrollTo({ top, behavior: "smooth" });
+  }, []);
+
+  async function openStatePopup(code: string) {
+    scrollMapSectionIntoView();
     setPopupState(code);
-    setPopupAnchor(anchor);
     setPopupOpen(true);
     setPopupData(null);
     const supabase = createClient();
@@ -286,7 +296,6 @@ export function NationalOverview({
   function closeStatePopup() {
     setPopupOpen(false);
     setPopupState(null);
-    setPopupAnchor(null);
     setPopupData(null);
   }
 
@@ -413,7 +422,7 @@ export function NationalOverview({
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-start" }}>
         <Box ref={mapColumnRef} sx={{ flex: "1 1 380px", minWidth: 280 }}>
           {memberOnboarding ? <MemberOnboardingProgressCard snapshot={memberOnboarding} /> : null}
-          <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.4)" }}>
+          <Paper ref={mapSectionRef} sx={{ p: 2, bgcolor: "rgba(0,0,0,0.4)", scrollMarginTop: 72 }}>
             <Typography variant="h6" sx={{ mb: 1, color: "primary.main" }}>
               Live chapter activity map
             </Typography>
@@ -425,8 +434,7 @@ export function NationalOverview({
               referenceSplitByState={referenceSplitByState}
               selectedStateCode={popupState}
               popupOpen={popupOpen}
-              popupAnchor={popupAnchor}
-              onSelectState={(code, anchor) => void openStatePopup(code, anchor)}
+              onSelectState={(code) => void openStatePopup(code)}
               onClosePopup={closeStatePopup}
             >
               <Box>

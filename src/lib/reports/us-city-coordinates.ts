@@ -168,6 +168,12 @@ function jitterAroundCentroid(city: string, stateCode: string, centroid: [number
   return [centroid[0] + Math.cos(angle) * radius, centroid[1] + Math.sin(angle) * radius * 0.55];
 }
 
+/** Geographic center of a US state for map zoom (geoAlbersUsa coordinates). */
+export function getStateCentroid(stateCode: string): [number, number] | null {
+  const st = stateCode.trim().toUpperCase().slice(0, 2);
+  return STATE_CENTROIDS[st] ?? null;
+}
+
 export function resolveCityCoordinates(
   city: string,
   stateCode: string
