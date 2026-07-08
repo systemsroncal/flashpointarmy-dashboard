@@ -36,6 +36,8 @@ export type MissionCard = {
   url?: string;
   /** Custom link CTA after description (default: "Click Here"). */
   linkLabel?: string;
+  /** Opens the chapter invite share dialog instead of an external URL. */
+  opensShareDialog?: boolean;
   icon: IconDefinition;
   difficulty: MissionDifficulty;
   comingSoon?: boolean;
@@ -54,7 +56,6 @@ export const MISSION_PHASES: MissionPhase[] = [
   {
     id: "phase-1",
     title: "PHASE 1 — Live It",
-    subtitle: "Very easy wins. These require almost no commitment.",
     difficulty: "beginner",
     headerBg: "#1f5c38",
     missions: [
@@ -90,13 +91,13 @@ export const MISSION_PHASES: MissionPhase[] = [
           "Invite friends, family and church members to join FlashPoint Army Chapters. Very simple. Everyone can do it.",
         icon: faShareNodes,
         difficulty: "beginner",
+        opensShareDialog: true,
       },
     ],
   },
   {
     id: "phase-2",
     title: "PHASE 2 — Engage",
-    subtitle: "Now they're engaged.",
     difficulty: "beginner",
     headerBg: "#1e5c56",
     missions: [
@@ -138,7 +139,7 @@ export const MISSION_PHASES: MissionPhase[] = [
     missions: [
       {
         number: 8,
-        title: "Restoring Faith in Schools",
+        title: "Become a School Chaplain",
         description:
           "Bring hope and biblical values to your local schools by becoming a certified chaplain by NSCA.",
         icon: faSchool,

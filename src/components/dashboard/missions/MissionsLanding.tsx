@@ -1,8 +1,7 @@
 "use client";
 
 import { ChapterMapInviteCta } from "@/components/dashboard/national-overview/ChapterMapInviteCta";
-import { useDashboardUser } from "@/contexts/DashboardUserContext";
-import { isChapterMapInviteCtaEnabledForUser } from "@/lib/config/chapter-map-invite-cta";
+import { ChapterInviteShareDialog } from "@/components/dashboard/national-overview/ChapterInviteShareDialog";
 import {
   MISSION_DIFFICULTY_COLORS,
   MISSION_DIFFICULTY_LABELS,
@@ -11,7 +10,7 @@ import {
 } from "@/lib/missions/twelve-missions";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Stack, Typography } from "@mui/material";
-import { useMemo } from "react";
+import { useState } from "react";
 
 const MISSION_ICON_SIZE = "2.35rem";
 
@@ -41,20 +40,27 @@ function MissionCardItem({
   mission,
   missionLinksEnabled,
   phaseHeaderBg,
+  onOpenShare,
 }: {
   mission: MissionCard;
   missionLinksEnabled: boolean;
   phaseHeaderBg: string;
+  onOpenShare: () => void;
 }) {
   const accent = MISSION_DIFFICULTY_COLORS[mission.difficulty];
+  const isShareAction = Boolean(mission.opensShareDialog) && !mission.comingSoon;
   const isLink = Boolean(mission.url) && !mission.comingSoon && missionLinksEnabled;
+  const isInteractive = isLink || isShareAction;
+  const showLinkLabel = (Boolean(mission.url) || isShareAction) && !mission.comingSoon;
 
   return (
     <Box
-      component={isLink ? "a" : "div"}
+      component={isLink ? "a" : isShareAction ? "button" : "div"}
+      type={isShareAction ? "button" : undefined}
       href={isLink ? mission.url : undefined}
       target={isLink ? "_blank" : undefined}
       rel={isLink ? "noopener noreferrer" : undefined}
+      onClick={isShareAction ? onOpenShare : undefined}
       sx={{
         position: "relative",
         overflow: "hidden",
@@ -65,10 +71,16 @@ function MissionCardItem({
         minHeight: { xs: 128, sm: 140 },
         height: "100%",
         display: "block",
+        width: "100%",
         textDecoration: "none",
+        textAlign: "left",
         color: "inherit",
-        cursor: isLink ? "pointer" : "default",
+        cursor: isInteractive ? "pointer" : "default",
         transition: "box-shadow 0.2s, transform 0.2s",
+        ...(isShareAction && {
+          font: "inherit",
+          p: 0,
+        }),
         "&:hover": {
           boxShadow: phaseHoverShadow(phaseHeaderBg),
           transform: "translateY(-1px)",
@@ -190,7 +202,7 @@ function MissionCardItem({
             >
               {mission.description}
             </Typography>
-            {mission.url && !mission.comingSoon ? (
+            {showLinkLabel ? (
               <Typography
                 sx={{
                   fontSize: { xs: "0.72rem", sm: "0.78rem" },
@@ -211,11 +223,7 @@ function MissionCardItem({
 }
 
 export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEnabled?: boolean }) {
-  const user = useDashboardUser();
-  const showInviteCta = useMemo(
-    () => isChapterMapInviteCtaEnabledForUser(user.role_names),
-    [user.role_names]
-  );
+  const [shareOpen, setShareOpen] = useState(false);
 
   return (
     <Box
@@ -249,9 +257,6 @@ export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEn
           }}
         >
           THE 12 MISSIONS TO SAVE AMERICA
-        </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.78)", fontSize: { xs: "1rem", sm: "1.1rem" } }}>
-          Pick the first action your chapter will champion.
         </Typography>
       </Box>
 
@@ -360,6 +365,7 @@ export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEn
                         mission={mission}
                         missionLinksEnabled={missionLinksEnabled}
                         phaseHeaderBg={phase.headerBg}
+                        onOpenShare={() => setShareOpen(true)}
                       />
                     ))}
                   </Box>
@@ -369,23 +375,23 @@ export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEn
           })}
         </Stack>
 
-        {showInviteCta ? (
-          <Box
-            sx={{
-              mt: { xs: 2.5, md: 3 },
-              borderRadius: 2.5,
-              overflow: "hidden",
-              bgcolor: "rgba(22,22,26,0.96)",
-              border: "1px solid rgba(212, 175, 55, 0.35)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
-              px: { xs: 2, sm: 2.5, md: 3 },
-              pb: { xs: 2, sm: 2.5 },
-            }}
-          >
-            <ChapterMapInviteCta />
-          </Box>
-        ) : null}
+        <Box
+          sx={{
+            mt: { xs: 2.5, md: 3 },
+            borderRadius: 2.5,
+            overflow: "hidden",
+            bgcolor: "rgba(22,22,26,0.96)",
+            border: "1px solid rgba(212, 175, 55, 0.35)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+            px: { xs: 2, sm: 2.5, md: 3 },
+            pb: { xs: 2, sm: 2.5 },
+          }}
+        >
+          <ChapterMapInviteCta />
+        </Box>
       </Box>
+
+      <ChapterInviteShareDialog open={shareOpen} onClose={() => setShareOpen(false)} />
     </Box>
   );
 }

@@ -14,8 +14,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
-import { isChapterMapInviteCtaEnabledForUser } from "@/lib/config/chapter-map-invite-cta";
-import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import {
   aggregateReferenceLeaderMemberByState,
   sumReferenceTotals,
@@ -80,11 +78,6 @@ export function NationalOverview({
   chapters: ChapterRow[];
   memberOnboarding?: MemberOnboardingSnapshot | null;
 }) {
-  const user = useDashboardUser();
-  const showInviteCta = useMemo(
-    () => isChapterMapInviteCtaEnabledForUser(user.role_names),
-    [user.role_names]
-  );
   const [stats, setStats] = useState(initialStats);
   const [feed, setFeed] = useState(initialFeed);
   const [chapterRows, setChapterRows] = useState(chapters);
@@ -493,7 +486,7 @@ export function NationalOverview({
                 )}
               </Box>
             </UsaChapterActivityMap>
-            {showInviteCta ? <ChapterMapInviteCta /> : null}
+            <ChapterMapInviteCta />
           </Paper>
         </Box>
         <Box
