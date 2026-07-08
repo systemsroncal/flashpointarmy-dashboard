@@ -103,7 +103,29 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ ok: true, requests: enriched });
+    const reviewerIds = [
+      ...new Set(enriched.map((r) => r.reviewed_by).filter((id): id is string => Boolean(id))),
+    ];
+    const reviewers = reviewerIds.length
+      ? await listDashboardUsersByIdsWithAuthFallback(admin, reviewerIds)
+      : [];
+    const reviewerNameById = new Map(
+      reviewers.map((u) => {
+        const reviewerName =
+          [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
+          u.display_name?.trim() ||
+          u.email?.split("@")[0] ||
+          "—";
+        return [u.id, reviewerName] as const;
+      })
+    );
+
+    const withReviewers = enriched.map((row) => ({
+      ...row,
+      reviewed_by_name: row.reviewed_by ? reviewerNameById.get(row.reviewed_by) ?? null : null,
+    }));
+
+    return NextResponse.json({ ok: true, requests: withReviewers });
   }
 
   const courseId = await resolveCourseIdBySlug(supabase, courseSlug);

@@ -10,6 +10,7 @@ import {
   markAllCourseSessionsCompleteForUser,
   type CertificateRequestRow,
 } from "@/lib/training/certificate-requests";
+import { notifyCertificateRequestReviewed } from "@/lib/notifications/certificate-request-notification";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -93,12 +94,26 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     du?.email?.split("@")[0] ||
     "—";
 
+  let reviewedByName: string | null = null;
+  if (request.reviewed_by) {
+    const reviewers = await listDashboardUsersByIdsWithAuthFallback(admin, [request.reviewed_by]);
+    const reviewer = reviewers[0];
+    if (reviewer) {
+      reviewedByName =
+        [reviewer.first_name, reviewer.last_name].filter(Boolean).join(" ").trim() ||
+        reviewer.display_name?.trim() ||
+        reviewer.email?.split("@")[0] ||
+        "—";
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     request: {
       ...request,
       course_slug: courseMeta?.slug ?? null,
       course_title: courseMeta?.title ?? null,
+      reviewed_by_name: reviewedByName,
       user: {
         id: request.user_id,
         name,
@@ -147,7 +162,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const admin = createAdminClient();
   const { data: existing, error: fetchErr } = await admin
     .from("course_certificate_requests")
-    .select("id, user_id, course_id, status, courses(slug)")
+    .select("id, user_id, course_id, status, courses(slug, title)")
     .eq("id", id)
     .maybeSingle();
 
@@ -157,8 +172,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ error: "This request has already been reviewed." }, { status: 409 });
   }
 
-  const courseJoin = existing.courses as { slug: string } | { slug: string }[] | null;
-  const courseSlug = (Array.isArray(courseJoin) ? courseJoin[0]?.slug : courseJoin?.slug) ?? BIBLICAL_CITIZENSHIP_COURSE_SLUG;
+  const courseJoin = existing.courses as
+    | { slug: string; title: string }
+    | { slug: string; title: string }[]
+    | null;
+  const courseMeta = Array.isArray(courseJoin) ? courseJoin[0] : courseJoin;
+  const courseSlug = courseMeta?.slug ?? BIBLICAL_CITIZENSHIP_COURSE_SLUG;
+  const courseTitle = courseMeta?.title?.trim() || "Biblical Citizenship";
 
   const reviewedAt = new Date().toISOString();
   const newStatus = action === "approve" ? "approved" : "rejected";
@@ -192,6 +212,26 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         { status: 500 }
       );
     }
+  }
+
+  try {
+    await notifyCertificateRequestReviewed(admin, {
+      userId: existing.user_id as string,
+      courseTitle,
+      status: newStatus,
+      adminNote: adminNote,
+      reviewedBy: user.id,
+    });
+  } catch (e) {
+    return NextResponse.json(
+      {
+        error:
+          e instanceof Error
+            ? `Request ${newStatus} but notification failed: ${e.message}`
+            : "Request reviewed but notification failed.",
+      },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({

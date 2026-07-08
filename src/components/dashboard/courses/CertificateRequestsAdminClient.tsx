@@ -1,10 +1,8 @@
 "use client";
 
-import {
-  CertificateFilePreview,
-} from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
-import { hasCertificateAttachment } from "@/lib/training/certificate-requests";
+import { CertificateFilePreview } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
+import { hasCertificateAttachment } from "@/lib/training/certificate-requests";
 import { matchesStateChapterFilter, type ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
@@ -18,24 +16,23 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   InputAdornment,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
   Stack,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
+  Tabs,
   TextField,
   Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type RequestStatus = "pending" | "approved" | "rejected";
+type AdminTab = "pending" | "responded" | "stats";
 
 type ListRow = {
   id: string;
@@ -47,6 +44,9 @@ type ListRow = {
   certificate_mime: string | null;
   status: RequestStatus;
   admin_note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  reviewed_by_name: string | null;
   created_at: string;
   user: {
     id: string;
@@ -95,11 +95,40 @@ function formatAddress(parts: (string | null | undefined)[]): string {
   return parts.filter((p) => p?.trim()).join(", ") || "—";
 }
 
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString();
+}
+
+function formatDays(ms: number): string {
+  const days = ms / (1000 * 60 * 60 * 24);
+  if (days < 1) return "< 1 day";
+  return `${days.toFixed(1)} days`;
+}
+
+function StatCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
+  return (
+    <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.35)", height: "100%" }}>
+      <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.2 }}>
+        {label}
+      </Typography>
+      <Typography variant="h4" sx={{ fontWeight: 800, my: 0.5 }}>
+        {value}
+      </Typography>
+      {hint ? (
+        <Typography variant="caption" color="text.secondary">
+          {hint}
+        </Typography>
+      ) : null}
+    </Paper>
+  );
+}
+
 export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: Props) {
   const [rows, setRows] = useState<ListRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"all" | RequestStatus>("pending");
+  const [activeTab, setActiveTab] = useState<AdminTab>("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterState, setFilterState] = useState("all");
   const [filterChapterId, setFilterChapterId] = useState("all");
@@ -117,7 +146,6 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
     setLoadError(null);
     try {
       const params = new URLSearchParams({ admin: "1", courseSlug });
-      if (statusFilter !== "all") params.set("status", statusFilter);
       const res = await fetch(`/api/training/certificate-requests?${params.toString()}`);
       const json = (await res.json()) as { error?: string; requests?: ListRow[] };
       if (!res.ok) throw new Error(json.error ?? "Failed to load requests.");
@@ -128,7 +156,7 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
     } finally {
       setLoading(false);
     }
-  }, [courseSlug, statusFilter]);
+  }, [courseSlug]);
 
   useEffect(() => {
     void loadList();
@@ -146,6 +174,8 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
           r.user.chapter_name ?? "",
           r.user.city ?? "",
           r.user.state ?? "",
+          r.admin_note ?? "",
+          r.reviewed_by_name ?? "",
         ]
           .join(" ")
           .toLowerCase();
@@ -156,6 +186,59 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
       matchesStateChapterFilter(r.user.chapter_id, chapterOptions, filterState, filterChapterId)
     );
   }, [rows, searchQuery, filterState, filterChapterId, chapterOptions]);
+
+  const pendingRows = useMemo(
+    () => filteredRows.filter((r) => r.status === "pending"),
+    [filteredRows]
+  );
+
+  const respondedRows = useMemo(
+    () =>
+      filteredRows
+        .filter((r) => r.status === "approved" || r.status === "rejected")
+        .sort((a, b) => {
+          const aTime = a.reviewed_at ? new Date(a.reviewed_at).getTime() : 0;
+          const bTime = b.reviewed_at ? new Date(b.reviewed_at).getTime() : 0;
+          return bTime - aTime;
+        }),
+    [filteredRows]
+  );
+
+  const stats = useMemo(() => {
+    const pending = rows.filter((r) => r.status === "pending").length;
+    const approved = rows.filter((r) => r.status === "approved").length;
+    const rejected = rows.filter((r) => r.status === "rejected").length;
+    const reviewed = approved + rejected;
+    const approvalRate = reviewed > 0 ? Math.round((approved / reviewed) * 100) : null;
+
+    const responseTimes = rows
+      .filter((r) => r.reviewed_at)
+      .map((r) => new Date(r.reviewed_at!).getTime() - new Date(r.created_at).getTime())
+      .filter((ms) => ms >= 0);
+
+    const avgResponseMs =
+      responseTimes.length > 0
+        ? responseTimes.reduce((sum, ms) => sum + ms, 0) / responseTimes.length
+        : null;
+
+    const last30Days = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const submittedLast30 = rows.filter((r) => new Date(r.created_at).getTime() >= last30Days).length;
+    const reviewedLast30 = rows.filter(
+      (r) => r.reviewed_at && new Date(r.reviewed_at).getTime() >= last30Days
+    ).length;
+
+    return {
+      total: rows.length,
+      pending,
+      approved,
+      rejected,
+      reviewed,
+      approvalRate,
+      avgResponseMs,
+      submittedLast30,
+      reviewedLast30,
+    };
+  }, [rows]);
 
   async function openDetail(id: string) {
     setDetailOpen(true);
@@ -180,7 +263,7 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
     if (!detail) return;
     setActionError(null);
     if (action === "approve" && confirmText.trim() !== "CONFIRM") {
-      setActionError('Type CONFIRM to approve this request.');
+      setActionError("Type CONFIRM to approve this request.");
       return;
     }
     setActing(true);
@@ -197,6 +280,7 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Action failed.");
       setDetailOpen(false);
+      setActiveTab(action === "approve" || action === "reject" ? "responded" : activeTab);
       await loadList();
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Action failed.");
@@ -205,14 +289,26 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
     }
   }
 
+  const tableRows = activeTab === "pending" ? pendingRows : respondedRows;
+
   return (
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
         Certificate requests
       </Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
+      <Typography color="text.secondary" sx={{ mb: 2 }}>
         Review external Biblical Citizenship completion certificates submitted by members and leaders.
       </Typography>
+
+      <Tabs
+        value={activeTab}
+        onChange={(_, value) => setActiveTab(value as AdminTab)}
+        sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}
+      >
+        <Tab value="pending" label={`Pending (${stats.pending})`} />
+        <Tab value="responded" label={`Responded (${stats.reviewed})`} />
+        <Tab value="stats" label="Statistics" />
+      </Tabs>
 
       {loadError ? (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -220,107 +316,161 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
         </Alert>
       ) : null}
 
-      <Paper sx={{ p: 2, mb: 2, bgcolor: "rgba(0,0,0,0.35)" }}>
-        <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2 }}>
-          <TextField
-            size="small"
-            placeholder="Search name, email, organization…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
+      {activeTab === "stats" ? (
+        <Stack spacing={2}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" },
+              gap: 2,
             }}
-          />
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              label="Status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="approved">Approved</MenuItem>
-              <MenuItem value="rejected">Rejected</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
-        <StateChapterFilterControls
-          chapters={chapterOptions}
-          filterState={filterState}
-          filterChapterId={filterChapterId}
-          onStateChange={setFilterState}
-          onChapterChange={setFilterChapterId}
-        />
-      </Paper>
-
-      <Paper sx={{ bgcolor: "rgba(0,0,0,0.35)", overflow: "auto" }}>
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-            <CircularProgress />
+          >
+            <StatCard label="Total requests" value={stats.total} />
+            <StatCard label="Pending review" value={stats.pending} hint="Awaiting admin action" />
+            <StatCard label="Approved" value={stats.approved} />
+            <StatCard label="Rejected" value={stats.rejected} />
           </Box>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Submitted</TableCell>
-                <TableCell>Person</TableCell>
-                <TableCell>Chapter</TableCell>
-                <TableCell>Organization (external)</TableCell>
-                <TableCell>Completion date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} sx={{ py: 4, textAlign: "center", color: "text.secondary" }}>
-                    No requests match your filters.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredRows.map((row) => (
-                  <TableRow key={row.id} hover>
-                    <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={600}>
-                        {row.user.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {row.user.email}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      {row.user.chapter_name ?? "—"}
-                      {row.user.chapter_city || row.user.chapter_state
-                        ? ` (${[row.user.chapter_city, row.user.chapter_state].filter(Boolean).join(", ")})`
-                        : ""}
-                    </TableCell>
-                    <TableCell>{row.organization_name}</TableCell>
-                    <TableCell>{row.completion_date}</TableCell>
-                    <TableCell>{statusChip(row.status)}</TableCell>
-                    <TableCell align="right">
-                      <Button
-                        size="small"
-                        startIcon={<VisibilityOutlinedIcon />}
-                        onClick={() => void openDetail(row.id)}
-                      >
-                        Details
-                      </Button>
-                    </TableCell>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
+              gap: 2,
+            }}
+          >
+            <StatCard
+              label="Approval rate"
+              value={stats.approvalRate != null ? `${stats.approvalRate}%` : "—"}
+              hint="Of reviewed requests"
+            />
+            <StatCard
+              label="Avg. response time"
+              value={stats.avgResponseMs != null ? formatDays(stats.avgResponseMs) : "—"}
+              hint="From submission to review"
+            />
+            <StatCard
+              label="Last 30 days"
+              value={`${stats.submittedLast30} submitted`}
+              hint={`${stats.reviewedLast30} reviewed`}
+            />
+          </Box>
+        </Stack>
+      ) : (
+        <>
+          <Paper sx={{ p: 2, mb: 2, bgcolor: "rgba(0,0,0,0.35)" }}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2 }}>
+              <TextField
+                size="small"
+                placeholder="Search name, email, organization, reviewer…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Button variant="outlined" onClick={() => void loadList()} disabled={loading}>
+                Refresh
+              </Button>
+            </Stack>
+            <StateChapterFilterControls
+              chapters={chapterOptions}
+              filterState={filterState}
+              filterChapterId={filterChapterId}
+              onStateChange={setFilterState}
+              onChapterChange={setFilterChapterId}
+            />
+          </Paper>
+
+          <Paper sx={{ bgcolor: "rgba(0,0,0,0.35)", overflow: "auto" }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Submitted</TableCell>
+                    {activeTab === "responded" ? <TableCell>Reviewed</TableCell> : null}
+                    <TableCell>Person</TableCell>
+                    <TableCell>Chapter</TableCell>
+                    <TableCell>Organization (external)</TableCell>
+                    <TableCell>Completion date</TableCell>
+                    {activeTab === "responded" ? <TableCell>Reviewed by</TableCell> : null}
+                    <TableCell>Status</TableCell>
+                    {activeTab === "responded" ? <TableCell>Admin note</TableCell> : null}
+                    <TableCell align="right">Actions</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </Paper>
+                </TableHead>
+                <TableBody>
+                  {tableRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={activeTab === "responded" ? 10 : 7}
+                        sx={{ py: 4, textAlign: "center", color: "text.secondary" }}
+                      >
+                        {activeTab === "pending"
+                          ? "No pending requests match your filters."
+                          : "No reviewed requests match your filters."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    tableRows.map((row) => (
+                      <TableRow key={row.id} hover>
+                        <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
+                        {activeTab === "responded" ? (
+                          <TableCell>{formatDateTime(row.reviewed_at)}</TableCell>
+                        ) : null}
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>
+                            {row.user.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {row.user.email}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {row.user.chapter_name ?? "—"}
+                          {row.user.chapter_city || row.user.chapter_state
+                            ? ` (${[row.user.chapter_city, row.user.chapter_state].filter(Boolean).join(", ")})`
+                            : ""}
+                        </TableCell>
+                        <TableCell>{row.organization_name}</TableCell>
+                        <TableCell>{row.completion_date}</TableCell>
+                        {activeTab === "responded" ? (
+                          <TableCell>{row.reviewed_by_name ?? "—"}</TableCell>
+                        ) : null}
+                        <TableCell>{statusChip(row.status)}</TableCell>
+                        {activeTab === "responded" ? (
+                          <TableCell sx={{ maxWidth: 220 }}>
+                            <Typography variant="body2" noWrap title={row.admin_note ?? undefined}>
+                              {row.admin_note?.trim() || "—"}
+                            </Typography>
+                          </TableCell>
+                        ) : null}
+                        <TableCell align="right">
+                          <Button
+                            size="small"
+                            startIcon={<VisibilityOutlinedIcon />}
+                            onClick={() => void openDetail(row.id)}
+                          >
+                            Details
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </Paper>
+        </>
+      )}
 
       <Dialog open={detailOpen} onClose={() => !acting && setDetailOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Certificate request details</DialogTitle>
@@ -376,13 +526,28 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                 <Typography variant="body2">Course: {detail.course_title ?? courseSlug}</Typography>
                 <Typography variant="body2">Organization: {detail.organization_name}</Typography>
                 <Typography variant="body2">Completion date: {detail.completion_date}</Typography>
-                <Typography variant="body2">Status: {detail.status}</Typography>
-                {detail.admin_note ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Admin note: {detail.admin_note}
-                  </Typography>
-                ) : null}
+                <Typography variant="body2">Submitted: {formatDateTime(detail.created_at)}</Typography>
               </Box>
+
+              {detail.status !== "pending" ? (
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: "rgba(0,0,0,0.2)" }}>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                    Review history
+                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    {statusChip(detail.status)}
+                    <Typography variant="body2" color="text.secondary">
+                      Reviewed {formatDateTime(detail.reviewed_at)}
+                      {detail.reviewed_by_name ? ` by ${detail.reviewed_by_name}` : ""}
+                    </Typography>
+                  </Stack>
+                  <Typography variant="body2">
+                    Admin note: {detail.admin_note?.trim() || "—"}
+                  </Typography>
+                </Paper>
+              ) : (
+                <Typography variant="body2">Status: {detail.status}</Typography>
+              )}
 
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -412,7 +577,7 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                     minRows={2}
                   />
                   <TextField
-                    label='Type CONFIRM to approve'
+                    label="Type CONFIRM to approve"
                     value={confirmText}
                     onChange={(e) => setConfirmText(e.target.value)}
                     fullWidth
