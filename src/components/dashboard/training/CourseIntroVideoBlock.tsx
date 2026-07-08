@@ -13,6 +13,7 @@ type Props = {
   posterSrc?: string;
   /** Show Patriot Academy certificate CTA below intro copy (course page). */
   showCertificateCta?: boolean;
+  certificatePendingReview?: boolean;
   courseTitle?: string;
 };
 
@@ -20,6 +21,7 @@ type Props = {
 export function CourseIntroVideoBlock({
   posterSrc = BIBLICAL_CITIZENSHIP_POSTER_SRC,
   showCertificateCta = false,
+  certificatePendingReview = false,
   courseTitle = "Biblical Citizenship",
 }: Props) {
   return (
@@ -89,6 +91,7 @@ export function CourseIntroVideoBlock({
               courseTitle={courseTitle}
               variant="inline"
               align="left"
+              pendingReview={certificatePendingReview}
             />
           ) : null}
         </Box>

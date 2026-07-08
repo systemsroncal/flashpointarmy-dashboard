@@ -7,7 +7,7 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { requireServerUser } from "@/lib/auth/server-session";
-import { shouldShowExternalCertificatePrompt } from "@/lib/training/certificate-requests";
+import { loadExternalCertificateCtaState } from "@/lib/training/certificate-requests";
 import { Box, Paper, Typography } from "@mui/material";
 
 export default async function CoursePageContent({ slug }: { slug: string }) {
@@ -92,14 +92,15 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   const editCourseHref = canEditCourse ? `/dashboard/courses/${course.id}/edit` : null;
 
   const isBiblicalCitizenship = slug === BIBLICAL_CITIZENSHIP_COURSE_SLUG;
-  const showExternalCertPrompt = isBiblicalCitizenship
-    ? await shouldShowExternalCertificatePrompt(supabase, user.id)
-    : false;
+  const externalCertCta = isBiblicalCitizenship
+    ? await loadExternalCertificateCtaState(supabase, user.id)
+    : { show: false, pendingReview: false };
   const courseTitle = (course.title as string)?.trim() || "Biblical Citizenship";
 
   const introBlock = isBiblicalCitizenship ? (
     <CourseIntroVideoBlock
-      showCertificateCta={showExternalCertPrompt}
+      showCertificateCta={externalCertCta.show}
+      certificatePendingReview={externalCertCta.pendingReview}
       courseTitle={courseTitle}
     />
   ) : null;

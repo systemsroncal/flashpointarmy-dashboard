@@ -6,10 +6,10 @@ import {
   faFlag,
   faHandsPraying,
   faLandmark,
-  faPeopleRoof,
   faSchool,
   faShareNodes,
   faShield,
+  faSquarePollVertical,
   faUserGroup,
   faUserTie,
 } from "@fortawesome/free-solid-svg-icons";
@@ -34,6 +34,8 @@ export type MissionCard = {
   description: string;
   partner?: string;
   url?: string;
+  /** Custom link CTA after description (default: "Click Here"). */
+  linkLabel?: string;
   icon: IconDefinition;
   difficulty: MissionDifficulty;
   comingSoon?: boolean;
@@ -93,7 +95,7 @@ export const MISSION_PHASES: MissionPhase[] = [
   },
   {
     id: "phase-2",
-    title: "PHASE 2 — Learn It",
+    title: "PHASE 2 — Engage",
     subtitle: "Now they're engaged.",
     difficulty: "beginner",
     headerBg: "#1e5c56",
@@ -102,10 +104,11 @@ export const MISSION_PHASES: MissionPhase[] = [
         number: 5,
         title: "Contact Your Lawmakers",
         description:
-          "Send emails, letters, or make phone calls regarding important legislation through action alerts (such as ACT for America).",
+          "Make your voice count. Send emails, letters, or make phone calls regarding important legislation through action alerts by ACT for America.",
         icon: faBullhorn,
         difficulty: "beginner",
         url: "https://www.actforamerica.org/",
+        linkLabel: "Start Now",
       },
       {
         number: 6,
@@ -114,6 +117,16 @@ export const MISSION_PHASES: MissionPhase[] = [
         icon: faChalkboardUser,
         difficulty: "beginner",
         url: "https://www.patriotacademy.com/coach/flashpointarmy",
+      },
+      {
+        number: 7,
+        title: "Support Election Integrity",
+        description:
+          "Serve as a poll worker, poll watcher (where permitted), or volunteer in lawful voter education efforts.",
+        icon: faSquarePollVertical,
+        difficulty: "beginner",
+        url: "https://www.eac.gov/election-officials/poll-watchers",
+        linkLabel: "Start Now",
       },
     ],
   },
@@ -124,36 +137,29 @@ export const MISSION_PHASES: MissionPhase[] = [
     headerBg: "#6b5420",
     missions: [
       {
-        number: 7,
-        title: "Restore Faith in Schools",
+        number: 8,
+        title: "Restoring Faith in Schools",
         description:
-          "Bible curriculum. Chaplains. Religious liberty. Combine these. People don't understand the difference.",
+          "Bring hope and biblical values to your local schools by becoming a certified chaplain by NSCA.",
         icon: faSchool,
         difficulty: "intermediate",
         url: "https://www.nsca.global/certification",
       },
       {
-        number: 8,
-        title: "Display America's Foundation",
+        number: 9,
+        title: "Display America's Foundations",
         description:
-          "In God We Trust. Ten Commandments. Historical monuments. This becomes one mission.",
+          "Bring faith back to the Public Square. Help advance projects that promote America's biblical heritage, including Ten Commandments displays, monuments, educational initiatives through Restoring Faith in America.",
         icon: faBookOpen,
         difficulty: "intermediate",
         url: "https://rfia.org/#welcome",
-      },
-      {
-        number: 9,
-        title: "Support Parents & Families",
-        description: "Parental Rights. Family values. Schools.",
-        icon: faPeopleRoof,
-        difficulty: "intermediate",
+        linkLabel: "Start Now",
       },
     ],
   },
   {
     id: "phase-4",
     title: "PHASE 4 — Lead",
-    subtitle: "Only serious people reach here.",
     difficulty: "advanced",
     headerBg: "#525252",
     missions: [

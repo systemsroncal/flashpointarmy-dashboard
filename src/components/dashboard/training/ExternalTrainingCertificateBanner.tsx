@@ -35,6 +35,8 @@ type Props = {
   variant?: "default" | "compact" | "inline";
   /** Text alignment for `inline` variant (course page left column uses `left`). */
   align?: "center" | "left";
+  /** Server-side pending request — show thank-you instead of the CTA link. */
+  pendingReview?: boolean;
 };
 
 export function ExternalTrainingCertificateBanner({
@@ -43,6 +45,7 @@ export function ExternalTrainingCertificateBanner({
   courseTitle = "Biblical Citizenship",
   variant = "default",
   align = "center",
+  pendingReview = false,
 }: Props) {
   const router = useRouter();
   const [dismissed, setDismissed] = useState(false);
@@ -52,7 +55,7 @@ export function ExternalTrainingCertificateBanner({
   const [organization, setOrganization] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(pendingReview);
 
   useEffect(() => {
     if (variant === "inline") return;

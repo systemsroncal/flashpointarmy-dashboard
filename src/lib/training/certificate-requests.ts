@@ -56,21 +56,45 @@ export async function userHasPendingCertificateRequest(
   return Boolean(data?.id);
 }
 
+export type ExternalCertificateCtaState = {
+  /** Show inline Patriot Academy CTA or pending-review message. */
+  show: boolean;
+  /** User already submitted a request awaiting admin review. */
+  pendingReview: boolean;
+};
+
+/** Shared visibility rules for training landing and Biblical Citizenship course hero. */
+export async function loadExternalCertificateCtaState(
+  supabase: SupabaseClient,
+  userId: string,
+  courseSlug = BIBLICAL_CITIZENSHIP_COURSE_SLUG,
+  roleNames?: string[]
+): Promise<ExternalCertificateCtaState> {
+  const roles = roleNames ?? (await loadUserRoleNames(supabase, userId));
+  if (!isExternalCertificateSubmissionEnabled(roles)) {
+    return { show: false, pendingReview: false };
+  }
+
+  const complete = await isUserCourseComplete(supabase, userId, courseSlug);
+  if (complete) return { show: false, pendingReview: false };
+
+  const courseId = await resolveCourseIdBySlug(supabase, courseSlug);
+  if (!courseId) return { show: false, pendingReview: false };
+
+  const pending = await userHasPendingCertificateRequest(supabase, userId, courseId);
+  if (pending) return { show: true, pendingReview: true };
+
+  return { show: true, pendingReview: false };
+}
+
 export async function shouldShowExternalCertificatePrompt(
   supabase: SupabaseClient,
   userId: string,
   courseSlug = BIBLICAL_CITIZENSHIP_COURSE_SLUG,
   roleNames?: string[]
 ): Promise<boolean> {
-  const roles = roleNames ?? (await loadUserRoleNames(supabase, userId));
-  if (!isExternalCertificateSubmissionEnabled(roles)) return false;
-
-  const complete = await isUserCourseComplete(supabase, userId, courseSlug);
-  if (complete) return false;
-  const courseId = await resolveCourseIdBySlug(supabase, courseSlug);
-  if (!courseId) return false;
-  const pending = await userHasPendingCertificateRequest(supabase, userId, courseId);
-  return !pending;
+  const state = await loadExternalCertificateCtaState(supabase, userId, courseSlug, roleNames);
+  return state.show;
 }
 
 /** Marks every session in the course complete for the user (admin / approval flow). */

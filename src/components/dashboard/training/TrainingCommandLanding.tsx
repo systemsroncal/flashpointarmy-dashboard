@@ -26,6 +26,7 @@ type Props = {
   primaryCourseHref?: string;
   /** Patriot Academy certificate link below the main CTA. */
   showExternalCertPrompt?: boolean;
+  externalCertPendingReview?: boolean;
   externalCourseTitle?: string;
   introVideoAdmin?: IntroVideoAdminProps | null;
 };
@@ -35,6 +36,7 @@ export function TrainingCommandLanding({
   courseIntroVideoUrl: _courseIntroVideoUrl,
   primaryCourseHref = "/dashboard/course/biblical-citizenship",
   showExternalCertPrompt = false,
+  externalCertPendingReview = false,
   externalCourseTitle = "Biblical Citizenship",
   introVideoAdmin,
 }: Props) {
@@ -208,6 +210,7 @@ export function TrainingCommandLanding({
             showPrompt={showExternalCertPrompt}
             courseTitle={externalCourseTitle}
             variant="inline"
+            pendingReview={externalCertPendingReview}
           />
         ) : null}
 

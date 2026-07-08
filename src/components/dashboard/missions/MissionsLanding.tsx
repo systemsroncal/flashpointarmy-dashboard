@@ -1,5 +1,8 @@
 "use client";
 
+import { ChapterMapInviteCta } from "@/components/dashboard/national-overview/ChapterMapInviteCta";
+import { useDashboardUser } from "@/contexts/DashboardUserContext";
+import { isChapterMapInviteCtaEnabledForUser } from "@/lib/config/chapter-map-invite-cta";
 import {
   MISSION_DIFFICULTY_COLORS,
   MISSION_DIFFICULTY_LABELS,
@@ -8,13 +11,40 @@ import {
 } from "@/lib/missions/twelve-missions";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Stack, Typography } from "@mui/material";
+import { useMemo } from "react";
+
+const MISSION_ICON_SIZE = "2.35rem";
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const normalized = hex.replace("#", "");
+  const expanded =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : normalized;
+  const num = Number.parseInt(expanded, 16);
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function phaseHoverShadow(headerBg: string): string {
+  const { r, g, b } = hexToRgb(headerBg);
+  return `0 10px 28px rgba(${r}, ${g}, ${b}, 0.38)`;
+}
 
 function MissionCardItem({
   mission,
   missionLinksEnabled,
+  phaseHeaderBg,
 }: {
   mission: MissionCard;
   missionLinksEnabled: boolean;
+  phaseHeaderBg: string;
 }) {
   const accent = MISSION_DIFFICULTY_COLORS[mission.difficulty];
   const isLink = Boolean(mission.url) && !mission.comingSoon && missionLinksEnabled;
@@ -39,12 +69,10 @@ function MissionCardItem({
         color: "inherit",
         cursor: isLink ? "pointer" : "default",
         transition: "box-shadow 0.2s, transform 0.2s",
-        ...(isLink && {
-          "&:hover": {
-            boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
-            transform: "translateY(-1px)",
-          },
-        }),
+        "&:hover": {
+          boxShadow: phaseHoverShadow(phaseHeaderBg),
+          transform: "translateY(-1px)",
+        },
       }}
     >
       {mission.comingSoon ? (
@@ -103,15 +131,31 @@ function MissionCardItem({
           boxSizing: "border-box",
         }}
       >
-        <FontAwesomeIcon
-          icon={mission.icon}
-          style={{
-            fontSize: "2.35rem",
-            color: accent,
+        <Box
+          aria-hidden
+          sx={{
+            width: MISSION_ICON_SIZE,
+            height: MISSION_ICON_SIZE,
+            minWidth: MISSION_ICON_SIZE,
             flexShrink: 0,
-            marginTop: 4,
+            mt: 0.5,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: accent,
+            fontSize: MISSION_ICON_SIZE,
+            lineHeight: 1,
+            overflow: "hidden",
+            "& svg": {
+              width: "1em",
+              height: "1em",
+              maxWidth: "100%",
+              maxHeight: "100%",
+            },
           }}
-        />
+        >
+          <FontAwesomeIcon icon={mission.icon} fixedWidth />
+        </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography
@@ -145,6 +189,20 @@ function MissionCardItem({
               }}
             >
               {mission.description}
+              {mission.url && !mission.comingSoon ? (
+                <>
+                  {" "}
+                  <Box
+                    component="span"
+                    sx={{
+                      fontStyle: "italic",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    {mission.linkLabel ?? "Click Here"}
+                  </Box>
+                </>
+              ) : null}
             </Typography>
           </Stack>
         </Box>
@@ -154,6 +212,12 @@ function MissionCardItem({
 }
 
 export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEnabled?: boolean }) {
+  const user = useDashboardUser();
+  const showInviteCta = useMemo(
+    () => isChapterMapInviteCtaEnabledForUser(user.role_names),
+    [user.role_names]
+  );
+
   return (
     <Box
       sx={{
@@ -296,6 +360,7 @@ export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEn
                         key={mission.number}
                         mission={mission}
                         missionLinksEnabled={missionLinksEnabled}
+                        phaseHeaderBg={phase.headerBg}
                       />
                     ))}
                   </Box>
@@ -304,6 +369,23 @@ export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEn
             );
           })}
         </Stack>
+
+        {showInviteCta ? (
+          <Box
+            sx={{
+              mt: { xs: 2.5, md: 3 },
+              borderRadius: 2.5,
+              overflow: "hidden",
+              bgcolor: "rgba(22,22,26,0.96)",
+              border: "1px solid rgba(212, 175, 55, 0.35)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+              px: { xs: 2, sm: 2.5, md: 3 },
+              pb: { xs: 2, sm: 2.5 },
+            }}
+          >
+            <ChapterMapInviteCta />
+          </Box>
+        ) : null}
       </Box>
     </Box>
   );
