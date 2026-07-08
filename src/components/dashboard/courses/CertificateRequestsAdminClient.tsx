@@ -1,5 +1,6 @@
 "use client";
 
+import { CertificateRequestsStatsPanel } from "@/components/dashboard/courses/CertificateRequestsStatsPanel";
 import { CertificateFilePreview } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
 import { hasCertificateAttachment } from "@/lib/training/certificate-requests";
@@ -100,30 +101,6 @@ function formatDateTime(value: string | null | undefined): string {
   return new Date(value).toLocaleString();
 }
 
-function formatDays(ms: number): string {
-  const days = ms / (1000 * 60 * 60 * 24);
-  if (days < 1) return "< 1 day";
-  return `${days.toFixed(1)} days`;
-}
-
-function StatCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
-  return (
-    <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.35)", height: "100%" }}>
-      <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-        {label}
-      </Typography>
-      <Typography variant="h4" sx={{ fontWeight: 800, my: 0.5 }}>
-        {value}
-      </Typography>
-      {hint ? (
-        <Typography variant="caption" color="text.secondary">
-          {hint}
-        </Typography>
-      ) : null}
-    </Paper>
-  );
-}
-
 export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: Props) {
   const [rows, setRows] = useState<ListRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -204,40 +181,10 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
     [filteredRows]
   );
 
-  const stats = useMemo(() => {
+  const tabCounts = useMemo(() => {
     const pending = rows.filter((r) => r.status === "pending").length;
-    const approved = rows.filter((r) => r.status === "approved").length;
-    const rejected = rows.filter((r) => r.status === "rejected").length;
-    const reviewed = approved + rejected;
-    const approvalRate = reviewed > 0 ? Math.round((approved / reviewed) * 100) : null;
-
-    const responseTimes = rows
-      .filter((r) => r.reviewed_at)
-      .map((r) => new Date(r.reviewed_at!).getTime() - new Date(r.created_at).getTime())
-      .filter((ms) => ms >= 0);
-
-    const avgResponseMs =
-      responseTimes.length > 0
-        ? responseTimes.reduce((sum, ms) => sum + ms, 0) / responseTimes.length
-        : null;
-
-    const last30Days = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const submittedLast30 = rows.filter((r) => new Date(r.created_at).getTime() >= last30Days).length;
-    const reviewedLast30 = rows.filter(
-      (r) => r.reviewed_at && new Date(r.reviewed_at).getTime() >= last30Days
-    ).length;
-
-    return {
-      total: rows.length,
-      pending,
-      approved,
-      rejected,
-      reviewed,
-      approvalRate,
-      avgResponseMs,
-      submittedLast30,
-      reviewedLast30,
-    };
+    const reviewed = rows.filter((r) => r.status === "approved" || r.status === "rejected").length;
+    return { pending, reviewed };
   }, [rows]);
 
   async function openDetail(id: string) {
@@ -305,8 +252,8 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
         onChange={(_, value) => setActiveTab(value as AdminTab)}
         sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}
       >
-        <Tab value="pending" label={`Pending (${stats.pending})`} />
-        <Tab value="responded" label={`Responded (${stats.reviewed})`} />
+        <Tab value="pending" label={`Pending (${tabCounts.pending})`} />
+        <Tab value="responded" label={`Responded (${tabCounts.reviewed})`} />
         <Tab value="stats" label="Statistics" />
       </Tabs>
 
@@ -317,73 +264,89 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
       ) : null}
 
       {activeTab === "stats" ? (
-        <Stack spacing={2}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" },
-              gap: 2,
-            }}
-          >
-            <StatCard label="Total requests" value={stats.total} />
-            <StatCard label="Pending review" value={stats.pending} hint="Awaiting admin action" />
-            <StatCard label="Approved" value={stats.approved} />
-            <StatCard label="Rejected" value={stats.rejected} />
-          </Box>
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
-              gap: 2,
-            }}
-          >
-            <StatCard
-              label="Approval rate"
-              value={stats.approvalRate != null ? `${stats.approvalRate}%` : "—"}
-              hint="Of reviewed requests"
-            />
-            <StatCard
-              label="Avg. response time"
-              value={stats.avgResponseMs != null ? formatDays(stats.avgResponseMs) : "—"}
-              hint="From submission to review"
-            />
-            <StatCard
-              label="Last 30 days"
-              value={`${stats.submittedLast30} submitted`}
-              hint={`${stats.reviewedLast30} reviewed`}
-            />
-          </Box>
-        </Stack>
+        <CertificateRequestsStatsPanel rows={rows} loading={loading} />
       ) : (
         <>
           <Paper sx={{ p: 2, mb: 2, bgcolor: "rgba(0,0,0,0.35)" }}>
-            <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2 }}>
-              <TextField
-                size="small"
-                placeholder="Search name, email, organization, reviewer…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                fullWidth
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                "@media (min-width: 768px)": {
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  width: "100%",
+                  "@media (min-width: 768px)": {
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flex: "1 1 auto",
+                    minWidth: 0,
+                    width: "auto",
+                  },
                 }}
-              />
-              <Button variant="outlined" onClick={() => void loadList()} disabled={loading}>
-                Refresh
-              </Button>
-            </Stack>
-            <StateChapterFilterControls
-              chapters={chapterOptions}
-              filterState={filterState}
-              filterChapterId={filterChapterId}
-              onStateChange={setFilterState}
-              onChapterChange={setFilterChapterId}
-            />
+              >
+                <TextField
+                  size="small"
+                  placeholder="Search name, email, organization, reviewer…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  sx={{
+                    width: "100%",
+                    "@media (min-width: 768px)": {
+                      flex: "1 1 200px",
+                      minWidth: 180,
+                    },
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <Button
+                  variant="outlined"
+                  onClick={() => void loadList()}
+                  disabled={loading}
+                  sx={{
+                    width: "100%",
+                    "@media (min-width: 768px)": {
+                      width: "auto",
+                      flexShrink: 0,
+                    },
+                  }}
+                >
+                  Refresh
+                </Button>
+              </Box>
+              <Box
+                sx={{
+                  width: "100%",
+                  "@media (min-width: 768px)": {
+                    width: "auto",
+                    flexShrink: 0,
+                  },
+                }}
+              >
+                <StateChapterFilterControls
+                  chapters={chapterOptions}
+                  filterState={filterState}
+                  filterChapterId={filterChapterId}
+                  onStateChange={setFilterState}
+                  onChapterChange={setFilterChapterId}
+                />
+              </Box>
+            </Box>
           </Paper>
 
           <Paper sx={{ bgcolor: "rgba(0,0,0,0.35)", overflow: "auto" }}>
