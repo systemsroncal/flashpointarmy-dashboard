@@ -189,21 +189,20 @@ function MissionCardItem({
               }}
             >
               {mission.description}
-              {mission.url && !mission.comingSoon ? (
-                <>
-                  {" "}
-                  <Box
-                    component="span"
-                    sx={{
-                      fontStyle: "italic",
-                      textDecoration: "underline",
-                    }}
-                  >
-                    {mission.linkLabel ?? "Click Here"}
-                  </Box>
-                </>
-              ) : null}
             </Typography>
+            {mission.url && !mission.comingSoon ? (
+              <Typography
+                sx={{
+                  fontSize: { xs: "0.72rem", sm: "0.78rem" },
+                  color: "#666",
+                  lineHeight: 1.45,
+                  fontStyle: "italic",
+                  textDecoration: "underline",
+                }}
+              >
+                {mission.linkLabel ?? "Click Here"}
+              </Typography>
+            ) : null}
           </Stack>
         </Box>
       </Box>
