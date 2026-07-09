@@ -4,7 +4,8 @@ import { CertificateRequestsStatsPanel } from "@/components/dashboard/courses/Ce
 import { CertificateFilePreview } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
 import { hasCertificateAttachment } from "@/lib/training/certificate-requests";
-import { matchesStateChapterFilter, type ChapterSearchRow } from "@/lib/chapters/chapter-search";
+import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
+import type { CertSortKey } from "@/lib/training/certificate-requests-admin-list";
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
@@ -27,16 +28,25 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TablePagination,
   TableRow,
+  TableSortLabel,
   Tabs,
   TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type RequestStatus = "pending" | "approved" | "rejected";
 type AdminTab = "pending" | "responded" | "stats";
+type SortDir = "asc" | "desc";
+
+type StatsRow = {
+  status: RequestStatus;
+  created_at: string;
+  reviewed_at: string | null;
+};
 
 type ListRow = {
   id: string;
@@ -106,12 +116,22 @@ function formatDateTime(value: string | null | undefined): string {
 
 export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: Props) {
   const [rows, setRows] = useState<ListRow[]>([]);
+  const [statsRows, setStatsRows] = useState<StatsRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>("pending");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchCommitted, setSearchCommitted] = useState("");
   const [filterState, setFilterState] = useState("all");
   const [filterChapterId, setFilterChapterId] = useState("all");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [respondedCount, setRespondedCount] = useState(0);
+  const [sortBy, setSortBy] = useState<CertSortKey>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -125,74 +145,151 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
   const [resendError, setResendError] = useState<string | null>(null);
   const [resendSuccess, setResendSuccess] = useState<string | null>(null);
 
-  const loadList = useCallback(async () => {
-    setLoading(true);
+  const loadList = useCallback(
+    async (overrides?: {
+      tab?: "pending" | "responded";
+      page?: number;
+      sort?: CertSortKey;
+      dir?: SortDir;
+    }) => {
+      const tab = overrides?.tab ?? (activeTab === "stats" ? "pending" : activeTab);
+      if (activeTab === "stats" && !overrides?.tab) return;
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const params = new URLSearchParams({
+          admin: "1",
+          courseSlug,
+          tab,
+          page: String(overrides?.page ?? page),
+          perPage: String(rowsPerPage),
+          sort: overrides?.sort ?? sortBy,
+          dir: overrides?.dir ?? sortDir,
+          state: filterState,
+          chapterId: filterChapterId,
+        });
+        if (searchCommitted.length >= 2) params.set("q", searchCommitted);
+        const res = await fetch(`/api/training/certificate-requests?${params.toString()}`, {
+          cache: "no-store",
+        });
+        const json = (await res.json()) as {
+          error?: string;
+          requests?: ListRow[];
+          total?: number;
+          pendingCount?: number;
+          respondedCount?: number;
+        };
+        if (!res.ok) throw new Error(json.error ?? "Failed to load requests.");
+        setRows(json.requests ?? []);
+        setTotalCount(json.total ?? 0);
+        setPendingCount(json.pendingCount ?? 0);
+        setRespondedCount(json.respondedCount ?? 0);
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : "Failed to load.");
+        setRows([]);
+        setTotalCount(0);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      activeTab,
+      courseSlug,
+      page,
+      rowsPerPage,
+      sortBy,
+      sortDir,
+      filterState,
+      filterChapterId,
+      searchCommitted,
+    ]
+  );
+
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
     setLoadError(null);
     try {
-      const params = new URLSearchParams({ admin: "1", courseSlug });
-      const res = await fetch(`/api/training/certificate-requests?${params.toString()}`);
-      const json = (await res.json()) as { error?: string; requests?: ListRow[] };
-      if (!res.ok) throw new Error(json.error ?? "Failed to load requests.");
-      setRows(json.requests ?? []);
+      const params = new URLSearchParams({ admin: "1", courseSlug, view: "stats" });
+      const res = await fetch(`/api/training/certificate-requests?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const json = (await res.json()) as {
+        error?: string;
+        statsRows?: StatsRow[];
+      };
+      if (!res.ok) throw new Error(json.error ?? "Failed to load statistics.");
+      setStatsRows(json.statsRows ?? []);
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Failed to load.");
-      setRows([]);
+      setLoadError(e instanceof Error ? e.message : "Failed to load statistics.");
+      setStatsRows([]);
     } finally {
-      setLoading(false);
+      setStatsLoading(false);
     }
   }, [courseSlug]);
 
   useEffect(() => {
-    void loadList();
-  }, [loadList]);
-
-  const filteredRows = useMemo(() => {
-    let list = rows;
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
-      list = list.filter((r) => {
-        const blob = [
-          r.user.name,
-          r.user.email,
-          r.organization_name,
-          r.user.chapter_name ?? "",
-          r.user.city ?? "",
-          r.user.state ?? "",
-          r.admin_note ?? "",
-          r.reviewed_by_name ?? "",
-        ]
-          .join(" ")
-          .toLowerCase();
-        return blob.includes(q);
-      });
+    if (activeTab === "stats") {
+      void loadStats();
+      return;
     }
-    return list.filter((r) =>
-      matchesStateChapterFilter(r.user.chapter_id, chapterOptions, filterState, filterChapterId)
+    void loadList();
+  }, [activeTab, loadList, loadStats]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const next = searchQuery.trim();
+      setSearchCommitted((prev) => {
+        if (prev === next) return prev;
+        setPage(0);
+        return next;
+      });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  function handleTabChange(value: AdminTab) {
+    setActiveTab(value);
+    setPage(0);
+    if (value === "pending") {
+      setSortBy("created_at");
+      setSortDir("desc");
+    } else if (value === "responded") {
+      setSortBy("reviewed_at");
+      setSortDir("desc");
+    }
+  }
+
+  function handleSort(column: CertSortKey) {
+    setPage(0);
+    if (sortBy === column) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortBy(column);
+    setSortDir(column === "person" || column === "chapter" || column === "organization_name" ? "asc" : "desc");
+  }
+
+  function SortHeader({
+    id,
+    label,
+    align,
+  }: {
+    id: CertSortKey;
+    label: string;
+    align?: "right" | "left";
+  }) {
+    return (
+      <TableCell align={align} sortDirection={sortBy === id ? sortDir : false}>
+        <TableSortLabel
+          active={sortBy === id}
+          direction={sortBy === id ? sortDir : "asc"}
+          onClick={() => handleSort(id)}
+        >
+          {label}
+        </TableSortLabel>
+      </TableCell>
     );
-  }, [rows, searchQuery, filterState, filterChapterId, chapterOptions]);
-
-  const pendingRows = useMemo(
-    () => filteredRows.filter((r) => r.status === "pending"),
-    [filteredRows]
-  );
-
-  const respondedRows = useMemo(
-    () =>
-      filteredRows
-        .filter((r) => r.status === "approved" || r.status === "rejected")
-        .sort((a, b) => {
-          const aTime = a.reviewed_at ? new Date(a.reviewed_at).getTime() : 0;
-          const bTime = b.reviewed_at ? new Date(b.reviewed_at).getTime() : 0;
-          return bTime - aTime;
-        }),
-    [filteredRows]
-  );
-
-  const tabCounts = useMemo(() => {
-    const pending = rows.filter((r) => r.status === "pending").length;
-    const reviewed = rows.filter((r) => r.status === "approved" || r.status === "rejected").length;
-    return { pending, reviewed };
-  }, [rows]);
+  }
 
   async function openDetail(id: string) {
     setDetailOpen(true);
@@ -234,8 +331,11 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error ?? "Action failed.");
       setDetailOpen(false);
-      setActiveTab(action === "approve" || action === "reject" ? "responded" : activeTab);
-      await loadList();
+      setActiveTab("responded");
+      setPage(0);
+      setSortBy("reviewed_at");
+      setSortDir("desc");
+      await loadList({ tab: "responded", page: 0, sort: "reviewed_at", dir: "desc" });
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Action failed.");
     } finally {
@@ -266,7 +366,7 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
     }
   }
 
-  const tableRows = activeTab === "pending" ? pendingRows : respondedRows;
+  const tableRows = rows;
 
   return (
     <Box>
@@ -279,11 +379,11 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
 
       <Tabs
         value={activeTab}
-        onChange={(_, value) => setActiveTab(value as AdminTab)}
+        onChange={(_, value) => handleTabChange(value as AdminTab)}
         sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}
       >
-        <Tab value="pending" label={`Pending (${tabCounts.pending})`} />
-        <Tab value="responded" label={`Responded (${tabCounts.reviewed})`} />
+        <Tab value="pending" label={`Pending (${pendingCount})`} />
+        <Tab value="responded" label={`Responded (${respondedCount})`} />
         <Tab value="stats" label="Statistics" />
       </Tabs>
 
@@ -300,7 +400,7 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
       ) : null}
 
       {activeTab === "stats" ? (
-        <CertificateRequestsStatsPanel rows={rows} loading={loading} />
+        <CertificateRequestsStatsPanel rows={statsRows} loading={statsLoading} />
       ) : (
         <>
           <Paper sx={{ p: 2, mb: 2, bgcolor: "rgba(0,0,0,0.35)" }}>
@@ -378,8 +478,14 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                   chapters={chapterOptions}
                   filterState={filterState}
                   filterChapterId={filterChapterId}
-                  onStateChange={setFilterState}
-                  onChapterChange={setFilterChapterId}
+                  onStateChange={(v) => {
+                    setFilterState(v);
+                    setPage(0);
+                  }}
+                  onChapterChange={(v) => {
+                    setFilterChapterId(v);
+                    setPage(0);
+                  }}
                 />
               </Box>
             </Box>
@@ -391,99 +497,117 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                 <CircularProgress />
               </Box>
             ) : (
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Submitted</TableCell>
-                    {activeTab === "responded" ? <TableCell>Reviewed</TableCell> : null}
-                    <TableCell>Person</TableCell>
-                    <TableCell>Chapter</TableCell>
-                    <TableCell>Organization (external)</TableCell>
-                    <TableCell>Completion date</TableCell>
-                    {activeTab === "responded" ? <TableCell>Reviewed by</TableCell> : null}
-                    <TableCell>Status</TableCell>
-                    {activeTab === "responded" ? <TableCell>Admin note</TableCell> : null}
-                    <TableCell align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {tableRows.length === 0 ? (
+              <>
+                <Table size="small">
+                  <TableHead>
                     <TableRow>
-                      <TableCell
-                        colSpan={activeTab === "responded" ? 10 : 7}
-                        sx={{ py: 4, textAlign: "center", color: "text.secondary" }}
-                      >
-                        {activeTab === "pending"
-                          ? "No pending requests match your filters."
-                          : "No reviewed requests match your filters."}
-                      </TableCell>
+                      <SortHeader id="created_at" label="Submitted" />
+                      {activeTab === "responded" ? (
+                        <SortHeader id="reviewed_at" label="Reviewed" />
+                      ) : null}
+                      <SortHeader id="person" label="Person" />
+                      <SortHeader id="chapter" label="Chapter" />
+                      <SortHeader id="organization_name" label="Organization (external)" />
+                      <SortHeader id="completion_date" label="Completion date" />
+                      {activeTab === "responded" ? (
+                        <SortHeader id="reviewed_by" label="Reviewed by" />
+                      ) : null}
+                      <SortHeader id="status" label="Status" />
+                      {activeTab === "responded" ? <TableCell>Admin note</TableCell> : null}
+                      <TableCell align="right">Actions</TableCell>
                     </TableRow>
-                  ) : (
-                    tableRows.map((row) => (
-                      <TableRow key={row.id} hover>
-                        <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
-                        {activeTab === "responded" ? (
-                          <TableCell>{formatDateTime(row.reviewed_at)}</TableCell>
-                        ) : null}
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600}>
-                            {row.user.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {row.user.email}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          {row.user.chapter_name ?? "—"}
-                          {row.user.chapter_city || row.user.chapter_state
-                            ? ` (${[row.user.chapter_city, row.user.chapter_state].filter(Boolean).join(", ")})`
-                            : ""}
-                        </TableCell>
-                        <TableCell>{row.organization_name}</TableCell>
-                        <TableCell>{row.completion_date}</TableCell>
-                        {activeTab === "responded" ? (
-                          <TableCell>{row.reviewed_by_name ?? "—"}</TableCell>
-                        ) : null}
-                        <TableCell>{statusChip(row.status)}</TableCell>
-                        {activeTab === "responded" ? (
-                          <TableCell sx={{ maxWidth: 220 }}>
-                            <Typography variant="body2" noWrap title={row.admin_note ?? undefined}>
-                              {row.admin_note?.trim() || "—"}
-                            </Typography>
-                          </TableCell>
-                        ) : null}
-                        <TableCell align="right">
-                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                            <Tooltip title="View details">
-                              <IconButton
-                                size="small"
-                                aria-label="View details"
-                                onClick={() => void openDetail(row.id)}
-                              >
-                                <VisibilityOutlinedIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            {activeTab === "responded" ? (
-                              <Tooltip title="Resend notification">
-                                <IconButton
-                                  size="small"
-                                  aria-label="Resend notification"
-                                  onClick={() => {
-                                    setResendError(null);
-                                    setResendTarget(row);
-                                  }}
-                                >
-                                  <MailOutlineIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            ) : null}
-                          </Stack>
+                  </TableHead>
+                  <TableBody>
+                    {tableRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={activeTab === "responded" ? 10 : 7}
+                          sx={{ py: 4, textAlign: "center", color: "text.secondary" }}
+                        >
+                          {activeTab === "pending"
+                            ? "No pending requests match your filters."
+                            : "No reviewed requests match your filters."}
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      tableRows.map((row) => (
+                        <TableRow key={row.id} hover>
+                          <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
+                          {activeTab === "responded" ? (
+                            <TableCell>{formatDateTime(row.reviewed_at)}</TableCell>
+                          ) : null}
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={600}>
+                              {row.user.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {row.user.email}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {row.user.chapter_name ?? "—"}
+                            {row.user.chapter_city || row.user.chapter_state
+                              ? ` (${[row.user.chapter_city, row.user.chapter_state].filter(Boolean).join(", ")})`
+                              : ""}
+                          </TableCell>
+                          <TableCell>{row.organization_name}</TableCell>
+                          <TableCell>{row.completion_date}</TableCell>
+                          {activeTab === "responded" ? (
+                            <TableCell>{row.reviewed_by_name ?? "—"}</TableCell>
+                          ) : null}
+                          <TableCell>{statusChip(row.status)}</TableCell>
+                          {activeTab === "responded" ? (
+                            <TableCell sx={{ maxWidth: 220 }}>
+                              <Typography variant="body2" noWrap title={row.admin_note ?? undefined}>
+                                {row.admin_note?.trim() || "—"}
+                              </Typography>
+                            </TableCell>
+                          ) : null}
+                          <TableCell align="right">
+                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                              <Tooltip title="View details">
+                                <IconButton
+                                  size="small"
+                                  aria-label="View details"
+                                  onClick={() => void openDetail(row.id)}
+                                >
+                                  <VisibilityOutlinedIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              {activeTab === "responded" ? (
+                                <Tooltip title="Resend notification">
+                                  <IconButton
+                                    size="small"
+                                    aria-label="Resend notification"
+                                    onClick={() => {
+                                      setResendError(null);
+                                      setResendTarget(row);
+                                    }}
+                                  >
+                                    <MailOutlineIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              ) : null}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+                <TablePagination
+                  component="div"
+                  count={totalCount}
+                  page={page}
+                  onPageChange={(_, p) => setPage(p)}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={(e) => {
+                    setRowsPerPage(parseInt(e.target.value, 10));
+                    setPage(0);
+                  }}
+                  rowsPerPageOptions={[10, 25, 50, 100]}
+                />
+              </>
             )}
           </Paper>
         </>

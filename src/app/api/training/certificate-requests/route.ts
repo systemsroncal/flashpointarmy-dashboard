@@ -1,7 +1,3 @@
-import {
-  listDashboardUsersByIdsWithAuthFallback,
-  listProfilesByIds,
-} from "@/lib/admin/dashboard-user-queries";
 import { loadUserRoleNames, isElevatedRole } from "@/lib/auth/user-roles";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
@@ -12,6 +8,13 @@ import {
   resolveCourseIdBySlug,
   type CertificateRequestRow,
 } from "@/lib/training/certificate-requests";
+import {
+  listCertificateRequestsAdminPage,
+  loadCertificateRequestStatsRows,
+  parseCertSortKey,
+  type CertListStatus,
+} from "@/lib/training/certificate-requests-admin-list";
+import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -49,85 +52,70 @@ export async function GET(req: Request) {
     const courseId = await resolveCourseIdBySlug(admin, courseSlug);
     if (!courseId) return NextResponse.json({ error: "Course not found." }, { status: 404 });
 
-    let query = admin
-      .from("course_certificate_requests")
-      .select(
-        "id, user_id, course_id, completed_training_confirmed, completion_date, organization_name, certificate_url, certificate_file_name, certificate_mime, status, admin_note, reviewed_by, reviewed_at, created_at, updated_at"
-      )
-      .eq("course_id", courseId)
-      .order("created_at", { ascending: false });
-
-    if (statusFilter && ["pending", "approved", "rejected"].includes(statusFilter)) {
-      query = query.eq("status", statusFilter);
+    const view = url.searchParams.get("view")?.trim() || "";
+    if (view === "stats") {
+      try {
+        const statsRows = await loadCertificateRequestStatsRows(admin, courseId);
+        return NextResponse.json({ ok: true, statsRows });
+      } catch (e) {
+        return NextResponse.json(
+          { error: e instanceof Error ? e.message : "Failed to load stats." },
+          { status: 500 }
+        );
+      }
     }
 
-    const { data: rows, error } = await query;
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const tabRaw = url.searchParams.get("tab")?.trim() || "";
+    const tab: CertListStatus =
+      tabRaw === "responded" || statusFilter === "approved" || statusFilter === "rejected"
+        ? "responded"
+        : "pending";
+    const page = Math.max(0, Number(url.searchParams.get("page") || 0) || 0);
+    const perPage = Math.min(100, Math.max(1, Number(url.searchParams.get("perPage") || 25) || 25));
+    const sort = parseCertSortKey(url.searchParams.get("sort"), tab);
+    const ascending = url.searchParams.get("dir") === "asc";
+    const q = (url.searchParams.get("q") || "").trim();
+    const filterState = url.searchParams.get("state") || "all";
+    const filterChapterId = url.searchParams.get("chapterId") || "all";
 
-    const list = (rows ?? []) as CertificateRequestRow[];
-    const userIds = [...new Set(list.map((r) => r.user_id))];
-    const users = await listDashboardUsersByIdsWithAuthFallback(admin, userIds);
-    const profiles = await listProfilesByIds(admin, userIds);
-    const profileById = new Map(profiles.map((p) => [p.id, p]));
-    const userById = new Map(users.map((u) => [u.id, u]));
-
-    const { data: chapters } = await admin.from("chapters").select("id, name, city, state");
-    const chapterById = new Map(
-      (chapters ?? []).map((c) => [c.id as string, c as { id: string; name: string; city: string | null; state: string | null }])
-    );
-
-    const enriched = list.map((row) => {
-      const du = userById.get(row.user_id);
-      const prof = profileById.get(row.user_id);
-      const chapterId = du?.primary_chapter_id ?? prof?.primary_chapter_id ?? null;
-      const chapter = chapterId ? chapterById.get(chapterId) : null;
-      const name =
-        [du?.first_name, du?.last_name].filter(Boolean).join(" ").trim() ||
-        du?.display_name?.trim() ||
-        du?.email?.split("@")[0] ||
-        "—";
-      return {
-        ...row,
-        user: {
-          id: row.user_id,
-          name,
-          email: du?.email ?? "",
-          phone: prof?.phone ?? du?.phone ?? null,
-          address_line: prof?.address_line ?? du?.address_line ?? null,
-          city: prof?.city ?? du?.city ?? null,
-          state: prof?.state ?? du?.state ?? null,
-          zip_code: prof?.zip_code ?? du?.zip_code ?? null,
-          chapter_id: chapterId,
-          chapter_name: chapter?.name ?? null,
-          chapter_city: chapter?.city ?? null,
-          chapter_state: chapter?.state ?? null,
-        },
-      };
-    });
-
-    const reviewerIds = [
-      ...new Set(enriched.map((r) => r.reviewed_by).filter((id): id is string => Boolean(id))),
-    ];
-    const reviewers = reviewerIds.length
-      ? await listDashboardUsersByIdsWithAuthFallback(admin, reviewerIds)
-      : [];
-    const reviewerNameById = new Map(
-      reviewers.map((u) => {
-        const reviewerName =
-          [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
-          u.display_name?.trim() ||
-          u.email?.split("@")[0] ||
-          "—";
-        return [u.id, reviewerName] as const;
-      })
-    );
-
-    const withReviewers = enriched.map((row) => ({
-      ...row,
-      reviewed_by_name: row.reviewed_by ? reviewerNameById.get(row.reviewed_by) ?? null : null,
+    const { data: chapters } = await admin.from("chapters").select("id, name, city, state").order("name");
+    const chapterOptions: ChapterSearchRow[] = (chapters ?? []).map((c) => ({
+      id: c.id as string,
+      name: c.name as string,
+      city: (c.city as string | null) ?? null,
+      state: String(c.state ?? "").trim(),
     }));
 
-    return NextResponse.json({ ok: true, requests: withReviewers });
+    try {
+      const result = await listCertificateRequestsAdminPage(admin, {
+        courseId,
+        tab,
+        page,
+        perPage,
+        sort,
+        ascending,
+        q,
+        filterState,
+        filterChapterId,
+        chapterOptions,
+      });
+      return NextResponse.json({
+        ok: true,
+        requests: result.requests,
+        total: result.total,
+        pendingCount: result.pendingCount,
+        respondedCount: result.respondedCount,
+        page,
+        perPage,
+        sort,
+        dir: ascending ? "asc" : "desc",
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Failed to load requests." },
+        { status: 500 }
+      );
+    }
   }
 
   const courseId = await resolveCourseIdBySlug(supabase, courseSlug);
