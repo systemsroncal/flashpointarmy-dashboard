@@ -1,28 +1,39 @@
 "use client";
 
+import { JourneyWelcomeDialog } from "@/components/dashboard/onboarding/JourneyWelcomeDialog";
 import { BriefingVideoAdmin } from "@/components/dashboard/training/BriefingVideoAdmin";
 import { MissionBriefingPlayer } from "@/components/dashboard/training/MissionBriefingPlayer";
 import { Box, Typography } from "@mui/material";
+import { useState } from "react";
 
 type Props = {
   videoUrl: string;
   initialPositionSeconds: number;
   initialDurationSeconds: number | null;
   briefingCompleted: boolean;
+  showWelcome?: boolean;
   briefingVideoAdmin?: {
     initialDbUrl: string;
     hasEnvFallback: boolean;
   } | null;
 };
 
+const BRIEFING_WELCOME = [
+  "Congratulations on completing your Biblical Citizenship training.",
+  "Before beginning your Initial Assignments, watch this Mission Briefing from Gene Bailey to understand the vision of FlashPoint Army Chapters, the purpose of this Command Center, and how you can begin making an impact in your community.",
+  "This briefing will prepare you for the next phase of your journey. Mission begins with understanding. Action follows.",
+];
+
 export function MissionBriefingLanding({
   videoUrl,
   initialPositionSeconds,
   initialDurationSeconds,
   briefingCompleted,
+  showWelcome = false,
   briefingVideoAdmin,
 }: Props) {
   const trimmed = videoUrl.trim();
+  const [welcomeOpen, setWelcomeOpen] = useState(showWelcome);
 
   return (
     <Box
@@ -37,6 +48,14 @@ export function MissionBriefingLanding({
           linear-gradient(180deg, #121214 0%, #0a0a0c 100%)`,
       }}
     >
+      <JourneyWelcomeDialog
+        open={welcomeOpen}
+        kind="mission_briefing"
+        title="Welcome to Mission Briefing"
+        paragraphs={BRIEFING_WELCOME}
+        ctaLabel="Start briefing"
+        onDismissed={() => setWelcomeOpen(false)}
+      />
       <Box
         sx={{
           maxWidth: 1100,

@@ -68,3 +68,23 @@ export async function insertCourseCompletedFeed(args: {
     icon_key: "school",
   });
 }
+
+export async function insertCertificateRequestFeed(args: {
+  supabase: SupabaseClient;
+  userId: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  courseTitle: string;
+  organizationName: string;
+}): Promise<void> {
+  const who = displayHandle(args.first_name, args.last_name, args.email);
+  const state = await chapterStateFromProfile(args.supabase, args.userId);
+  await args.supabase.from("community_activity").insert({
+    feed_category: "certificate_request",
+    title: `${who} submitted a certificate request`,
+    subtitle: `${args.courseTitle} · ${args.organizationName}`,
+    state_code: state,
+    icon_key: "school",
+  });
+}

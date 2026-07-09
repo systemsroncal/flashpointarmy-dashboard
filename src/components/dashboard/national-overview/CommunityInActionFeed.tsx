@@ -48,12 +48,22 @@ function englishCategoryLabel(row: ActivityFeedRow): string {
     community: "Community",
     training_session: "Training · session",
     training_course: "Training · course",
+    training_briefing: "Training · briefing",
+    missions: "Missions",
+    certificate_request: "Certificate request",
   };
   if (byCat[c]) return byCat[c];
   return c
     .split("_")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+}
+
+function displayFeedTitle(title: string): string {
+  let t = title;
+  if (/^New chapter:/i.test(t)) t = t.replace(/^New chapter:/i, "Chapter request:");
+  if (t === "Local leader assigned") t = "Local leader application";
+  return scrubPrivacyNamesInText(t);
 }
 
 function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
@@ -185,7 +195,7 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
   const Icon = visual.Icon;
   const state = row.state_code?.trim().toUpperCase().slice(0, 2) || null;
   const categoryDisplay = visual.categoryLabel;
-  const displayTitle = scrubPrivacyNamesInText(row.title);
+  const displayTitle = displayFeedTitle(row.title);
   const displaySubtitle = row.subtitle ? scrubPrivacyNamesInText(row.subtitle) : null;
   const showSubtitle =
     displaySubtitle &&

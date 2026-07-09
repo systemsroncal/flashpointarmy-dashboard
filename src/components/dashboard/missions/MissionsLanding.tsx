@@ -1,5 +1,6 @@
 "use client";
 
+import { JourneyWelcomeDialog } from "@/components/dashboard/onboarding/JourneyWelcomeDialog";
 import { ChapterMapInviteCta } from "@/components/dashboard/national-overview/ChapterMapInviteCta";
 import { ChapterInviteShareDialog } from "@/components/dashboard/national-overview/ChapterInviteShareDialog";
 import {
@@ -11,6 +12,12 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
+
+const MISSIONS_WELCOME = [
+  "Welcome to the 12 Missions to Save America — practical assignments for FlashPoint Army Chapters.",
+  "These missions are organized in phases so your chapter can engage, grow, and take action in your community.",
+  "Pick a mission that fits your chapter, share the vision, and start making an impact where you live.",
+];
 
 const MISSION_ICON_SIZE = "2.35rem";
 
@@ -222,8 +229,15 @@ function MissionCardItem({
   );
 }
 
-export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEnabled?: boolean }) {
+export function MissionsLanding({
+  missionLinksEnabled = true,
+  showWelcome = false,
+}: {
+  missionLinksEnabled?: boolean;
+  showWelcome?: boolean;
+}) {
   const [shareOpen, setShareOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(showWelcome);
 
   return (
     <Box
@@ -234,6 +248,14 @@ export function MissionsLanding({ missionLinksEnabled = true }: { missionLinksEn
         background: "linear-gradient(180deg, #1a1a1e 0%, #0e0e10 100%)",
       }}
     >
+      <JourneyWelcomeDialog
+        open={welcomeOpen}
+        kind="missions"
+        title="Welcome to the 12 Missions"
+        paragraphs={MISSIONS_WELCOME}
+        ctaLabel="Start missions"
+        onDismissed={() => setWelcomeOpen(false)}
+      />
       <Box sx={{ textAlign: "center", mb: { xs: 3, md: 4 } }}>
         <Typography
           sx={{

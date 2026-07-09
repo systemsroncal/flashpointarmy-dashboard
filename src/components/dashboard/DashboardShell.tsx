@@ -20,6 +20,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import PeopleIcon from "@mui/icons-material/People";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import PublicIcon from "@mui/icons-material/Public";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
@@ -33,6 +34,7 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SettingsIcon from "@mui/icons-material/Settings";
 import VolunteerActivismOutlinedIcon from "@mui/icons-material/VolunteerActivismOutlined";
+import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
 import {
   AppBar,
   Box,
@@ -226,6 +228,7 @@ const MISSION_PIPELINE_HREFS = new Set<string>([
   "/dashboard/onboarding/biblical-citizenship-progress",
   "/dashboard/onboarding/first-missions",
   "/dashboard/onboarding/ready-for-chapter",
+  "/dashboard/onboarding/journey-progress",
 ]);
 
 const MISSION_PIPELINE_NAV: NavItem[] = [
@@ -259,6 +262,39 @@ const MISSION_PIPELINE_NAV: NavItem[] = [
     module: MODULE_SLUGS.courses,
     icon: <WhereToVoteIcon />,
   },
+  {
+    label: "Journey progress",
+    href: "/dashboard/onboarding/journey-progress",
+    module: MODULE_SLUGS.courses,
+    icon: <InsightsOutlinedIcon />,
+  },
+];
+
+const PEOPLE_HREFS = new Set<string>([
+  "/dashboard/people",
+  "/dashboard/leaders",
+  "/dashboard/community",
+]);
+
+const PEOPLE_NAV: NavItem[] = [
+  {
+    label: "Overview",
+    href: "/dashboard/people",
+    module: MODULE_SLUGS.community,
+    icon: <DashboardOutlinedIcon />,
+  },
+  {
+    label: "Leaders",
+    href: "/dashboard/leaders",
+    module: MODULE_SLUGS.leaders,
+    icon: <MilitaryTechIcon />,
+  },
+  {
+    label: "Members",
+    href: "/dashboard/community",
+    module: MODULE_SLUGS.community,
+    icon: <PeopleIcon />,
+  },
 ];
 
 const ORDERS_DRAWER_NAV_BASE: NavItem[] = [
@@ -288,18 +324,6 @@ const NAV: NavItem[] = [
     href: "/dashboard/chapters",
     module: MODULE_SLUGS.chapters,
     icon: <GroupsIcon />,
-  },
-  {
-    label: "Leaders",
-    href: "/dashboard/leaders",
-    module: MODULE_SLUGS.leaders,
-    icon: <MilitaryTechIcon />,
-  },
-  {
-    label: "Community",
-    href: "/dashboard/community",
-    module: MODULE_SLUGS.community,
-    icon: <PeopleIcon />,
   },
   {
     label: "Events",
@@ -421,6 +445,100 @@ const NAV_ITEM_TOUCH_SX = {
   },
 } as const;
 
+function PeopleNavGroup({
+  peopleNav,
+  peopleOpen,
+  setPeopleOpen,
+  peopleHasActive,
+  pathname,
+  closeMobileDrawer,
+}: {
+  peopleNav: NavItem[];
+  peopleOpen: boolean;
+  setPeopleOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  peopleHasActive: boolean;
+  pathname: string;
+  closeMobileDrawer: () => void;
+}) {
+  return (
+    <>
+      <ListItem disablePadding>
+        <ListItemButton
+          onClick={() => setPeopleOpen((prev) => !prev)}
+          selected={peopleHasActive}
+          data-tour="nav-people-group"
+          sx={{
+            ...NAV_ITEM_TOUCH_SX,
+            py: 0.75,
+            "&.Mui-selected": NAV_SELECTED_SX,
+          }}
+        >
+          <ListItemIcon
+            sx={{
+              color: peopleHasActive ? "primary.main" : "rgba(255,255,255,0.92)",
+              minWidth: 38,
+            }}
+          >
+            <PeopleIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="People"
+            primaryTypographyProps={{
+              variant: "body2",
+              fontWeight: 600,
+              fontSize: "calc(0.82rem + 3px)",
+              color: peopleHasActive ? "primary.main" : "rgba(255,255,255,0.88)",
+            }}
+          />
+          {peopleOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+        </ListItemButton>
+      </ListItem>
+      <Collapse in={peopleOpen} timeout="auto" unmountOnExit>
+        <List disablePadding>
+          {peopleNav.map((item) => {
+            const selected = isNavItemSelected(item, pathname);
+            return (
+              <ListItem key={item.href} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  href={item.href}
+                  selected={selected}
+                  data-tour={`nav-${item.href.replace(/\//g, "-")}`}
+                  onClick={closeMobileDrawer}
+                  sx={{
+                    ...NAV_ITEM_TOUCH_SX,
+                    py: 0.65,
+                    pl: 4.5,
+                    "&.Mui-selected": NAV_SELECTED_SX,
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
+                      minWidth: 36,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      variant: "body2",
+                      fontWeight: 500,
+                      fontSize: "calc(0.8rem + 3px)",
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+      </Collapse>
+    </>
+  );
+}
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   const desktop = useMediaQuery(theme.breakpoints.up("md"));
@@ -431,6 +549,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [graduateCongratsOpen, setGraduateCongratsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [missionPipelineOpen, setMissionPipelineOpen] = useState(false);
+  const [peopleOpen, setPeopleOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const pathname = usePathname();
   const permissions = usePermissions();
@@ -483,6 +602,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const missionPipelineNav = missionPipelineAllowed
     ? MISSION_PIPELINE_NAV.filter((item) => can(permissions, item.module, "read"))
     : [];
+  const peopleNav = PEOPLE_NAV.filter((item) => {
+    if (!isNavModuleAllowedForRoles(item.module, user.role_names)) return false;
+    if (item.href === "/dashboard/people") {
+      return (
+        can(permissions, MODULE_SLUGS.community, "read") ||
+        can(permissions, MODULE_SLUGS.leaders, "read")
+      );
+    }
+    return can(permissions, item.module, "read");
+  });
   const settingsNav = settingsAllowedByRole
     ? allVisibleNav.filter((item) => {
         if (MISSION_PIPELINE_HREFS.has(item.href)) return false;
@@ -494,16 +623,26 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       })
     : [];
   const visibleNav = allVisibleNav.filter(
-    (item) => !SETTINGS_MODULES.has(item.module) && !MISSION_PIPELINE_HREFS.has(item.href)
+    (item) =>
+      !SETTINGS_MODULES.has(item.module) &&
+      !MISSION_PIPELINE_HREFS.has(item.href) &&
+      !PEOPLE_HREFS.has(item.href)
   );
   const ordersNav = ORDERS_DRAWER_NAV_BASE.filter((item) => can(permissions, item.module, "read"));
   const settingsHasActive = settingsNav.some((item) => isNavItemSelected(item, pathname));
   const missionPipelineHasActive = missionPipelineNav.some((item) =>
     isNavItemSelected(item, pathname)
   );
+  const peopleHasActive = peopleNav.some((item) => isNavItemSelected(item, pathname));
   const ordersHasActive = ordersNav.some((item) => isNavItemSelected(item, pathname));
+
+  useEffect(() => {
+    if (peopleHasActive) setPeopleOpen(true);
+  }, [peopleHasActive]);
   const showSystemNotificationBell =
-    user.role_names.includes("admin") || user.role_names.includes("super_admin");
+    user.role_names.includes("admin") ||
+    user.role_names.includes("super_admin") ||
+    user.role_names.includes("sub_admin");
 
   const tourBuildInput = useMemo(
     () => ({
@@ -652,65 +791,92 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             showSettings={user.role_names.includes("super_admin")}
           />
         ) : (
-          visibleNav.map((item) => {
-            const selected = isNavItemSelected(item, pathname);
-            if (item.href === "/dashboard/training" && showTrainingSubmenu && user.member_onboarding) {
-              return (
-                <TrainingNavSubmenu
-                  key={item.href}
-                  snapshot={user.member_onboarding}
-                  selectedParent={selected || pathname.startsWith("/dashboard/training/")}
-                  onNavigate={closeMobileDrawer}
-                  navItemTouchSx={NAV_ITEM_TOUCH_SX}
-                  navSelectedSx={NAV_SELECTED_SX}
-                />
-              );
-            }
-            return (
-              <ListItem key={item.href} disablePadding>
-                <ListItemButton
-                  component={Link}
-                  href={item.href}
-                  selected={selected}
-                  data-tour={`nav-${item.module}`}
-                  onClick={closeMobileDrawer}
-                  sx={{
-                    ...NAV_ITEM_TOUCH_SX,
-                    py: 0.75,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    gap: 0.5,
-                    "&.Mui-selected": NAV_SELECTED_SX,
-                  }}
-                >
-                  <ListItemIcon
-                    sx={{
-                      color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
-                      minWidth: 38,
-                    }}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    sx={
-                      item.href === "/dashboard/notifications"
-                        ? { flex: "1 1 auto", minWidth: 0, m: 0 }
-                        : undefined
-                    }
-                    primaryTypographyProps={{
-                      variant: "body2",
-                      fontWeight: 600,
-                      fontSize: "calc(0.82rem + 3px)",
-                      color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
-                    }}
+          <>
+            {visibleNav.map((item) => {
+              const selected = isNavItemSelected(item, pathname);
+              const afterChapters =
+                item.href === "/dashboard/chapters" && peopleNav.length > 0 ? (
+                  <PeopleNavGroup
+                    key="people-group"
+                    peopleNav={peopleNav}
+                    peopleOpen={peopleOpen}
+                    setPeopleOpen={setPeopleOpen}
+                    peopleHasActive={peopleHasActive}
+                    pathname={pathname}
+                    closeMobileDrawer={closeMobileDrawer}
                   />
-                  {item.href === "/dashboard/notifications" ? <NotificationsDrawerUnreadCount /> : null}
-                </ListItemButton>
-              </ListItem>
-            );
-          })
+                ) : null;
+              if (item.href === "/dashboard/training" && showTrainingSubmenu && user.member_onboarding) {
+                return (
+                  <TrainingNavSubmenu
+                    key={item.href}
+                    snapshot={user.member_onboarding}
+                    selectedParent={selected || pathname.startsWith("/dashboard/training/")}
+                    onNavigate={closeMobileDrawer}
+                    navItemTouchSx={NAV_ITEM_TOUCH_SX}
+                    navSelectedSx={NAV_SELECTED_SX}
+                  />
+                );
+              }
+              return (
+                <Box key={item.href} component="span" sx={{ display: "contents" }}>
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      component={Link}
+                      href={item.href}
+                      selected={selected}
+                      data-tour={`nav-${item.module}`}
+                      onClick={closeMobileDrawer}
+                      sx={{
+                        ...NAV_ITEM_TOUCH_SX,
+                        py: 0.75,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-start",
+                        gap: 0.5,
+                        "&.Mui-selected": NAV_SELECTED_SX,
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
+                          minWidth: 38,
+                        }}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.label}
+                        sx={
+                          item.href === "/dashboard/notifications"
+                            ? { flex: "1 1 auto", minWidth: 0, m: 0 }
+                            : undefined
+                        }
+                        primaryTypographyProps={{
+                          variant: "body2",
+                          fontWeight: 600,
+                          fontSize: "calc(0.82rem + 3px)",
+                          color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
+                        }}
+                      />
+                      {item.href === "/dashboard/notifications" ? <NotificationsDrawerUnreadCount /> : null}
+                    </ListItemButton>
+                  </ListItem>
+                  {afterChapters}
+                </Box>
+              );
+            })}
+            {!visibleNav.some((i) => i.href === "/dashboard/chapters") && peopleNav.length > 0 ? (
+              <PeopleNavGroup
+                peopleNav={peopleNav}
+                peopleOpen={peopleOpen}
+                setPeopleOpen={setPeopleOpen}
+                peopleHasActive={peopleHasActive}
+                pathname={pathname}
+                closeMobileDrawer={closeMobileDrawer}
+              />
+            ) : null}
+          </>
         )}
         {!isMobilize && ordersNav.length > 0 ? (
           <>

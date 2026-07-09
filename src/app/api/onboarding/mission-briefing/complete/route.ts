@@ -1,3 +1,4 @@
+import { insertJourneyActivity } from "@/lib/community/journey-feed";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { isMissionBriefingAudience } from "@/lib/onboarding/mission-briefing-audience";
 import { loadTrainingStepStatus } from "@/lib/onboarding/onboarding-records";
@@ -21,7 +22,26 @@ export async function POST() {
   const admin = createAdminClient();
 
   try {
+    const { data: before } = await admin
+      .from("member_coach_meetings")
+      .select("status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const wasCompleted = before?.status === "completed";
+
     await completeMissionBriefingForUser(admin, user.id, roleNames);
+
+    if (!wasCompleted) {
+      try {
+        await insertJourneyActivity({
+          supabase: admin,
+          userId: user.id,
+          kind: "mission_briefing_completed",
+        });
+      } catch {
+        /* non-blocking */
+      }
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : "Could not complete Mission Briefing.";
     return NextResponse.json({ error: message }, { status: 500 });

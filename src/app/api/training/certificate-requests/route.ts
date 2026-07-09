@@ -5,6 +5,8 @@ import {
 import { loadUserRoleNames, isElevatedRole } from "@/lib/auth/user-roles";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
+import { insertCertificateRequestFeed } from "@/lib/community/training-feed";
+import { notifyCertificateRequestSubmitted } from "@/lib/notifications/certificate-request-submitted";
 import {
   isExternalCertificateSubmissionEnabled,
   resolveCourseIdBySlug,
@@ -212,5 +214,39 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  try {
+    const admin = createAdminClient();
+    const { data: course } = await admin.from("courses").select("title").eq("id", courseId).maybeSingle();
+    const courseTitle = (course?.title as string | undefined)?.trim() || "Biblical Citizenship";
+    const { data: du } = await admin
+      .from("dashboard_users")
+      .select("first_name, last_name, email")
+      .eq("id", user.id)
+      .maybeSingle();
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("first_name, last_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    await notifyCertificateRequestSubmitted(admin, {
+      userId: user.id,
+      courseTitle,
+      organizationName,
+    });
+    await insertCertificateRequestFeed({
+      supabase: admin,
+      userId: user.id,
+      email: (du?.email as string | undefined) ?? user.email ?? "",
+      first_name: (prof?.first_name as string | null) ?? (du?.first_name as string | null) ?? null,
+      last_name: (prof?.last_name as string | null) ?? (du?.last_name as string | null) ?? null,
+      courseTitle,
+      organizationName,
+    });
+  } catch {
+    /* non-blocking: request already saved */
+  }
+
   return NextResponse.json({ ok: true, request: data });
 }

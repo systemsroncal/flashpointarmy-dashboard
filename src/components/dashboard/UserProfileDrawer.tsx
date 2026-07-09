@@ -21,7 +21,11 @@ import {
   CircularProgress,
   Divider,
   Drawer,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
   Tooltip,
   Typography,
@@ -40,6 +44,8 @@ type ProfileRow = {
   city: string | null;
   state: string | null;
   zip_code: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
 };
 
 function formatRoleSlug(slug: string): string {
@@ -85,6 +91,8 @@ export function UserProfileDrawer({
   const [addrCity, setAddrCity] = useState("");
   const [addrState, setAddrState] = useState("");
   const [addrZip, setAddrZip] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState<"" | "male" | "female">("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarNonce, setAvatarNonce] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -98,7 +106,9 @@ export function UserProfileDrawer({
     const supabase = createClient();
     const { data, error: qErr } = await supabase
       .from("profiles")
-      .select("first_name, last_name, display_name, avatar_url, phone, address_line, city, state, zip_code")
+      .select(
+        "first_name, last_name, display_name, avatar_url, phone, address_line, city, state, zip_code, date_of_birth, gender"
+      )
       .eq("id", du.id)
       .maybeSingle();
     setLoading(false);
@@ -116,6 +126,8 @@ export function UserProfileDrawer({
     setAddrCity(row?.city?.trim() ?? "");
     setAddrState(row?.state?.trim() ?? "");
     setAddrZip(row?.zip_code?.trim() ?? "");
+    setDateOfBirth(row?.date_of_birth?.slice(0, 10) ?? "");
+    setGender(row?.gender === "male" || row?.gender === "female" ? row.gender : "");
     setAvatarUrl(row?.avatar_url ?? "");
   }, [du.display_name, du.first_name, du.id, du.last_name, du.phone]);
 
@@ -142,6 +154,8 @@ export function UserProfileDrawer({
     const ac = addrCity.trim() || null;
     const ast = usStateByCode(addrState)?.code ?? null;
     const az = addrZip.trim() || null;
+    const dob = dateOfBirth.trim() || null;
+    const g = gender === "male" || gender === "female" ? gender : null;
     const { error: pErr } = await supabase.from("profiles").upsert(
       {
         id: du.id,
@@ -153,6 +167,8 @@ export function UserProfileDrawer({
         city: ac,
         state: ast,
         zip_code: az,
+        date_of_birth: dob,
+        gender: g,
       },
       { onConflict: "id" }
     );
@@ -436,6 +452,20 @@ export function UserProfileDrawer({
                     {profile?.phone?.trim() || du.phone?.trim()}
                   </Typography>
                 ) : null}
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Date of birth:{" "}
+                  {profile?.date_of_birth
+                    ? new Date(`${profile.date_of_birth.slice(0, 10)}T12:00:00`).toLocaleDateString()
+                    : "—"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Gender:{" "}
+                  {profile?.gender === "male"
+                    ? "Male"
+                    : profile?.gender === "female"
+                      ? "Female"
+                      : "—"}
+                </Typography>
                 {profile?.address_line?.trim() ||
                 profile?.city?.trim() ||
                 profile?.state?.trim() ||
@@ -531,6 +561,30 @@ export function UserProfileDrawer({
                   size="small"
                   fullWidth
                 />
+                <TextField
+                  label="Date of birth"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  size="small"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                />
+                <FormControl size="small" fullWidth>
+                  <InputLabel id="profile-gender-label">Gender</InputLabel>
+                  <Select
+                    labelId="profile-gender-label"
+                    label="Gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as "" | "male" | "female")}
+                  >
+                    <MenuItem value="">
+                      <em>Not set</em>
+                    </MenuItem>
+                    <MenuItem value="male">Male</MenuItem>
+                    <MenuItem value="female">Female</MenuItem>
+                  </Select>
+                </FormControl>
 
                 <Divider sx={{ my: 0.5 }} />
                 <Box data-tour="profile-edit-email">

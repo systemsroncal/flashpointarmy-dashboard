@@ -35,6 +35,14 @@ export function formatNotificationDisplay(n: {
     title = "Manual log";
   }
 
+  // Remap legacy notification titles (pre-label rename)
+  if (title === "New chapter" || /^New chapter:/i.test(title)) {
+    title = title.replace(/^New chapter/i, "Chapter request");
+  }
+  if (title === "Local leader assigned") {
+    title = "Local leader application";
+  }
+
   if (body) {
     body = body
       .replace(/^manual\.\w+\s*·\s*manual\s*·\s*/i, "")

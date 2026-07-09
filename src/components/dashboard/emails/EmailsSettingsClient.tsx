@@ -67,7 +67,7 @@ const PREVIEW_SHORTCODES: Record<string, string> = {
 const TEMPLATE_LABELS: Record<string, string> = {
   verify_email: "Verify email",
   password_reset: "Password reset",
-  local_leader_assigned: "Local leader assigned",
+  local_leader_assigned: "Local leader application",
   gathering_created: "New gathering",
   register_otp: "Registration OTP (sign-up)",
 };

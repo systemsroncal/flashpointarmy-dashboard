@@ -9,6 +9,7 @@ import {
   loadMemberOnboardingSnapshot,
 } from "@/lib/onboarding/member-onboarding-status";
 import { loadBriefingVideoUrl, loadMissionBriefingProgress } from "@/lib/onboarding/mission-briefing";
+import { loadJourneyMilestones } from "@/lib/onboarding/journey-milestones";
 import { can } from "@/types/permissions";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -44,9 +45,10 @@ async function MissionBriefingPageInner() {
     );
   }
 
-  const [videoUrl, progress] = await Promise.all([
+  const [videoUrl, progress, milestones] = await Promise.all([
     loadBriefingVideoUrl(supabase),
     loadMissionBriefingProgress(supabase, user.id),
+    loadJourneyMilestones(supabase, user.id),
   ]);
 
   const envIntro = process.env.NEXT_PUBLIC_TRAINING_INTRO_VIDEO?.trim() ?? "";
@@ -58,6 +60,7 @@ async function MissionBriefingPageInner() {
   const dbBriefing =
     typeof trainingRow?.briefing_video_url === "string" ? trainingRow.briefing_video_url.trim() : "";
   const elevated = isElevatedRole(roleNames);
+  const showWelcome = !milestones?.mission_briefing_welcome_seen_at;
 
   return (
     <MissionBriefingLanding
@@ -65,6 +68,7 @@ async function MissionBriefingPageInner() {
       initialPositionSeconds={progress?.video_position_seconds ?? 0}
       initialDurationSeconds={progress?.video_duration_seconds ?? null}
       briefingCompleted={snapshot.coachMeeting === "completed"}
+      showWelcome={showWelcome}
       briefingVideoAdmin={
         elevated ? { initialDbUrl: dbBriefing, hasEnvFallback: Boolean(envIntro) } : null
       }

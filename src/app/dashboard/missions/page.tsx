@@ -7,6 +7,7 @@ import {
   isMemberOnboardingAudience,
   loadMemberOnboardingSnapshot,
 } from "@/lib/onboarding/member-onboarding-status";
+import { loadJourneyMilestones } from "@/lib/onboarding/journey-milestones";
 import { can } from "@/types/permissions";
 
 export default async function MissionsPage() {
@@ -24,5 +25,10 @@ export default async function MissionsPage() {
     missionLinksEnabled = false;
   }
 
-  return <MissionsLanding missionLinksEnabled={missionLinksEnabled} />;
+  const milestones = await loadJourneyMilestones(supabase, user.id);
+  const showWelcome = !milestones?.missions_welcome_seen_at;
+
+  return (
+    <MissionsLanding missionLinksEnabled={missionLinksEnabled} showWelcome={showWelcome} />
+  );
 }
