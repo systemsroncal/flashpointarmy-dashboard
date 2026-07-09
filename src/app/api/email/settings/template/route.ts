@@ -11,6 +11,8 @@ const ALLOWED_KEYS = new Set([
   "local_leader_assigned",
   "gathering_created",
   "register_otp",
+  "certificate_request_approved",
+  "certificate_request_rejected",
 ]);
 
 export async function PATCH(req: Request) {

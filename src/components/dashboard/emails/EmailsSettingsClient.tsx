@@ -59,9 +59,15 @@ const PREVIEW_SHORTCODES: Record<string, string> = {
   resetpassword_url: "https://example.com/auth/reset-password?token=demo",
   gathering_title: "Sunday gathering",
   gathering_url: "https://example.com/dashboard/gatherings/demo",
-  app_name: "Flashpoint Dashboard",
+  app_name: "FlashPoint Army Chapters",
   current_year: String(new Date().getFullYear()),
   otp: "123456",
+  course_title: "Biblical Citizenship",
+  admin_note: "Please continue with your next step.",
+  admin_note_html:
+    "<p><strong>Note from our team:</strong> Please continue with your next step.</p>",
+  mission_briefing_url: "https://example.com/dashboard/training/mission-briefing",
+  training_url: "https://example.com/dashboard/training",
 };
 
 const TEMPLATE_LABELS: Record<string, string> = {
@@ -70,6 +76,8 @@ const TEMPLATE_LABELS: Record<string, string> = {
   local_leader_assigned: "Local leader application",
   gathering_created: "New gathering",
   register_otp: "Registration OTP (sign-up)",
+  certificate_request_approved: "Certificate request approved",
+  certificate_request_rejected: "Certificate request rejected",
 };
 
 type EmailLogSortKey =
@@ -105,6 +113,10 @@ const TEMPLATE_SHORTCODE_HINTS: Record<string, string> = {
     "{user_fullname}, {user_email}, {gathering_title}, {gathering_url}, {current_year}, {app_name}",
   register_otp:
     "{otp}, {user_email}, {user_fullname}, {app_name}, {current_year} (link shortcodes unused)",
+  certificate_request_approved:
+    "{user_fullname}, {user_email}, {course_title}, {admin_note}, {admin_note_html}, {mission_briefing_url}, {training_url}, {current_year}, {app_name}",
+  certificate_request_rejected:
+    "{user_fullname}, {user_email}, {course_title}, {admin_note}, {admin_note_html}, {current_year}, {app_name}",
 };
 
 function initialTabIndex(isSuperAdmin: boolean, initialTab?: string): number {

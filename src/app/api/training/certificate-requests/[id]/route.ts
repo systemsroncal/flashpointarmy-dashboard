@@ -15,7 +15,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { NextResponse } from "next/server";
 
 type PatchBody = {
-  action?: "approve" | "reject";
+  action?: "approve" | "reject" | "resend_notification";
   admin_note?: string | null;
   confirmText?: string;
 };
@@ -151,8 +151,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
 
   const action = body.action;
-  if (action !== "approve" && action !== "reject") {
-    return NextResponse.json({ error: "action must be approve or reject." }, { status: 400 });
+  if (action !== "approve" && action !== "reject" && action !== "resend_notification") {
+    return NextResponse.json(
+      { error: "action must be approve, reject, or resend_notification." },
+      { status: 400 }
+    );
   }
 
   if (action === "approve" && body.confirmText?.trim() !== "CONFIRM") {
@@ -162,15 +165,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const admin = createAdminClient();
   const { data: existing, error: fetchErr } = await admin
     .from("course_certificate_requests")
-    .select("id, user_id, course_id, status, courses(slug, title)")
+    .select("id, user_id, course_id, status, admin_note, courses(slug, title)")
     .eq("id", id)
     .maybeSingle();
 
   if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
   if (!existing) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  if (existing.status !== "pending") {
-    return NextResponse.json({ error: "This request has already been reviewed." }, { status: 409 });
-  }
 
   const courseJoin = existing.courses as
     | { slug: string; title: string }
@@ -179,6 +179,41 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const courseMeta = Array.isArray(courseJoin) ? courseJoin[0] : courseJoin;
   const courseSlug = courseMeta?.slug ?? BIBLICAL_CITIZENSHIP_COURSE_SLUG;
   const courseTitle = courseMeta?.title?.trim() || "Biblical Citizenship";
+
+  if (action === "resend_notification") {
+    if (existing.status !== "approved" && existing.status !== "rejected") {
+      return NextResponse.json(
+        { error: "Only reviewed requests can resend a notification." },
+        { status: 409 }
+      );
+    }
+
+    try {
+      await notifyCertificateRequestReviewed(admin, {
+        userId: existing.user_id as string,
+        courseTitle,
+        status: existing.status as "approved" | "rejected",
+        adminNote: (existing.admin_note as string | null) ?? null,
+        reviewedBy: user.id,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        {
+          error:
+            e instanceof Error
+              ? `Failed to resend notification: ${e.message}`
+              : "Failed to resend notification.",
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ ok: true, resent: true, status: existing.status });
+  }
+
+  if (existing.status !== "pending") {
+    return NextResponse.json({ error: "This request has already been reviewed." }, { status: 409 });
+  }
 
   const reviewedAt = new Date().toISOString();
   const newStatus = action === "approve" ? "approved" : "rejected";

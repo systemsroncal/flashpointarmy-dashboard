@@ -9,7 +9,9 @@ export type TemplateKey =
   | "password_reset"
   | "local_leader_assigned"
   | "gathering_created"
-  | "register_otp";
+  | "register_otp"
+  | "certificate_request_approved"
+  | "certificate_request_rejected";
 
 export type SendTemplatedEmailOptions = {
   triggeredByUserId?: string | null;

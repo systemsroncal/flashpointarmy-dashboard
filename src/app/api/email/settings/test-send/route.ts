@@ -12,6 +12,8 @@ const ALLOWED = new Set<TemplateKey>([
   "local_leader_assigned",
   "gathering_created",
   "register_otp",
+  "certificate_request_approved",
+  "certificate_request_rejected",
 ]);
 
 const DEMO_SHORTCODES = {
@@ -21,8 +23,13 @@ const DEMO_SHORTCODES = {
   resetpassword_url: "https://example.com/auth/reset-password?token=demo",
   gathering_title: "Sunday community gathering",
   gathering_url: "https://example.com/dashboard/gatherings/demo",
-  app_name: "Flashpoint Dashboard",
+  app_name: "FlashPoint Army Chapters",
   otp: "123456",
+  course_title: "Biblical Citizenship",
+  admin_note: "Please continue with your next step.",
+  admin_note_html: "<p><strong>Note from our team:</strong> Please continue with your next step.</p>",
+  mission_briefing_url: "https://example.com/dashboard/training/mission-briefing",
+  training_url: "https://example.com/dashboard/training",
 };
 
 export async function POST(req: Request) {

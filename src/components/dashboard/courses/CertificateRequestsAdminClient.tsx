@@ -7,6 +7,7 @@ import { hasCertificateAttachment } from "@/lib/training/certificate-requests";
 import { matchesStateChapterFilter, type ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import {
   Alert,
   Box,
@@ -17,6 +18,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   InputAdornment,
   Paper,
   Stack,
@@ -28,6 +30,7 @@ import {
   TableRow,
   Tabs,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -117,6 +120,10 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
   const [confirmText, setConfirmText] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
+  const [resendTarget, setResendTarget] = useState<ListRow | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -236,6 +243,29 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
     }
   }
 
+  async function handleResendNotification() {
+    if (!resendTarget) return;
+    setResendError(null);
+    setResending(true);
+    try {
+      const res = await fetch(`/api/training/certificate-requests/${resendTarget.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resend_notification" }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Failed to resend notification.");
+      setResendSuccess(
+        `Notification email resent to ${resendTarget.user.email || resendTarget.user.name}.`
+      );
+      setResendTarget(null);
+    } catch (e) {
+      setResendError(e instanceof Error ? e.message : "Failed to resend notification.");
+    } finally {
+      setResending(false);
+    }
+  }
+
   const tableRows = activeTab === "pending" ? pendingRows : respondedRows;
 
   return (
@@ -260,6 +290,12 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
       {loadError ? (
         <Alert severity="error" sx={{ mb: 2 }}>
           {loadError}
+        </Alert>
+      ) : null}
+
+      {resendSuccess ? (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setResendSuccess(null)}>
+          {resendSuccess}
         </Alert>
       ) : null}
 
@@ -417,13 +453,31 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                           </TableCell>
                         ) : null}
                         <TableCell align="right">
-                          <Button
-                            size="small"
-                            startIcon={<VisibilityOutlinedIcon />}
-                            onClick={() => void openDetail(row.id)}
-                          >
-                            Details
-                          </Button>
+                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                            <Tooltip title="View details">
+                              <IconButton
+                                size="small"
+                                aria-label="View details"
+                                onClick={() => void openDetail(row.id)}
+                              >
+                                <VisibilityOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            {activeTab === "responded" ? (
+                              <Tooltip title="Resend notification">
+                                <IconButton
+                                  size="small"
+                                  aria-label="Resend notification"
+                                  onClick={() => {
+                                    setResendError(null);
+                                    setResendTarget(row);
+                                  }}
+                                >
+                                  <MailOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            ) : null}
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     ))
@@ -574,6 +628,45 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
               </Button>
             </>
           ) : null}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(resendTarget)}
+        onClose={() => !resending && setResendTarget(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Resend notification?</DialogTitle>
+        <DialogContent dividers>
+          {resendTarget ? (
+            <Stack spacing={1.5}>
+              <Typography>
+                Resend the {resendTarget.status === "approved" ? "approval" : "rejection"} email to{" "}
+                <strong>{resendTarget.user.name}</strong>
+                {resendTarget.user.email ? ` (${resendTarget.user.email})` : ""}?
+              </Typography>
+              {resendTarget.status === "approved" ? (
+                <Typography variant="body2" color="text.secondary">
+                  The email will include a link to continue with Mission Briefing.
+                </Typography>
+              ) : null}
+              {resendError ? <Alert severity="error">{resendError}</Alert> : null}
+            </Stack>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setResendTarget(null)} disabled={resending}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void handleResendNotification()}
+            disabled={resending}
+            startIcon={resending ? <CircularProgress size={16} color="inherit" /> : <MailOutlineIcon />}
+          >
+            {resending ? "Sending…" : "Resend email"}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
