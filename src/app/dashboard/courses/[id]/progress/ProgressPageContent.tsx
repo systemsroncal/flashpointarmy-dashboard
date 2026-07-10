@@ -1,6 +1,6 @@
 import { CourseProgressPageClient } from "@/components/dashboard/courses/CourseProgressPageClient";
 import { MODULE_SLUGS } from "@/config/modules";
-import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isChapterStaffRole, isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { can } from "@/types/permissions";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
@@ -67,6 +67,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
 
   const roleNames = await loadUserRoleNames(supabase, user.id);
   const isSuperAdmin = isSuperAdminUser(roleNames);
+  const canLinkPersonProfile = isChapterStaffRole(roleNames);
 
   const { data: course } = await supabase
     .from("courses")
@@ -277,6 +278,7 @@ export default async function ProgressPageContent({ courseId }: { courseId: stri
       totalRegisteredUsers={totalRegisteredUsers ?? 0}
       totalWithProgress={userIds.length}
       isSuperAdmin={isSuperAdmin}
+      linkToPersonProfile={canLinkPersonProfile}
     />
   );
 }

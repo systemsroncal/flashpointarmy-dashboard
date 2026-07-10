@@ -56,6 +56,7 @@ import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { parseUploadFile } from "@/lib/import/parse-upload";
 import { usStateByCode } from "@/data/usStates";
 import { isAdminButNotSuper } from "@/lib/auth/user-roles";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -292,6 +293,10 @@ export function CommunitySection({
   const isLeaders = variant === "leaders";
   const isAdmins = variant === "admins";
   const remoteMode = !isLeaders && !isAdmins;
+  const profileFrom = isAdmins ? "admins" : isLeaders ? "leaders" : "community";
+  function personProfileHref(userId: string) {
+    return `/dashboard/people/${userId}?from=${profileFrom}`;
+  }
   const searchFieldId = isAdmins
     ? "fp-user-dir-search-admins"
     : isLeaders
@@ -1736,9 +1741,71 @@ export function CommunitySection({
                   {(u.display_name || u.email || "U").slice(0, 1).toUpperCase()}
                 </AvatarWithGraduateIcon>
               </TableCell>
-              <TableCell>{u.first_name ?? "—"}</TableCell>
-              <TableCell>{u.last_name ?? "—"}</TableCell>
-              <TableCell>{u.display_name ?? "—"}</TableCell>
+              <TableCell>
+                {u.first_name ? (
+                  elevated ? (
+                    <Box
+                      component={Link}
+                      href={personProfileHref(u.id)}
+                      sx={{
+                        color: "primary.light",
+                        textDecoration: "none",
+                        fontWeight: 600,
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                    >
+                      {u.first_name}
+                    </Box>
+                  ) : (
+                    u.first_name
+                  )
+                ) : (
+                  "—"
+                )}
+              </TableCell>
+              <TableCell>
+                {u.last_name ? (
+                  elevated ? (
+                    <Box
+                      component={Link}
+                      href={personProfileHref(u.id)}
+                      sx={{
+                        color: "primary.light",
+                        textDecoration: "none",
+                        fontWeight: 600,
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                    >
+                      {u.last_name}
+                    </Box>
+                  ) : (
+                    u.last_name
+                  )
+                ) : (
+                  "—"
+                )}
+              </TableCell>
+              <TableCell>
+                {u.display_name ? (
+                  elevated ? (
+                    <Box
+                      component={Link}
+                      href={personProfileHref(u.id)}
+                      sx={{
+                        color: "inherit",
+                        textDecoration: "none",
+                        "&:hover": { color: "primary.light", textDecoration: "underline" },
+                      }}
+                    >
+                      {u.display_name}
+                    </Box>
+                  ) : (
+                    u.display_name
+                  )
+                ) : (
+                  "—"
+                )}
+              </TableCell>
               <TableCell>{u.email}</TableCell>
               <TableCell>{u.phone?.trim() || "—"}</TableCell>
               <TableCell>

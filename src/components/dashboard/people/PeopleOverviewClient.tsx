@@ -196,7 +196,19 @@ export function PeopleOverviewClient({ stats }: { stats: PeopleOverviewStats }) 
           </Typography>
           <List dense sx={{ flex: 1 }}>
             {stats.recentlyCreated.map((u) => (
-              <ListItem key={u.id} disableGutters>
+              <ListItem
+                key={u.id}
+                disableGutters
+                component={Link}
+                href={`/dashboard/people/${u.id}?from=people`}
+                sx={{
+                  textDecoration: "none",
+                  color: "inherit",
+                  borderRadius: 1,
+                  px: 0.5,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
+                }}
+              >
                 <ListItemAvatar>
                   <Avatar sx={{ width: 36, height: 36, bgcolor: "primary.dark", fontSize: "0.8rem" }}>
                     {u.initials}
@@ -205,7 +217,7 @@ export function PeopleOverviewClient({ stats }: { stats: PeopleOverviewStats }) 
                 <ListItemText
                   primary={u.name}
                   secondary={relativeTime(u.created_at)}
-                  primaryTypographyProps={{ variant: "body2", fontWeight: 600 }}
+                  primaryTypographyProps={{ variant: "body2", fontWeight: 600, color: "primary.light" }}
                   secondaryTypographyProps={{ variant: "caption" }}
                 />
               </ListItem>

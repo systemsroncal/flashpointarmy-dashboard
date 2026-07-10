@@ -48,6 +48,7 @@ type Props = {
   totalRegisteredUsers: number;
   totalWithProgress: number;
   isSuperAdmin?: boolean;
+  linkToPersonProfile?: boolean;
 };
 
 function filterByRole(rows: CourseProgressRow[], filter: ProgressRoleFilter): CourseProgressRow[] {
@@ -70,6 +71,7 @@ export function CourseProgressPageClient({
   totalRegisteredUsers,
   totalWithProgress,
   isSuperAdmin = false,
+  linkToPersonProfile = false,
 }: Props) {
   const [roleFilter, setRoleFilter] = useState<ProgressRoleFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -254,6 +256,7 @@ export function CourseProgressPageClient({
         rows={filteredRows}
         totalSessions={totalSessions}
         quizCount={quizCount}
+        linkToPersonProfile={linkToPersonProfile}
       />
 
       {!appliesGrades ? (

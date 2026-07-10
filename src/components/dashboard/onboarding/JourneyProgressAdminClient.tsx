@@ -3,6 +3,7 @@
 import type { JourneyProgressRow, JourneyProgressStats } from "@/lib/onboarding/journey-progress-stats";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import SearchIcon from "@mui/icons-material/Search";
@@ -255,10 +256,20 @@ export function JourneyProgressAdminClient({
                   pageRows.map((row) => (
                     <TableRow key={row.user_id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={600}>
+                        <Typography
+                          component={Link}
+                          href={`/dashboard/people/${row.user_id}?from=people`}
+                          variant="body2"
+                          fontWeight={600}
+                          sx={{
+                            color: "primary.light",
+                            textDecoration: "none",
+                            "&:hover": { textDecoration: "underline" },
+                          }}
+                        >
                           {row.name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" display="block">
                           {row.email}
                         </Typography>
                       </TableCell>

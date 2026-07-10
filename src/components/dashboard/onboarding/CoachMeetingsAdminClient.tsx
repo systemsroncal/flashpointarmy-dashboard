@@ -41,6 +41,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type CoachMeetingData = {
@@ -289,11 +290,21 @@ export function CoachMeetingsAdminClient({ chapterOptions }: Props) {
                         sx={{ cursor: "pointer" }}
                         onClick={() => openEdit(row)}
                       >
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600}>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Typography
+                            component={Link}
+                            href={`/dashboard/people/${row.user_id}?from=people`}
+                            variant="body2"
+                            fontWeight={600}
+                            sx={{
+                              color: "primary.light",
+                              textDecoration: "none",
+                              "&:hover": { textDecoration: "underline" },
+                            }}
+                          >
                             {row.name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" display="block">
                             {row.email}
                           </Typography>
                           <Typography variant="caption" display="block" color="text.secondary">

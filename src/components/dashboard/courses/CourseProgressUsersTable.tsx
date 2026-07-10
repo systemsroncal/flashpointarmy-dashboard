@@ -20,6 +20,7 @@ import {
   TableSortLabel,
   Typography,
 } from "@mui/material";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 export type CourseProgressRow = {
@@ -97,10 +98,13 @@ export function CourseProgressUsersTable({
   rows,
   totalSessions,
   quizCount,
+  linkToPersonProfile = false,
 }: {
   rows: CourseProgressRow[];
   totalSessions: number;
   quizCount: number;
+  /** Admin staff only (super_admin / admin / sub_admin). */
+  linkToPersonProfile?: boolean;
 }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
@@ -197,7 +201,24 @@ export function CourseProgressUsersTable({
                       {initialsFromLabel(r.label)}
                     </AvatarWithGraduateIcon>
                   </TableCell>
-                  <TableCell>{r.label}</TableCell>
+                  <TableCell>
+                    {linkToPersonProfile ? (
+                      <Typography
+                        component={Link}
+                        href={`/dashboard/people/${r.uid}?from=people`}
+                        sx={{
+                          color: "primary.light",
+                          textDecoration: "none",
+                          fontWeight: 600,
+                          "&:hover": { textDecoration: "underline" },
+                        }}
+                      >
+                        {r.label}
+                      </Typography>
+                    ) : (
+                      r.label
+                    )}
+                  </TableCell>
                   <TableCell>{r.city?.trim() || "—"}</TableCell>
                   <TableCell>{r.state?.trim() || "—"}</TableCell>
                   <TableCell>{r.roleLabel}</TableCell>
