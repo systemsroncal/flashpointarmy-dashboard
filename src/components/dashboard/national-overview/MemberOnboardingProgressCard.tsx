@@ -13,6 +13,7 @@ import type { MemberOnboardingSnapshot } from "@/lib/onboarding/member-onboardin
 import { resolveOnboardingStepStatusHref } from "@/lib/onboarding/onboarding-navigation";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { Box, IconButton, Paper, Tooltip, Typography } from "@mui/material";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type StepKey = keyof Pick<MemberOnboardingSnapshot, "training" | "coachMeeting" | "firstMission">;
@@ -129,18 +130,33 @@ export function MemberOnboardingProgressCard({ snapshot }: Props) {
         >
           {steps.map(({ key, label, statusLabel, tooltip, status, statusHref }) => {
             const color = statusColor(status);
+            const titleLinkable = Boolean(statusHref);
+            const titleSx = {
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: { xs: "1rem", sm: "1.05rem" },
+              mb: 0.75,
+              textDecoration: "none",
+              display: "inline-block",
+              ...(titleLinkable
+                ? {
+                    cursor: "pointer",
+                    "&:hover": {
+                      color: "primary.main",
+                      textDecoration: "underline",
+                    },
+                  }
+                : {}),
+            };
             return (
               <Box key={key}>
-                <Typography
-                  sx={{
-                    color: "#fff",
-                    fontWeight: 700,
-                    fontSize: { xs: "1rem", sm: "1.05rem" },
-                    mb: 0.75,
-                  }}
-                >
-                  {label}
-                </Typography>
+                {titleLinkable ? (
+                  <Typography component={Link} href={statusHref!} sx={titleSx}>
+                    {label}
+                  </Typography>
+                ) : (
+                  <Typography sx={titleSx}>{label}</Typography>
+                )}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                   <Box
                     aria-hidden
