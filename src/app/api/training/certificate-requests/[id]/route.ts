@@ -38,7 +38,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { data: row, error } = await client
     .from("course_certificate_requests")
     .select(
-      "id, user_id, course_id, completed_training_confirmed, completion_date, organization_name, certificate_url, certificate_file_name, certificate_mime, status, admin_note, reviewed_by, reviewed_at, created_at, updated_at, courses(slug, title)"
+      "id, user_id, course_id, completed_training_confirmed, completion_date, organization_name, certificate_url, certificate_file_name, certificate_mime, status, admin_note, reviewed_by, reviewed_at, notification_resend_count, created_at, updated_at, courses(slug, title)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -165,7 +165,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const admin = createAdminClient();
   const { data: existing, error: fetchErr } = await admin
     .from("course_certificate_requests")
-    .select("id, user_id, course_id, status, admin_note, courses(slug, title)")
+    .select("id, user_id, course_id, status, admin_note, notification_resend_count, courses(slug, title)")
     .eq("id", id)
     .maybeSingle();
 
@@ -208,7 +208,28 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       );
     }
 
-    return NextResponse.json({ ok: true, resent: true, status: existing.status });
+    const currentCount = Number(
+      (existing as { notification_resend_count?: number | null }).notification_resend_count ?? 0
+    );
+    const nextCount = (Number.isFinite(currentCount) ? currentCount : 0) + 1;
+    const now = new Date().toISOString();
+    const { error: countErr } = await admin
+      .from("course_certificate_requests")
+      .update({ notification_resend_count: nextCount, updated_at: now })
+      .eq("id", id);
+    if (countErr) {
+      return NextResponse.json(
+        { error: countErr.message || "Notification sent but failed to update resend count." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      resent: true,
+      status: existing.status,
+      notification_resend_count: nextCount,
+    });
   }
 
   if (existing.status !== "pending") {

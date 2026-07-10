@@ -17,12 +17,14 @@ export type CertSortKey =
   | "status"
   | "person"
   | "chapter"
-  | "reviewed_by";
+  | "reviewed_by"
+  | "notification_resend_count";
 
 export type CertListStatus = "pending" | "responded";
 
 export type EnrichedCertificateRequest = CertificateRequestRow & {
   reviewed_by_name: string | null;
+  notification_resend_count: number;
   user: {
     id: string;
     name: string;
@@ -40,7 +42,7 @@ export type EnrichedCertificateRequest = CertificateRequestRow & {
 };
 
 const SELECT_COLS =
-  "id, user_id, course_id, completed_training_confirmed, completion_date, organization_name, certificate_url, certificate_file_name, certificate_mime, status, admin_note, reviewed_by, reviewed_at, created_at, updated_at";
+  "id, user_id, course_id, completed_training_confirmed, completion_date, organization_name, certificate_url, certificate_file_name, certificate_mime, status, admin_note, reviewed_by, reviewed_at, notification_resend_count, created_at, updated_at";
 
 const DB_SORTABLE = new Set<CertSortKey>([
   "created_at",
@@ -48,6 +50,7 @@ const DB_SORTABLE = new Set<CertSortKey>([
   "completion_date",
   "organization_name",
   "status",
+  "notification_resend_count",
 ]);
 
 export function parseCertSortKey(raw: string | null, tab: CertListStatus): CertSortKey {
@@ -60,9 +63,12 @@ export function parseCertSortKey(raw: string | null, tab: CertListStatus): CertS
     "person",
     "chapter",
     "reviewed_by",
+    "notification_resend_count",
   ];
   if (raw && (allowed as string[]).includes(raw)) {
-    if (tab === "pending" && (raw === "reviewed_at" || raw === "reviewed_by")) return "created_at";
+    if (tab === "pending" && (raw === "reviewed_at" || raw === "reviewed_by" || raw === "notification_resend_count")) {
+      return "created_at";
+    }
     return raw as CertSortKey;
   }
   return tab === "responded" ? "reviewed_at" : "created_at";
@@ -129,6 +135,7 @@ export async function enrichCertificateRequests(
       "—";
     return {
       ...row,
+      notification_resend_count: Number(row.notification_resend_count ?? 0) || 0,
       reviewed_by_name: null as string | null,
       user: {
         id: row.user_id,
@@ -201,6 +208,9 @@ function sortEnriched(
         break;
       case "reviewed_at":
         cmp = (a.reviewed_at ?? "").localeCompare(b.reviewed_at ?? "");
+        break;
+      case "notification_resend_count":
+        cmp = (a.notification_resend_count ?? 0) - (b.notification_resend_count ?? 0);
         break;
       case "created_at":
       default:
@@ -347,7 +357,8 @@ export async function listCertificateRequestsAdminPage(
     | "reviewed_at"
     | "completion_date"
     | "organization_name"
-    | "status";
+    | "status"
+    | "notification_resend_count";
 
   let countQuery = admin
     .from("course_certificate_requests")

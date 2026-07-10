@@ -3,7 +3,9 @@ import {
   loadPersonProfilePage,
   type PersonProfileTab,
 } from "@/lib/people/person-profile-data";
+import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import { requireServerUser } from "@/lib/auth/server-session";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { Paper, Typography } from "@mui/material";
 
 const UUID_RE =
@@ -59,11 +61,24 @@ export default async function PersonProfilePageContent({
     );
   }
 
+  const admin = createAdminClient();
+  const { data: chapters } = await admin
+    .from("chapters")
+    .select("id, name, city, state")
+    .order("name");
+  const chapterOptions: ChapterSearchRow[] = (chapters ?? []).map((c) => ({
+    id: c.id as string,
+    name: c.name as string,
+    city: (c.city as string | null) ?? null,
+    state: String(c.state ?? "").trim(),
+  }));
+
   return (
     <PersonProfileClient
       person={result.person}
       initialTab={parseTab(sp.tab)}
       backHref={parseBackHref(sp.from, result.person.role_names)}
+      chapterOptions={chapterOptions}
     />
   );
 }

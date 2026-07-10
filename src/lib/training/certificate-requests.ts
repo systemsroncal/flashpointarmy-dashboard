@@ -28,6 +28,7 @@ export type CertificateRequestRow = {
   admin_note: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  notification_resend_count?: number;
   created_at: string;
   updated_at: string;
 };

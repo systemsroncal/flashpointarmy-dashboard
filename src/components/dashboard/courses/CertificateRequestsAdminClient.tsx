@@ -13,15 +13,20 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
   IconButton,
   InputAdornment,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Tab,
   Table,
@@ -36,7 +41,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type RequestStatus = "pending" | "approved" | "rejected";
 type AdminTab = "pending" | "responded" | "stats";
@@ -61,6 +66,7 @@ type ListRow = {
   reviewed_by: string | null;
   reviewed_at: string | null;
   reviewed_by_name: string | null;
+  notification_resend_count: number;
   created_at: string;
   user: {
     id: string;
@@ -144,6 +150,10 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
   const [resending, setResending] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
   const [resendSuccess, setResendSuccess] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState<"resend_notification" | "">("");
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const loadList = useCallback(
     async (overrides?: {
@@ -180,14 +190,21 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
           respondedCount?: number;
         };
         if (!res.ok) throw new Error(json.error ?? "Failed to load requests.");
-        setRows(json.requests ?? []);
+        setRows(
+          (json.requests ?? []).map((r) => ({
+            ...r,
+            notification_resend_count: Number(r.notification_resend_count ?? 0) || 0,
+          }))
+        );
         setTotalCount(json.total ?? 0);
         setPendingCount(json.pendingCount ?? 0);
         setRespondedCount(json.respondedCount ?? 0);
+        setSelectedIds([]);
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : "Failed to load.");
         setRows([]);
         setTotalCount(0);
+        setSelectedIds([]);
       } finally {
         setLoading(false);
       }
@@ -250,6 +267,8 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
   function handleTabChange(value: AdminTab) {
     setActiveTab(value);
     setPage(0);
+    setSelectedIds([]);
+    setBulkAction("");
     if (value === "pending") {
       setSortBy("created_at");
       setSortDir("desc");
@@ -353,8 +372,17 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "resend_notification" }),
       });
-      const json = (await res.json()) as { error?: string };
+      const json = (await res.json()) as {
+        error?: string;
+        notification_resend_count?: number;
+      };
       if (!res.ok) throw new Error(json.error ?? "Failed to resend notification.");
+      const nextCount = Number(json.notification_resend_count ?? 0) || 0;
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === resendTarget.id ? { ...r, notification_resend_count: nextCount } : r
+        )
+      );
       setResendSuccess(
         `Notification email resent to ${resendTarget.user.email || resendTarget.user.name}.`
       );
@@ -366,7 +394,72 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
     }
   }
 
+  const pageIds = useMemo(() => rows.map((r) => r.id), [rows]);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const somePageSelected = pageIds.some((id) => selectedIds.includes(id)) && !allPageSelected;
+
+  function toggleSelectAllPage() {
+    if (allPageSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+      return;
+    }
+    setSelectedIds((prev) => [...new Set([...prev, ...pageIds])]);
+  }
+
+  function toggleSelectOne(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  async function runBulkResend() {
+    if (!selectedIds.length || bulkAction !== "resend_notification") return;
+    setBulkBusy(true);
+    setResendError(null);
+    try {
+      const res = await fetch("/api/training/certificate-requests/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resend_notification", ids: selectedIds }),
+      });
+      const json = (await res.json()) as {
+        error?: string;
+        sent?: number;
+        failed?: number;
+        results?: Array<{ id: string; ok: boolean; error?: string; notification_resend_count?: number }>;
+      };
+      if (!res.ok) throw new Error(json.error ?? "Bulk resend failed.");
+      const countById = new Map(
+        (json.results ?? [])
+          .filter((r) => r.ok && typeof r.notification_resend_count === "number")
+          .map((r) => [r.id, r.notification_resend_count as number])
+      );
+      if (countById.size) {
+        setRows((prev) =>
+          prev.map((row) =>
+            countById.has(row.id)
+              ? { ...row, notification_resend_count: countById.get(row.id)! }
+              : row
+          )
+        );
+      }
+      const sent = json.sent ?? 0;
+      const failed = json.failed ?? 0;
+      if (failed > 0) {
+        setResendError(`Resent ${sent}, failed ${failed}. Check individual rows and try again.`);
+      } else {
+        setResendSuccess(`Resent notifications for ${sent} request${sent === 1 ? "" : "s"}.`);
+      }
+      setSelectedIds([]);
+      setBulkAction("");
+      setBulkConfirmOpen(false);
+    } catch (e) {
+      setResendError(e instanceof Error ? e.message : "Bulk resend failed.");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   const tableRows = rows;
+  const respondedColSpan = 12;
 
   return (
     <Box>
@@ -498,9 +591,60 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
               </Box>
             ) : (
               <>
+                {activeTab === "responded" ? (
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={1.5}
+                    alignItems={{ xs: "stretch", sm: "center" }}
+                    sx={{ px: 2, pt: 2, pb: 1 }}
+                  >
+                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 120 }}>
+                      {selectedIds.length} selected
+                    </Typography>
+                    <FormControl size="small" sx={{ minWidth: 220 }}>
+                      <InputLabel id="cert-bulk-action-label">Bulk action</InputLabel>
+                      <Select
+                        labelId="cert-bulk-action-label"
+                        label="Bulk action"
+                        value={bulkAction}
+                        onChange={(e) =>
+                          setBulkAction(e.target.value as "resend_notification" | "")
+                        }
+                      >
+                        <MenuItem value="">
+                          <em>Choose action</em>
+                        </MenuItem>
+                        <MenuItem value="resend_notification">Resend notification</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Button
+                      variant="contained"
+                      disabled={
+                        !selectedIds.length || bulkAction !== "resend_notification" || bulkBusy
+                      }
+                      onClick={() => {
+                        setResendError(null);
+                        setBulkConfirmOpen(true);
+                      }}
+                    >
+                      Resend notifications
+                    </Button>
+                  </Stack>
+                ) : null}
                 <Table size="small">
                   <TableHead>
                     <TableRow>
+                      {activeTab === "responded" ? (
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            size="small"
+                            checked={allPageSelected}
+                            indeterminate={somePageSelected}
+                            onChange={toggleSelectAllPage}
+                            inputProps={{ "aria-label": "Select all on this page" }}
+                          />
+                        </TableCell>
+                      ) : null}
                       <SortHeader id="created_at" label="Submitted" />
                       {activeTab === "responded" ? (
                         <SortHeader id="reviewed_at" label="Reviewed" />
@@ -514,6 +658,9 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                       ) : null}
                       <SortHeader id="status" label="Status" />
                       {activeTab === "responded" ? <TableCell>Admin note</TableCell> : null}
+                      {activeTab === "responded" ? (
+                        <SortHeader id="notification_resend_count" label="Resends" align="right" />
+                      ) : null}
                       <TableCell align="right">Actions</TableCell>
                     </TableRow>
                   </TableHead>
@@ -521,7 +668,7 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                     {tableRows.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={activeTab === "responded" ? 10 : 7}
+                          colSpan={activeTab === "responded" ? respondedColSpan : 7}
                           sx={{ py: 4, textAlign: "center", color: "text.secondary" }}
                         >
                           {activeTab === "pending"
@@ -531,7 +678,17 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                       </TableRow>
                     ) : (
                       tableRows.map((row) => (
-                        <TableRow key={row.id} hover>
+                        <TableRow key={row.id} hover selected={selectedIds.includes(row.id)}>
+                          {activeTab === "responded" ? (
+                            <TableCell padding="checkbox">
+                              <Checkbox
+                                size="small"
+                                checked={selectedIds.includes(row.id)}
+                                onChange={() => toggleSelectOne(row.id)}
+                                inputProps={{ "aria-label": `Select ${row.user.name}` }}
+                              />
+                            </TableCell>
+                          ) : null}
                           <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
                           {activeTab === "responded" ? (
                             <TableCell>{formatDateTime(row.reviewed_at)}</TableCell>
@@ -561,6 +718,11 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
                               <Typography variant="body2" noWrap title={row.admin_note ?? undefined}>
                                 {row.admin_note?.trim() || "—"}
                               </Typography>
+                            </TableCell>
+                          ) : null}
+                          {activeTab === "responded" ? (
+                            <TableCell align="right">
+                              {row.notification_resend_count ?? 0}
                             </TableCell>
                           ) : null}
                           <TableCell align="right">
@@ -790,6 +952,40 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
             startIcon={resending ? <CircularProgress size={16} color="inherit" /> : <MailOutlineIcon />}
           >
             {resending ? "Sending…" : "Resend email"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={bulkConfirmOpen}
+        onClose={() => !bulkBusy && setBulkConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Resend notifications?</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={1.5}>
+            <Typography>
+              Resend review notification emails for <strong>{selectedIds.length}</strong> selected
+              request{selectedIds.length === 1 ? "" : "s"}?
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Each successful resend increments the Resends counter for that request.
+            </Typography>
+            {resendError ? <Alert severity="error">{resendError}</Alert> : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setBulkConfirmOpen(false)} disabled={bulkBusy}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void runBulkResend()}
+            disabled={bulkBusy || !selectedIds.length}
+            startIcon={bulkBusy ? <CircularProgress size={16} color="inherit" /> : <MailOutlineIcon />}
+          >
+            {bulkBusy ? "Sending…" : "Resend notifications"}
           </Button>
         </DialogActions>
       </Dialog>

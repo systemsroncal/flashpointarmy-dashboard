@@ -17,16 +17,23 @@ export default async function MissionsPage() {
   const onboardingAudience = isMemberOnboardingAudience(roleNames);
 
   let missionLinksEnabled = true;
+  let showWelcome = false;
 
   if (onboardingAudience && can(permissions, MODULE_SLUGS.training, "read")) {
-    const snapshot = await loadMemberOnboardingSnapshot(supabase, user.id, roleNames);
+    const [snapshot, milestones] = await Promise.all([
+      loadMemberOnboardingSnapshot(supabase, user.id, roleNames),
+      loadJourneyMilestones(supabase, user.id),
+    ]);
     missionLinksEnabled = snapshot.firstMission !== "locked";
+    // Welcome marks "started"; hide once started. Completed will be wired in a later phase.
+    const missionsAlreadyStarted =
+      snapshot.firstMission === "in_progress" ||
+      snapshot.firstMission === "completed" ||
+      Boolean(milestones?.missions_started_notified_at);
+    showWelcome = !missionsAlreadyStarted;
   } else if (!isElevatedRole(roleNames) && !can(permissions, MODULE_SLUGS.training, "read")) {
     missionLinksEnabled = false;
   }
-
-  const milestones = await loadJourneyMilestones(supabase, user.id);
-  const showWelcome = !milestones?.missions_welcome_seen_at;
 
   return (
     <MissionsLanding missionLinksEnabled={missionLinksEnabled} showWelcome={showWelcome} />

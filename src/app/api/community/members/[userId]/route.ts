@@ -25,6 +25,8 @@ type PatchBody = {
   city?: string | null;
   state?: string | null;
   zipCode?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
   /** Admin/super_admin only (enforced server-side). Minimum 8 characters when sent. */
   newPassword?: string;
 };
@@ -185,6 +187,31 @@ export async function PATCH(
     if (stateCode !== undefined) profileUpdate.state = stateCode;
     if (zip_code !== undefined) profileUpdate.zip_code = zip_code;
 
+    if ("dateOfBirth" in body) {
+      const raw = body.dateOfBirth;
+      if (raw === null || raw === "") {
+        profileUpdate.date_of_birth = null;
+      } else {
+        const dob = String(raw).trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+          return NextResponse.json({ error: "Invalid date of birth." }, { status: 400 });
+        }
+        profileUpdate.date_of_birth = dob;
+      }
+    }
+    if ("gender" in body) {
+      const raw = body.gender;
+      if (raw === null || raw === "") {
+        profileUpdate.gender = null;
+      } else {
+        const g = String(raw).trim().toLowerCase();
+        if (g !== "male" && g !== "female") {
+          return NextResponse.json({ error: "Gender must be male or female." }, { status: 400 });
+        }
+        profileUpdate.gender = g;
+      }
+    }
+
     const { error: profileErr } = await admin.from("profiles").update(profileUpdate).eq("id", userId);
 
     if (profileErr) {
@@ -255,6 +282,12 @@ export async function PATCH(
       zip_code?: string | null;
     } | null;
 
+    const { data: profileRow } = await admin
+      .from("profiles")
+      .select("date_of_birth, gender, avatar_url")
+      .eq("id", userId)
+      .maybeSingle();
+
     return NextResponse.json({
       ok: true,
       user: {
@@ -268,6 +301,9 @@ export async function PATCH(
         city: du?.city ?? city ?? null,
         state: du?.state ?? stateCode ?? null,
         zip_code: du?.zip_code ?? zip_code ?? null,
+        date_of_birth: (profileRow?.date_of_birth as string | null) ?? null,
+        gender: (profileRow?.gender as string | null) ?? null,
+        avatar_url: (profileRow?.avatar_url as string | null) ?? null,
       },
     });
   } catch (e) {

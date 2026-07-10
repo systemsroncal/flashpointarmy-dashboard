@@ -60,7 +60,12 @@ async function MissionBriefingPageInner() {
   const dbBriefing =
     typeof trainingRow?.briefing_video_url === "string" ? trainingRow.briefing_video_url.trim() : "";
   const elevated = isElevatedRole(roleNames);
-  const showWelcome = !milestones?.mission_briefing_welcome_seen_at;
+  // Welcome marks "started"; hide once started or completed (do not re-prompt).
+  const briefingAlreadyStartedOrDone =
+    snapshot.coachMeeting === "completed" ||
+    snapshot.coachMeeting === "in_progress" ||
+    Boolean(milestones?.mission_briefing_started_notified_at);
+  const showWelcome = !briefingAlreadyStartedOrDone;
 
   return (
     <MissionBriefingLanding
