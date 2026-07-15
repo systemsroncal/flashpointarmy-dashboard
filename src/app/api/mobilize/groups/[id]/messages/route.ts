@@ -3,6 +3,8 @@ import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-image
 import { canManageMobilizeGroupContent, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { getMobilizeWallPostAccess } from "@/lib/mobilize/mobilize-wall-post-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
+import { enrichGroupMessages } from "@/lib/mobilize/social/enrich-group-messages";
+import { normalizeFeedContent } from "@/lib/mobilize/social/sanitize-feed-html";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -36,7 +38,7 @@ export async function GET(req: Request, ctx: Ctx) {
 
   let q = auth.admin
     .from("mobilize_group_messages")
-    .select("id, group_id, author_id, content, comments_policy, image_urls, created_at")
+    .select("id, group_id, author_id, content, content_html, comments_policy, image_urls, created_at")
     .eq("group_id", id)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -47,7 +49,8 @@ export async function GET(req: Request, ctx: Ctx) {
 
   const { data, error } = await q;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ messages: data ?? [] });
+  const messages = await enrichGroupMessages(auth.admin, auth.userId, data ?? []);
+  return NextResponse.json({ messages });
 }
 
 export async function POST(req: Request, ctx: Ctx) {
@@ -63,8 +66,15 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Only group leaders can post on this wall." }, { status: 403 });
   }
 
-  const body = (await req.json()) as { content?: string; comments_policy?: string; image_urls?: unknown };
-  const content = String(body.content ?? "").trim();
+  const body = (await req.json()) as {
+    content?: string;
+    content_html?: string;
+    comments_policy?: string;
+    image_urls?: unknown;
+  };
+  const normalized = normalizeFeedContent(body);
+  const content = normalized.content;
+  const content_html = normalized.content_html;
   const image_urls = sanitizeAnnouncementImageUrls(body.image_urls);
   if (image_urls === null) {
     return NextResponse.json({ error: "Invalid image URLs." }, { status: 400 });
@@ -80,7 +90,14 @@ export async function POST(req: Request, ctx: Ctx) {
 
   const { data, error } = await auth.admin
     .from("mobilize_group_messages")
-    .insert({ group_id: id, author_id: auth.userId, content, comments_policy, image_urls })
+    .insert({
+      group_id: id,
+      author_id: auth.userId,
+      content,
+      content_html,
+      comments_policy,
+      image_urls,
+    })
     .select("*")
     .single();
 

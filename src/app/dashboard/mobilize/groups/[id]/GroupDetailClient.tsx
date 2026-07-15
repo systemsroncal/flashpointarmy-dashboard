@@ -75,7 +75,9 @@ import {
 } from "@/lib/mobilize/group-ui-labels";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnouncementImagePicker";
-import { MobilizeAnnouncementMediaGrid } from "@/components/mobilize/MobilizeAnnouncementMediaGrid";
+import { MobilizeGroupFeed } from "@/components/mobilize/social/MobilizeGroupFeed";
+import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
+import type { EnrichedGroupMessage } from "@/lib/mobilize/social/enrich-group-messages";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import { MobilizeGroupReportsPanel } from "@/components/mobilize/MobilizeGroupReportsPanel";
 import MobilizeGroupResourcesPanel from "@/components/mobilize/MobilizeGroupResourcesPanel";
@@ -114,14 +116,7 @@ type Membership = {
   membership_status: string;
 } | null;
 
-type MessageRow = {
-  id: string;
-  author_id: string;
-  content: string;
-  comments_policy?: string;
-  image_urls?: string[];
-  created_at: string;
-};
+type MessageRow = EnrichedGroupMessage;
 
 type EventRow = {
   id: string;
@@ -249,7 +244,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
-  const [wallInput, setWallInput] = useState("");
+  const [wallHtml, setWallHtml] = useState("");
   const [wallImages, setWallImages] = useState<string[]>([]);
   const [wallPosting, setWallPosting] = useState(false);
   const [leaderCommentsPolicy, setLeaderCommentsPolicy] = useState<"everyone" | "leaders_only">("everyone");
@@ -313,6 +308,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const [msgEdit, setMsgEdit] = useState<{
     id: string;
     content: string;
+    content_html: string;
     image_urls: string[];
     comments_policy: "everyone" | "leaders_only";
   } | null>(null);
@@ -464,13 +460,23 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     group?.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved";
   const canPostResources = isApproved && (isLeader || resourcesPolicy === "all_approved");
 
+  function canCommentOnPost(m: MessageRow) {
+    if (!isApproved) return false;
+    if (m.comments_policy !== "leaders_only") return true;
+    return isLeader || isSuperAdmin;
+  }
+
   async function postWall() {
-    const content = wallInput.trim();
-    if (!content && !wallImages.length) return;
+    const plain = wallHtml.replace(/<[^>]+>/g, "").trim();
+    if (!plain && !wallImages.length) return;
     setWallPosting(true);
     try {
-      const body: { content: string; comments_policy?: string; image_urls?: string[] } = {
-        content,
+      const body: {
+        content_html: string;
+        comments_policy?: string;
+        image_urls?: string[];
+      } = {
+        content_html: wallHtml,
         image_urls: wallImages,
       };
       if (isLeader) body.comments_policy = leaderCommentsPolicy;
@@ -481,7 +487,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Post failed.");
-      setWallInput("");
+      setWallHtml("");
       setWallImages([]);
       setLeaderCommentsPolicy("everyone");
       await loadWall();
@@ -521,11 +527,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         body: JSON.stringify(
           isLeader || isSuperAdmin
             ? {
-                content: msgEdit.content.trim(),
+                content_html: msgEdit.content_html,
                 image_urls: msgEdit.image_urls,
                 comments_policy: msgEdit.comments_policy,
               }
-            : { content: msgEdit.content.trim(), image_urls: msgEdit.image_urls }
+            : { content_html: msgEdit.content_html, image_urls: msgEdit.image_urls }
         ),
       });
       const json = await res.json();
@@ -925,9 +931,22 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           stateInfo={groupStateInfo}
         />
         {group.description ? (
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            {group.description}
-          </Typography>
+          <Box sx={{ mt: 1 }}>
+            <Typography
+              variant="overline"
+              sx={{
+                display: "block",
+                letterSpacing: "0.1em",
+                fontWeight: 700,
+                fontSize: "0.68rem",
+                color: "text.secondary",
+                mb: 0.5,
+              }}
+            >
+              Description
+            </Typography>
+            <Typography variant="body2">{group.description}</Typography>
+          </Box>
         ) : null}
         {group.address ? (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -982,11 +1001,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             </Typography>
           </Box>
         </Stack>
-        {group.description ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-            {group.description}
-          </Typography>
-        ) : null}
         {group.address ? (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             {group.address}
@@ -1049,114 +1063,39 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
       {activeTab === "announcements" && canViewContent ? (
         <Box sx={tabPanelBodySx}>
-          {canPostWall ? (
-            <>
-              <TextField
-                fullWidth
-                multiline
-                minRows={2}
-                placeholder="Write an announcement or add photos…"
-                value={wallInput}
-                onChange={(e) => setWallInput(e.target.value)}
-                disabled={wallPosting}
-              />
-              <MobilizeAnnouncementImagePicker
-                groupId={groupId}
-                value={wallImages}
-                onChange={setWallImages}
-                disabled={wallPosting}
-              />
-              {isLeader || isSuperAdmin ? (
-                <FormControl component="fieldset" sx={{ mt: 1.5 }} variant="standard">
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-                    Who can comment on this post (leaders only — not shown to members on announcements)
-                  </Typography>
-                  <RadioGroup
-                    row
-                    value={leaderCommentsPolicy}
-                    onChange={(_, v) => setLeaderCommentsPolicy(v as "everyone" | "leaders_only")}
-                  >
-                    <FormControlLabel value="everyone" control={<Radio size="small" />} label="Everyone" />
-                    <FormControlLabel value="leaders_only" control={<Radio size="small" />} label="Leaders only" />
-                  </RadioGroup>
-                </FormControl>
-              ) : null}
-              <Button
-                sx={{ mt: 1 }}
-                variant="contained"
-                onClick={() => void postWall()}
-                disabled={wallPosting || (!wallInput.trim() && !wallImages.length)}
-              >
-                {wallPosting ? "Posting…" : "Post"}
-              </Button>
-            </>
-          ) : (
-            <Typography color="text.secondary" sx={{ mb: 2 }}>
-              Only leaders can post announcements.
-            </Typography>
-          )}
-          <Box sx={{ mt: 2 }}>
-            {messages.map((m) => {
-              const canManage = canManageMessage(m);
-              const pol = m.comments_policy === "leaders_only" ? "Leaders only" : "Everyone";
-              const preview = m.content.trim() || "this post";
-              return (
-                <Card key={m.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
-                  <CardContent>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(m.created_at).toLocaleString()} · {m.author_id.slice(0, 8)}…
-                        </Typography>
-                        {isLeader || isSuperAdmin ? (
-                          <Chip size="small" label={`Comments: ${pol}`} sx={{ ml: 1 }} variant="outlined" />
-                        ) : null}
-                        {m.content ? (
-                          <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: "pre-wrap" }}>
-                            {m.content}
-                          </Typography>
-                        ) : null}
-                        <MobilizeAnnouncementMediaGrid urls={m.image_urls ?? []} />
-                      </Box>
-                      {canManage ? (
-                        <Stack direction="row" spacing={0.5} flexShrink={0}>
-                          <Button
-                            size="small"
-                            startIcon={<EditIcon />}
-                            onClick={() =>
-                              setMsgEdit({
-                                id: m.id,
-                                content: m.content,
-                                image_urls: m.image_urls ?? [],
-                                comments_policy:
-                                  m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
-                              })
-                            }
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="small"
-                            color="error"
-                            startIcon={<DeleteOutlineIcon />}
-                            onClick={() => setDeleteMessageDialog({ id: m.id, preview })}
-                          >
-                            Delete
-                          </Button>
-                        </Stack>
-                      ) : null}
-                    </Stack>
-                  </CardContent>
-                </Card>
-              );
-            })}
-            {!messages.length ? (
-              <MobilizeSectionEmptyState
-                imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
-                message="There are no feed posts in this chapter yet."
-              />
-            ) : null}
-          </Box>
+          <MobilizeGroupFeed
+            groupId={groupId}
+            messages={messages}
+            canPost={canPostWall}
+            canCommentOnPost={canCommentOnPost}
+            isLeader={isLeader}
+            isSuperAdmin={isSuperAdmin}
+            canManageMessage={canManageMessage}
+            onRefresh={loadWall}
+            posting={wallPosting}
+            wallHtml={wallHtml}
+            onWallHtmlChange={setWallHtml}
+            wallImages={wallImages}
+            onWallImagesChange={setWallImages}
+            leaderCommentsPolicy={leaderCommentsPolicy}
+            onLeaderCommentsPolicyChange={setLeaderCommentsPolicy}
+            onPost={postWall}
+            onEdit={(m) =>
+              setMsgEdit({
+                id: m.id,
+                content: m.content,
+                content_html: m.content_html ?? m.content,
+                image_urls: m.image_urls ?? [],
+                comments_policy: m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
+              })
+            }
+            onDelete={(m) =>
+              setDeleteMessageDialog({
+                id: m.id,
+                preview: m.content.trim() || "this post",
+              })
+            }
+          />
         </Box>
       ) : null}
 
@@ -2053,13 +1992,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         <DialogContent>
           {msgEdit ? (
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField
+              <GatheringDescriptionEditor
+                value={msgEdit.content_html}
+                onChange={(html) => setMsgEdit((s) => (s ? { ...s, content_html: html } : s))}
                 label="Content"
-                fullWidth
-                multiline
-                minRows={3}
-                value={msgEdit.content}
-                onChange={(e) => setMsgEdit((s) => (s ? { ...s, content: e.target.value } : s))}
+                showHelper={false}
+                compact
               />
               <MobilizeAnnouncementImagePicker
                 groupId={groupId}

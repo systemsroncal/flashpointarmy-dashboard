@@ -226,7 +226,7 @@ export default async function PublicMobilizeGroupPage({ params }: Props) {
             {group.description?.trim() ? (
               <Box sx={{ mb: 4 }}>
                 <Typography variant="h6" fontWeight={700} sx={{ mb: 1.25 }}>
-                  About
+                  Description
                 </Typography>
                 <Typography variant="body1" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
                   {group.description}

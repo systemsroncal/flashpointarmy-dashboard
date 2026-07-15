@@ -282,21 +282,6 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
 
   return (
     <>
-      <Box sx={{ px: 2, pt: 0.25, pb: 0.75 }}>
-        <Typography
-          variant="overline"
-          sx={{
-            color: "rgba(255,215,0,0.78)",
-            letterSpacing: "0.12em",
-            fontSize: "0.68rem",
-            fontWeight: 700,
-            lineHeight: 1.2,
-          }}
-        >
-          Mobilize
-        </Typography>
-      </Box>
-
       <ListItem disablePadding>
         <ListItemButton
           component={Link}
@@ -306,22 +291,25 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
           sx={{
             ...NAV_ITEM_TOUCH_SX,
             py: 0.75,
+            px: 2,
             display: "flex",
             alignItems: "center",
             gap: 0.5,
             ...MOBILIZE_DASHBOARD_NAV_ITEM_SX,
           }}
         >
-          <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
-            <ArrowBackIcon />
+          <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 28 }}>
+            <ArrowBackIcon sx={{ fontSize: 18 }} />
           </ListItemIcon>
           <ListItemText
             primary="Dashboard"
             primaryTypographyProps={{
-              variant: "body2",
-              fontWeight: 600,
-              fontSize: "calc(0.82rem + 3px)",
-              color: "rgba(255,255,255,0.88)",
+              variant: "overline",
+              fontWeight: 700,
+              fontSize: "0.68rem",
+              letterSpacing: "0.12em",
+              color: "rgba(255,255,255,0.92)",
+              lineHeight: 1.2,
             }}
           />
         </ListItemButton>

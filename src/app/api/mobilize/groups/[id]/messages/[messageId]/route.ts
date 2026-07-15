@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-images";
 import { canManageMobilizeGroupContent, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
+import { normalizeFeedContent } from "@/lib/mobilize/social/sanitize-feed-html";
 
 type Ctx = { params: Promise<{ id: string; messageId: string }> };
 
@@ -53,13 +54,16 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const body = (await req.json()) as {
     content?: string;
+    content_html?: string;
     comments_policy?: string;
     image_urls?: unknown;
   };
 
   const patch: Record<string, unknown> = {};
-  if (typeof body.content === "string") {
-    patch.content = body.content.trim();
+  if (typeof body.content_html === "string" || typeof body.content === "string") {
+    const normalized = normalizeFeedContent(body);
+    patch.content = normalized.content;
+    patch.content_html = normalized.content_html;
   }
   if ("image_urls" in body) {
     const image_urls = sanitizeAnnouncementImageUrls(body.image_urls);
