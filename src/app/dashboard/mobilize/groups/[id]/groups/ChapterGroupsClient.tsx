@@ -2,6 +2,7 @@
 
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import EditIcon from "@mui/icons-material/Edit";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import {
@@ -33,10 +34,12 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { MobilizeChapterFeedBanner } from "@/components/mobilize/MobilizeChapterFeedBanner";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
+import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import {
   enrollmentModeLabel,
   type MobilizeEnrollmentMode,
@@ -44,19 +47,28 @@ import {
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { mobilizeGroupInitials } from "@/lib/mobilize/group-initials";
+import { resolveMobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
 import {
   isMobilizeGroupListed,
   mobilizeGroupListingVisibilityFromListed,
 } from "@/lib/mobilize/group-ui-labels";
+import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
+import { mobilizeTableContainerSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 
 type ChapterRow = {
   id: string;
   name: string;
+  group_type: string;
   description: string | null;
   address: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  visibility: string;
   cover_image_url?: string | null;
   parent_group_id?: string | null;
+  created_by?: string;
+  region_code?: string | null;
 };
 
 type GroupRow = {
@@ -76,13 +88,16 @@ type GroupRow = {
 
 export default function ChapterGroupsClient({ chapterId }: { chapterId: string }) {
   const toast = useMobilizeToast();
+  const me = useDashboardUser();
   const [chapter, setChapter] = useState<ChapterRow | null>(null);
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [canCreate, setCanCreate] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
   const [form, setForm] = useState({
     name: "",
     group_type: "other",
@@ -97,6 +112,16 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
     event_create_policy: "any_member" as "any_member" | "leader_only",
     wall_post_policy: "all_approved" as "all_approved" | "leaders_only",
     resources_post_policy: "all_approved" as "all_approved" | "leaders_only",
+  });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    group_type: "other",
+    description: "",
+    address: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
+    visibility: "public",
+    cover_image_url: "",
   });
 
   const load = useCallback(async () => {
@@ -137,6 +162,104 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
     if (!q) return groups;
     return groups.filter((g) => g.name.toLowerCase().includes(q));
   }, [groups, search]);
+
+  const chapterCoverSrc = useMemo(() => {
+    if (!chapter) return "";
+    return publicAssetSrc(mobilizeChapterCoverSrc(chapter.cover_image_url));
+  }, [chapter]);
+
+  const chapterStateInfo = useMemo(() => {
+    if (!chapter) return null;
+    return resolveMobilizeGroupStateInfo({
+      regionCode: chapter.region_code,
+      address: chapter.address,
+      name: chapter.name,
+    });
+  }, [chapter]);
+
+  const isSuperAdmin = me.role_names.includes("super_admin");
+  const canEditChapter =
+    Boolean(chapter) && (isSuperAdmin || chapter?.created_by === me.id);
+
+  function openEditChapter() {
+    if (!chapter) return;
+    setEditForm({
+      name: chapter.name,
+      group_type: chapter.group_type || "other",
+      description: chapter.description ?? "",
+      address: chapter.address ?? "",
+      latitude: chapter.latitude ?? null,
+      longitude: chapter.longitude ?? null,
+      visibility: chapter.visibility,
+      cover_image_url: chapter.cover_image_url?.trim() ?? "",
+    });
+    setEditOpen(true);
+  }
+
+  async function geocodeEditAddress() {
+    const q = editForm.address.trim();
+    if (q.length < 3) {
+      toast("Enter a longer address to geocode.", "info");
+      return;
+    }
+    try {
+      const res = await fetch("/api/mobilize/geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Geocode failed.");
+      const hit = json.results?.[0];
+      if (!hit) {
+        toast("No geocode results.", "info");
+        return;
+      }
+      setEditForm((f) => ({
+        ...f,
+        address: hit.display_name,
+        latitude: hit.lat,
+        longitude: hit.lon,
+      }));
+      toast("Address geocoded.", "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Geocode error.", "error");
+    }
+  }
+
+  async function saveChapterEdit() {
+    if (!editForm.name.trim()) {
+      toast("Name is required.", "error");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      const cover = editForm.cover_image_url.trim() ? editForm.cover_image_url.trim() : null;
+      const res = await fetch(`/api/mobilize/groups/${chapterId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editForm.name.trim(),
+          group_type: editForm.group_type,
+          description: editForm.description.trim() || null,
+          address: editForm.address.trim() || null,
+          latitude: editForm.latitude,
+          longitude: editForm.longitude,
+          visibility: editForm.visibility,
+          cover_image_url: cover,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Update failed.");
+      toast("Chapter updated.", "success");
+      setEditOpen(false);
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Update failed.", "error");
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   async function joinGroup(groupId: string) {
     try {
@@ -237,43 +360,80 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
   }
 
   if (loading) {
-    return <Skeleton variant="rectangular" height={420} sx={{ borderRadius: 2 }} />;
+    return (
+      <Box>
+        <Skeleton variant="text" width={160} height={36} sx={{ mb: 1 }} />
+        <Skeleton variant="rectangular" sx={{ aspectRatio: "16 / 7", borderRadius: 2, mb: 2 }} />
+        <Skeleton variant="text" width={120} height={40} sx={{ mb: 1 }} />
+        <Skeleton variant="rectangular" height={360} sx={{ borderRadius: 2 }} />
+      </Box>
+    );
   }
 
   if (!chapter) {
-    return (
-      <Typography color="text.secondary">Chapter not found.</Typography>
-    );
+    return <Typography color="text.secondary">Chapter not found.</Typography>;
   }
 
   return (
     <Box>
-      <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2} sx={{ mb: 2 }}>
-        <Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+        <Button
+          component={Link}
+          href="/dashboard/mobilize/map"
+          startIcon={<ArrowBackIcon />}
+          size="small"
+          color="primary"
+          sx={{ fontWeight: 600 }}
+        >
+          Back to chapters
+        </Button>
+        {canEditChapter ? (
           <Button
-            component={Link}
-            href="/dashboard/mobilize/map"
-            startIcon={<ArrowBackIcon />}
             size="small"
-            sx={{ mb: 1 }}
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => openEditChapter()}
+            sx={{ fontWeight: 600 }}
           >
-            Back to chapters
+            Edit chapter
           </Button>
-          <Typography variant="h4" fontWeight={700}>
-            {chapter.name}
+        ) : null}
+      </Stack>
+
+      <MobilizeChapterFeedBanner
+        coverSrc={chapterCoverSrc}
+        chapterName={chapter.name}
+        stateInfo={chapterStateInfo}
+      />
+
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "stretch", sm: "flex-end" }}
+        gap={2}
+        sx={{ mt: 2.5, mb: 2 }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: "-0.02em" }}>
+            Groups
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 640, lineHeight: 1.55 }}>
             Groups you can join under this chapter. Joining a group does not require joining the chapter.
           </Typography>
         </Box>
         {canCreate ? (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateOpen(true)}
+            sx={{ alignSelf: { xs: "flex-start", sm: "center" }, minWidth: 160, fontWeight: 700 }}
+          >
             New group
           </Button>
         ) : null}
       </Stack>
 
-      <MobilizeContentPanel>
+      <MobilizeContentPanel sx={{ p: { xs: 1.5, sm: 2 } }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }} alignItems={{ sm: "center" }}>
           <TextField
             size="small"
@@ -287,13 +447,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
           </Typography>
         </Stack>
 
-        <TableContainer
-          sx={{
-            bgcolor: "#fff",
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 1,
-          }}
-        >
+        <TableContainer sx={mobilizeTableContainerSx}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -349,7 +503,13 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                           {g.name}
                         </Typography>
                         {g.schedule_meeting ? (
-                          <Typography variant="caption" color="text.secondary" display="block" noWrap title={g.schedule_meeting}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                            noWrap
+                            title={g.schedule_meeting}
+                          >
                             {g.schedule_meeting}
                           </Typography>
                         ) : null}
@@ -431,6 +591,76 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
           </Table>
         </TableContainer>
       </MobilizeContentPanel>
+
+      <Dialog open={editOpen} onClose={() => !editSaving && setEditOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit chapter</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Name"
+              required
+              fullWidth
+              value={editForm.name}
+              onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+            />
+            <FormControl fullWidth>
+              <InputLabel id="egt-ch">Type</InputLabel>
+              <Select
+                labelId="egt-ch"
+                label="Type"
+                value={editForm.group_type}
+                onChange={(e) => setEditForm((f) => ({ ...f, group_type: String(e.target.value) }))}
+              >
+                {MOBILIZE_GROUP_TYPES.map((t) => (
+                  <MenuItem key={t} value={t}>
+                    {t}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              minRows={2}
+              value={editForm.description}
+              onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+            />
+            <MobilizeGroupCoverDropzone
+              value={editForm.cover_image_url}
+              onChange={(url) => setEditForm((f) => ({ ...f, cover_image_url: url }))}
+              disabled={editSaving}
+            />
+            <TextField
+              label="Address"
+              fullWidth
+              value={editForm.address}
+              onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
+            />
+            <Button variant="outlined" onClick={() => void geocodeEditAddress()} disabled={editSaving}>
+              Geocode address
+            </Button>
+            <MobilizeGroupListedSwitch
+              listed={isMobilizeGroupListed(editForm.visibility)}
+              disabled={editSaving}
+              onListedChange={(listed) =>
+                setEditForm((f) => ({
+                  ...f,
+                  visibility: mobilizeGroupListingVisibilityFromListed(listed),
+                }))
+              }
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)} disabled={editSaving}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={() => void saveChapterEdit()} disabled={editSaving}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={createOpen} onClose={() => !saving && setCreateOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>New group</DialogTitle>
