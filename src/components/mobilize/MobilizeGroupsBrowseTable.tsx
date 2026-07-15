@@ -70,6 +70,8 @@ type Props = {
    * Map tab: Chapter + Groups preview + open link (no Leaders/Members/Join).
    */
   layoutVariant?: "default" | "mapStacked";
+  /** Where name / open links navigate: chapter groups list vs subgroup detail. */
+  nameLinkTarget?: "chapter-groups" | "group-detail";
   /** Multiplier for cover thumbnail (base 56 default / 72 mapStacked). E.g. 3.5 for Groups + My Groups. */
   thumbnailScale?: number;
 };
@@ -219,6 +221,7 @@ export default function MobilizeGroupsBrowseTable({
   maxHeight,
   emptyMessage = "No chapters match your filters.",
   layoutVariant = "default",
+  nameLinkTarget = "chapter-groups",
   thumbnailScale = 1,
 }: Props) {
   const mapStacked = layoutVariant === "mapStacked";
@@ -247,13 +250,15 @@ export default function MobilizeGroupsBrowseTable({
         flexShrink: 0,
       } as const);
 
-  function chapterGroupsHref(id: string) {
-    return `/dashboard/mobilize/groups/${id}/groups`;
+  function rowNameHref(id: string) {
+    return nameLinkTarget === "group-detail"
+      ? `/dashboard/mobilize/groups/${id}`
+      : `/dashboard/mobilize/groups/${id}/groups`;
   }
 
   function renderOpenChapter(g: MobilizeBrowseGroupRow, align: "end" | "start" = "end") {
     const justify = align === "start" ? "flex-start" : "flex-end";
-    const href = chapterGroupsHref(g.id);
+    const href = rowNameHref(g.id);
     return (
       <Stack direction="row" alignItems="center" spacing={0.5} justifyContent={justify}>
         <Tooltip title="View groups in this chapter">
@@ -387,7 +392,7 @@ export default function MobilizeGroupsBrowseTable({
             const cover = publicAssetSrc(mobilizeChapterCoverSrc(g.cover_image_url));
             const count = g.member_count ?? 0;
             const activities = g.upcoming_activity_count ?? 0;
-            const groupsHref = chapterGroupsHref(g.id);
+            const groupsHref = rowNameHref(g.id);
             const groupInfo = (
               <Stack spacing={0.75} sx={{ minWidth: 0 }}>
                 <Stack direction="row" spacing={1.25} alignItems="flex-start">

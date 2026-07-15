@@ -142,7 +142,7 @@ const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
     icon: <MapIcon />,
   },
   {
-    label: "My Chapters",
+    label: "Groups",
     href: `${MOBILIZE_PREFIX}/my-groups`,
     module: MODULE_SLUGS.movilization,
     icon: <Groups2OutlinedIcon />,

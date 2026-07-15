@@ -11,5 +11,7 @@ export type MobilizeNavItem = {
   icon?: ReactNode;
 };
 
-/** Max chapter rows under My Chapters before showing View all. */
+/** Max group rows under Groups before showing View all. */
 export const MOBILIZE_MY_CHAPTERS_SIDEBAR_LIMIT = 5;
+export const MOBILIZE_MY_GROUPS_SIDEBAR_LIMIT = MOBILIZE_MY_CHAPTERS_SIDEBAR_LIMIT;
+export const MOBILIZE_MY_GROUPS_HREF = MOBILIZE_MY_CHAPTERS_HREF;

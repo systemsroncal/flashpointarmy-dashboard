@@ -24,7 +24,8 @@ export async function GET() {
   const { data: groupRows, error: gErr } = await auth.admin
     .from("mobilize_groups")
     .select("*")
-    .in("id", ids);
+    .in("id", ids)
+    .not("parent_group_id", "is", null);
 
   if (gErr) {
     return NextResponse.json({ error: gErr.message }, { status: 500 });

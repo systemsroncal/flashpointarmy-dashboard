@@ -59,17 +59,17 @@ export default function MyGroupsPage() {
   return (
     <Box>
       <Typography variant="h4" fontWeight={700} gutterBottom>
-        My Chapters
+        Groups
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Chapters you belong to or lead. Open a chapter from the table.
+        Groups you belong to or lead. Open a group from the table to view feed, events, and members.
       </Typography>
       <MobilizeContentPanel>
         <MobilizeGroupsBrowseTable
           groups={rows}
           loading={loading}
-          emptyMessage="You are not in any Mobilize chapter yet."
-          onJoined={() => void load()}
+          emptyMessage="You are not in any Mobilize group yet."
+          nameLinkTarget="group-detail"
           thumbnailScale={3.5}
         />
       </MobilizeContentPanel>
