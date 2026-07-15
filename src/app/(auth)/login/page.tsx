@@ -84,7 +84,7 @@ function LoginForm() {
           ) : null}
           {sessionReason === "session_expired" ? (
             <Alert severity="info" sx={{ mb: 2 }}>
-              Your session expired or is no longer valid. Please sign in again.
+              Your session has expired. Please sign in again.
             </Alert>
           ) : null}
 

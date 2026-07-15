@@ -39,8 +39,9 @@ export async function GET(req: Request) {
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, wall_post_policy, created_at, created_by"
+      "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, wall_post_policy, created_at, created_by, parent_group_id"
     )
+    .is("parent_group_id", null)
     .eq("visibility", "public")
     .not("latitude", "is", null)
     .not("longitude", "is", null)
@@ -86,6 +87,8 @@ export async function GET(req: Request) {
       leaders: e?.leaders ?? [],
       upcoming_activity_count: e?.upcoming_activity_count ?? 0,
       my_membership_status: e?.my_membership_status ?? null,
+      subgroups: e?.subgroups ?? [],
+      subgroup_count: e?.subgroup_count ?? 0,
     };
   });
 

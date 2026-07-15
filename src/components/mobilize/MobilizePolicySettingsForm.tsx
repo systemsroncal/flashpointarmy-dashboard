@@ -1,20 +1,22 @@
 "use client";
 
 import {
+  Alert,
   Box,
   Button,
   FormControlLabel,
   Paper,
   Stack,
   Switch,
+  TextField,
   Typography,
-  Alert,
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 
 export function MobilizePolicySettingsForm() {
   const [allowLocalLeader, setAllowLocalLeader] = useState(true);
   const [allowMember, setAllowMember] = useState(false);
+  const [autoCloseDays, setAutoCloseDays] = useState(60);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,10 +31,14 @@ export function MobilizePolicySettingsForm() {
         error?: string;
         allow_member_group_create?: boolean;
         allow_local_leader_group_create?: boolean;
+        auto_close_inactive_days?: number;
       };
       if (!res.ok) throw new Error(j.error || "Failed to load settings.");
       setAllowMember(Boolean(j.allow_member_group_create));
       setAllowLocalLeader(j.allow_local_leader_group_create !== false);
+      setAutoCloseDays(
+        Number.isFinite(j.auto_close_inactive_days) ? Number(j.auto_close_inactive_days) : 60
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load failed.");
     } finally {
@@ -49,22 +55,28 @@ export function MobilizePolicySettingsForm() {
     setError(null);
     setSavedOk(false);
     try {
+      const days = Math.min(3650, Math.max(1, Math.round(Number(autoCloseDays) || 60)));
       const res = await fetch("/api/mobilize/policy-settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           allow_member_group_create: allowMember,
           allow_local_leader_group_create: allowLocalLeader,
+          auto_close_inactive_days: days,
         }),
       });
       const j = (await res.json()) as {
         error?: string;
         allow_member_group_create?: boolean;
         allow_local_leader_group_create?: boolean;
+        auto_close_inactive_days?: number;
       };
       if (!res.ok) throw new Error(j.error || "Save failed.");
       setAllowMember(Boolean(j.allow_member_group_create));
       setAllowLocalLeader(j.allow_local_leader_group_create !== false);
+      setAutoCloseDays(
+        Number.isFinite(j.auto_close_inactive_days) ? Number(j.auto_close_inactive_days) : days
+      );
       setSavedOk(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed.");
@@ -76,11 +88,11 @@ export function MobilizePolicySettingsForm() {
   return (
     <Paper sx={{ p: 3, maxWidth: 560, bgcolor: "#fafafa", border: "1px solid rgba(0,0,0,0.1)" }}>
       <Typography variant="h6" fontWeight={700} gutterBottom>
-        Who can create Mobilize groups
+        Who can create Mobilize chapters & groups
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Dashboard admins and super admins can always create groups. Use the switches below for local
-        leaders and members.
+        Dashboard admins and super admins can always create. Use the switches below for local leaders and
+        members.
       </Typography>
 
       {error ? (
@@ -103,7 +115,7 @@ export function MobilizePolicySettingsForm() {
               disabled={loading || saving}
             />
           }
-          label="Local leaders can create groups"
+          label="Local leaders can create chapters & groups"
         />
         <FormControlLabel
           control={
@@ -113,7 +125,18 @@ export function MobilizePolicySettingsForm() {
               disabled={loading || saving}
             />
           }
-          label="Members can create groups"
+          label="Members can create chapters & groups"
+        />
+        <TextField
+          label="Auto-close inactive groups (days)"
+          type="number"
+          size="small"
+          value={autoCloseDays}
+          onChange={(e) => setAutoCloseDays(Number(e.target.value))}
+          disabled={loading || saving}
+          helperText="Groups with no activity longer than this become Auto-closed. Super admin only."
+          inputProps={{ min: 1, max: 3650 }}
+          sx={{ maxWidth: 280 }}
         />
         <Box>
           <Button variant="contained" onClick={() => void save()} disabled={loading || saving}>

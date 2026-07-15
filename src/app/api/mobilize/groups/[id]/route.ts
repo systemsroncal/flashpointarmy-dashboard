@@ -69,6 +69,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
     "cover_image_url",
     "wall_post_policy",
     "resources_post_policy",
+    "schedule_meeting",
+    "enrollment_mode",
+    "public_slug",
   ] as const;
   for (const k of allowed) {
     if (k in body) patch[k] = body[k];
@@ -116,6 +119,23 @@ export async function PATCH(req: Request, ctx: Ctx) {
     const u = patch.cover_image_url;
     patch.cover_image_url =
       u == null || String(u).trim() === "" ? null : String(u).trim();
+  }
+  if ("enrollment_mode" in patch) {
+    const mode = String(patch.enrollment_mode ?? "");
+    if (
+      mode !== "request_to_join" &&
+      mode !== "open_signup" &&
+      mode !== "closed" &&
+      mode !== "auto_closed"
+    ) {
+      return NextResponse.json({ error: "Invalid enrollment_mode." }, { status: 400 });
+    }
+    patch.enrollment_mode = mode;
+  }
+  if ("schedule_meeting" in patch) {
+    const s = patch.schedule_meeting;
+    patch.schedule_meeting =
+      s == null || String(s).trim() === "" ? null : String(s).trim();
   }
   if (Object.keys(patch).length === 0) {
     if (!ownershipSynced) {

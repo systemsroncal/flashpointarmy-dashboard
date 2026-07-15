@@ -43,7 +43,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import MilitaryTechOutlinedIcon from "@mui/icons-material/MilitaryTechOutlined";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import { canViewMobilizeGroupReports, parseMobilizeGroupTab } from "@/lib/mobilize/group-detail-tabs";
@@ -54,6 +54,11 @@ import {
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
 import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
+import {
+  enrollmentModeLabel,
+  enrollmentAcceptsNewMembers,
+  type MobilizeEnrollmentMode,
+} from "@/lib/mobilize/chapter-subgroup";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import {
@@ -98,6 +103,10 @@ type Group = {
   region_code?: string | null;
   created_by: string;
   created_at: string;
+  parent_group_id?: string | null;
+  schedule_meeting?: string | null;
+  enrollment_mode?: string | null;
+  public_slug?: string | null;
 };
 
 type Membership = {
@@ -185,14 +194,14 @@ function JoinToViewGate({
         : section === "resources"
           ? "resources"
           : section === "updates"
-            ? "chapter updates"
+            ? "group updates"
             : section === "reports"
             ? "reports"
             : "members";
 
   const message = isPending
-    ? "Your join request is pending. A chapter leader must approve it before you can view this section."
-    : `Join this chapter to view ${sectionLabel}.`;
+    ? "Your join request is pending. A group leader must approve it before you can view this section."
+    : `Join this group to view ${sectionLabel}.`;
 
   return (
     <Card variant="outlined" sx={mobilizeCardSx}>
@@ -231,6 +240,7 @@ function JoinToViewGate({
 export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const toast = useMobilizeToast();
   const me = useDashboardUser();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const activeTab = parseMobilizeGroupTab(searchParams.get("tab"));
   const [group, setGroup] = useState<Group | null>(null);
@@ -285,10 +295,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     name: "",
     group_type: "reading",
     description: "",
+    schedule_meeting: "",
     address: "",
     latitude: null as number | null,
     longitude: null as number | null,
     visibility: "public",
+    enrollment_mode: "request_to_join" as MobilizeEnrollmentMode,
     event_create_policy: "any_member" as "any_member" | "leader_only",
     cover_image_url: "",
     wall_post_policy: "all_approved" as "all_approved" | "leaders_only",
@@ -309,9 +321,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     const res = await fetch(`/api/mobilize/groups/${groupId}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || "Failed to load group.");
-    setGroup(json.group);
+    const g = json.group as Group;
+    if (g.parent_group_id == null) {
+      router.replace(`/dashboard/mobilize/groups/${groupId}/groups`);
+      return;
+    }
+    setGroup(g);
     setMembership(json.membership ?? null);
-  }, [groupId]);
+  }, [groupId, router]);
 
   const loadWall = useCallback(async () => {
     const res = await fetch(`/api/mobilize/groups/${groupId}/messages`);
@@ -433,7 +450,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       const res = await fetch(`/api/mobilize/groups/${groupId}/join`, { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Join failed.");
-      toast("Join request sent.", "success");
+      const status = json.membership?.membership_status;
+      toast(status === "approved" ? "You joined this group." : "Join request sent.", "success");
       await loadGroup();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Join failed.", "error");
@@ -706,14 +724,20 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   function openEditGroup() {
     if (!group) return;
+    const mode = (group.enrollment_mode ?? "request_to_join") as MobilizeEnrollmentMode;
     setEditForm({
       name: group.name,
       group_type: group.group_type,
       description: group.description ?? "",
+      schedule_meeting: group.schedule_meeting ?? "",
       address: group.address ?? "",
       latitude: group.latitude,
       longitude: group.longitude,
       visibility: group.visibility,
+      enrollment_mode:
+        mode === "open_signup" || mode === "closed" || mode === "auto_closed" || mode === "request_to_join"
+          ? mode
+          : "request_to_join",
       event_create_policy: group.event_create_policy === "leader_only" ? "leader_only" : "any_member",
       cover_image_url: group.cover_image_url?.trim() ?? "",
       wall_post_policy: group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved",
@@ -792,10 +816,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           name: editForm.name.trim(),
           group_type: editForm.group_type,
           description: editForm.description.trim() || null,
+          schedule_meeting: editForm.schedule_meeting.trim() || null,
           address: editForm.address.trim() || null,
           latitude: editForm.latitude,
           longitude: editForm.longitude,
           visibility: editForm.visibility,
+          enrollment_mode:
+            editForm.enrollment_mode === "auto_closed" ? "closed" : editForm.enrollment_mode,
           event_create_policy: editForm.event_create_policy,
           cover_image_url: cover,
           wall_post_policy: editForm.wall_post_policy,
@@ -810,7 +837,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Update failed.");
-      toast("Chapter updated.", "success");
+      toast("Group updated.", "success");
       setEditOpen(false);
       await loadGroup();
       if (isApproved) await loadMembers();
@@ -822,8 +849,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   }
 
   const isPendingJoin = membership?.membership_status === "pending";
+  const enrollmentOpen = enrollmentAcceptsNewMembers(group?.enrollment_mode);
   const showJoin =
-    !isApproved && !isPendingJoin && (!membership || membership.membership_status === "rejected");
+    enrollmentOpen &&
+    !isApproved &&
+    !isPendingJoin &&
+    (!membership || membership.membership_status === "rejected");
 
   const eventWeeks = useMemo(() => {
     const first = startOfMonth(eventCalCursor);
@@ -988,12 +1019,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-        <Button component={Link} href="/dashboard/mobilize/map" size="small">
-          Back to chapters
+        <Button component={Link} href={`/dashboard/mobilize/groups/${group.parent_group_id}/groups`} size="small">
+          Back to chapter groups
         </Button>
         {canEditGroup ? (
           <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => openEditGroup()}>
-            Edit chapter
+            Edit group
           </Button>
         ) : null}
       </Stack>
@@ -1823,6 +1854,39 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               value={editForm.description}
               onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
             />
+            <TextField
+              label="Schedule meeting"
+              fullWidth
+              multiline
+              minRows={2}
+              placeholder="e.g. Meets weekly on Saturdays from 6–8pm"
+              value={editForm.schedule_meeting}
+              onChange={(e) => setEditForm((f) => ({ ...f, schedule_meeting: e.target.value }))}
+            />
+            <FormControl fullWidth>
+              <InputLabel id="enroll-edit">Enrollment</InputLabel>
+              <Select
+                labelId="enroll-edit"
+                label="Enrollment"
+                value={editForm.enrollment_mode === "auto_closed" ? "closed" : editForm.enrollment_mode}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    enrollment_mode: e.target.value as MobilizeEnrollmentMode,
+                  }))
+                }
+              >
+                <MenuItem value="request_to_join">Request to join (private)</MenuItem>
+                <MenuItem value="open_signup">Open signup (public)</MenuItem>
+                <MenuItem value="closed">Closed</MenuItem>
+              </Select>
+            </FormControl>
+            {group?.enrollment_mode === "auto_closed" ? (
+              <Typography variant="caption" color="warning.main">
+                Currently auto-closed due to inactivity ({enrollmentModeLabel("auto_closed")}). Saving as Closed
+                will keep it closed until you choose Open signup or Request to join.
+              </Typography>
+            ) : null}
             <MobilizeGroupCoverDropzone
               value={editForm.cover_image_url}
               onChange={(url) => setEditForm((f) => ({ ...f, cover_image_url: url }))}

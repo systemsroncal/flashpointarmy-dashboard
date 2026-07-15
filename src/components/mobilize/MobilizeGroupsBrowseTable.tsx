@@ -1,13 +1,9 @@
 "use client";
 
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import {
   Avatar,
   Box,
-  Button,
-  Chip,
   IconButton,
   Skeleton,
   Stack,
@@ -22,10 +18,11 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
+import type { MobilizeSubgroupBrief } from "@/lib/mobilize/chapter-subgroup";
 import { resolveMobilizeGroupStateCode } from "@/lib/mobilize/group-state-flag";
 import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
+import { mobilizeGroupInitials } from "@/lib/mobilize/group-initials";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
 export type MobilizeBrowseGroupRow = {
   id: string;
@@ -42,6 +39,8 @@ export type MobilizeBrowseGroupRow = {
   leaders?: MobilizeGroupLeaderBrief[];
   upcoming_activity_count?: number;
   my_membership_status?: string | null;
+  subgroups?: MobilizeSubgroupBrief[];
+  subgroup_count?: number;
 };
 
 const leaderPillSx = {
@@ -65,10 +64,10 @@ type Props = {
   /** When set, table body scrolls inside this max height. */
   maxHeight?: number;
   emptyMessage?: string;
-  /** Called after a successful join request (e.g. reload list). */
+  /** @deprecated Chapters no longer support join from browse. */
   onJoined?: () => void | Promise<void>;
   /**
-   * Map tab only: one column for cover + name + address, then actions stacked below (no separate Actions column).
+   * Map tab: Chapter + Groups preview + open link (no Leaders/Members/Join).
    */
   layoutVariant?: "default" | "mapStacked";
   /** Multiplier for cover thumbnail (base 56 default / 72 mapStacked). E.g. 3.5 for Groups + My Groups. */
@@ -152,21 +151,80 @@ function ChapterStateBadge({
   );
 }
 
+function SubgroupAvatars({
+  subgroups = [],
+  subgroupCount = 0,
+}: {
+  subgroups?: MobilizeSubgroupBrief[];
+  subgroupCount?: number;
+}) {
+  const shown = subgroups.slice(0, 5);
+  const total = Math.max(subgroupCount, subgroups.length);
+  const overflow = total > 5;
+
+  if (!shown.length) {
+    return (
+      <Typography variant="caption" color="text.secondary">
+        —
+      </Typography>
+    );
+  }
+
+  return (
+    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexWrap: "wrap" }}>
+      {shown.map((s) => {
+        const src = s.cover_image_url ? publicAssetSrc(s.cover_image_url) : undefined;
+        return (
+          <Tooltip key={s.id} title={s.name}>
+            <Avatar
+              src={src}
+              sx={{
+                width: 28,
+                height: 28,
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                bgcolor: "grey.800",
+                color: "primary.main",
+                border: "1px solid rgba(0,0,0,0.12)",
+              }}
+            >
+              {mobilizeGroupInitials(s.name)}
+            </Avatar>
+          </Tooltip>
+        );
+      })}
+      {overflow ? (
+        <Tooltip title={`${total - 5} more`}>
+          <Avatar
+            sx={{
+              width: 28,
+              height: 28,
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              bgcolor: "grey.200",
+              color: "text.secondary",
+            }}
+          >
+            +
+          </Avatar>
+        </Tooltip>
+      ) : null}
+    </Stack>
+  );
+}
+
 export default function MobilizeGroupsBrowseTable({
   groups,
   loading = false,
   maxHeight,
   emptyMessage = "No chapters match your filters.",
-  onJoined,
   layoutVariant = "default",
   thumbnailScale = 1,
 }: Props) {
-  const toast = useMobilizeToast();
   const mapStacked = layoutVariant === "mapStacked";
   const showActivitiesColumn = !mapStacked;
   const thumbBase = mapStacked ? 48 : 56;
   const thumbSize = Math.max(28, Math.round(thumbBase * thumbnailScale));
-  /** Default list + My Groups: 4/3.5 aspect cover. Map tab left column: compact square thumbnail. */
   const listHeroCover = !mapStacked;
   const coverImgSx = listHeroCover
     ? ({
@@ -189,62 +247,16 @@ export default function MobilizeGroupsBrowseTable({
         flexShrink: 0,
       } as const);
 
-  async function joinGroup(groupId: string) {
-    try {
-      const res = await fetch(`/api/mobilize/groups/${groupId}/join`, { method: "POST" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Join failed.");
-      toast("Join request sent.", "success");
-      await onJoined?.();
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Join failed.", "error");
-    }
+  function chapterGroupsHref(id: string) {
+    return `/dashboard/mobilize/groups/${id}/groups`;
   }
 
-  function renderJoinActions(g: MobilizeBrowseGroupRow, align: "end" | "start" = "end") {
+  function renderOpenChapter(g: MobilizeBrowseGroupRow, align: "end" | "start" = "end") {
     const justify = align === "start" ? "flex-start" : "flex-end";
-    const st = g.my_membership_status;
-    const href = `/dashboard/mobilize/groups/${g.id}`;
-    if (st === "approved") {
-      return (
-        <Stack direction="row" alignItems="center" spacing={0.5} justifyContent={justify}>
-          <Chip size="small" icon={<CheckCircleIcon />} label="Joined" color="success" variant="outlined" />
-          <Tooltip title="Open chapter">
-            <IconButton
-              component={Link}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              size="small"
-              color="primary"
-            >
-              <OpenInNewIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      );
-    }
-    if (st === "pending") {
-      return (
-        <Box sx={{ display: "flex", justifyContent: justify }}>
-          <Chip size="small" label="Pending" color="warning" variant="outlined" />
-        </Box>
-      );
-    }
+    const href = chapterGroupsHref(g.id);
     return (
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={0.5}
-        justifyContent={justify}
-        flexWrap="wrap"
-        useFlexGap
-        sx={{ maxWidth: "100%" }}
-      >
-        <Button size="small" variant="outlined" startIcon={<PersonAddIcon />} onClick={() => void joinGroup(g.id)}>
-          Join
-        </Button>
-        <Tooltip title="Open group">
+      <Stack direction="row" alignItems="center" spacing={0.5} justifyContent={justify}>
+        <Tooltip title="View groups in this chapter">
           <IconButton
             component={Link}
             href={href}
@@ -316,21 +328,23 @@ export default function MobilizeGroupsBrowseTable({
                   sx={{
                     fontWeight: 700,
                     color: "text.secondary",
-                    width: { xs: "auto", md: "34%" },
-                    maxWidth: { md: 240 },
+                    width: { xs: "auto", md: "42%" },
+                    maxWidth: { md: 280 },
                     minWidth: { xs: 160, md: 0 },
                   }}
                 >
                   Chapter
                 </TableCell>
+                <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: { xs: "36%", md: "40%" } }}>
+                  Groups
+                </TableCell>
                 <TableCell
                   align="right"
                   sx={{
                     display: { xs: "none", md: "table-cell" },
-                    width: 108,
+                    width: 56,
                     fontWeight: 700,
                     color: "text.secondary",
-                    whiteSpace: "nowrap",
                     px: 1,
                   }}
                 >
@@ -341,27 +355,20 @@ export default function MobilizeGroupsBrowseTable({
               <>
                 <TableCell sx={{ width: thumbColWidth, py: 1 }} />
                 <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: "text.secondary", minWidth: 140 }}>Leaders</TableCell>
+                <TableCell align="right" sx={{ width: 88, fontWeight: 700, color: "text.secondary" }}>
+                  Members
+                </TableCell>
+                {showActivitiesColumn ? (
+                  <TableCell align="center" sx={{ width: 96, fontWeight: 700, color: "text.secondary" }}>
+                    Activities
+                  </TableCell>
+                ) : null}
+                <TableCell align="right" sx={{ width: 80, fontWeight: 700, color: "text.secondary" }}>
+                  Actions
+                </TableCell>
               </>
             )}
-            <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: mapStacked ? { xs: "32%", md: "28%" } : undefined, minWidth: mapStacked ? 0 : 140 }}>
-              Leaders
-            </TableCell>
-            <TableCell
-              align="right"
-              sx={{ width: mapStacked ? "14%" : 88, fontWeight: 700, color: "text.secondary", whiteSpace: "nowrap" }}
-            >
-              Members
-            </TableCell>
-            {showActivitiesColumn ? (
-              <TableCell align="center" sx={{ width: 96, fontWeight: 700, color: "text.secondary" }}>
-                Activities
-              </TableCell>
-            ) : null}
-            {!mapStacked ? (
-              <TableCell align="right" sx={{ width: 150, fontWeight: 700, color: "text.secondary" }}>
-                Actions
-              </TableCell>
-            ) : null}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -380,6 +387,7 @@ export default function MobilizeGroupsBrowseTable({
             const cover = publicAssetSrc(mobilizeChapterCoverSrc(g.cover_image_url));
             const count = g.member_count ?? 0;
             const activities = g.upcoming_activity_count ?? 0;
+            const groupsHref = chapterGroupsHref(g.id);
             const groupInfo = (
               <Stack spacing={0.75} sx={{ minWidth: 0 }}>
                 <Stack direction="row" spacing={1.25} alignItems="flex-start">
@@ -391,7 +399,7 @@ export default function MobilizeGroupsBrowseTable({
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Typography
                       component={Link}
-                      href={`/dashboard/mobilize/groups/${g.id}`}
+                      href={groupsHref}
                       fontWeight={700}
                       color="inherit"
                       display="block"
@@ -409,15 +417,6 @@ export default function MobilizeGroupsBrowseTable({
                       variant="caption"
                       color="text.secondary"
                       display="block"
-                      sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                    >
-                      {g.group_type}
-                      {g.distance_km != null ? ` · ${g.distance_km.toFixed(1)} km` : ""}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      display="block"
                       title={g.address ?? ""}
                       sx={{
                         overflow: "hidden",
@@ -426,12 +425,13 @@ export default function MobilizeGroupsBrowseTable({
                       }}
                     >
                       {g.address ?? "—"}
+                      {g.distance_km != null ? ` · ${g.distance_km.toFixed(1)} km` : ""}
                     </Typography>
                   </Box>
                 </Stack>
                 {mapStacked ? (
                   <Box sx={{ display: { xs: "block", md: "none" }, pt: 0.25 }}>
-                    {renderJoinActions(g, "start")}
+                    {renderOpenChapter(g, "start")}
                   </Box>
                 ) : null}
               </Stack>
@@ -451,6 +451,9 @@ export default function MobilizeGroupsBrowseTable({
                 {mapStacked ? (
                   <>
                     <TableCell sx={{ py: 0.85, verticalAlign: "top" }}>{groupInfo}</TableCell>
+                    <TableCell sx={{ py: 0.85, verticalAlign: "middle" }}>
+                      <SubgroupAvatars subgroups={g.subgroups} subgroupCount={g.subgroup_count} />
+                    </TableCell>
                     <TableCell
                       align="right"
                       sx={{
@@ -461,7 +464,7 @@ export default function MobilizeGroupsBrowseTable({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {renderJoinActions(g)}
+                      {renderOpenChapter(g)}
                     </TableCell>
                   </>
                 ) : (
@@ -472,7 +475,7 @@ export default function MobilizeGroupsBrowseTable({
                     <TableCell sx={{ minWidth: 0 }}>
                       <Typography
                         component={Link}
-                        href={`/dashboard/mobilize/groups/${g.id}`}
+                        href={groupsHref}
                         fontWeight={700}
                         color="inherit"
                         sx={{ textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
@@ -481,45 +484,41 @@ export default function MobilizeGroupsBrowseTable({
                       >
                         {g.name}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" noWrap>
-                        {g.group_type}
-                        {g.distance_km != null ? ` · ${g.distance_km.toFixed(1)} km` : ""}
-                      </Typography>
                       <Typography variant="caption" color="text.secondary" display="block" noWrap title={g.address ?? ""}>
                         {g.address ?? "—"}
                       </Typography>
                     </TableCell>
+                    <TableCell sx={{ verticalAlign: "top" }}>
+                      {leaders.length ? (
+                        <Stack spacing={0.65} sx={{ maxWidth: "100%", minWidth: 0 }}>
+                          {leaders.slice(0, 4).map((L) => (
+                            <LeaderPill key={L.user_id} L={L} />
+                          ))}
+                          {leaders.length > 4 ? (
+                            <Typography variant="caption" color="text.secondary">
+                              +{leaders.length - 4} more
+                            </Typography>
+                          ) : null}
+                        </Stack>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          —
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">{count}</TableCell>
+                    {showActivitiesColumn ? (
+                      <TableCell align="center">
+                        <Tooltip title="Upcoming Mobilize events (from now)">
+                          <Typography variant="body2" fontWeight={600} component="span" sx={{ cursor: "default" }}>
+                            {activities}
+                          </Typography>
+                        </Tooltip>
+                      </TableCell>
+                    ) : null}
+                    <TableCell align="right">{renderOpenChapter(g)}</TableCell>
                   </>
                 )}
-                <TableCell sx={{ verticalAlign: "top", width: mapStacked ? { xs: "32%", md: "28%" } : undefined }}>
-                  {leaders.length ? (
-                    <Stack spacing={mapStacked ? 0.45 : 0.65} sx={{ maxWidth: "100%", minWidth: 0 }}>
-                      {leaders.slice(0, mapStacked ? 3 : 4).map((L) => (
-                        <LeaderPill key={L.user_id} L={L} compact={mapStacked} />
-                      ))}
-                      {leaders.length > (mapStacked ? 3 : 4) ? (
-                        <Typography variant="caption" color="text.secondary">
-                          +{leaders.length - (mapStacked ? 3 : 4)} more
-                        </Typography>
-                      ) : null}
-                    </Stack>
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">
-                      —
-                    </Typography>
-                  )}
-                </TableCell>
-                <TableCell align="right">{count}</TableCell>
-                {showActivitiesColumn ? (
-                  <TableCell align="center">
-                    <Tooltip title="Upcoming Mobilize events (from now)">
-                      <Typography variant="body2" fontWeight={600} component="span" sx={{ cursor: "default" }}>
-                        {activities}
-                      </Typography>
-                    </Tooltip>
-                  </TableCell>
-                ) : null}
-                {!mapStacked ? <TableCell align="right">{renderJoinActions(g)}</TableCell> : null}
               </TableRow>
             );
           })}

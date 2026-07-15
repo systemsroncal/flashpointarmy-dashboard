@@ -5,14 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
-  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
-  FormControlLabel,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -23,6 +20,7 @@ import {
   ToggleButtonGroup,
   Tooltip,
   Typography,
+  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
@@ -31,6 +29,7 @@ import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCover
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
 import MobilizeGroupsBrowseTable from "@/components/mobilize/MobilizeGroupsBrowseTable";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
+import type { MobilizeSubgroupBrief } from "@/lib/mobilize/chapter-subgroup";
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import {
   isMobilizeGroupListed,
@@ -60,6 +59,8 @@ type GroupRow = {
   leaders?: MobilizeGroupLeaderBrief[];
   upcoming_activity_count?: number;
   my_membership_status?: string | null;
+  subgroups?: MobilizeSubgroupBrief[];
+  subgroup_count?: number;
 };
 
 /** Temporarily hide GPS/address search origin controls on the chapters map page. */
@@ -76,7 +77,6 @@ export default function MobilizeMapPageContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [types, setTypes] = useState<string[]>([]);
   const [radiusKm, setRadiusKm] = useState(25);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [manualSearchAddress, setManualSearchAddress] = useState("");
@@ -147,19 +147,17 @@ export default function MobilizeMapPageContent() {
           lng: String(searchOrigin.lng),
           radiusKm: String(radiusKm),
         });
-        if (types.length) params.set("types", types.join(","));
         if (debouncedSearch) params.set("q", debouncedSearch);
         const res = await fetch(`/api/mobilize/nearby?${params.toString()}`);
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Failed to load nearby groups.");
+        if (!res.ok) throw new Error(json.error || "Failed to load nearby chapters.");
         setGroups(json.groups ?? []);
       } else {
         const params = new URLSearchParams({ visibility: "public" });
-        if (types.length) params.set("types", types.join(","));
         if (debouncedSearch) params.set("q", debouncedSearch);
         const res = await fetch(`/api/mobilize/groups?${params.toString()}`);
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Failed to load groups.");
+        if (!res.ok) throw new Error(json.error || "Failed to load chapters.");
         let rows = (json.groups ?? []).filter(
           (g: GroupRow) => g.latitude != null && g.longitude != null
         ) as GroupRow[];
@@ -182,7 +180,7 @@ export default function MobilizeMapPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [searchOrigin, radiusKm, types, debouncedSearch, toast]);
+  }, [searchOrigin, radiusKm, debouncedSearch, toast]);
 
   useEffect(() => {
     void load();
@@ -240,7 +238,7 @@ export default function MobilizeMapPageContent() {
           lng: g.longitude as number,
           title: g.name,
           subtitle: `${g.group_type} · ${g.address ?? "No address"}`,
-          href: `/dashboard/mobilize/groups/${g.id}`,
+          href: `/dashboard/mobilize/groups/${g.id}/groups`,
         })),
     [sorted]
   );
@@ -318,7 +316,7 @@ export default function MobilizeMapPageContent() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Create failed.");
-      toast("Group created.", "success");
+      toast("Chapter created.", "success");
       setCreateOpen(false);
       setForm({
         name: "",
@@ -348,8 +346,8 @@ export default function MobilizeMapPageContent() {
             Chapters
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720, lineHeight: 1.55 }}>
-            Find FlashPoint Army chapters near you. Browse the map, explore listed chapters, and join the one that
-            fits your area and interests.
+            Find FlashPoint Army chapters near you. Browse the map, open a chapter to explore its groups, and join
+            the group that fits your area and interests.
           </Typography>
         </Box>
         {canCreateGroup ? (
@@ -464,26 +462,6 @@ export default function MobilizeMapPageContent() {
             </MenuItem>
           </Select>
         </FormControl>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
-          <Typography variant="caption" color="text.secondary" sx={{ width: "100%", md: "auto" }}>
-            Types
-          </Typography>
-          {MOBILIZE_GROUP_TYPES.map((t) => (
-            <FormControlLabel
-              key={t}
-              control={
-                <Checkbox
-                  size="small"
-                  checked={types.includes(t)}
-                  onChange={() =>
-                    setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
-                  }
-                />
-              }
-              label={t}
-            />
-          ))}
-        </Box>
       </Stack>
 
       <Box
@@ -503,7 +481,6 @@ export default function MobilizeMapPageContent() {
             loading={loading}
             maxHeight={480}
             emptyMessage="No chapters match your filters."
-            onJoined={() => void load()}
             layoutVariant="mapStacked"
             thumbnailScale={1}
           />
@@ -599,40 +576,6 @@ export default function MobilizeMapPageContent() {
                 }))
               }
             />
-            <FormControl fullWidth>
-              <InputLabel id="wpp">Who can post announcements</InputLabel>
-              <Select
-                labelId="wpp"
-                label="Who can post announcements"
-                value={form.wall_post_policy}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    wall_post_policy: e.target.value as "all_approved" | "leaders_only",
-                  }))
-                }
-              >
-                <MenuItem value="all_approved">All approved members</MenuItem>
-                <MenuItem value="leaders_only">Leaders only</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel id="rpp-create">Who can add resources</InputLabel>
-              <Select
-                labelId="rpp-create"
-                label="Who can add resources"
-                value={form.resources_post_policy}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    resources_post_policy: e.target.value as "all_approved" | "leaders_only",
-                  }))
-                }
-              >
-                <MenuItem value="all_approved">All approved members</MenuItem>
-                <MenuItem value="leaders_only">Leaders only</MenuItem>
-              </Select>
-            </FormControl>
           </Stack>
         </DialogContent>
         <DialogActions>

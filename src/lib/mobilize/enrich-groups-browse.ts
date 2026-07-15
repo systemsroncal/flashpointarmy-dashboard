@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { MobilizeSubgroupBrief } from "@/lib/mobilize/chapter-subgroup";
 
 export type MobilizeGroupLeaderBrief = {
   user_id: string;
@@ -18,6 +19,9 @@ export type MobilizeGroupBrowseExtras = {
   my_membership_status: string | null;
   /** Mobilize events with date_time >= now (this group only). */
   upcoming_activity_count: number;
+  /** Up to 5 subgroups for chapter browse cards. */
+  subgroups: MobilizeSubgroupBrief[];
+  subgroup_count: number;
 };
 
 type DuRow = {
@@ -61,6 +65,8 @@ function emptyExtras(): MobilizeGroupBrowseExtras {
     leaders: [],
     my_membership_status: null,
     upcoming_activity_count: 0,
+    subgroups: [],
+    subgroup_count: 0,
   };
 }
 
@@ -90,26 +96,46 @@ export async function enrichMobilizeGroupsBrowse(
     upcomingByGroup.set(gid, (upcomingByGroup.get(gid) ?? 0) + 1);
   }
 
-  const extrasWithUpcoming = (base: MobilizeGroupBrowseExtras, id: string): MobilizeGroupBrowseExtras => ({
-    ...base,
-    upcoming_activity_count: upcomingByGroup.get(id) ?? 0,
-  });
+  const { data: childRows } = await admin
+    .from("mobilize_groups")
+    .select("id, name, cover_image_url, enrollment_mode, parent_group_id, created_at")
+    .in("parent_group_id", ids)
+    .order("created_at", { ascending: true });
+
+  const subgroupsByParent = new Map<string, MobilizeSubgroupBrief[]>();
+  const subgroupCountByParent = new Map<string, number>();
+  for (const child of childRows ?? []) {
+    const parentId = (child as { parent_group_id: string }).parent_group_id;
+    const brief: MobilizeSubgroupBrief = {
+      id: child.id as string,
+      name: child.name as string,
+      cover_image_url: (child.cover_image_url as string | null) ?? null,
+      enrollment_mode: String((child as { enrollment_mode?: string }).enrollment_mode ?? "request_to_join"),
+    };
+    const list = subgroupsByParent.get(parentId) ?? [];
+    list.push(brief);
+    subgroupsByParent.set(parentId, list);
+    subgroupCountByParent.set(parentId, (subgroupCountByParent.get(parentId) ?? 0) + 1);
+  }
+
+  const withSubgroups = (base: MobilizeGroupBrowseExtras, id: string): MobilizeGroupBrowseExtras => {
+    const allSubs = subgroupsByParent.get(id) ?? [];
+    return {
+      ...base,
+      upcoming_activity_count: upcomingByGroup.get(id) ?? 0,
+      subgroups: allSubs.slice(0, 5),
+      subgroup_count: subgroupCountByParent.get(id) ?? allSubs.length,
+    };
+  };
 
   const { data: rows, error } = await admin
     .from("mobilize_group_members")
     .select("group_id, user_id, member_role, membership_status")
     .in("group_id", ids);
 
-  if (error) {
+  if (error || !rows?.length) {
     for (const id of ids) {
-      out.set(id, extrasWithUpcoming(emptyExtras(), id));
-    }
-    return out;
-  }
-
-  if (!rows?.length) {
-    for (const id of ids) {
-      out.set(id, extrasWithUpcoming(emptyExtras(), id));
+      out.set(id, withSubgroups(emptyExtras(), id));
     }
     return out;
   }
@@ -187,13 +213,21 @@ export async function enrichMobilizeGroupsBrowse(
     });
     const leaderNames = leaders.map((l) => l.full_name);
     const mine = list.find((m) => m.user_id === userId);
-    out.set(id, {
-      member_count: approved.length,
-      leader_names: leaderNames,
-      leaders,
-      my_membership_status: mine ? (mine.membership_status as string) : null,
-      upcoming_activity_count: upcomingByGroup.get(id) ?? 0,
-    });
+    out.set(
+      id,
+      withSubgroups(
+        {
+          member_count: approved.length,
+          leader_names: leaderNames,
+          leaders,
+          my_membership_status: mine ? (mine.membership_status as string) : null,
+          upcoming_activity_count: 0,
+          subgroups: [],
+          subgroup_count: 0,
+        },
+        id
+      )
+    );
   }
 
   return out;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import { applyMobilizeAutoCloseInactive } from "@/lib/mobilize/apply-auto-close";
 import { enrichMobilizeGroupsBrowse } from "@/lib/mobilize/enrich-groups-browse";
 import { canCreateMobilizeGroup, loadMobilizeGroupCreatorPolicy } from "@/lib/mobilize/mobilize-roles";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
@@ -15,13 +16,24 @@ export async function GET(req: Request) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const parentId = (url.searchParams.get("parent_id") || "").trim();
+
+  if (parentId) {
+    await applyMobilizeAutoCloseInactive(auth.admin);
+  }
 
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, created_by, created_at"
+      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, created_by, created_at, parent_group_id, schedule_meeting, enrollment_mode, last_activity_at, public_slug"
     )
     .order("created_at", { ascending: false });
+
+  if (parentId) {
+    query = query.eq("parent_group_id", parentId);
+  } else {
+    query = query.is("parent_group_id", null);
+  }
 
   if (visibility === "public" || visibility === "private") {
     query = query.eq("visibility", visibility);
@@ -53,6 +65,8 @@ export async function GET(req: Request) {
       leaders: e?.leaders ?? [],
       upcoming_activity_count: e?.upcoming_activity_count ?? 0,
       my_membership_status: e?.my_membership_status ?? null,
+      subgroups: e?.subgroups ?? [],
+      subgroup_count: e?.subgroup_count ?? 0,
     };
   });
   return NextResponse.json({ groups });
@@ -87,12 +101,34 @@ export async function POST(req: Request) {
     cover_image_url?: string | null;
     wall_post_policy?: string;
     resources_post_policy?: string;
+    parent_group_id?: string | null;
+    schedule_meeting?: string | null;
+    enrollment_mode?: string;
   };
 
   const name = String(body.name ?? "").trim();
-  const group_type = String(body.group_type ?? "").trim();
-  if (!name || !group_type) {
-    return NextResponse.json({ error: "name and group_type are required." }, { status: 400 });
+  const group_type = String(body.group_type ?? "").trim() || "other";
+  if (!name) {
+    return NextResponse.json({ error: "name is required." }, { status: 400 });
+  }
+
+  const parent_group_id =
+    body.parent_group_id != null && String(body.parent_group_id).trim()
+      ? String(body.parent_group_id).trim()
+      : null;
+
+  if (parent_group_id) {
+    const { data: parent } = await auth.admin
+      .from("mobilize_groups")
+      .select("id, parent_group_id")
+      .eq("id", parent_group_id)
+      .maybeSingle();
+    if (!parent || parent.parent_group_id != null) {
+      return NextResponse.json(
+        { error: "parent_group_id must be a chapter (top-level group)." },
+        { status: 400 }
+      );
+    }
   }
 
   const visibility =
@@ -108,6 +144,21 @@ export async function POST(req: Request) {
       ? String(body.cover_image_url).trim()
       : null;
 
+  const enrollmentRaw = String(body.enrollment_mode ?? "").trim();
+  const enrollment_mode =
+    enrollmentRaw === "open_signup" ||
+    enrollmentRaw === "closed" ||
+    enrollmentRaw === "request_to_join"
+      ? enrollmentRaw
+      : visibility === "public"
+        ? "open_signup"
+        : "request_to_join";
+
+  const schedule_meeting =
+    body.schedule_meeting != null && String(body.schedule_meeting).trim()
+      ? String(body.schedule_meeting).trim()
+      : null;
+
   const row = {
     name,
     group_type,
@@ -121,6 +172,10 @@ export async function POST(req: Request) {
     resources_post_policy,
     cover_image_url: cover,
     created_by: auth.userId,
+    parent_group_id,
+    schedule_meeting: parent_group_id ? schedule_meeting : null,
+    enrollment_mode: parent_group_id ? enrollment_mode : "request_to_join",
+    last_activity_at: new Date().toISOString(),
   };
 
   const { data, error } = await auth.admin.from("mobilize_groups").insert(row).select("*").single();
