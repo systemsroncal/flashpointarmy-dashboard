@@ -14,6 +14,8 @@ type Props = {
   icon?: ReactNode;
   /** Grow to fill the tab panel and center the empty state vertically */
   fill?: boolean;
+  /** Truth-style dark feed vs light panels */
+  surface?: "light" | "dark";
 };
 
 export function MobilizeSectionEmptyState({
@@ -23,9 +25,14 @@ export function MobilizeSectionEmptyState({
   imageSrc,
   icon,
   fill = false,
+  surface = "light",
 }: Props) {
   const heading = title || message || "Nothing to see here";
   const body = description ?? (title && message ? message : undefined);
+  const isDark = surface === "dark";
+  const titleColor = isDark ? "#e7e9ea" : "#0d0d0d";
+  const bodyColor = isDark ? "#8b98a5" : "rgba(0,0,0,0.65)";
+  const circleBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
 
   const visual = imageSrc ? (
     <Box
@@ -86,7 +93,7 @@ export function MobilizeSectionEmptyState({
               height: 200,
             },
             borderRadius: "50%",
-            bgcolor: "rgba(0,0,0,0.04)",
+            bgcolor: circleBg,
           }}
         >
           {visual}
@@ -96,15 +103,14 @@ export function MobilizeSectionEmptyState({
         <Typography
           variant="h6"
           fontWeight={800}
-          sx={{ mb: body ? 1 : 0, letterSpacing: "-0.02em", color: "text.primary" }}
+          sx={{ mb: body ? 1 : 0, letterSpacing: "-0.02em", color: titleColor }}
         >
           {heading}
         </Typography>
         {body ? (
           <Typography
             variant="body1"
-            color="text.secondary"
-            sx={{ lineHeight: 1.6, maxWidth: 480 }}
+            sx={{ lineHeight: 1.6, maxWidth: 480, color: bodyColor }}
           >
             {body}
           </Typography>
@@ -137,8 +143,8 @@ export function MobilizeSectionEmptyState({
         py: 3,
         px: { xs: 2, md: 2.5 },
         borderRadius: 2,
-        bgcolor: "rgba(0,0,0,0.02)",
-        border: "1px dashed rgba(0,0,0,0.1)",
+        bgcolor: isDark ? "transparent" : "rgba(0,0,0,0.02)",
+        border: isDark ? "none" : "1px dashed rgba(0,0,0,0.1)",
       }}
     >
       {content}

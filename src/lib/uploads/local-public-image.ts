@@ -85,6 +85,19 @@ export async function writeMobilizeAnnouncementImage(
   return toWebPath("mobilize-announcements", groupId, userId, fileName);
 }
 
+/** Profile wall images under `public/uploads/mobilize-profile-posts/{userId}/{uuid}.{ext}`. */
+export async function writeMobilizeProfilePostImage(
+  userId: string,
+  buffer: Buffer,
+  ext: string
+): Promise<string> {
+  const absDir = path.join(uploadsRoot(), "mobilize-profile-posts", userId);
+  await mkdir(absDir, { recursive: true });
+  const fileName = `${randomUUID()}.${ext}`;
+  await writeFile(path.join(absDir, fileName), buffer);
+  return toWebPath("mobilize-profile-posts", userId, fileName);
+}
+
 /** Mobilize feed ad images under `public/uploads/mobilize-feed-ads/{userId}/{uuid}.{ext}`. */
 export async function writeMobilizeFeedAdImage(userId: string, buffer: Buffer, ext: string): Promise<string> {
   const absDir = path.join(uploadsRoot(), "mobilize-feed-ads", userId);

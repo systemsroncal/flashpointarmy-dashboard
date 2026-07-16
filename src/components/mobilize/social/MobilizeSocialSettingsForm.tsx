@@ -55,7 +55,7 @@ export function MobilizeSocialSettingsForm({
 
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 560 }}>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{ color: "rgba(0,0,0,0.65)" }}>
         Control who can see your profile posts and whether other members can message you.
       </Typography>
 

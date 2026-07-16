@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  TRUTH_HUB_BORDER,
+  TRUTH_HUB_TEXT,
+  TRUTH_HUB_TEXT_MUTED,
+} from "@/lib/mobilize/social/social-hub-surface";
 import { Box, Typography } from "@mui/material";
 
 export type MobilizeContentTab = { id: string; label: string };
@@ -10,6 +15,8 @@ type Props = {
   onTabChange: (id: string) => void;
   /** Truth Social–style pink accent underline. */
   variant?: "truth" | "facebook";
+  /** Dark Truth center column vs white panel. */
+  surface?: "light" | "dark";
 };
 
 const TRUTH_ACCENT = "#ff2952";
@@ -20,8 +27,10 @@ export function MobilizeContentTabBar({
   activeTab,
   onTabChange,
   variant = "truth",
+  surface = "light",
 }: Props) {
   const accent = variant === "truth" ? TRUTH_ACCENT : FACEBOOK_ACCENT;
+  const isDark = surface === "dark";
 
   return (
     <Box
@@ -29,10 +38,13 @@ export function MobilizeContentTabBar({
         display: "flex",
         alignItems: "stretch",
         gap: 0,
-        bgcolor: "#fff",
-        borderBottom: "1px solid rgba(0,0,0,0.08)",
+        bgcolor: isDark ? "transparent" : "#fff",
+        borderBottom: isDark ? `1px solid ${TRUTH_HUB_BORDER}` : "1px solid rgba(0,0,0,0.08)",
         overflowX: "auto",
         flexShrink: 0,
+        position: isDark ? "sticky" : undefined,
+        top: isDark ? 57 : undefined,
+        zIndex: isDark ? 2 : undefined,
       }}
     >
       {tabs.map((t) => {
@@ -50,7 +62,13 @@ export function MobilizeContentTabBar({
               px: { xs: 2, sm: 2.5 },
               py: 1.35,
               fontWeight: selected ? 800 : 600,
-              color: selected ? accent : "text.secondary",
+              color: selected
+                ? isDark
+                  ? TRUTH_HUB_TEXT
+                  : accent
+                : isDark
+                  ? TRUTH_HUB_TEXT_MUTED
+                  : "text.secondary",
               borderBottom: "3px solid",
               borderBottomColor: selected ? accent : "transparent",
               whiteSpace: "nowrap",
@@ -58,8 +76,8 @@ export function MobilizeContentTabBar({
               flexShrink: 0,
               transition: "color 0.15s ease, border-color 0.15s ease",
               "&:hover": {
-                color: selected ? accent : "text.primary",
-                bgcolor: "rgba(0,0,0,0.02)",
+                color: selected ? (isDark ? TRUTH_HUB_TEXT : accent) : isDark ? TRUTH_HUB_TEXT : "text.primary",
+                bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
               },
             }}
           >

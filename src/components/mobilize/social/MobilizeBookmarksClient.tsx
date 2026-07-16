@@ -1,6 +1,7 @@
 "use client";
 
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
+import { MobilizeSocialHubContent } from "@/components/mobilize/social/MobilizeSocialHubContent";
 import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { BOOKMARKS_EMPTY } from "@/lib/mobilize/social/social-empty-copy";
@@ -39,7 +40,8 @@ export function MobilizeBookmarksClient() {
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
       <MobilizeSocialHubLayout>
-        <Box sx={{ p: { xs: 1.5, sm: 2 }, color: "#0d0d0d", flex: 1, display: "flex", flexDirection: "column" }}>
+        <MobilizeSocialHubContent tone="light">
+          <Box sx={{ p: { xs: 1.5, sm: 2 }, flex: 1, display: "flex", flexDirection: "column" }}>
           <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
             Bookmarks
           </Typography>
@@ -69,7 +71,8 @@ export function MobilizeBookmarksClient() {
               })}
             </Box>
           )}
-        </Box>
+          </Box>
+        </MobilizeSocialHubContent>
       </MobilizeSocialHubLayout>
     </Box>
   );

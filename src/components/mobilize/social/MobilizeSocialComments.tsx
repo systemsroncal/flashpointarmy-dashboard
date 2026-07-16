@@ -3,7 +3,9 @@
 import { MobilizeSocialPostHeader, type MobilizeSocialAuthor } from "@/components/mobilize/social/MobilizeSocialPostHeader";
 import { MobilizeSocialReactionBar } from "@/components/mobilize/social/MobilizeSocialReactionBar";
 import type { ReactionType } from "@/lib/mobilize/social/reaction-summary";
-import { Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
+import { TRUTH_HUB_BORDER, TRUTH_HUB_TEXT, TRUTH_HUB_TEXT_MUTED } from "@/lib/mobilize/social/social-hub-surface";
+import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
+import { Box, Button, CircularProgress, TextField, ThemeProvider, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 
 export type SocialCommentNode = {
@@ -29,6 +31,7 @@ type Props = {
   canComment: boolean;
   open: boolean;
   onCountChange?: (count: number) => void;
+  tone?: "light" | "dark";
 };
 
 function countComments(nodes: SocialCommentNode[]): number {
@@ -113,7 +116,9 @@ export function MobilizeSocialComments({
   canComment,
   open,
   onCountChange,
+  tone = "light",
 }: Props) {
+  const isDark = tone === "dark";
   const [comments, setComments] = useState<SocialCommentNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -163,15 +168,24 @@ export function MobilizeSocialComments({
 
   if (!open) return null;
 
-  return (
-    <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px dashed rgba(0,0,0,0.1)" }}>
+  const body = (
+    <Box
+      sx={{
+        mt: 1.5,
+        pt: 1.5,
+        borderTop: isDark ? `1px dashed ${TRUTH_HUB_BORDER}` : "1px dashed rgba(0,0,0,0.1)",
+      }}
+    >
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-          <CircularProgress size={22} />
+          <CircularProgress size={22} sx={isDark ? { color: TRUTH_HUB_TEXT_MUTED } : undefined} />
         </Box>
       ) : null}
       {!loading && !comments.length ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        <Typography
+          variant="body2"
+          sx={{ mb: 1, color: isDark ? TRUTH_HUB_TEXT_MUTED : "text.secondary" }}
+        >
           No comments yet. Start the conversation.
         </Typography>
       ) : null}
@@ -188,7 +202,11 @@ export function MobilizeSocialComments({
       {canComment ? (
         <Box sx={{ mt: 2 }}>
           {replyParentId ? (
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+            <Typography
+              variant="caption"
+              display="block"
+              sx={{ mb: 0.5, color: isDark ? TRUTH_HUB_TEXT_MUTED : "text.secondary" }}
+            >
               Replying to a comment{" "}
               <Button size="small" sx={{ minWidth: 0, p: 0, textTransform: "none" }} onClick={() => setReplyParentId(null)}>
                 Cancel
@@ -218,4 +236,14 @@ export function MobilizeSocialComments({
       ) : null}
     </Box>
   );
+
+  if (isDark) {
+    return (
+      <ThemeProvider theme={mobilizePanelTheme}>
+        <Box sx={{ color: "#0d0d0d" }}>{body}</Box>
+      </ThemeProvider>
+    );
+  }
+
+  return body;
 }

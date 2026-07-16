@@ -1,8 +1,10 @@
 "use client";
 
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
+import { MobilizeSocialHubContent } from "@/components/mobilize/social/MobilizeSocialHubContent";
 import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { ALERTS_EMPTY } from "@/lib/mobilize/social/social-empty-copy";
+import { SOCIAL_HUB_TEXT_MUTED } from "@/lib/mobilize/social/social-hub-surface";
 import type { SocialAlert } from "@/lib/mobilize/social/load-social-alerts";
 import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { Avatar, Box, CircularProgress, Paper, Stack, Typography } from "@mui/material";
@@ -34,11 +36,12 @@ export function MobilizeAlertsClient() {
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
       <MobilizeSocialHubLayout>
-        <Box sx={{ p: { xs: 1.5, sm: 2 }, color: "#0d0d0d", flex: 1, display: "flex", flexDirection: "column" }}>
+        <MobilizeSocialHubContent tone="light">
+          <Box sx={{ p: { xs: 1.5, sm: 2 }, flex: 1, display: "flex", flexDirection: "column" }}>
           <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
             Alerts
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2, color: SOCIAL_HUB_TEXT_MUTED }}>
             Likes, new followers, and reactions on your posts — separate from chapter group notifications.
           </Typography>
 
@@ -77,7 +80,8 @@ export function MobilizeAlertsClient() {
               ))}
             </Stack>
           )}
-        </Box>
+          </Box>
+        </MobilizeSocialHubContent>
       </MobilizeSocialHubLayout>
     </Box>
   );

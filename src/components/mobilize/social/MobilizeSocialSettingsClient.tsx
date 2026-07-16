@@ -1,5 +1,6 @@
 "use client";
 
+import { MobilizeSocialHubContent } from "@/components/mobilize/social/MobilizeSocialHubContent";
 import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { MobilizeSocialSettingsForm } from "@/components/mobilize/social/MobilizeSocialSettingsForm";
 import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
@@ -39,7 +40,8 @@ export function MobilizeSocialSettingsClient() {
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
       <MobilizeSocialHubLayout>
-        <Box sx={{ p: { xs: 1.5, sm: 2 }, color: "#0d0d0d" }}>
+        <MobilizeSocialHubContent tone="light">
+          <Box sx={{ p: { xs: 1.5, sm: 2 } }}>
           <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
             Settings
           </Typography>
@@ -56,7 +58,8 @@ export function MobilizeSocialSettingsClient() {
               />
             )}
           </Paper>
-        </Box>
+          </Box>
+        </MobilizeSocialHubContent>
       </MobilizeSocialHubLayout>
     </Box>
   );

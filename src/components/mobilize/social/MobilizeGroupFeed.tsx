@@ -1,7 +1,6 @@
 "use client";
 
-import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
-import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnouncementImagePicker";
+import { MobilizeSocialPostEditor } from "@/components/mobilize/social/MobilizeSocialPostEditor";
 import { MobilizeSocialFeedShell } from "@/components/mobilize/social/MobilizeSocialFeedShell";
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
@@ -21,6 +20,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useCallback } from "react";
 
 type Props = {
@@ -83,6 +83,7 @@ export function MobilizeGroupFeed({
   onDelete,
   embedded = false,
 }: Props) {
+  const me = useDashboardUser();
   const hasComposerContent = useCallback(() => {
     const plain = wallHtml.replace(/<[^>]+>/g, "").trim();
     return Boolean(plain || wallImages.length);
@@ -91,36 +92,24 @@ export function MobilizeGroupFeed({
   const feedBody = (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {canPost ? (
-        <Box
-          sx={{
-            mb: 1.5,
-            p: 2,
-            borderRadius: 2.5,
-            border: "1px solid rgba(0,0,0,0.08)",
-            bgcolor: "#fff",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-          }}
+        <MobilizeSocialPostEditor
+          value={wallHtml}
+          onChange={onWallHtmlChange}
+          disabled={posting}
+          surface="light"
+          avatarUrl={me.avatar_url}
+          avatarFallback={me.display_name ?? me.email ?? "?"}
+          imageUrls={wallImages}
+          onImageUrlsChange={onWallImagesChange}
+          groupId={groupId}
+          postLabel="Post"
+          onPost={() => void onPost()}
+          posting={posting}
+          canPost={hasComposerContent()}
         >
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            What&apos;s on your mind?
-          </Typography>
-          <GatheringDescriptionEditor
-            value={wallHtml}
-            onChange={onWallHtmlChange}
-            disabled={posting}
-            label=""
-            showHelper={false}
-            compact
-          />
-          <MobilizeAnnouncementImagePicker
-            groupId={groupId}
-            value={wallImages}
-            onChange={onWallImagesChange}
-            disabled={posting}
-          />
           {isLeader || isSuperAdmin ? (
-            <FormControl component="fieldset" sx={{ mt: 1.5 }} variant="standard">
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+            <FormControl component="fieldset" sx={{ mt: 1 }} variant="standard">
+              <Typography variant="caption" sx={{ mb: 0.5, display: "block", color: "rgba(0,0,0,0.65)" }}>
                 Who can comment on this post
               </Typography>
               <RadioGroup
@@ -133,17 +122,9 @@ export function MobilizeGroupFeed({
               </RadioGroup>
             </FormControl>
           ) : null}
-          <Button
-            sx={{ mt: 1, borderRadius: 99, textTransform: "none", fontWeight: 700 }}
-            variant="contained"
-            onClick={() => void onPost()}
-            disabled={posting || !hasComposerContent()}
-          >
-            {posting ? "Posting…" : "Post"}
-          </Button>
-        </Box>
+        </MobilizeSocialPostEditor>
       ) : (
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
+        <Typography sx={{ mb: 2, px: 2, color: "rgba(0,0,0,0.65)" }}>
           Only leaders can post on this group feed.
         </Typography>
       )}

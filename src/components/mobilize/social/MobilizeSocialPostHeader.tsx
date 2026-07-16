@@ -16,6 +16,7 @@ type Props = {
   author: MobilizeSocialAuthor;
   createdAt?: string;
   size?: "sm" | "md";
+  tone?: "light" | "dark";
 };
 
 function formatRelativeTime(iso: string): string {
@@ -31,8 +32,11 @@ function formatRelativeTime(iso: string): string {
   return d.toLocaleDateString();
 }
 
-export function MobilizeSocialPostHeader({ author, createdAt, size = "md" }: Props) {
+export function MobilizeSocialPostHeader({ author, createdAt, size = "md", tone = "light" }: Props) {
   const avatarSize = size === "sm" ? 32 : 44;
+  const isDark = tone === "dark";
+  const nameColor = isDark ? "#e7e9ea" : "#111";
+  const metaColor = isDark ? "#8b98a5" : "#6b7280";
   return (
     <Box sx={{ display: "flex", gap: 1.25, alignItems: "flex-start" }}>
       <Link href={mobilizeMemberProfileHref(author.id)} style={{ textDecoration: "none", flexShrink: 0 }}>
@@ -49,11 +53,11 @@ export function MobilizeSocialPostHeader({ author, createdAt, size = "md" }: Pro
           component={Link}
           href={mobilizeMemberProfileHref(author.id)}
           underline="hover"
-          sx={{ fontWeight: 700, color: "#111", fontSize: size === "sm" ? "0.85rem" : "0.95rem" }}
+          sx={{ fontWeight: 700, color: nameColor, fontSize: size === "sm" ? "0.85rem" : "0.95rem" }}
         >
           {author.display_name}
         </MuiLink>
-        <Typography variant="caption" display="block" sx={{ color: "#6b7280", lineHeight: 1.3 }}>
+        <Typography variant="caption" display="block" sx={{ color: metaColor, lineHeight: 1.3 }}>
           {author.handle}
           {createdAt ? ` · ${formatRelativeTime(createdAt)}` : ""}
         </Typography>

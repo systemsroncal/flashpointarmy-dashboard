@@ -9,6 +9,11 @@ import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { bookmarkRefFromPost } from "@/lib/mobilize/social/bookmark-ref";
 import { mobilizeGroupDetailHref } from "@/lib/mobilize/group-detail-tabs";
 import type { ReactionType } from "@/lib/mobilize/social/reaction-summary";
+import {
+  TRUTH_HUB_BORDER,
+  TRUTH_HUB_TEXT,
+  TRUTH_HUB_TEXT_MUTED,
+} from "@/lib/mobilize/social/social-hub-surface";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import { Box, Button, Card, CardContent, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
@@ -28,6 +33,7 @@ type Props = {
   showGroupBadge?: boolean;
   manageActions?: React.ReactNode;
   onReactionChange?: (reactions: UnifiedFeedPost["reactions"]) => void;
+  surface?: "light" | "dark";
 };
 
 export function MobilizeSocialPostCard({
@@ -38,7 +44,9 @@ export function MobilizeSocialPostCard({
   showGroupBadge = true,
   manageActions,
   onReactionChange,
+  surface = "light",
 }: Props) {
+  const isDark = surface === "dark";
   const [reactions, setReactions] = useState(post.reactions);
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -95,23 +103,29 @@ export function MobilizeSocialPostCard({
     <Card
       elevation={0}
       sx={{
-        mb: 1.5,
-        borderRadius: 2.5,
-        border: "1px solid rgba(0,0,0,0.08)",
-        bgcolor: "#fff",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+        mb: isDark ? 0 : 1.5,
+        borderRadius: isDark ? 0 : 2.5,
+        border: isDark ? "none" : "1px solid rgba(0,0,0,0.08)",
+        borderBottom: isDark ? `1px solid ${TRUTH_HUB_BORDER}` : undefined,
+        bgcolor: isDark ? "transparent" : "#fff",
+        boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.06)",
+        color: isDark ? TRUTH_HUB_TEXT : undefined,
       }}
     >
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <MobilizeSocialPostHeader author={post.author} createdAt={post.created_at} />
+            <MobilizeSocialPostHeader author={post.author} createdAt={post.created_at} tone={surface} />
             {showGroupBadge && post.group ? (
-              <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
+              <Typography variant="caption" sx={{ display: "block", mt: 0.5, color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}>
                 in{" "}
                 <Link
                   href={mobilizeGroupDetailHref(post.group.id, "announcements")}
-                  style={{ color: "#1565c0", textDecoration: "none", fontWeight: 600 }}
+                  style={{
+                    color: isDark ? "#6eb5ff" : "#1565c0",
+                    textDecoration: "none",
+                    fontWeight: 600,
+                  }}
                 >
                   {post.group.name}
                 </Link>
@@ -121,7 +135,11 @@ export function MobilizeSocialPostCard({
               <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
             ) : null}
             <Box sx={{ mt: 1.25 }}>
-              <MobilizeFeedHtml html={post.content_html} plain={post.content} />
+              <MobilizeFeedHtml
+                html={post.content_html}
+                plain={post.content}
+                sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
+              />
             </Box>
             <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />
             <MobilizeSocialReactionBar
@@ -132,6 +150,7 @@ export function MobilizeSocialPostCard({
               onToggleComments={() => setCommentsOpen((v) => !v)}
               commentsOpen={commentsOpen}
               disabled={reacting}
+              tone={surface}
             />
             <MobilizeSocialComments
               open={commentsOpen}
@@ -139,6 +158,7 @@ export function MobilizeSocialPostCard({
               commentsUrl={commentConfig.commentsUrl}
               commentReactionUrl={commentConfig.commentReactionUrl}
               onCountChange={setCommentCount}
+              tone={surface}
             />
           </Box>
           {manageActions ? <Box flexShrink={0}>{manageActions}</Box> : null}
@@ -149,10 +169,10 @@ export function MobilizeSocialPostCard({
                 onClick={() => void toggleBookmark()}
                 disabled={bookmarkBusy}
                 aria-label={bookmarked ? "Remove bookmark" : "Bookmark post"}
-                sx={{ flexShrink: 0, mt: -0.5 }}
+                sx={{ flexShrink: 0, mt: -0.5, color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
               >
                 {bookmarked ? (
-                  <BookmarkIcon fontSize="small" color="primary" />
+                  <BookmarkIcon fontSize="small" color={isDark ? "inherit" : "primary"} />
                 ) : (
                   <BookmarkBorderOutlinedIcon fontSize="small" />
                 )}

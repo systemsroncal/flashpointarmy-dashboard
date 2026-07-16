@@ -2,9 +2,11 @@
 
 import { MobilizeRecommendationsCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import type { HubSidebarPayload } from "@/lib/mobilize/social/load-hub-sidebar";
+import { SOCIAL_HUB_LIGHT_BG, TRUTH_HUB_BORDER } from "@/lib/mobilize/social/social-hub-surface";
+import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import CloseIcon from "@mui/icons-material/Close";
-import { Avatar, Box, Button, IconButton, Stack, Typography } from "@mui/material";
+import { Avatar, Box, Button, IconButton, Stack, ThemeProvider, Typography } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -38,8 +40,20 @@ export function MobilizeSocialHubRightRail({ initial = null }: Props) {
   if (!topics.length && !groups.length) return null;
 
   return (
-    <Box sx={{ display: { xs: "none", lg: "block" }, width: 300, flexShrink: 0 }}>
-      <Stack spacing={2} sx={{ position: "sticky", top: 16 }}>
+    <ThemeProvider theme={mobilizePanelTheme}>
+      <Box
+        sx={{
+          display: { xs: "none", lg: "block" },
+          width: 300,
+          flexShrink: 0,
+          bgcolor: SOCIAL_HUB_LIGHT_BG,
+          borderLeft: `1px solid ${TRUTH_HUB_BORDER}`,
+          px: 1.5,
+          py: 2,
+          color: "#0d0d0d",
+        }}
+      >
+        <Stack spacing={2} sx={{ position: "sticky", top: 16 }}>
         {topics.length ? (
           <MobilizeRecommendationsCard title="Topics">
             {topics.map((t) => (
@@ -110,7 +124,8 @@ export function MobilizeSocialHubRightRail({ initial = null }: Props) {
             </Button>
           </MobilizeRecommendationsCard>
         ) : null}
-      </Stack>
-    </Box>
+        </Stack>
+      </Box>
+    </ThemeProvider>
   );
 }

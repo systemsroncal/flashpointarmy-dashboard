@@ -1,8 +1,10 @@
 "use client";
 
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
+import { MobilizeSocialHubContent } from "@/components/mobilize/social/MobilizeSocialHubContent";
 import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { MESSAGES_EMPTY } from "@/lib/mobilize/social/social-empty-copy";
+import { SOCIAL_HUB_TEXT_MUTED } from "@/lib/mobilize/social/social-hub-surface";
 import type { DirectMessageRow } from "@/lib/mobilize/social/load-direct-messages";
 import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import {
@@ -97,11 +99,12 @@ export function MobilizeMessagesClient() {
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
       <MobilizeSocialHubLayout>
-        <Box sx={{ p: { xs: 1.5, sm: 2 }, color: "#0d0d0d", flex: 1, display: "flex", flexDirection: "column" }}>
+        <MobilizeSocialHubContent tone="light">
+          <Box sx={{ p: { xs: 1.5, sm: 2 }, flex: 1, display: "flex", flexDirection: "column" }}>
           <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
             Messages
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2, color: SOCIAL_HUB_TEXT_MUTED }}>
             Direct messages you send and receive. Members with private profiles cannot be messaged.
           </Typography>
 
@@ -228,7 +231,8 @@ export function MobilizeMessagesClient() {
               })}
             </Stack>
           )}
-        </Box>
+          </Box>
+        </MobilizeSocialHubContent>
       </MobilizeSocialHubLayout>
     </Box>
   );

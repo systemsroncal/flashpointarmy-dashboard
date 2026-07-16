@@ -1,6 +1,7 @@
 "use client";
 
-import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
+import { MobilizeSocialPostEditor } from "@/components/mobilize/social/MobilizeSocialPostEditor";
+import { MobilizeSocialHubContent } from "@/components/mobilize/social/MobilizeSocialHubContent";
 import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeProfilePageShell";
 import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
@@ -110,6 +111,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [tabLoading, setTabLoading] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
   const [composerHtml, setComposerHtml] = useState("");
+  const [composerImages, setComposerImages] = useState<string[]>([]);
   const [posting, setPosting] = useState(false);
   const [bioDraft, setBioDraft] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
@@ -223,17 +225,18 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
 
   async function publishPost() {
     const plain = composerHtml.replace(/<[^>]+>/g, "").trim();
-    if (!plain) return;
+    if (!plain && !composerImages.length) return;
     setPosting(true);
     try {
       const res = await fetch(`/api/mobilize/social/profiles/${userId}/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content_html: composerHtml }),
+        body: JSON.stringify({ content_html: composerHtml, image_urls: composerImages }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Post failed.");
       setComposerHtml("");
+      setComposerImages([]);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Post failed.");
@@ -322,7 +325,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   );
 
   const profileMeta = [
-    handleLabel,
     `Joined ${formatJoinedDate(p.joined_at)}`,
     locationLabel || null,
     `${p.followers_count.toLocaleString()} Followers`,
@@ -365,41 +367,20 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const postsFeed = (
     <Stack spacing={1.5}>
       {p.is_own_profile ? (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            borderRadius: 2,
-            border: "1px solid rgba(0,0,0,0.08)",
-            bgcolor: "#fff",
-          }}
-        >
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            What&apos;s on your mind?
-          </Typography>
-          <GatheringDescriptionEditor
-            value={composerHtml}
-            onChange={setComposerHtml}
-            label=""
-            showHelper={false}
-            compact
-            disabled={posting}
-          />
-          <Button
-            variant="contained"
-            sx={{
-              mt: 1,
-              borderRadius: 99,
-              textTransform: "none",
-              bgcolor: "#1877f2",
-              "&:hover": { bgcolor: "#166fe5" },
-            }}
-            disabled={posting || !composerHtml.replace(/<[^>]+>/g, "").trim()}
-            onClick={() => void publishPost()}
-          >
-            {posting ? "Posting…" : "Post"}
-          </Button>
-        </Paper>
+        <MobilizeSocialPostEditor
+          value={composerHtml}
+          onChange={setComposerHtml}
+          disabled={posting}
+          surface="light"
+          avatarUrl={p.avatar_url}
+          avatarFallback={p.display_name}
+          imageUrls={composerImages}
+          onImageUrlsChange={setComposerImages}
+          postLabel="Post"
+          onPost={() => void publishPost()}
+          posting={posting}
+          canPost={Boolean(composerHtml.replace(/<[^>]+>/g, "").trim()) || composerImages.length > 0}
+        />
       ) : null}
 
       {posts.map((post) => (
@@ -604,7 +585,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       ) : null}
 
       <MobilizeSocialHubLayout>
-        <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", p: { xs: 1, sm: 1.5 } }}>
+        <MobilizeSocialHubContent tone="light">
+          <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", p: { xs: 1, sm: 1.5 } }}>
           <MobilizeProfilePageShell
         coverSrc={PROFILE_COVER}
         title={p.display_name}
@@ -625,7 +607,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           {renderTabContent()}
         </Box>
       </MobilizeProfilePageShell>
-        </Box>
+          </Box>
+        </MobilizeSocialHubContent>
       </MobilizeSocialHubLayout>
 
       <MobilizeDialog open={editOpen} onClose={() => !savingSettings && setEditOpen(false)} fullWidth maxWidth="sm">

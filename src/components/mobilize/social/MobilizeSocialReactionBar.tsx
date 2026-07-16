@@ -23,6 +23,7 @@ type Props = {
   onToggleComments?: () => void;
   commentsOpen?: boolean;
   disabled?: boolean;
+  tone?: "light" | "dark";
 };
 
 export function MobilizeSocialReactionBar({
@@ -33,7 +34,11 @@ export function MobilizeSocialReactionBar({
   onToggleComments,
   commentsOpen,
   disabled,
+  tone = "light",
 }: Props) {
+  const isDark = tone === "dark";
+  const muted = isDark ? "#8b98a5" : "text.secondary";
+  const accent = isDark ? "#6eb5ff" : "#1877f2";
   const liked = reactions.viewer_reaction === "like";
   const loved = reactions.viewer_reaction === "love";
 
@@ -45,7 +50,7 @@ export function MobilizeSocialReactionBar({
         gap: 0.25,
         mt: 1.25,
         pt: 1,
-        borderTop: "1px solid rgba(0,0,0,0.08)",
+        borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
       }}
     >
       <IconButton
@@ -53,12 +58,12 @@ export function MobilizeSocialReactionBar({
         disabled={disabled}
         onClick={onToggleLike}
         aria-label="Like"
-        sx={{ color: liked ? "#1565c0" : "#6b7280" }}
+        sx={{ color: liked ? accent : muted }}
       >
         {liked ? <ThumbUpIcon fontSize="small" /> : <ThumbUpAltOutlinedIcon fontSize="small" />}
       </IconButton>
       {reactions.like > 0 ? (
-        <Typography variant="caption" sx={{ color: "#6b7280", mr: 1 }}>
+        <Typography variant="caption" sx={{ color: muted, mr: 1 }}>
           {reactions.like}
         </Typography>
       ) : null}
@@ -68,12 +73,12 @@ export function MobilizeSocialReactionBar({
         disabled={disabled}
         onClick={onToggleLove}
         aria-label="Love"
-        sx={{ color: loved ? "#e91e63" : "#6b7280" }}
+        sx={{ color: loved ? "#ff6b9d" : muted }}
       >
         {loved ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
       </IconButton>
       {reactions.love > 0 ? (
-        <Typography variant="caption" sx={{ color: "#6b7280", mr: 1 }}>
+        <Typography variant="caption" sx={{ color: muted, mr: 1 }}>
           {reactions.love}
         </Typography>
       ) : null}
@@ -84,12 +89,12 @@ export function MobilizeSocialReactionBar({
         onClick={onToggleComments}
         aria-label="Comments"
         aria-expanded={commentsOpen}
-        sx={{ color: commentsOpen ? "#1565c0" : "#6b7280", ml: 0.5 }}
+        sx={{ color: commentsOpen ? accent : muted, ml: 0.5 }}
       >
         <ChatBubbleOutlineIcon fontSize="small" />
       </IconButton>
       {commentCount > 0 ? (
-        <Typography variant="caption" sx={{ color: "#6b7280" }}>
+        <Typography variant="caption" sx={{ color: muted }}>
           {commentCount}
         </Typography>
       ) : null}
