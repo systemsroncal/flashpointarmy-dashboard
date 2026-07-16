@@ -23,6 +23,8 @@ type Props = {
   children: ReactNode;
   /** Stretch children to fill viewport below the profile header (group detail tabs). */
   fillContent?: boolean;
+  /** Render children inside the same white card as the header (no gap between sections). */
+  unifiedContent?: boolean;
   /** Facebook-style blue tab underline for member profiles. */
   socialTabStyle?: boolean;
 };
@@ -40,6 +42,7 @@ export function MobilizeProfilePageShell({
   headerActions,
   children,
   fillContent = false,
+  unifiedContent = false,
   socialTabStyle = false,
 }: Props) {
   const tabAccent = socialTabStyle ? "#1877f2" : undefined;
@@ -63,8 +66,11 @@ export function MobilizeProfilePageShell({
             overflow: "hidden",
             bgcolor: "#fff",
             border: "1px solid rgba(0,0,0,0.08)",
-            mb: 1.5,
+            mb: unifiedContent ? 0 : 1.5,
             boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+            ...(unifiedContent && fillContent
+              ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
+              : {}),
           }}
         >
           {/* Cover — no title overlay (Facebook-style) */}
@@ -91,7 +97,7 @@ export function MobilizeProfilePageShell({
             />
           </Box>
 
-          {/* Identity row: avatar + name + actions */}
+          {/* Identity row: only avatar overlaps cover; title stays on white */}
           <Box
             sx={{
               px: { xs: 2, sm: 3 },
@@ -104,9 +110,8 @@ export function MobilizeProfilePageShell({
                 display: "flex",
                 flexDirection: { xs: "column", md: "row" },
                 alignItems: { xs: "flex-start", md: "flex-end" },
-                gap: { xs: 1.5, md: 2 },
-                mt: { xs: -5, sm: -6, md: -7 },
-                pt: { xs: 0, md: 0.5 },
+                gap: { xs: 1.25, md: 2 },
+                pt: { xs: 0.5, md: 1 },
               }}
             >
               <Avatar
@@ -122,6 +127,8 @@ export function MobilizeProfilePageShell({
                   fontWeight: 800,
                   boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
                   flexShrink: 0,
+                  mt: { xs: -6, sm: -7, md: -8 },
+                  mb: { xs: 0.5, md: 0 },
                 }}
               >
                 {fallbackInitial}
@@ -132,19 +139,22 @@ export function MobilizeProfilePageShell({
                   flex: 1,
                   minWidth: 0,
                   pb: { md: 0.75 },
-                  pt: { xs: 0.25, md: 0 },
+                  pt: { xs: 0, md: 0.25 },
                 }}
               >
                 <Typography
                   variant="h5"
                   fontWeight={800}
                   color="text.primary"
-                  lineHeight={1.15}
+                  lineHeight={1.2}
                   sx={{
                     letterSpacing: "-0.02em",
-                    fontSize: { xs: "1.35rem", sm: "1.5rem", md: "1.75rem" },
+                    fontSize: { xs: "1.25rem", sm: "1.4rem", md: "1.6rem" },
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
                   }}
-                  noWrap
                   title={title}
                 >
                   {title}
@@ -153,8 +163,14 @@ export function MobilizeProfilePageShell({
                   <Typography
                     variant="body2"
                     color="text.secondary"
-                    sx={{ mt: 0.35, lineHeight: 1.4 }}
-                    noWrap
+                    sx={{
+                      mt: 0.4,
+                      lineHeight: 1.4,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
                     title={typeof subtitle === "string" ? subtitle : undefined}
                   >
                     {subtitle}
@@ -164,7 +180,7 @@ export function MobilizeProfilePageShell({
                   <Typography
                     variant="body2"
                     color="text.secondary"
-                    sx={{ mt: 0.5, fontWeight: 500 }}
+                    sx={{ mt: 0.45, fontWeight: 500 }}
                   >
                     {meta}
                   </Typography>
@@ -236,17 +252,34 @@ export function MobilizeProfilePageShell({
               </Box>
             ) : null}
           </Box>
+
+          {unifiedContent ? (
+            <Box
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+                borderTop: "1px solid rgba(0,0,0,0.08)",
+                overflow: "hidden",
+              }}
+            >
+              {children}
+            </Box>
+          ) : null}
         </Box>
 
-        <Box
-          sx={
-            fillContent
-              ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
-              : undefined
-          }
-        >
-          {children}
-        </Box>
+        {!unifiedContent ? (
+          <Box
+            sx={
+              fillContent
+                ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
+                : undefined
+            }
+          >
+            {children}
+          </Box>
+        ) : null}
       </Box>
     </ThemeProvider>
   );

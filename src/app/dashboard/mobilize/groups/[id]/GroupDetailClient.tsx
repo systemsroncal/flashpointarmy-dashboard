@@ -59,7 +59,6 @@ import {
   enrollmentAcceptsNewMembers,
   type MobilizeEnrollmentMode,
 } from "@/lib/mobilize/chapter-subgroup";
-import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import {
   mobilizeCalendarDaySx,
@@ -1145,17 +1144,18 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       <MobilizeProfilePageShell
         coverSrc={groupCoverSrc}
         title={group.name}
-        subtitle={group.address ?? undefined}
         meta={profileMeta}
         avatarSrc={group.profile_image_url ?? group.cover_image_url}
         avatarFallback={group.name}
         headerActions={profileHeaderActions}
         fillContent
+        unifiedContent
       >
-      <MobilizeContentPanel
+      <Box
         sx={{
-          mt: 0,
           ...mobilizeChapterDetailPanelFillSx,
+          p: { xs: 2, sm: 2.5 },
+          overflow: "auto",
         }}
       >
       {activeTab === "announcements" && !canViewContent ? (
@@ -1649,7 +1649,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         <MobilizeGroupReportsPanel groupId={groupId} />
         </Box>
       ) : null}
-      </MobilizeContentPanel>
+      </Box>
       </MobilizeProfilePageShell>
 
       <Dialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
