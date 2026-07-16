@@ -447,7 +447,7 @@ export default function MobilizeGroupResourcesPanel({
           fill
           imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.resources}
           title="No resources"
-          description="Documents, links, videos, and notes shared with the group will appear here."
+          description="Documents, links, videos, and notes shared with this group will appear here."
         />
       )}
 

@@ -29,7 +29,7 @@ export function MobilizeChapterUpdatesPanel({ groupId, chapterName }: Props) {
         joinRequestsTitle="Pending join requests"
         eventsTitle="Recent events"
         emptyJoinMessage="No pending join requests for this group."
-        emptyEventsMessage="No new upcoming events were added in the last 7 days."
+        emptyEventsMessage="No new upcoming events in the last 7 days."
       />
     </Box>
   );

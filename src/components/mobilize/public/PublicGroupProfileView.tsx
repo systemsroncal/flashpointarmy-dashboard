@@ -279,7 +279,7 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
               </Stack>
             ) : (
               <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                No upcoming public events.
+                No upcoming public events are scheduled for this group right now.
               </Typography>
             )}
 
@@ -294,7 +294,7 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
               </Stack>
             ) : (
               <Typography variant="body2" color="text.secondary">
-                No past public events.
+                No past public events have been recorded for this group.
               </Typography>
             )}
           </Box>

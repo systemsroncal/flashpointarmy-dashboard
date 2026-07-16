@@ -1280,7 +1280,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                   fill
                   imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.events}
                   title="No events"
-                  description="There are no upcoming events for this group. Schedule a Mobilize event to get members on the calendar."
+                  description="There are no upcoming events scheduled for this group right now. Check back later for updates."
                 />
               ) : null}
             </Box>
@@ -1544,7 +1544,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               fill
               icon={<GroupsOutlinedIcon sx={{ fontSize: "inherit", color: "text.secondary" }} />}
               title="No members"
-              description="Approved members will appear here once they join this group."
+              description="This group does not have any approved members yet. Members will show up here after they join."
             />
           )}
         </Box>

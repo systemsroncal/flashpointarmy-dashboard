@@ -189,7 +189,7 @@ export function MobilizeGroupFeed({
           fill
           imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
           title="No posts yet"
-          description="When leaders or members publish to the feed, posts will show up here."
+          description="When leaders or members post to the feed, updates will appear here."
         />
       ) : null}
     </Box>
