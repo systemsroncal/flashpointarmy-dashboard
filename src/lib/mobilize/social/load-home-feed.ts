@@ -5,16 +5,20 @@ import { resolveMobilizeAuthors } from "@/lib/mobilize/social/resolve-authors";
 import { summarizeReactions, type ReactionType } from "@/lib/mobilize/social/reaction-summary";
 import { isFollowingUser } from "@/lib/mobilize/social/profile-access";
 
+export type HomeFeedScope = "for_you" | "following" | "groups";
+
 export type HomeFeedResult = {
   posts: UnifiedFeedPost[];
   mode: "following" | "recommended";
   recommendations: RecommendedUser[];
+  scope: HomeFeedScope;
 };
 
 export async function loadMobilizeHomeFeed(
   admin: SupabaseClient,
   viewerId: string,
-  limit = 40
+  limit = 40,
+  scope: HomeFeedScope = "for_you"
 ): Promise<HomeFeedResult> {
   const { data: memberships } = await admin
     .from("mobilize_group_members")
@@ -32,14 +36,27 @@ export async function loadMobilizeHomeFeed(
   const followingIds = [...new Set((followRows ?? []).map((r) => r.following_id as string))];
 
   const [groupMessages, profilePosts, recommendations] = await Promise.all([
-    loadGroupMessages(admin, viewerId, groupIds, limit),
-    loadProfilePosts(admin, viewerId, followingIds, limit),
+    scope === "following"
+      ? Promise.resolve([])
+      : loadGroupMessages(admin, viewerId, groupIds, limit, scope === "for_you"),
+    scope === "groups"
+      ? Promise.resolve([])
+      : scope === "following"
+        ? loadProfilePosts(admin, viewerId, followingIds, limit, false)
+        : loadProfilePosts(admin, viewerId, followingIds, limit, true),
     loadRecommendations(admin, viewerId, groupIds, followingIds),
   ]);
 
-  const merged = [...groupMessages, ...profilePosts].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  let merged: UnifiedFeedPost[];
+  if (scope === "groups") {
+    merged = groupMessages;
+  } else if (scope === "following") {
+    merged = profilePosts;
+  } else {
+    merged = [...groupMessages, ...profilePosts].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }
 
   const posts = merged.slice(0, limit);
   const mode =
@@ -47,8 +64,8 @@ export async function loadMobilizeHomeFeed(
       ? "following"
       : "recommended";
 
-  if (posts.length) {
-    return { posts, mode, recommendations };
+  if (posts.length || scope !== "for_you") {
+    return { posts, mode, recommendations, scope };
   }
 
   const fallbackGroupMessages = await loadGroupMessages(admin, viewerId, groupIds, limit, true);
@@ -56,6 +73,7 @@ export async function loadMobilizeHomeFeed(
     posts: fallbackGroupMessages.slice(0, limit),
     mode: "recommended",
     recommendations,
+    scope,
   };
 }
 
@@ -107,15 +125,18 @@ async function loadProfilePosts(
   admin: SupabaseClient,
   viewerId: string,
   followingIds: string[],
-  limit: number
+  limit: number,
+  includeOwn = true
 ): Promise<UnifiedFeedPost[]> {
-  const authorIds = [...new Set([viewerId, ...followingIds])];
+  const authorIds = includeOwn
+    ? [...new Set([viewerId, ...followingIds])]
+    : [...new Set(followingIds)];
   if (!authorIds.length) return [];
 
   const { data: rows } = await admin
     .from("mobilize_profile_posts")
     .select("id, author_id, content, content_html, image_urls, created_at")
-    .in("author_id", followingIds.length ? followingIds : [viewerId])
+    .in("author_id", authorIds)
     .order("created_at", { ascending: false })
     .limit(limit);
 

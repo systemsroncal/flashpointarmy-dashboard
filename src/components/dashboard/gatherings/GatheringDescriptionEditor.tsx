@@ -156,7 +156,15 @@ export function GatheringDescriptionEditor({
 
   return (
     <Box sx={{ mb: compact ? 1.25 : 2 }}>
-      <InputLabel shrink sx={{ mb: 0.75, position: "relative", transform: "none" }}>
+      <InputLabel
+        shrink
+        sx={{
+          mb: 0.75,
+          position: "relative",
+          transform: "none",
+          color: darkSurface ? "text.secondary" : "rgba(0,0,0,0.75)",
+        }}
+      >
         {label}
       </InputLabel>
       <Box

@@ -3,9 +3,9 @@
 import {
   MOBILIZE_DELETE_CONFIRM_WORD,
 } from "@/lib/mobilize/mobilize-content-access";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Button,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -42,7 +42,7 @@ export function MobilizeTypeDeleteDialog({
   const confirmed = typed === confirmWord;
 
   return (
-    <Dialog open={open} onClose={() => !loading && onClose()} fullWidth maxWidth="xs">
+    <MobilizeDialog open={open} onClose={() => !loading && onClose()} fullWidth maxWidth="xs">
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         {typeof description === "string" ? (
@@ -77,7 +77,7 @@ export function MobilizeTypeDeleteDialog({
           {loading ? "Deleting…" : "Delete"}
         </Button>
       </DialogActions>
-    </Dialog>
+    </MobilizeDialog>
   );
 }
 

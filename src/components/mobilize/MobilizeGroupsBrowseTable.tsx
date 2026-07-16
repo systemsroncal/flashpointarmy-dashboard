@@ -16,6 +16,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
 import Link from "next/link";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import type { MobilizeSubgroupBrief } from "@/lib/mobilize/chapter-subgroup";
@@ -23,6 +24,7 @@ import { resolveMobilizeGroupStateCode } from "@/lib/mobilize/group-state-flag";
 import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
 import { mobilizeGroupInitials } from "@/lib/mobilize/group-initials";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { flashpointYellow } from "@/theme/tokens";
 
 export type MobilizeBrowseGroupRow = {
@@ -96,7 +98,7 @@ function LeaderPill({ L, compact = false }: { L: MobilizeGroupLeaderBrief; compa
         variant={compact ? "caption" : "body2"}
         title={L.full_name}
         sx={{
-          color: "grey.400",
+          color: "rgba(0,0,0,0.72)",
           fontWeight: 500,
           minWidth: 0,
           flex: 1,
@@ -306,6 +308,7 @@ export default function MobilizeGroupsBrowseTable({
     : null;
 
   return (
+    <ThemeProvider theme={mobilizePanelTheme}>
     <TableContainer
       sx={{
         ...(maxHeight != null
@@ -442,7 +445,7 @@ export default function MobilizeGroupsBrowseTable({
                       component={Link}
                       href={detailHref}
                       fontWeight={700}
-                      color="inherit"
+                      color="text.primary"
                       display="block"
                       sx={{
                         textDecoration: "none",
@@ -590,5 +593,6 @@ export default function MobilizeGroupsBrowseTable({
         </TableBody>
       </Table>
     </TableContainer>
+    </ThemeProvider>
   );
 }

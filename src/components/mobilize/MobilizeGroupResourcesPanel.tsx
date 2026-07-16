@@ -8,13 +8,13 @@ import EditIcon from "@mui/icons-material/Edit";
 import LinkIcon from "@mui/icons-material/Link";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Box,
   Button,
   Card,
   CardContent,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -458,7 +458,7 @@ export default function MobilizeGroupResourcesPanel({
         />
       )}
 
-      <Dialog open={addOpen} onClose={() => !saving && setAddOpen(false)} fullWidth maxWidth="sm">
+      <MobilizeDialog open={addOpen} onClose={() => !saving && setAddOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Add resource</DialogTitle>
         <DialogContent>{renderFormFields(form.resource_type, false)}</DialogContent>
         <DialogActions>
@@ -469,9 +469,9 @@ export default function MobilizeGroupResourcesPanel({
             {saving ? "Saving…" : "Add"}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
-      <Dialog open={!!editRow} onClose={() => !saving && setEditRow(null)} fullWidth maxWidth="sm">
+      <MobilizeDialog open={!!editRow} onClose={() => !saving && setEditRow(null)} fullWidth maxWidth="sm">
         <DialogTitle>Edit resource</DialogTitle>
         <DialogContent>
           {editRow ? renderFormFields(editRow.resource_type, true) : null}
@@ -484,7 +484,7 @@ export default function MobilizeGroupResourcesPanel({
             {saving ? "Saving…" : "Save"}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
       <MobilizeTypeDeleteDialog
         open={!!deleteRow}

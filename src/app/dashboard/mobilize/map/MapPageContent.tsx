@@ -2,10 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Box,
   Button,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -549,7 +549,7 @@ export default function MobilizeMapPageContent() {
       </Box>
       </MobilizeContentPanel>
 
-      <Dialog open={createOpen} onClose={() => !saving && setCreateOpen(false)} fullWidth maxWidth="sm">
+      <MobilizeDialog open={createOpen} onClose={() => !saving && setCreateOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Create chapter</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -617,7 +617,7 @@ export default function MobilizeMapPageContent() {
             Create chapter
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
     </Box>
   );
 }

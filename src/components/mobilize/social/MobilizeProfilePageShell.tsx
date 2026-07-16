@@ -262,6 +262,7 @@ export function MobilizeProfilePageShell({
                 flexDirection: "column",
                 borderTop: "1px solid rgba(0,0,0,0.08)",
                 overflow: "hidden",
+                color: "#0d0d0d",
               }}
             >
               {children}

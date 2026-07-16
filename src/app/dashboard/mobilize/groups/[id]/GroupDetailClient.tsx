@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Autocomplete,
   Box,
@@ -8,7 +9,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -1156,6 +1156,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           ...mobilizeChapterDetailPanelFillSx,
           p: { xs: 2, sm: 2.5 },
           overflow: "auto",
+          color: "#0d0d0d",
         }}
       >
       {activeTab === "announcements" && !canViewContent ? (
@@ -1652,7 +1653,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       </Box>
       </MobilizeProfilePageShell>
 
-      <Dialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
+      <MobilizeDialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Add new event</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
@@ -1708,9 +1709,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Create
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
-      <Dialog open={editEventOpen} onClose={() => !eventSaving && setEditEventOpen(false)} fullWidth maxWidth="sm">
+      <MobilizeDialog open={editEventOpen} onClose={() => !eventSaving && setEditEventOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit event</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
@@ -1768,9 +1769,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Save
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
-      <Dialog
+      <MobilizeDialog
         open={!!memberRoleDialog}
         onClose={() => !memberActionSaving && setMemberRoleDialog(null)}
         fullWidth
@@ -1807,9 +1808,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Save
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
-      <Dialog
+      <MobilizeDialog
         open={!!promoteLeaderConfirm}
         onClose={() => !memberActionSaving && setPromoteLeaderConfirm(null)}
         fullWidth
@@ -1837,9 +1838,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Make leader
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
-      <Dialog
+      <MobilizeDialog
         open={!!removeMemberDialog}
         onClose={() => !memberActionSaving && setRemoveMemberDialog(null)}
         fullWidth
@@ -1865,7 +1866,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             {memberActionSaving ? "Removing…" : "Remove member"}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
       <MobilizeTypeDeleteDialog
         open={!!deleteDialog}
@@ -1893,7 +1894,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         onConfirm={() => void confirmDeleteMessage()}
       />
 
-      <Dialog open={editOpen} onClose={() => !editSaving && setEditOpen(false)} fullWidth maxWidth="sm">
+      <MobilizeDialog open={editOpen} onClose={() => !editSaving && setEditOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit group</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
@@ -2125,9 +2126,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Save
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
-      <Dialog open={!!msgEdit} onClose={() => setMsgEdit(null)} fullWidth maxWidth="sm">
+      <MobilizeDialog open={!!msgEdit} onClose={() => setMsgEdit(null)} fullWidth maxWidth="sm">
         <DialogTitle>Edit announcement</DialogTitle>
         <DialogContent>
           {msgEdit ? (
@@ -2176,7 +2177,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Save
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
     </Box>
   );
 }

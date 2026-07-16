@@ -91,6 +91,80 @@ export const mobilizePanelTheme = createTheme(flashpointTheme, {
       styleOverrides: {
         root: {
           backgroundColor: "#ffffff",
+          color: flashpointBlack,
+        },
+        input: {
+          color: flashpointBlack,
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: "rgba(0,0,0,0.6)",
+          "&.Mui-focused": {
+            color: flashpointBlack,
+          },
+        },
+      },
+    },
+    MuiFormLabel: {
+      styleOverrides: {
+        root: {
+          color: "rgba(0,0,0,0.65)",
+        },
+      },
+    },
+    MuiFormControlLabel: {
+      styleOverrides: {
+        label: {
+          color: flashpointBlack,
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: "#ffffff",
+          color: flashpointBlack,
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          color: flashpointBlack,
+        },
+      },
+    },
+    MuiDialogContent: {
+      styleOverrides: {
+        root: {
+          color: flashpointBlack,
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          color: flashpointBlack,
+        },
+      },
+    },
+    MuiListItemText: {
+      styleOverrides: {
+        primary: {
+          color: flashpointBlack,
+        },
+        secondary: {
+          color: "rgba(0,0,0,0.65)",
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          color: flashpointBlack,
         },
       },
     },
@@ -106,6 +180,9 @@ export const mobilizePanelTheme = createTheme(flashpointTheme, {
     },
     MuiTableCell: {
       styleOverrides: {
+        root: {
+          color: flashpointBlack,
+        },
         head: {
           color: "rgba(0,0,0,0.65)",
           fontWeight: 700,

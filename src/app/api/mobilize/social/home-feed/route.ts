@@ -8,9 +8,12 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const limit = Math.min(60, Math.max(1, Number(url.searchParams.get("limit") || 40)));
+  const scopeParam = url.searchParams.get("scope");
+  const scope =
+    scopeParam === "following" || scopeParam === "groups" ? scopeParam : "for_you";
 
   try {
-    const feed = await loadMobilizeHomeFeed(auth.admin, auth.userId, limit);
+    const feed = await loadMobilizeHomeFeed(auth.admin, auth.userId, limit, scope);
     return NextResponse.json(feed);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to load feed.";

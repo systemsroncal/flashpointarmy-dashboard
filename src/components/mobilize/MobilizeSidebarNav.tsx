@@ -9,6 +9,7 @@ import {
   type MobilizeGroupTabSlug,
 } from "@/lib/mobilize/group-detail-tabs";
 import { isMobilizeChapterMine } from "@/lib/mobilize/mobilize-chapter-membership";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import {
   MOBILIZE_CHAPTERS_HREF,
   MOBILIZE_HOME_HREF,
@@ -16,6 +17,7 @@ import {
   MOBILIZE_MY_GROUPS_SIDEBAR_LIMIT,
   MOBILIZE_PREFIX,
 } from "@/lib/mobilize/mobilize-nav-config";
+import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { flashpointYellow } from "@/theme/tokens";
@@ -245,6 +247,10 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
 
   const onChaptersPage = pathname === MOBILIZE_CHAPTERS_HREF || pathname === `${MOBILIZE_PREFIX}/`;
   const onHomePage = pathname === MOBILIZE_HOME_HREF || pathname === MOBILIZE_PREFIX;
+  const onProfilePage = pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
+  const onOwnProfilePage = onProfilePage && pathname === mobilizeMemberProfileHref(me.id);
+  const onSocialHub = onHomePage || onOwnProfilePage;
+  const myProfileHref = mobilizeMemberProfileHref(me.id);
   const onMyGroupsPage = pathname === MOBILIZE_MY_GROUPS_HREF;
   const onActivitiesPage = pathname.startsWith(`${MOBILIZE_PREFIX}/activities`);
   const onNotificationsPage = pathname.startsWith(`${MOBILIZE_PREFIX}/notifications`);
@@ -288,8 +294,8 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
       <ListItem disablePadding>
         <ListItemButton
           component={Link}
-          href="/dashboard"
-          data-tour={mobilizeNavTourAttr("/dashboard")}
+          href={onSocialHub ? MOBILIZE_CHAPTERS_HREF : "/dashboard"}
+          data-tour={mobilizeNavTourAttr(onSocialHub ? MOBILIZE_CHAPTERS_HREF : "/dashboard")}
           onClick={onNavigate}
           sx={{
             ...NAV_ITEM_TOUCH_SX,
@@ -302,10 +308,10 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
           }}
         >
           <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 28 }}>
-            <ArrowBackIcon sx={{ fontSize: 18 }} />
+            {onSocialHub ? <MapIcon sx={{ fontSize: 18 }} /> : <ArrowBackIcon sx={{ fontSize: 18 }} />}
           </ListItemIcon>
           <ListItemText
-            primary="Dashboard"
+            primary={onSocialHub ? "Chapters" : "Dashboard"}
             primaryTypographyProps={{
               variant: "overline",
               fontWeight: 700,
@@ -346,6 +352,38 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
               fontWeight: 600,
               fontSize: "calc(0.82rem + 3px)",
               color: onHomePage ? "primary.main" : "rgba(255,255,255,0.88)",
+            }}
+          />
+        </ListItemButton>
+      </ListItem>
+
+      <ListItem disablePadding>
+        <ListItemButton
+          component={Link}
+          href={myProfileHref}
+          selected={onOwnProfilePage}
+          onClick={onNavigate}
+          sx={{
+            ...NAV_ITEM_TOUCH_SX,
+            py: 0.75,
+            "&.Mui-selected": NAV_SELECTED_SX,
+          }}
+        >
+          <ListItemIcon
+            sx={{
+              color: onOwnProfilePage ? "primary.main" : "rgba(255,255,255,0.92)",
+              minWidth: 38,
+            }}
+          >
+            <PersonOutlinedIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Profile"
+            primaryTypographyProps={{
+              variant: "body2",
+              fontWeight: 600,
+              fontSize: "calc(0.82rem + 3px)",
+              color: onOwnProfilePage ? "primary.main" : "rgba(255,255,255,0.88)",
             }}
           />
         </ListItemButton>

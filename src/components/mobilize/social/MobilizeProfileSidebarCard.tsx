@@ -17,6 +17,7 @@ export function MobilizeProfileSidebarCard({ title, children }: Props) {
         borderRadius: 2,
         border: "1px solid rgba(0,0,0,0.08)",
         bgcolor: "#fff",
+        color: "#0d0d0d",
         mb: 2,
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
       }}
@@ -44,6 +45,7 @@ export function MobilizeRecommendationsCard({
         borderRadius: 2.5,
         border: "1px solid rgba(0,0,0,0.08)",
         bgcolor: "#fff",
+        color: "#0d0d0d",
         position: "sticky",
         top: 16,
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)",

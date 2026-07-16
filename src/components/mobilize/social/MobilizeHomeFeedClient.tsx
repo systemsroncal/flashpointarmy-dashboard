@@ -53,7 +53,7 @@ function RecommendedUserRow({
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Link
           href={mobilizeMemberProfileHref(user.id)}
-          style={{ textDecoration: "none", color: "inherit", fontWeight: 700, fontSize: "0.9rem" }}
+          style={{ textDecoration: "none", color: "#111", fontWeight: 700, fontSize: "0.9rem" }}
         >
           {user.display_name}
         </Link>

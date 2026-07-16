@@ -556,6 +556,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const user = useDashboardUser();
   const isMobilize =
     pathname.startsWith(MOBILIZE_PREFIX) && canAccessMobilizeModule(user.role_names);
+  const onMobilizeSocialHub =
+    isMobilize &&
+    (pathname === `${MOBILIZE_PREFIX}/home` ||
+      pathname === MOBILIZE_PREFIX ||
+      pathname === `/dashboard/mobilize/profile/${user.id}`);
 
   const mobilizeDrawerNav = useMemo(() => {
     const items = [...MOBILIZE_DRAWER_NAV_BASE];
@@ -1217,7 +1222,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <ListItemButton
             data-tour="sidebar-sign-out"
             component={Link}
-            href="/dashboard"
+            href={onMobilizeSocialHub ? `${MOBILIZE_PREFIX}/map` : "/dashboard"}
             onClick={(e) => {
               e.stopPropagation();
               closeMobileDrawer();
@@ -1229,10 +1234,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             }}
           >
             <ListItemIcon sx={{ minWidth: 38, color: "rgba(255,255,255,0.92)" }}>
-              <ArrowBackIcon fontSize="small" />
+              {onMobilizeSocialHub ? <MapIcon fontSize="small" /> : <ArrowBackIcon fontSize="small" />}
             </ListItemIcon>
             <ListItemText
-              primary="Dashboard"
+              primary={onMobilizeSocialHub ? "Chapters" : "Dashboard"}
               primaryTypographyProps={{ variant: "body2", fontSize: "calc(0.875rem + 3px)" }}
             />
           </ListItemButton>

@@ -12,11 +12,15 @@ import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/socia
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   Paper,
@@ -32,16 +36,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 const PROFILE_COVER =
   "https://fparmychapters.com/wp-content/uploads/2026/07/image-cover-profile-right-scaled.jpg";
 
-const PROFILE_TABS = [
+const VISITOR_PROFILE_TABS = [
   { id: "posts", label: "Posts" },
-  { id: "about", label: "About" },
-  { id: "mentions", label: "Mentions" },
-  { id: "reviews", label: "Reviews" },
-  { id: "followers", label: "Followers" },
-  { id: "photos", label: "Photos" },
+  { id: "replies", label: "Replies" },
+  { id: "media", label: "Media" },
 ] as const;
 
-type ProfileTabId = (typeof PROFILE_TABS)[number]["id"];
+const OWN_PROFILE_EXTRA_TABS = [{ id: "likes", label: "Likes" }] as const;
+
+type ProfileTabId = "posts" | "replies" | "media" | "likes";
 
 type ProfilePayload = {
   id: string;
@@ -104,6 +107,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [bioDraft, setBioDraft] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -222,8 +226,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Save failed.");
       await load();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed.");
+      return false;
     } finally {
       setSavingSettings(false);
     }
@@ -258,7 +264,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const headerActions = p.is_own_profile ? (
     <Button
       variant="outlined"
-      onClick={() => setActiveTab("about")}
+      onClick={() => setEditOpen(true)}
       sx={{
         borderRadius: 99,
         textTransform: "none",
@@ -288,7 +294,19 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     </Button>
   );
 
-  const profileMeta = `${p.followers_count.toLocaleString()} followers · ${p.following_count.toLocaleString()} following`;
+  const profileMeta = [
+    handleLabel,
+    `Joined ${formatJoinedDate(p.joined_at)}`,
+    locationLabel || null,
+    `${p.followers_count.toLocaleString()} Followers`,
+    `${p.following_count.toLocaleString()} Following`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const profileTabs = p.is_own_profile
+    ? [...VISITOR_PROFILE_TABS, ...OWN_PROFILE_EXTRA_TABS]
+    : [...VISITOR_PROFILE_TABS];
 
   const introCard = (
     <MobilizeProfileSidebarCard title="Intro">
@@ -442,120 +460,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           </Box>
         );
 
-      case "about":
-        return (
-          <Box sx={tabPanelSx}>
-            <Box sx={{ maxWidth: 720 }}>
-              <MobilizeProfileSidebarCard title="About">
-                <Stack spacing={1.5}>
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                      Bio
-                    </Typography>
-                    {p.bio ? (
-                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                        {p.bio}
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        No bio yet.
-                      </Typography>
-                    )}
-                  </Box>
-                  {handleLabel ? (
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                        Username
-                      </Typography>
-                      <Typography variant="body2">{handleLabel}</Typography>
-                    </Box>
-                  ) : null}
-                  {locationLabel ? (
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                        Location
-                      </Typography>
-                      <Typography variant="body2">{locationLabel}</Typography>
-                    </Box>
-                  ) : null}
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                      Joined
-                    </Typography>
-                    <Typography variant="body2">{formatJoinedDate(p.joined_at)}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                      Followers
-                    </Typography>
-                    <Typography variant="body2">
-                      {p.followers_count.toLocaleString()} followers ·{" "}
-                      {p.following_count.toLocaleString()} following
-                    </Typography>
-                  </Box>
-                </Stack>
-              </MobilizeProfileSidebarCard>
-
-              {p.is_own_profile ? (
-                <MobilizeProfileSidebarCard title="Privacy">
-                  <FormControl>
-                    <RadioGroup
-                      value={visibility}
-                      onChange={(_, v) => setVisibility(v as "public" | "private")}
-                    >
-                      <FormControlLabel
-                        value="public"
-                        control={<Radio size="small" />}
-                        label={
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <PublicOutlinedIcon fontSize="small" />
-                            <span>Public</span>
-                          </Stack>
-                        }
-                      />
-                      <FormControlLabel
-                        value="private"
-                        control={<Radio size="small" />}
-                        label={
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <LockOutlinedIcon fontSize="small" />
-                            <span>Private</span>
-                          </Stack>
-                        }
-                      />
-                    </RadioGroup>
-                  </FormControl>
-                  <TextField
-                    fullWidth
-                    multiline
-                    minRows={3}
-                    label="Bio"
-                    value={bioDraft}
-                    onChange={(e) => setBioDraft(e.target.value)}
-                    sx={{ mt: 1, mb: 1 }}
-                    size="small"
-                  />
-                  <Button
-                    size="small"
-                    variant="contained"
-                    disabled={savingSettings}
-                    onClick={() => void saveSettings()}
-                    sx={{
-                      borderRadius: 99,
-                      textTransform: "none",
-                      bgcolor: "#1877f2",
-                      "&:hover": { bgcolor: "#166fe5" },
-                    }}
-                  >
-                    {savingSettings ? "Saving…" : "Save settings"}
-                  </Button>
-                </MobilizeProfileSidebarCard>
-              ) : null}
-            </Box>
-          </Box>
-        );
-
-      case "mentions":
+      case "replies":
         return (
           <Box sx={tabPanelSx}>
             <Paper
@@ -572,14 +477,18 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               <MobilizeSectionEmptyState
                 fill
                 imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
-                title="No mentions yet"
-                description="When someone tags this profile in a post, it will show up here."
+                title="No replies yet"
+                description={
+                  p.is_own_profile
+                    ? "Replies and shared posts will appear here when available."
+                    : "When this member replies to or shares posts, they will show up here."
+                }
               />
             </Paper>
           </Box>
         );
 
-      case "reviews":
+      case "likes":
         return (
           <Box sx={tabPanelSx}>
             <Paper
@@ -595,71 +504,16 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             >
               <MobilizeSectionEmptyState
                 fill
-                title="No reviews yet"
-                description="Reviews from other members will appear here when available."
+                title="No likes yet"
+                description="Posts you have liked will appear here."
               />
             </Paper>
           </Box>
         );
 
-      case "followers":
+      case "media":
         return (
           <Box sx={tabPanelSx}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2,
-                mb: 1.5,
-                borderRadius: 2,
-                border: "1px solid rgba(0,0,0,0.08)",
-                bgcolor: "#fff",
-              }}
-            >
-              <Typography variant="h6" fontWeight={800} letterSpacing="-0.01em">
-                Followers
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {p.followers_count.toLocaleString()} followers ·{" "}
-                {p.following_count.toLocaleString()} following
-              </Typography>
-            </Paper>
-            <Paper
-              elevation={0}
-              sx={{
-                borderRadius: 2,
-                border: "1px solid rgba(0,0,0,0.08)",
-                bgcolor: "#fff",
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <MobilizeSectionEmptyState
-                fill
-                title="Follower list coming soon"
-                description="You can see follower counts on this profile. A full follower list will be available in a future update."
-              />
-            </Paper>
-          </Box>
-        );
-
-      case "photos":
-        return (
-          <Box sx={tabPanelSx}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2,
-                mb: 1.5,
-                borderRadius: 2,
-                border: "1px solid rgba(0,0,0,0.08)",
-                bgcolor: "#fff",
-              }}
-            >
-              <Typography variant="h6" fontWeight={800} letterSpacing="-0.01em">
-                Photos
-              </Typography>
-            </Paper>
             {photoUrls.length ? (
               <Box
                 sx={{
@@ -703,11 +557,11 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               >
                 <MobilizeSectionEmptyState
                   fill
-                  title="No photos yet"
+                  title="No media yet"
                   description={
                     p.is_own_profile
-                      ? "Photos from your posts will appear in this gallery."
-                      : "Photos shared in posts will appear here."
+                      ? "Photos and media from your posts will appear in this gallery."
+                      : "Photos and media shared in posts will appear here."
                   }
                 />
               </Paper>
@@ -735,18 +589,79 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       <MobilizeProfilePageShell
         coverSrc={PROFILE_COVER}
         title={p.display_name}
+        subtitle={handleLabel}
         meta={profileMeta}
         avatarSrc={p.avatar_url}
         avatarFallback={p.display_name}
         headerActions={headerActions}
-        tabs={PROFILE_TABS.map((t) => ({ id: t.id, label: t.label }))}
+        tabs={profileTabs.map((t) => ({ id: t.id, label: t.label }))}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as ProfileTabId)}
         socialTabStyle
         fillContent
+        unifiedContent
       >
         {renderTabContent()}
       </MobilizeProfilePageShell>
+
+      <MobilizeDialog open={editOpen} onClose={() => !savingSettings && setEditOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit profile</DialogTitle>
+        <DialogContent>
+          <FormControl sx={{ mt: 1, width: "100%" }}>
+            <RadioGroup
+              value={visibility}
+              onChange={(_, v) => setVisibility(v as "public" | "private")}
+            >
+              <FormControlLabel
+                value="public"
+                control={<Radio size="small" />}
+                label={
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <PublicOutlinedIcon fontSize="small" />
+                    <span>Public</span>
+                  </Stack>
+                }
+              />
+              <FormControlLabel
+                value="private"
+                control={<Radio size="small" />}
+                label={
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <LockOutlinedIcon fontSize="small" />
+                    <span>Private</span>
+                  </Stack>
+                }
+              />
+            </RadioGroup>
+          </FormControl>
+          <TextField
+            fullWidth
+            multiline
+            minRows={3}
+            label="Bio"
+            value={bioDraft}
+            onChange={(e) => setBioDraft(e.target.value)}
+            sx={{ mt: 2 }}
+            size="small"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)} disabled={savingSettings}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={savingSettings}
+            onClick={() => {
+              void saveSettings().then((ok) => {
+                if (ok) setEditOpen(false);
+              });
+            }}
+          >
+            {savingSettings ? "Saving…" : "Save"}
+          </Button>
+        </DialogActions>
+      </MobilizeDialog>
     </Box>
   );
 }

@@ -5,12 +5,14 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
+import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Avatar,
   Box,
   Button,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -29,12 +31,13 @@ import {
   TableHead,
   TableRow,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { MobilizeChapterFeedBanner } from "@/components/mobilize/MobilizeChapterFeedBanner";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
@@ -47,14 +50,15 @@ import {
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { mobilizeGroupInitials } from "@/lib/mobilize/group-initials";
-import { resolveMobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
 import {
   isMobilizeGroupListed,
   mobilizeGroupListingVisibilityFromListed,
 } from "@/lib/mobilize/group-ui-labels";
-import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
 import { mobilizeTableContainerSx } from "@/lib/mobilize/mobilize-ui-surface";
+import { flashpointYellow } from "@/theme/tokens";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+
+type ViewMode = "grid" | "list";
 
 type ChapterRow = {
   id: string;
@@ -93,6 +97,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [canCreate, setCanCreate] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -162,20 +167,6 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
     if (!q) return groups;
     return groups.filter((g) => g.name.toLowerCase().includes(q));
   }, [groups, search]);
-
-  const chapterCoverSrc = useMemo(() => {
-    if (!chapter) return "";
-    return publicAssetSrc(mobilizeChapterCoverSrc(chapter.cover_image_url));
-  }, [chapter]);
-
-  const chapterStateInfo = useMemo(() => {
-    if (!chapter) return null;
-    return resolveMobilizeGroupStateInfo({
-      regionCode: chapter.region_code,
-      address: chapter.address,
-      name: chapter.name,
-    });
-  }, [chapter]);
 
   const isSuperAdmin = me.role_names.includes("super_admin");
   const canEditChapter =
@@ -363,8 +354,8 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
     return (
       <Box>
         <Skeleton variant="text" width={160} height={36} sx={{ mb: 1 }} />
-        <Skeleton variant="rectangular" sx={{ aspectRatio: "16 / 7", borderRadius: 2, mb: 2 }} />
-        <Skeleton variant="text" width={120} height={40} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width={280} height={44} sx={{ mb: 0.5 }} />
+        <Skeleton variant="text" width={80} height={24} sx={{ mb: 2 }} />
         <Skeleton variant="rectangular" height={360} sx={{ borderRadius: 2 }} />
       </Box>
     );
@@ -374,80 +365,151 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
     return <Typography color="text.secondary">Chapter not found.</Typography>;
   }
 
-  return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-        <Button
-          component={Link}
-          href="/dashboard/mobilize/map"
-          startIcon={<ArrowBackIcon />}
-          size="small"
-          color="primary"
-          sx={{ fontWeight: 600 }}
-        >
-          Back to chapters
-        </Button>
-        {canEditChapter ? (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => openEditChapter()}
-            sx={{ fontWeight: 600 }}
-          >
-            Edit chapter
-          </Button>
-        ) : null}
-      </Stack>
+  function groupStatusChip(g: GroupRow) {
+    const st = g.my_membership_status;
+    if (st === "approved") return { label: "Joined", color: "success" as const };
+    if (st === "pending") return { label: "Pending", color: "warning" as const };
+    if (g.enrollment_mode === "closed" || g.enrollment_mode === "auto_closed") {
+      return { label: "Closed", color: "default" as const };
+    }
+    return { label: "Open", color: "success" as const };
+  }
 
-      <MobilizeChapterFeedBanner
-        coverSrc={chapterCoverSrc}
-        chapterName={chapter.name}
-        stateInfo={chapterStateInfo}
-      />
+  function renderGroupGrid() {
+    if (!filtered.length) {
+      return (
+        <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
+          No groups in this chapter yet.
+        </Typography>
+      );
+    }
 
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        alignItems={{ xs: "stretch", sm: "flex-end" }}
-        gap={2}
-        sx={{ mt: 2.5, mb: 2 }}
+    return (
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+            lg: "repeat(3, minmax(0, 1fr))",
+          },
+          gap: 2,
+        }}
       >
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: "-0.02em" }}>
-            Groups
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 640, lineHeight: 1.55 }}>
-            Groups you can join under this chapter. Joining a group does not require joining the chapter.
-          </Typography>
-        </Box>
-        {canCreate ? (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateOpen(true)}
-            sx={{ alignSelf: { xs: "flex-start", sm: "center" }, minWidth: 160, fontWeight: 700 }}
-          >
-            New group
-          </Button>
-        ) : null}
-      </Stack>
+        {filtered.map((g) => {
+          const cover = g.cover_image_url ? publicAssetSrc(g.cover_image_url) : undefined;
+          const enrollment = enrollmentModeLabel(g.enrollment_mode);
+          const listed = isMobilizeGroupListed(g.visibility);
+          const status = groupStatusChip(g);
+          const detailHref = `/dashboard/mobilize/groups/${g.id}`;
 
-      <MobilizeContentPanel sx={{ p: { xs: 1.5, sm: 2 } }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }} alignItems={{ sm: "center" }}>
-          <TextField
-            size="small"
-            label="Search by name"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ minWidth: 240 }}
-          />
-          <Typography variant="body2" color="text.secondary">
-            {filtered.length} Groups
-          </Typography>
-        </Stack>
+          return (
+            <Box
+              key={g.id}
+              sx={{
+                borderRadius: 2,
+                overflow: "hidden",
+                border: "1px solid rgba(0,0,0,0.1)",
+                bgcolor: "#fff",
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0,
+              }}
+            >
+              <Box sx={{ position: "relative", aspectRatio: "16 / 10", bgcolor: "#1a2744" }}>
+                {cover ? (
+                  <Box
+                    component="img"
+                    src={cover}
+                    alt=""
+                    sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  />
+                ) : (
+                  <Box
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      bgcolor: "#0d0d0d",
+                      color: flashpointYellow,
+                      fontSize: "2rem",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {mobilizeGroupInitials(g.name)}
+                  </Box>
+                )}
+                <Tooltip title="Open group">
+                  <IconButton
+                    component={Link}
+                    href={detailHref}
+                    size="small"
+                    sx={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      bgcolor: "rgba(0,0,0,0.45)",
+                      color: "#fff",
+                      "&:hover": { bgcolor: "rgba(0,0,0,0.6)" },
+                    }}
+                  >
+                    <OpenInNewIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+              <Box sx={{ p: 1.5, flex: 1, display: "flex", flexDirection: "column", gap: 0.75 }}>
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1}>
+                  <Typography
+                    component={Link}
+                    href={detailHref}
+                    fontWeight={700}
+                    color="text.primary"
+                    sx={{
+                      textDecoration: "none",
+                      lineHeight: 1.25,
+                      "&:hover": { textDecoration: "underline" },
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
+                    {g.name}
+                  </Typography>
+                  <Chip size="small" label={status.label} color={status.color} variant="outlined" sx={{ flexShrink: 0 }} />
+                </Stack>
+                {g.schedule_meeting ? (
+                  <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                    {g.schedule_meeting}
+                  </Typography>
+                ) : null}
+                <Typography variant="caption" color="text.secondary" sx={{ mt: "auto" }}>
+                  {listed ? "Listed" : "Link only"} · {g.member_count ?? 0} members · {enrollment}
+                </Typography>
+                {g.my_membership_status !== "approved" &&
+                g.enrollment_mode !== "closed" &&
+                g.enrollment_mode !== "auto_closed" ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => void joinGroup(g.id)}
+                    sx={{ mt: 0.5, alignSelf: "flex-start", textTransform: "none", borderRadius: 99 }}
+                  >
+                    {g.enrollment_mode === "open_signup" ? "Join" : "Request"}
+                  </Button>
+                ) : null}
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+    );
+  }
 
-        <TableContainer sx={mobilizeTableContainerSx}>
+  function renderGroupList() {
+    return (
+      <TableContainer sx={mobilizeTableContainerSx}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -497,7 +559,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                           component={Link}
                           href={`/dashboard/mobilize/groups/${g.id}`}
                           fontWeight={700}
-                          color="inherit"
+                          color="text.primary"
                           sx={{ textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
                         >
                           {g.name}
@@ -590,9 +652,109 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
             </TableBody>
           </Table>
         </TableContainer>
+    );
+  }
+
+  return (
+    <Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+        <Button
+          component={Link}
+          href="/dashboard/mobilize/map"
+          startIcon={<ArrowBackIcon />}
+          size="small"
+          color="primary"
+          sx={{ fontWeight: 600 }}
+        >
+          Back to chapters
+        </Button>
+        {canEditChapter ? (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => openEditChapter()}
+            sx={{ fontWeight: 600 }}
+          >
+            Edit chapter
+          </Button>
+        ) : null}
+      </Stack>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: "-0.02em", lineHeight: 1.15 }}>
+          {chapter.name}
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+          Groups
+        </Typography>
+      </Box>
+
+      <MobilizeContentPanel sx={{ p: { xs: 1.5, sm: 2 } }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{ mb: 2 }}
+          alignItems={{ sm: "center" }}
+          justifyContent="space-between"
+        >
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }} sx={{ flex: 1 }}>
+            <TextField
+              size="small"
+              label="Search by name"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ minWidth: 240 }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              {filtered.length} {filtered.length === 1 ? "group" : "groups"}
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={viewMode}
+              onChange={(_, v: ViewMode | null) => {
+                if (v) setViewMode(v);
+              }}
+              sx={{
+                "& .MuiToggleButton-root": {
+                  borderColor: "rgba(0,0,0,0.15)",
+                  color: "text.secondary",
+                  px: 1.25,
+                  "&.Mui-selected": {
+                    bgcolor: "rgba(0,0,0,0.06)",
+                    color: "text.primary",
+                  },
+                },
+              }}
+            >
+              <ToggleButton value="grid" aria-label="Grid view">
+                <GridViewOutlinedIcon fontSize="small" />
+              </ToggleButton>
+              <ToggleButton value="list" aria-label="List view">
+                <ViewListOutlinedIcon fontSize="small" />
+              </ToggleButton>
+            </ToggleButtonGroup>
+            {canCreate ? (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => setCreateOpen(true)}
+                sx={{ fontWeight: 700, textTransform: "none", whiteSpace: "nowrap" }}
+              >
+                New group
+              </Button>
+            ) : null}
+          </Stack>
+        </Stack>
+
+        {viewMode === "grid" ? renderGroupGrid() : renderGroupList()}
       </MobilizeContentPanel>
 
-      <Dialog open={editOpen} onClose={() => !editSaving && setEditOpen(false)} fullWidth maxWidth="sm">
+      <MobilizeDialog open={editOpen} onClose={() => !editSaving && setEditOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit chapter</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -660,9 +822,9 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
             Save
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
-      <Dialog open={createOpen} onClose={() => !saving && setCreateOpen(false)} fullWidth maxWidth="sm">
+      <MobilizeDialog open={createOpen} onClose={() => !saving && setCreateOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>New group</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -808,7 +970,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
             Create group
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
     </Box>
   );
 }
