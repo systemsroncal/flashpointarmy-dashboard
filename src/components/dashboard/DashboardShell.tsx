@@ -320,7 +320,7 @@ const NAV: NavItem[] = [
     icon: <PublicIcon />,
   },
   {
-    label: "Chapters",
+    label: "Churchs",
     href: "/dashboard/chapters",
     module: MODULE_SLUGS.chapters,
     icon: <GroupsIcon />,
@@ -332,7 +332,7 @@ const NAV: NavItem[] = [
     icon: <EventIcon />,
   },
   {
-    label: "Mobilize",
+    label: "Chapters",
     href: MOBILIZE_HOME,
     module: MODULE_SLUGS.movilization,
     icon: <FlagOutlined />,
