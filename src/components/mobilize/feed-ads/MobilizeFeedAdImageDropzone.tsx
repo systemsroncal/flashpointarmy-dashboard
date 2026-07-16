@@ -6,7 +6,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
   Box,
   Button,
-  Collapse,
+  Divider,
   LinearProgress,
   Stack,
   TextField,
@@ -32,7 +32,6 @@ export function MobilizeFeedAdImageDropzone({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [urlOpen, setUrlOpen] = useState(false);
 
   const trimmed = value.trim();
   const previewSrc = trimmed ? publicAssetSrc(trimmed) : "";
@@ -72,6 +71,40 @@ export function MobilizeFeedAdImageDropzone({
       <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
         {label}
       </Typography>
+
+      <TextField
+        size="small"
+        fullWidth
+        label="Image src URL"
+        placeholder="https://yoursite.com/banner.jpg or /uploads/…"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled || uploading}
+        helperText="Paste the image address (src). Use this when the file is already hosted on your main site."
+      />
+
+      {previewSrc ? (
+        <Box
+          component="img"
+          src={previewSrc}
+          alt=""
+          sx={{
+            mt: 1.5,
+            maxWidth: "100%",
+            maxHeight: 160,
+            borderRadius: 1,
+            display: "block",
+            border: "1px solid rgba(0,0,0,0.1)",
+          }}
+        />
+      ) : null}
+
+      <Divider sx={{ my: 1.5 }}>
+        <Typography variant="caption" color="text.secondary">
+          or upload
+        </Typography>
+      </Divider>
+
       <Box
         onDragOver={(e) => {
           e.preventDefault();
@@ -102,26 +135,15 @@ export function MobilizeFeedAdImageDropzone({
           hidden
           onChange={(e) => onPickFiles(e.target.files)}
         />
-        {previewSrc ? (
-          <Box
-            component="img"
-            src={previewSrc}
-            alt=""
-            sx={{ maxWidth: "100%", maxHeight: 160, borderRadius: 1, mb: 1, display: "block", mx: "auto" }}
-          />
-        ) : (
-          <CloudUploadIcon sx={{ fontSize: 36, color: "text.secondary", mb: 0.5 }} />
-        )}
+        <CloudUploadIcon sx={{ fontSize: 32, color: "text.secondary", mb: 0.5 }} />
         <Typography variant="body2" color="text.secondary">
           {uploading ? "Uploading…" : "Drag & drop an image, or click to browse"}
         </Typography>
         {uploading ? <LinearProgress sx={{ mt: 1 }} /> : null}
       </Box>
-      <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
-        <Button size="small" onClick={() => setUrlOpen((v) => !v)} disabled={disabled || uploading}>
-          {urlOpen ? "Hide URL" : "Paste URL"}
-        </Button>
-        {trimmed ? (
+
+      {trimmed ? (
+        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
           <Button
             size="small"
             color="error"
@@ -129,21 +151,10 @@ export function MobilizeFeedAdImageDropzone({
             onClick={() => onChange("")}
             disabled={disabled || uploading}
           >
-            Remove
+            Clear image
           </Button>
-        ) : null}
-      </Stack>
-      <Collapse in={urlOpen}>
-        <TextField
-          size="small"
-          fullWidth
-          label="Image URL"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled || uploading}
-          sx={{ mt: 1 }}
-        />
-      </Collapse>
+        </Stack>
+      ) : null}
     </Box>
   );
 }

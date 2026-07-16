@@ -244,7 +244,8 @@ export function MobilizeFeedAdsSettingsForm() {
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Blocks appear in the right column of group feed pages. Drag items to reorder, or use the arrow
-        buttons. Empty or invalid blocks are omitted on the live feed.
+        buttons. Set each image via <strong>Image src URL</strong> (hosted elsewhere) or upload. Empty or
+        invalid blocks are omitted on the live feed.
       </Typography>
 
       {error ? (

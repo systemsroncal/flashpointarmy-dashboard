@@ -25,6 +25,21 @@ export function isSafeFeedAdHref(href: string): boolean {
   }
 }
 
+/** Image src URL for ad blocks (absolute https, site-relative path, or uploads path). */
+export function isSafeFeedAdImageUrl(url: string): boolean {
+  const s = url.trim();
+  if (!s || s.length > 2000) return false;
+  if (/[<>"'`\s]/.test(s)) return false;
+  if (s.startsWith("/") && !s.startsWith("//")) return true;
+  if (s.startsWith("uploads/")) return true;
+  try {
+    const u = new URL(s);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function cleanOptionalToken(raw: unknown, maxLen: number): string | undefined {
   if (typeof raw !== "string") return undefined;
   const s = raw.trim();
@@ -37,7 +52,7 @@ function parseSlide(raw: unknown, index: number): MobilizeFeedAdCarouselSlide | 
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   const image_url = typeof o.image_url === "string" ? o.image_url.trim() : "";
-  if (!image_url) return null;
+  if (!image_url || !isSafeFeedAdImageUrl(image_url)) return null;
   const href = typeof o.href === "string" ? o.href.trim() : "";
   if (href && !isSafeFeedAdHref(href)) return null;
   return {
@@ -50,7 +65,7 @@ function parseSlide(raw: unknown, index: number): MobilizeFeedAdCarouselSlide | 
 
 function parseImageBlock(raw: Record<string, unknown>, id: string, sort_order: number): MobilizeFeedAdImageBlock | null {
   const image_url = typeof raw.image_url === "string" ? raw.image_url.trim() : "";
-  if (!image_url) return null;
+  if (!image_url || !isSafeFeedAdImageUrl(image_url)) return null;
   const href = typeof raw.href === "string" ? raw.href.trim() : "";
   if (href && !isSafeFeedAdHref(href)) return null;
   return {

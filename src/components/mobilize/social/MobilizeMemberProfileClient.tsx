@@ -1,6 +1,7 @@
 "use client";
 
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
+import { MobilizeProfileInternalNav } from "@/components/mobilize/social/MobilizeProfileInternalNav";
 import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeProfilePageShell";
 import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
@@ -247,8 +248,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     return (
       <Box sx={mobilizeChapterDetailRootSx}>
         <Alert severity="warning">{error}</Alert>
-        <Button component={Link} href={backHref} sx={{ mt: 2 }}>
-          Back
+        <Button component={Link} href="/dashboard" sx={{ mt: 2 }}>
+          Dashboard
         </Button>
       </Box>
     );
@@ -561,18 +562,17 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   }
 
   return (
-    <Box sx={mobilizeChapterDetailRootSx}>
-      <Button component={Link} href={backHref} size="small" sx={{ mb: 1 }}>
-        Back
-      </Button>
-
+    <Box sx={{ ...mobilizeChapterDetailRootSx, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {error ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       ) : null}
 
-      <MobilizeProfilePageShell
+      <Box sx={{ display: "flex", alignItems: "stretch", flex: 1, minHeight: 0 }}>
+        <MobilizeProfileInternalNav />
+        <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <MobilizeProfilePageShell
         coverSrc={PROFILE_COVER}
         title={p.display_name}
         subtitle={handleLabel}
@@ -592,6 +592,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           {renderTabContent()}
         </Box>
       </MobilizeProfilePageShell>
+        </Box>
+      </Box>
 
       <MobilizeDialog open={editOpen} onClose={() => !savingSettings && setEditOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit profile</DialogTitle>
