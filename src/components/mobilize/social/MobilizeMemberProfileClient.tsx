@@ -439,20 +439,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             <Box sx={{ ...profileContentGridSx, flex: 1, minHeight: 0 }}>
               <Box sx={{ display: { xs: "none", lg: "block" } }}>{introCard}</Box>
               <Box sx={{ minWidth: 0 }}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    mb: 1.5,
-                    borderRadius: 2,
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    bgcolor: "#fff",
-                  }}
-                >
-                  <Typography variant="h6" fontWeight={800} letterSpacing="-0.01em">
-                    Posts
-                  </Typography>
-                </Paper>
                 <Box sx={{ display: { xs: "block", lg: "none" }, mb: 1.5 }}>{introCard}</Box>
                 {postsFeed}
               </Box>
@@ -598,10 +584,13 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as ProfileTabId)}
         socialTabStyle
+        tabsInContent
         fillContent
         unifiedContent
       >
-        {renderTabContent()}
+        <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "auto" }}>
+          {renderTabContent()}
+        </Box>
       </MobilizeProfilePageShell>
 
       <MobilizeDialog open={editOpen} onClose={() => !savingSettings && setEditOpen(false)} fullWidth maxWidth="sm">

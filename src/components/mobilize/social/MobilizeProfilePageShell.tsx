@@ -5,6 +5,7 @@ import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { flashpointYellow } from "@/theme/tokens";
 import { Avatar, Box, ThemeProvider, Typography } from "@mui/material";
 import type { ReactNode } from "react";
+import { MobilizeContentTabBar } from "@/components/mobilize/social/MobilizeContentTabBar";
 
 type Tab = { id: string; label: string };
 
@@ -27,6 +28,8 @@ type Props = {
   unifiedContent?: boolean;
   /** Facebook-style blue tab underline for member profiles. */
   socialTabStyle?: boolean;
+  /** Render tabs inside the content panel (Truth-style) instead of under the profile header. */
+  tabsInContent?: boolean;
 };
 
 export function MobilizeProfilePageShell({
@@ -44,8 +47,10 @@ export function MobilizeProfilePageShell({
   fillContent = false,
   unifiedContent = false,
   socialTabStyle = false,
+  tabsInContent = false,
 }: Props) {
   const tabAccent = socialTabStyle ? "#1877f2" : undefined;
+  const headerTabs = tabs?.length && !tabsInContent ? tabs : undefined;
   const fallbackInitial =
     avatarFallback.trim().length > 1
       ? avatarFallback.trim().slice(0, 2).toUpperCase()
@@ -101,7 +106,7 @@ export function MobilizeProfilePageShell({
           <Box
             sx={{
               px: { xs: 2, sm: 3 },
-              pb: tabs?.length ? 0 : { xs: 2, sm: 2.5 },
+              pb: headerTabs?.length ? 0 : { xs: 2, sm: 2.5 },
               position: "relative",
             }}
           >
@@ -204,7 +209,7 @@ export function MobilizeProfilePageShell({
               ) : null}
             </Box>
 
-            {tabs?.length ? (
+            {headerTabs?.length ? (
               <Box
                 sx={{
                   display: "flex",
@@ -217,7 +222,7 @@ export function MobilizeProfilePageShell({
                 }}
               >
                 <Box sx={{ display: "flex", gap: 0.25, flex: 1, minWidth: 0 }}>
-                  {tabs.map((t) => {
+                  {headerTabs.map((t) => {
                     const selected = activeTab === t.id;
                     return (
                       <Box
@@ -265,6 +270,14 @@ export function MobilizeProfilePageShell({
                 color: "#0d0d0d",
               }}
             >
+              {tabsInContent && tabs?.length ? (
+                <MobilizeContentTabBar
+                  tabs={tabs}
+                  activeTab={activeTab ?? tabs[0].id}
+                  onTabChange={(id) => onTabChange?.(id)}
+                  variant="truth"
+                />
+              ) : null}
               {children}
             </Box>
           ) : null}

@@ -26,7 +26,6 @@ import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlin
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MapIcon from "@mui/icons-material/Map";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -319,39 +318,6 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
               letterSpacing: "0.12em",
               color: "rgba(255,255,255,0.92)",
               lineHeight: 1.2,
-            }}
-          />
-        </ListItemButton>
-      </ListItem>
-
-      <ListItem disablePadding>
-        <ListItemButton
-          component={Link}
-          href={MOBILIZE_HOME_HREF}
-          selected={onHomePage}
-          data-tour={mobilizeNavTourAttr(MOBILIZE_HOME_HREF)}
-          onClick={onNavigate}
-          sx={{
-            ...NAV_ITEM_TOUCH_SX,
-            py: 0.75,
-            "&.Mui-selected": NAV_SELECTED_SX,
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              color: onHomePage ? "primary.main" : "rgba(255,255,255,0.92)",
-              minWidth: 38,
-            }}
-          >
-            <HomeOutlinedIcon />
-          </ListItemIcon>
-          <ListItemText
-            primary="Home"
-            primaryTypographyProps={{
-              variant: "body2",
-              fontWeight: 600,
-              fontSize: "calc(0.82rem + 3px)",
-              color: onHomePage ? "primary.main" : "rgba(255,255,255,0.88)",
             }}
           />
         </ListItemButton>

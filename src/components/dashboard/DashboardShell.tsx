@@ -561,6 +561,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     (pathname === `${MOBILIZE_PREFIX}/home` ||
       pathname === MOBILIZE_PREFIX ||
       pathname === `/dashboard/mobilize/profile/${user.id}`);
+  const onMobilizeProfilePage =
+    isMobilize && pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
+
+  useEffect(() => {
+    if (!onMobilizeProfilePage) return;
+    setDesktopDrawerOpen(false);
+    setMobileDrawerOpen(false);
+  }, [onMobilizeProfilePage, pathname]);
 
   const mobilizeDrawerNav = useMemo(() => {
     const items = [...MOBILIZE_DRAWER_NAV_BASE];

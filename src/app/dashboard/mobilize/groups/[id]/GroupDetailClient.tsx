@@ -89,6 +89,8 @@ import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCover
 import { MobilizeGroupReportsPanel } from "@/components/mobilize/MobilizeGroupReportsPanel";
 import MobilizeGroupResourcesPanel from "@/components/mobilize/MobilizeGroupResourcesPanel";
 import { MobilizeChapterFeedBanner } from "@/components/mobilize/MobilizeChapterFeedBanner";
+import { MobilizeFeedAdsRail } from "@/components/mobilize/feed-ads/MobilizeFeedAdsRail";
+import type { MobilizeFeedAdBlock } from "@/lib/mobilize/feed-ads-types";
 import { MobilizeChapterUpdatesPanel } from "@/components/mobilize/MobilizeChapterUpdatesPanel";
 import { MobilizeTypeDeleteDialog } from "@/components/mobilize/MobilizeTypeDeleteDialog";
 import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupStateFlag";
@@ -321,6 +323,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     image_urls: string[];
     comments_policy: "everyone" | "leaders_only";
   } | null>(null);
+  const [feedAds, setFeedAds] = useState<MobilizeFeedAdBlock[]>([]);
 
   const loadGroup = useCallback(async () => {
     const res = await fetch(`/api/mobilize/groups/${groupId}`);
@@ -448,6 +451,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     void loadWall().catch(() => {});
     void loadEvents().catch(() => {});
     void loadMembers().catch(() => {});
+    void fetch("/api/mobilize/feed-ads")
+      .then((res) => res.json())
+      .then((json: { items?: MobilizeFeedAdBlock[] }) => {
+        setFeedAds(json.items ?? []);
+      })
+      .catch(() => setFeedAds([]));
   }, [canViewContent, loadWall, loadEvents, loadMembers]);
 
   async function joinRequest() {
@@ -1066,6 +1075,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     );
   }, [approvedMembers, group, groupId]);
 
+  const groupFeedAdsRail = useMemo(() => {
+    if (!feedAds.length) return null;
+    return <MobilizeFeedAdsRail items={feedAds} />;
+  }, [feedAds]);
+
   const compactHeader = useMemo(() => {
     if (!group) return null;
     return (
@@ -1172,7 +1186,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
       {activeTab === "announcements" && canViewContent ? (
         <Box sx={tabPanelBodySx}>
-          <MobilizeSocialFeedShell leftRail={groupFeedLeftRail} fill>
+          <MobilizeSocialFeedShell leftRail={groupFeedLeftRail} rightRail={groupFeedAdsRail} fill>
             <MobilizeGroupFeed
               embedded
               groupId={groupId}

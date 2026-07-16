@@ -14,29 +14,31 @@ type Props = {
   fill?: boolean;
 };
 
-const feedColumnSx = {
-  maxWidth: 680,
-  mx: "auto",
-  width: "100%",
-} as const;
-
 export function MobilizeSocialFeedShell({ children, rightRail, leftRail, fill = false }: Props) {
   const fillSx = fill ? { flex: 1, minHeight: 0 } : {};
+  const threeColumn = Boolean(leftRail && rightRail);
+  const feedColumnSx = {
+    maxWidth: threeColumn ? "none" : 680,
+    mx: threeColumn ? 0 : "auto",
+    width: "100%",
+  } as const;
+
   const body = (
     <Box
       sx={{
         display: "grid",
         gridTemplateColumns: {
           xs: "1fr",
-          lg:
-            leftRail && rightRail
-              ? "minmax(240px, 280px) minmax(0, 1fr) minmax(260px, 300px)"
-              : leftRail
-                ? "minmax(240px, 280px) minmax(0, 1fr)"
-                : "minmax(0, 1fr) minmax(260px, 300px)",
+          lg: threeColumn
+            ? "minmax(220px, 260px) minmax(0, 1fr) minmax(240px, 300px)"
+            : leftRail
+              ? "minmax(220px, 260px) minmax(0, 1fr)"
+              : rightRail
+                ? "minmax(0, 1fr) minmax(240px, 300px)"
+                : "1fr",
         },
         gap: { xs: 2, lg: 2.5 },
-        alignItems: "stretch",
+        alignItems: "start",
         ...fillSx,
       }}
     >
@@ -45,10 +47,23 @@ export function MobilizeSocialFeedShell({ children, rightRail, leftRail, fill = 
           <Box sx={{ display: { xs: "block", lg: "block" } }}>{leftRail}</Box>
         </Box>
       ) : null}
-      <Box sx={{ ...feedColumnSx, order: { xs: 1, lg: 0 }, display: "flex", flexDirection: "column", minHeight: 0, ...(fill ? { flex: 1 } : {}) }}>
+      <Box
+        sx={{
+          ...feedColumnSx,
+          order: { xs: 1, lg: 0 },
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          ...(fill ? { flex: 1 } : {}),
+        }}
+      >
         {children}
       </Box>
-      {rightRail ? <Box sx={{ display: { xs: "none", lg: "block" } }}>{rightRail}</Box> : null}
+      {rightRail ? (
+        <Box sx={{ display: { xs: "none", lg: "block" }, position: "sticky", top: 16 }}>
+          {rightRail}
+        </Box>
+      ) : null}
     </Box>
   );
 
