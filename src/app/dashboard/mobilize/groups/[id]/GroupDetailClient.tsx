@@ -915,25 +915,61 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     if (showJoin) {
       return (
         <Button
-          variant="outlined"
+          variant="contained"
           size="small"
           startIcon={<PersonAddIcon />}
-          sx={{ mt: 1.5 }}
           onClick={() => void joinRequest()}
+          sx={{ borderRadius: 99, textTransform: "none", fontWeight: 700 }}
         >
-          Join now
+          Join group
         </Button>
       );
     }
     if (membership?.membership_status === "pending") {
       return (
-        <Typography sx={{ mt: 1.5 }} color="warning.main" variant="body2">
-          Your membership is pending leader approval.
+        <Typography color="warning.main" variant="body2" sx={{ maxWidth: 220 }}>
+          Membership pending approval.
         </Typography>
       );
     }
     return null;
-  }, [membership, showJoin]);
+  }, [membership, showJoin, joinRequest]);
+
+  const profileHeaderActions = useMemo(() => {
+    const canEdit = Boolean(group && (isLeader || group.created_by === me.id || isSuperAdmin));
+    const actions: ReactNode[] = [];
+    if (joinCallToAction) actions.push(joinCallToAction);
+    if (canEdit) {
+      actions.push(
+        <Button
+          key="edit"
+          size="small"
+          variant="outlined"
+          startIcon={<EditIcon />}
+          onClick={() => openEditGroup()}
+          sx={{ borderRadius: 99, textTransform: "none", fontWeight: 600 }}
+        >
+          Edit group
+        </Button>
+      );
+    }
+    if (!actions.length) return null;
+    return (
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        {actions}
+      </Stack>
+    );
+  }, [group, isLeader, isSuperAdmin, joinCallToAction, me.id, openEditGroup]);
+
+  const profileMeta = useMemo(() => {
+    if (!group) return null;
+    const parts: string[] = [];
+    if (approvedMembers.length) {
+      parts.push(`${approvedMembers.length} member${approvedMembers.length === 1 ? "" : "s"}`);
+    }
+    if (group.group_type) parts.push(group.group_type.replace(/_/g, " "));
+    return parts.length ? parts.join(" · ") : null;
+  }, [approvedMembers.length, group]);
 
   const fullHeader = useMemo(() => {
     if (!group) return null;
@@ -1104,20 +1140,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         <Button component={Link} href={`/dashboard/mobilize/groups/${group.parent_group_id}/groups`} size="small">
           Back to chapter groups
         </Button>
-        {canEditGroup ? (
-          <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => openEditGroup()}>
-            Edit group
-          </Button>
-        ) : null}
       </Stack>
 
       <MobilizeProfilePageShell
         coverSrc={groupCoverSrc}
         title={group.name}
         subtitle={group.address ?? undefined}
+        meta={profileMeta}
         avatarSrc={group.profile_image_url ?? group.cover_image_url}
         avatarFallback={group.name}
-        headerActions={joinCallToAction}
+        headerActions={profileHeaderActions}
         fillContent
       >
       <MobilizeContentPanel
@@ -1191,13 +1223,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       {activeTab === "events" && canViewContent ? (
         <Box sx={tabPanelBodySx}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
-            {(isLeader || group.event_create_policy === "any_member") ? (
-              <Button variant="outlined" onClick={() => setEventOpen(true)}>
-                New Mobilize event
-              </Button>
-            ) : (
-              <Box />
-            )}
             <ToggleButtonGroup
               size="small"
               value={eventsView}
@@ -1216,6 +1241,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 </Tooltip>
               </ToggleButton>
             </ToggleButtonGroup>
+            {(isLeader || group.event_create_policy === "any_member") ? (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setEventOpen(true)}
+                sx={{ borderRadius: 99, textTransform: "none", fontWeight: 600, flexShrink: 0 }}
+              >
+                Add new event
+              </Button>
+            ) : null}
           </Stack>
 
           {eventsView === "list" ? (
@@ -1618,7 +1653,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       </MobilizeProfilePageShell>
 
       <Dialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>New Mobilize event</DialogTitle>
+        <DialogTitle>Add new event</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <TextField
@@ -1676,7 +1711,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       </Dialog>
 
       <Dialog open={editEventOpen} onClose={() => !eventSaving && setEditEventOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Edit Mobilize event</DialogTitle>
+        <DialogTitle>Edit event</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <TextField

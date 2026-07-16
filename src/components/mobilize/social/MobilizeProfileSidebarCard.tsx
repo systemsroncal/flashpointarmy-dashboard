@@ -18,9 +18,10 @@ export function MobilizeProfileSidebarCard({ title, children }: Props) {
         border: "1px solid rgba(0,0,0,0.08)",
         bgcolor: "#fff",
         mb: 2,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
       }}
     >
-      <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.25 }}>
+      <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1.25, letterSpacing: "-0.01em" }}>
         {title}
       </Typography>
       {children}
@@ -45,6 +46,7 @@ export function MobilizeRecommendationsCard({
         bgcolor: "#fff",
         position: "sticky",
         top: 16,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
       }}
     >
       <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1.5 }}>

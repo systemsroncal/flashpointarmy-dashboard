@@ -386,9 +386,16 @@ export default function MobilizeGroupResourcesPanel({
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {canPost ? (
-        <Button variant="outlined" sx={{ mb: 2 }} onClick={openAdd}>
-          Add resource
-        </Button>
+        <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={openAdd}
+            sx={{ borderRadius: 99, textTransform: "none", fontWeight: 600, flexShrink: 0 }}
+          >
+            Add resource
+          </Button>
+        </Stack>
       ) : (
         <Typography color="text.secondary" sx={{ mb: 2 }}>
           Only group leaders can add resources.

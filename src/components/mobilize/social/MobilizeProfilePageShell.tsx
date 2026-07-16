@@ -12,6 +12,8 @@ type Props = {
   coverSrc: string;
   title: string;
   subtitle?: string | null;
+  /** Optional stats line (e.g. followers, member count). */
+  meta?: ReactNode;
   avatarSrc?: string | null;
   avatarFallback?: string;
   tabs?: Tab[];
@@ -21,12 +23,15 @@ type Props = {
   children: ReactNode;
   /** Stretch children to fill viewport below the profile header (group detail tabs). */
   fillContent?: boolean;
+  /** Facebook-style blue tab underline for member profiles. */
+  socialTabStyle?: boolean;
 };
 
 export function MobilizeProfilePageShell({
   coverSrc,
   title,
   subtitle,
+  meta,
   avatarSrc,
   avatarFallback = "?",
   tabs,
@@ -35,7 +40,9 @@ export function MobilizeProfilePageShell({
   headerActions,
   children,
   fillContent = false,
+  socialTabStyle = false,
 }: Props) {
+  const tabAccent = socialTabStyle ? "#1877f2" : undefined;
   const fallbackInitial =
     avatarFallback.trim().length > 1
       ? avatarFallback.trim().slice(0, 2).toUpperCase()
@@ -56,43 +63,87 @@ export function MobilizeProfilePageShell({
             overflow: "hidden",
             bgcolor: "#fff",
             border: "1px solid rgba(0,0,0,0.08)",
-            mb: 2,
+            mb: 1.5,
             boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
           }}
         >
-          <Box sx={{ position: "relative" }}>
+          {/* Cover — no title overlay (Facebook-style) */}
+          <Box sx={{ position: "relative", bgcolor: "#1a2744" }}>
             <Box
               component="img"
               src={coverSrc}
               alt=""
-              sx={{ width: "100%", height: { xs: 160, sm: 220 }, objectFit: "cover", display: "block" }}
+              sx={{
+                width: "100%",
+                height: { xs: 180, sm: 240, md: 300 },
+                objectFit: "cover",
+                display: "block",
+              }}
             />
             <Box
               sx={{
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.72) 100%)",
+                  "linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.18) 100%)",
+                pointerEvents: "none",
               }}
             />
+          </Box>
+
+          {/* Identity row: avatar + name + actions */}
+          <Box
+            sx={{
+              px: { xs: 2, sm: 3 },
+              pb: tabs?.length ? 0 : { xs: 2, sm: 2.5 },
+              position: "relative",
+            }}
+          >
             <Box
               sx={{
-                position: "absolute",
-                left: { xs: 16, sm: 24 },
-                right: { xs: 16, sm: 24 },
-                bottom: { xs: 12, sm: 16 },
                 display: "flex",
-                alignItems: "flex-end",
-                justifyContent: "space-between",
-                gap: 2,
+                flexDirection: { xs: "column", md: "row" },
+                alignItems: { xs: "flex-start", md: "flex-end" },
+                gap: { xs: 1.5, md: 2 },
+                mt: { xs: -5, sm: -6, md: -7 },
+                pt: { xs: 0, md: 0.5 },
               }}
             >
-              <Box sx={{ minWidth: 0 }}>
+              <Avatar
+                src={avatarSrc ? publicAssetSrc(avatarSrc) : undefined}
+                alt=""
+                sx={{
+                  width: { xs: 96, sm: 112, md: 132 },
+                  height: { xs: 96, sm: 112, md: 132 },
+                  border: "4px solid #fff",
+                  bgcolor: "#0d0d0d",
+                  color: flashpointYellow,
+                  fontSize: { xs: "1.6rem", md: "2rem" },
+                  fontWeight: 800,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+                  flexShrink: 0,
+                }}
+              >
+                {fallbackInitial}
+              </Avatar>
+
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  pb: { md: 0.75 },
+                  pt: { xs: 0.25, md: 0 },
+                }}
+              >
                 <Typography
                   variant="h5"
                   fontWeight={800}
+                  color="text.primary"
                   lineHeight={1.15}
-                  sx={{ color: "#fff", textShadow: "0 1px 8px rgba(0,0,0,0.45)" }}
+                  sx={{
+                    letterSpacing: "-0.02em",
+                    fontSize: { xs: "1.35rem", sm: "1.5rem", md: "1.75rem" },
+                  }}
                   noWrap
                   title={title}
                 >
@@ -101,99 +152,92 @@ export function MobilizeProfilePageShell({
                 {subtitle ? (
                   <Typography
                     variant="body2"
-                    sx={{ color: "rgba(255,255,255,0.88)", mt: 0.35, textShadow: "0 1px 4px rgba(0,0,0,0.35)" }}
+                    color="text.secondary"
+                    sx={{ mt: 0.35, lineHeight: 1.4 }}
                     noWrap
-                    title={subtitle}
+                    title={typeof subtitle === "string" ? subtitle : undefined}
                   >
                     {subtitle}
                   </Typography>
                 ) : null}
-              </Box>
-              {headerActions ? (
-                <Box sx={{ flexShrink: 0, pb: 0.25 }}>{headerActions}</Box>
-              ) : null}
-            </Box>
-          </Box>
-
-          <Box sx={{ px: { xs: 2, sm: 3 }, pb: tabs?.length ? 0 : 1.5, position: "relative" }}>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                alignItems: { xs: "flex-start", sm: "flex-end" },
-                gap: 2,
-                mt: -6,
-                pb: 0.5,
-              }}
-            >
-              <Avatar
-                src={avatarSrc ? publicAssetSrc(avatarSrc) : undefined}
-                alt=""
-                sx={{
-                  width: { xs: 96, sm: 112 },
-                  height: { xs: 96, sm: 112 },
-                  border: "4px solid #fff",
-                  bgcolor: "#0d0d0d",
-                  color: flashpointYellow,
-                  fontSize: "1.75rem",
-                  fontWeight: 800,
-                  boxShadow: "0 4px 14px rgba(0,0,0,0.2)",
-                }}
-              >
-                {fallbackInitial}
-              </Avatar>
-              <Box sx={{ flex: 1, minWidth: 0, display: { xs: "block", sm: "none" }, pb: 0.5 }}>
-                <Typography variant="subtitle1" fontWeight={800} color="text.primary" noWrap>
-                  {title}
-                </Typography>
-                {subtitle ? (
-                  <Typography variant="caption" color="text.secondary" noWrap>
-                    {subtitle}
+                {meta ? (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.5, fontWeight: 500 }}
+                  >
+                    {meta}
                   </Typography>
                 ) : null}
               </Box>
+
+              {headerActions ? (
+                <Box
+                  sx={{
+                    flexShrink: 0,
+                    pb: { md: 0.75 },
+                    width: { xs: "100%", md: "auto" },
+                    display: "flex",
+                    justifyContent: { xs: "flex-start", md: "flex-end" },
+                    flexWrap: "wrap",
+                    gap: 1,
+                  }}
+                >
+                  {headerActions}
+                </Box>
+              ) : null}
             </Box>
 
             {tabs?.length ? (
               <Box
                 sx={{
                   display: "flex",
-                  gap: 0.5,
+                  alignItems: "center",
                   borderTop: "1px solid rgba(0,0,0,0.08)",
-                  mt: 1,
+                  mt: 1.5,
                   overflowX: "auto",
+                  mx: { xs: -2, sm: -3 },
+                  px: { xs: 2, sm: 3 },
                 }}
               >
-                {tabs.map((t) => {
-                  const selected = activeTab === t.id;
-                  return (
-                    <Box
-                      key={t.id}
-                      component="button"
-                      type="button"
-                      onClick={() => onTabChange?.(t.id)}
-                      sx={{
-                        border: "none",
-                        bgcolor: "transparent",
-                        cursor: "pointer",
-                        px: 2,
-                        py: 1.25,
-                        fontWeight: selected ? 700 : 500,
-                        color: selected ? "primary.main" : "text.secondary",
-                        borderBottom: selected ? "3px solid" : "3px solid transparent",
-                        borderBottomColor: selected ? "primary.main" : "transparent",
-                        whiteSpace: "nowrap",
-                        fontSize: "0.9rem",
-                      }}
-                    >
-                      {t.label}
-                    </Box>
-                  );
-                })}
+                <Box sx={{ display: "flex", gap: 0.25, flex: 1, minWidth: 0 }}>
+                  {tabs.map((t) => {
+                    const selected = activeTab === t.id;
+                    return (
+                      <Box
+                        key={t.id}
+                        component="button"
+                        type="button"
+                        onClick={() => onTabChange?.(t.id)}
+                        sx={{
+                          border: "none",
+                          bgcolor: "transparent",
+                          cursor: "pointer",
+                          px: { xs: 1.5, sm: 2 },
+                          py: 1.25,
+                          fontWeight: selected ? 700 : 600,
+                          color: selected
+                            ? tabAccent ?? "primary.main"
+                            : "text.secondary",
+                          borderBottom: "3px solid",
+                          borderBottomColor: selected
+                            ? tabAccent ?? "primary.main"
+                            : "transparent",
+                          whiteSpace: "nowrap",
+                          fontSize: "0.9rem",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {t.label}
+                      </Box>
+                    );
+                  })}
+                </Box>
               </Box>
             ) : null}
           </Box>
         </Box>
+
         <Box
           sx={
             fillContent
