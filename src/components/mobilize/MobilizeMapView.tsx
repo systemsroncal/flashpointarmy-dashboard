@@ -263,6 +263,8 @@ function SearchPersonMarker({ origin }: { origin: MapSearchOrigin }) {
 type Props = {
   markers: MapMarkerPoint[];
   height?: string | number;
+  /** Stretch map to fill a flex parent (uses 100% height). */
+  fill?: boolean;
   center?: [number, number];
   zoom?: number;
   /** When set, draws the person marker, radius circles, and fits the map to the search area. */
@@ -278,6 +280,7 @@ type Props = {
 export default function MobilizeMapView({
   markers,
   height = 420,
+  fill = false,
   center,
   zoom = 4,
   searchOrigin,
@@ -292,7 +295,17 @@ export default function MobilizeMapView({
   const initialZoom = searchOrigin ? 11 : zoom;
 
   return (
-    <Box sx={{ width: "100%", height, borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.12)" }}>
+    <Box
+      sx={{
+        width: "100%",
+        height: fill ? "100%" : height,
+        flex: fill ? 1 : undefined,
+        minHeight: fill ? 0 : undefined,
+        borderRadius: 2,
+        overflow: "hidden",
+        border: "1px solid rgba(0,0,0,0.12)",
+      }}
+    >
       <MapContainer
         center={defaultCenter}
         zoom={initialZoom}

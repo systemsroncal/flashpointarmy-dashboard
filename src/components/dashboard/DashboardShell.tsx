@@ -563,12 +563,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       pathname === `/dashboard/mobilize/profile/${user.id}`);
   const onMobilizeProfilePage =
     isMobilize && pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
+  const onMobilizeSocialHubPage =
+    isMobilize &&
+    (pathname === `${MOBILIZE_PREFIX}/home` ||
+      pathname === MOBILIZE_PREFIX ||
+      onMobilizeProfilePage ||
+      pathname.startsWith(`${MOBILIZE_PREFIX}/bookmarks`));
 
   useEffect(() => {
-    if (!onMobilizeProfilePage) return;
+    if (!onMobilizeSocialHubPage) return;
     setDesktopDrawerOpen(false);
     setMobileDrawerOpen(false);
-  }, [onMobilizeProfilePage, pathname]);
+  }, [onMobilizeSocialHubPage, pathname]);
 
   const mobilizeDrawerNav = useMemo(() => {
     const items = [...MOBILIZE_DRAWER_NAV_BASE];
@@ -1226,30 +1232,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Typography>
           </Box>
         </Box>
-        {isMobilize ? (
-          <ListItemButton
-            data-tour="sidebar-sign-out"
-            component={Link}
-            href={onMobilizeSocialHub ? `${MOBILIZE_PREFIX}/map` : "/dashboard"}
-            onClick={(e) => {
-              e.stopPropagation();
-              closeMobileDrawer();
-            }}
-            sx={{
-              mt: 0.5,
-              ...NAV_ITEM_TOUCH_SX,
-              ...MOBILIZE_DASHBOARD_NAV_ITEM_SX,
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 38, color: "rgba(255,255,255,0.92)" }}>
-              {onMobilizeSocialHub ? <MapIcon fontSize="small" /> : <ArrowBackIcon fontSize="small" />}
-            </ListItemIcon>
-            <ListItemText
-              primary={onMobilizeSocialHub ? "Chapters" : "Dashboard"}
-              primaryTypographyProps={{ variant: "body2", fontSize: "calc(0.875rem + 3px)" }}
-            />
-          </ListItemButton>
-        ) : null}
         </Box>
       </Box>
     </Box>

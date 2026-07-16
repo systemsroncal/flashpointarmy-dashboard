@@ -8,6 +8,7 @@ import MobilizeGroupsBrowseTable, {
 } from "@/components/mobilize/MobilizeGroupsBrowseTable";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
+import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 
 export default function MyGroupsPage() {
   const toast = useMobilizeToast();
@@ -57,17 +58,18 @@ export default function MyGroupsPage() {
   }, []);
 
   return (
-    <Box>
-      <Typography variant="h4" fontWeight={700} gutterBottom>
+    <Box sx={mobilizeChapterDetailRootSx}>
+      <Typography variant="h4" fontWeight={700} gutterBottom sx={{ flexShrink: 0 }}>
         Groups
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
         Groups you belong to or lead. Open a group from the table to view feed, events, and members.
       </Typography>
-      <MobilizeContentPanel>
+      <MobilizeContentPanel fill sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
         <MobilizeGroupsBrowseTable
           groups={rows}
           loading={loading}
+          fillHeight
           emptyMessage="You are not in any Mobilize group yet."
           nameLinkTarget="group-detail"
           thumbnailScale={3.5}

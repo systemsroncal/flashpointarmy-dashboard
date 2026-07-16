@@ -69,6 +69,8 @@ type Props = {
   loading?: boolean;
   /** When set, table body scrolls inside this max height. */
   maxHeight?: number;
+  /** Stretch table to fill a flex parent; enables internal scroll. */
+  fillHeight?: boolean;
   emptyMessage?: string;
   /** @deprecated Chapters no longer support join from browse. */
   onJoined?: () => void | Promise<void>;
@@ -225,6 +227,7 @@ export default function MobilizeGroupsBrowseTable({
   groups,
   loading = false,
   maxHeight,
+  fillHeight = false,
   emptyMessage = "No chapters match your filters.",
   layoutVariant = "default",
   nameLinkTarget = "chapter-groups",
@@ -285,12 +288,18 @@ export default function MobilizeGroupsBrowseTable({
   }
 
   if (loading) {
-    return <Skeleton variant="rectangular" height={maxHeight != null ? maxHeight : 420} sx={{ borderRadius: 1 }} />;
+    return (
+      <Skeleton
+        variant="rectangular"
+        height={fillHeight ? "100%" : maxHeight != null ? maxHeight : 420}
+        sx={{ borderRadius: 1, ...(fillHeight ? { flex: 1, minHeight: 200 } : {}) }}
+      />
+    );
   }
 
   if (!groups.length) {
     return (
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: 2, ...(fillHeight ? { flex: 1, minHeight: 0 } : {}) }}>
         <Typography variant="body2" color="text.secondary">
           {emptyMessage}
         </Typography>
@@ -311,11 +320,18 @@ export default function MobilizeGroupsBrowseTable({
     <ThemeProvider theme={mobilizePanelTheme}>
     <TableContainer
       sx={{
-        ...(maxHeight != null
-          ? mapTableScrollSx
-            ? { maxHeight, ...mapTableScrollSx }
-            : { maxHeight, overflow: "auto" }
-          : mapTableScrollSx ?? {}),
+        ...(fillHeight
+          ? {
+              flex: 1,
+              minHeight: 0,
+              overflow: "auto",
+              ...(mapTableScrollSx ?? {}),
+            }
+          : maxHeight != null
+            ? mapTableScrollSx
+              ? { maxHeight, ...mapTableScrollSx }
+              : { maxHeight, overflow: "auto" }
+            : mapTableScrollSx ?? {}),
         bgcolor: "#ffffff",
         borderRadius: 1,
         border: "1px solid rgba(0,0,0,0.12)",

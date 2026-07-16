@@ -37,7 +37,7 @@ export function prepareSidebarTarget(element: Element | undefined, actions: Dash
     attr.startsWith("nav-") ||
     attr.startsWith("mobilize-") ||
     attr === "sidebar-profile" ||
-    attr === "sidebar-sign-out" ||
+    attr === "header-sign-out" ||
     attr === "nav-settings-group" ||
     attr === "sidebar-toggle"
   ) {

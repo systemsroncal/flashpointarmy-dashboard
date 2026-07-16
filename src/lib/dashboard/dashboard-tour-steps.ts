@@ -318,12 +318,11 @@ export function buildMainDashboardTourEntries(
       sidebarHook
     ),
     stepForSelector(
-      "sidebar-sign-out",
-      '[data-tour="sidebar-sign-out"]',
+      "header-sign-out",
+      '[data-tour="header-account-settings"]',
       "Sign out",
-      "Sign out securely when you are done. You will return to the login page.",
-      "right",
-      sidebarHook
+      "Open the gear icon in the top bar, then choose Sign out when you are done. You will return to the login page.",
+      "bottom"
     ),
     stepForSelector(
       "header-account-settings",

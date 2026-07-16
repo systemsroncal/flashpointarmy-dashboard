@@ -29,6 +29,7 @@ import NextLink from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
+import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 
 type Ev = {
   id: string;
@@ -140,17 +141,17 @@ function ActivitiesInner() {
   } as const;
 
   return (
-    <Box>
-      <Typography variant="h4" fontWeight={700} gutterBottom>
+    <Box sx={mobilizeChapterDetailRootSx}>
+      <Typography variant="h4" fontWeight={700} gutterBottom sx={{ flexShrink: 0 }}>
         Upcoming Activities
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
         Mobilize events from your groups and public listings. Switch between list and month calendar; filter by My
         groups or All.
       </Typography>
 
-      <MobilizeContentPanel>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5} sx={{ mb: 2 }}>
+      <MobilizeContentPanel fill sx={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5} sx={{ mb: 2, flexShrink: 0 }}>
         <ToggleButtonGroup size="small" value={view} exclusive onChange={(_, v) => v && setViewAndUrl(v)} aria-label="View mode">
           <ToggleButton value="list" aria-label="List" sx={{ px: 1.25 }}>
             <Tooltip title="List">
@@ -171,17 +172,17 @@ function ActivitiesInner() {
       </Stack>
 
       {scope === "my" ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
           Events in groups where you have approved membership.
         </Typography>
       ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
           Public Mobilize events plus events in groups you belong to.
         </Typography>
       )}
 
       {view === "calendar" ? (
-        <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
+        <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1, flexShrink: 0 }}>
           <Button
             size="small"
             startIcon={<ChevronLeftIcon />}
@@ -202,14 +203,16 @@ function ActivitiesInner() {
         </Stack>
       ) : null}
 
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
       {loading ? (
-        <Skeleton variant="rectangular" height={view === "calendar" ? 420 : 320} sx={{ borderRadius: 1 }} />
+        <Skeleton variant="rectangular" height={view === "calendar" ? "100%" : 320} sx={{ borderRadius: 1, minHeight: 200 }} />
       ) : view === "list" ? (
         <TableContainer
           sx={{
             bgcolor: "#ffffff",
             borderRadius: 1,
             border: "1px solid rgba(0,0,0,0.12)",
+            height: "100%",
           }}
         >
           <Table size="small" stickyHeader>
@@ -317,6 +320,7 @@ function ActivitiesInner() {
           No events in this range.
         </Typography>
       ) : null}
+      </Box>
       </MobilizeContentPanel>
     </Box>
   );

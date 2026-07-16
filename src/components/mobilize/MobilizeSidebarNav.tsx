@@ -99,8 +99,6 @@ type ActiveGroupPayload = {
 type Props = {
   onNavigate?: () => void;
   showSettings: boolean;
-  /** Inside profile content: Dashboard link on top, no Profile item. */
-  variant?: "drawer" | "profile-internal";
 };
 
 function ChapterTabLinks({
@@ -160,12 +158,7 @@ function ChapterTabLinks({
   );
 }
 
-export function MobilizeSidebarNav({
-  onNavigate,
-  showSettings,
-  variant = "drawer",
-}: Props) {
-  const isProfileInternal = variant === "profile-internal";
+export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const me = useDashboardUser();
@@ -293,12 +286,12 @@ export function MobilizeSidebarNav({
   const myGroupsSelected =
     onMyGroupsPage || (Boolean(activeGroupId) && activeGroup !== null && activeGroup.isSubgroup);
 
-  const topNavHref = isProfileInternal ? "/dashboard" : onSocialHub ? MOBILIZE_CHAPTERS_HREF : "/dashboard";
-  const topNavLabel = isProfileInternal ? "Dashboard" : onSocialHub ? "Chapters" : "Dashboard";
-  const topNavIcon = isProfileInternal || !onSocialHub ? (
-    <ArrowBackIcon sx={{ fontSize: 18 }} />
-  ) : (
+  const topNavHref = onSocialHub ? MOBILIZE_CHAPTERS_HREF : "/dashboard";
+  const topNavLabel = onSocialHub ? "Chapters" : "Dashboard";
+  const topNavIcon = onSocialHub ? (
     <MapIcon sx={{ fontSize: 18 }} />
+  ) : (
+    <ArrowBackIcon sx={{ fontSize: 18 }} />
   );
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
-import { MobilizeProfileInternalNav } from "@/components/mobilize/social/MobilizeProfileInternalNav";
+import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeProfilePageShell";
 import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
@@ -569,9 +569,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         </Alert>
       ) : null}
 
-      <Box sx={{ display: "flex", alignItems: "stretch", flex: 1, minHeight: 0 }}>
-        <MobilizeProfileInternalNav />
-        <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <MobilizeSocialHubLayout>
+        <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", p: { xs: 1, sm: 1.5 } }}>
           <MobilizeProfilePageShell
         coverSrc={PROFILE_COVER}
         title={p.display_name}
@@ -593,7 +592,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         </Box>
       </MobilizeProfilePageShell>
         </Box>
-      </Box>
+      </MobilizeSocialHubLayout>
 
       <MobilizeDialog open={editOpen} onClose={() => !savingSettings && setEditOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit profile</DialogTitle>

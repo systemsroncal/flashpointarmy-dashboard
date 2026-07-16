@@ -37,6 +37,7 @@ import {
   isMobilizeGroupListed,
   mobilizeGroupListingVisibilityFromListed,
 } from "@/lib/mobilize/group-ui-labels";
+import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -359,8 +360,8 @@ export default function MobilizeMapPageContent() {
   }
 
   return (
-    <Box>
-      <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2} sx={{ mb: 2 }}>
+    <Box sx={mobilizeChapterDetailRootSx}>
+      <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2} sx={{ mb: 2, flexShrink: 0 }}>
         <Box>
           <Typography variant="h4" fontWeight={700}>
             Chapters
@@ -382,11 +383,11 @@ export default function MobilizeMapPageContent() {
         ) : null}
       </Stack>
 
-      <MobilizeContentPanel>
+      <MobilizeContentPanel fill sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
       <Tabs
         value={browseTab}
         onChange={(_, v: BrowseTab) => setBrowseTab(v)}
-        sx={{ mb: 2, minHeight: 40 }}
+        sx={{ mb: 2, minHeight: 40, flexShrink: 0 }}
       >
         <Tab value="chapters" label="Chapters" sx={{ textTransform: "none", fontWeight: 700, minHeight: 40 }} />
         <Tab value="groups" label="Groups" sx={{ textTransform: "none", fontWeight: 700, minHeight: 40 }} />
@@ -468,7 +469,7 @@ export default function MobilizeMapPageContent() {
         </Typography>
       ) : null}
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2 }} flexWrap="wrap">
+      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2, flexShrink: 0 }} flexWrap="wrap">
         <TextField
           label="Search name"
           size="small"
@@ -498,16 +499,18 @@ export default function MobilizeMapPageContent() {
           gridTemplateColumns: { xs: "1fr", lg: "11fr 9fr" },
           gap: 2,
           alignItems: "stretch",
+          flex: 1,
+          minHeight: 0,
         }}
       >
-        <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1, flexShrink: 0 }}>
             {browseTab === "groups" ? `Groups (${sorted.length})` : `Chapters (${sorted.length})`}
           </Typography>
           <MobilizeGroupsBrowseTable
             groups={sorted}
             loading={loading}
-            maxHeight={480}
+            fillHeight
             emptyMessage={
               browseTab === "groups" ? "No groups match your filters." : "No chapters match your filters."
             }
@@ -516,7 +519,7 @@ export default function MobilizeMapPageContent() {
             thumbnailScale={1}
           />
         </Box>
-        <Box sx={{ minWidth: 0, position: "relative" }}>
+        <Box sx={{ minWidth: 0, position: "relative", display: "flex", flexDirection: "column", minHeight: 0 }}>
           {searchOrigin ? (
             <Tooltip title="Zoom to search origin (GPS or address)">
               <IconButton
@@ -539,7 +542,7 @@ export default function MobilizeMapPageContent() {
           ) : null}
           <MobilizeMapView
             markers={markers}
-            height={480}
+            fill
             center={mapCenter}
             zoom={searchOrigin ? 9 : 4}
             searchOrigin={mapSearchOrigin}

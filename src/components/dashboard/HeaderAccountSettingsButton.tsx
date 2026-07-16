@@ -106,7 +106,7 @@ export function HeaderAccountSettingsButton({
               secondaryTypographyProps={{ variant: "caption" }}
             />
           </MenuItem>
-          <MenuItem onClick={signOut}>
+          <MenuItem onClick={signOut} data-tour="header-sign-out">
             <ListItemIcon>
               <LogoutOutlinedIcon fontSize="small" />
             </ListItemIcon>
