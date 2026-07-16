@@ -23,6 +23,7 @@ import { resolveMobilizeGroupStateCode } from "@/lib/mobilize/group-state-flag";
 import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
 import { mobilizeGroupInitials } from "@/lib/mobilize/group-initials";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import { flashpointYellow } from "@/theme/tokens";
 
 export type MobilizeBrowseGroupRow = {
   id: string;
@@ -34,6 +35,9 @@ export type MobilizeBrowseGroupRow = {
   longitude?: number | null;
   distance_km?: number;
   cover_image_url?: string | null;
+  profile_image_url?: string | null;
+  parent_group_id?: string | null;
+  parent_chapter_name?: string | null;
   member_count?: number;
   leader_names?: string[];
   leaders?: MobilizeGroupLeaderBrief[];
@@ -69,7 +73,7 @@ type Props = {
   /**
    * Map tab: Chapter + Groups preview + open link (no Leaders/Members/Join).
    */
-  layoutVariant?: "default" | "mapStacked";
+  layoutVariant?: "default" | "mapStacked" | "subgroupsMap";
   /** Where name / open links navigate: chapter groups list vs subgroup detail. */
   nameLinkTarget?: "chapter-groups" | "group-detail";
   /** Multiplier for cover thumbnail (base 56 default / 72 mapStacked). E.g. 3.5 for Groups + My Groups. */
@@ -135,7 +139,7 @@ function ChapterStateBadge({
         height: size,
         borderRadius: "50%",
         bgcolor: "#0d0d0d",
-        color: "primary.main",
+        color: flashpointYellow,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -186,7 +190,7 @@ function SubgroupAvatars({
                 fontSize: "0.65rem",
                 fontWeight: 700,
                 bgcolor: "grey.800",
-                color: "primary.main",
+                color: flashpointYellow,
                 border: "1px solid rgba(0,0,0,0.12)",
               }}
             >
@@ -225,8 +229,9 @@ export default function MobilizeGroupsBrowseTable({
   thumbnailScale = 1,
 }: Props) {
   const mapStacked = layoutVariant === "mapStacked";
-  const showActivitiesColumn = !mapStacked;
-  const thumbBase = mapStacked ? 48 : 56;
+  const subgroupsMap = layoutVariant === "subgroupsMap";
+  const showActivitiesColumn = !mapStacked && !subgroupsMap;
+  const thumbBase = mapStacked || subgroupsMap ? 48 : 56;
   const thumbSize = Math.max(28, Math.round(thumbBase * thumbnailScale));
   const listHeroCover = !mapStacked;
   const coverImgSx = listHeroCover
@@ -293,7 +298,7 @@ export default function MobilizeGroupsBrowseTable({
 
   const thumbColWidth = thumbSize + 16;
 
-  const mapTableScrollSx = mapStacked
+  const mapTableScrollSx = mapStacked || subgroupsMap
     ? {
         overflowY: "auto" as const,
         overflowX: { xs: "auto" as const, md: "hidden" as const },
@@ -356,6 +361,17 @@ export default function MobilizeGroupsBrowseTable({
                   &nbsp;
                 </TableCell>
               </>
+            ) : subgroupsMap ? (
+              <>
+                <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: "44%" }}>Group</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: "32%" }}>Chapter</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", width: 72 }}>
+                  Members
+                </TableCell>
+                <TableCell align="right" sx={{ width: 56, fontWeight: 700, color: "text.secondary", px: 1 }}>
+                  &nbsp;
+                </TableCell>
+              </>
             ) : (
               <>
                 <TableCell sx={{ width: thumbColWidth, py: 1 }} />
@@ -392,19 +408,39 @@ export default function MobilizeGroupsBrowseTable({
             const cover = publicAssetSrc(mobilizeChapterCoverSrc(g.cover_image_url));
             const count = g.member_count ?? 0;
             const activities = g.upcoming_activity_count ?? 0;
-            const groupsHref = rowNameHref(g.id);
+            const detailHref = rowNameHref(g.id);
             const groupInfo = (
               <Stack spacing={0.75} sx={{ minWidth: 0 }}>
                 <Stack direction="row" spacing={1.25} alignItems="flex-start">
                   {mapStacked ? (
                     <ChapterStateBadge name={g.name} address={g.address} size={thumbSize} />
+                  ) : subgroupsMap ? (
+                    <Avatar
+                      src={
+                        g.profile_image_url
+                          ? publicAssetSrc(g.profile_image_url)
+                          : g.cover_image_url
+                            ? publicAssetSrc(g.cover_image_url)
+                            : undefined
+                      }
+                      sx={{
+                        width: thumbSize,
+                        height: thumbSize,
+                        bgcolor: "#0d0d0d",
+                        color: flashpointYellow,
+                        fontWeight: 800,
+                        border: "1px solid rgba(255,215,0,0.35)",
+                      }}
+                    >
+                      {mobilizeGroupInitials(g.name)}
+                    </Avatar>
                   ) : (
                     <Box component="img" src={cover} alt="" sx={coverImgSx} />
                   )}
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Typography
                       component={Link}
-                      href={groupsHref}
+                      href={detailHref}
                       fontWeight={700}
                       color="inherit"
                       display="block"
@@ -449,11 +485,35 @@ export default function MobilizeGroupsBrowseTable({
                   "& td": {
                     verticalAlign: "middle",
                     borderColor: "rgba(0,0,0,0.06)",
-                    ...(mapStacked ? { py: 0.75 } : {}),
+                    ...(mapStacked || subgroupsMap ? { py: 0.75 } : {}),
                   },
                 }}
               >
-                {mapStacked ? (
+                {subgroupsMap ? (
+                  <>
+                    <TableCell sx={{ py: 0.85, verticalAlign: "top" }}>{groupInfo}</TableCell>
+                    <TableCell sx={{ py: 0.85, verticalAlign: "middle" }}>
+                      <Typography variant="body2" color="text.secondary" noWrap title={g.parent_chapter_name ?? ""}>
+                        {g.parent_chapter_name ?? "—"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 0.85, verticalAlign: "middle" }}>
+                      <Typography variant="body2">{count}</Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 0.85, px: 1 }}>
+                      <Tooltip title="Open group">
+                        <IconButton
+                          component={Link}
+                          href={detailHref}
+                          size="small"
+                          color="primary"
+                        >
+                          <OpenInNewIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </>
+                ) : mapStacked ? (
                   <>
                     <TableCell sx={{ py: 0.85, verticalAlign: "top" }}>{groupInfo}</TableCell>
                     <TableCell sx={{ py: 0.85, verticalAlign: "middle" }}>
@@ -480,7 +540,7 @@ export default function MobilizeGroupsBrowseTable({
                     <TableCell sx={{ minWidth: 0 }}>
                       <Typography
                         component={Link}
-                        href={groupsHref}
+                        href={detailHref}
                         fontWeight={700}
                         color="inherit"
                         sx={{ textDecoration: "none", "&:hover": { textDecoration: "underline" } }}

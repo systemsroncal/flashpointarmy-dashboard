@@ -69,10 +69,11 @@ export function PublicGroupActionBar({
   return (
     <Box
       sx={{
-        borderTop: "1px solid rgba(0,0,0,0.1)",
-        borderBottom: "1px solid rgba(0,0,0,0.1)",
+        bgcolor: "#f3f4f6",
+        borderRadius: 1.5,
+        px: { xs: 2, sm: 2.5 },
         py: 1.5,
-        mb: 3,
+        border: "1px solid rgba(0,0,0,0.06)",
       }}
     >
       <Stack
@@ -81,11 +82,22 @@ export function PublicGroupActionBar({
         justifyContent="space-between"
         gap={1.5}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: "rgba(0,0,0,0.65)", fontWeight: 500 }}>
           {statusText}
         </Typography>
         <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
-          <Button variant="outlined" onClick={onContact} disabled={busy}>
+          <Button
+            variant="outlined"
+            onClick={onContact}
+            disabled={busy}
+            sx={{
+              borderRadius: 99,
+              textTransform: "none",
+              fontWeight: 600,
+              borderColor: "rgba(0,0,0,0.22)",
+              color: "#333",
+            }}
+          >
             Contact{contactName ? ` ${contactName.split(" ")[0]}` : ""}
           </Button>
           {accepting ? (
@@ -94,19 +106,27 @@ export function PublicGroupActionBar({
               onClick={() => void onJoin()}
               disabled={busy}
               sx={{
+                borderRadius: 99,
+                textTransform: "none",
+                fontWeight: 700,
+                px: 2.5,
                 background: "linear-gradient(90deg, #1e88e5 0%, #26a69a 100%)",
                 color: "#fff",
                 boxShadow: "none",
                 "&:hover": {
                   background: "linear-gradient(90deg, #1976d2 0%, #00897b 100%)",
-                  boxShadow: "none",
+                  boxShadow: "0 2px 8px rgba(30,136,229,0.35)",
                 },
               }}
             >
-              {enrollmentMode === "open_signup" ? "Join group" : "Request to join"}
+              {enrollmentMode === "open_signup" ? "Join" : "Request to join"}
             </Button>
           ) : (
-            <Button variant="outlined" disabled>
+            <Button
+              variant="outlined"
+              disabled
+              sx={{ borderRadius: 99, textTransform: "none", fontWeight: 600 }}
+            >
               {label}
             </Button>
           )}

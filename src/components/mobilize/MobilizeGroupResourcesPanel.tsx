@@ -384,7 +384,7 @@ export default function MobilizeGroupResourcesPanel({
   }
 
   return (
-    <Box>
+    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {canPost ? (
         <Button variant="outlined" sx={{ mb: 2 }} onClick={openAdd}>
           Add resource
@@ -444,8 +444,10 @@ export default function MobilizeGroupResourcesPanel({
         })
       ) : (
         <MobilizeSectionEmptyState
+          fill
           imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.resources}
-          message="No resources have been added to this group yet."
+          title="No resources"
+          description="Documents, links, videos, and notes shared with the group will appear here."
         />
       )}
 

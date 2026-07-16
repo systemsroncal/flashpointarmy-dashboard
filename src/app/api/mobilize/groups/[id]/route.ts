@@ -67,6 +67,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     "visibility",
     "event_create_policy",
     "cover_image_url",
+    "profile_image_url",
     "wall_post_policy",
     "resources_post_policy",
     "schedule_meeting",
@@ -118,6 +119,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if ("cover_image_url" in patch) {
     const u = patch.cover_image_url;
     patch.cover_image_url =
+      u == null || String(u).trim() === "" ? null : String(u).trim();
+  }
+  if ("profile_image_url" in patch) {
+    const u = patch.profile_image_url;
+    patch.profile_image_url =
       u == null || String(u).trim() === "" ? null : String(u).trim();
   }
   if ("enrollment_mode" in patch) {

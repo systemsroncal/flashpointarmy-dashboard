@@ -20,9 +20,20 @@ type Props = {
   value: string;
   onChange: (url: string) => void;
   disabled?: boolean;
+  variant?: "cover" | "profile";
 };
 
-export default function MobilizeGroupCoverDropzone({ value, onChange, disabled = false }: Props) {
+export default function MobilizeGroupCoverDropzone({
+  value,
+  onChange,
+  disabled = false,
+  variant = "cover",
+}: Props) {
+  const isProfile = variant === "profile";
+  const uploadEndpoint = isProfile
+    ? "/api/mobilize/groups/profile-image"
+    : "/api/mobilize/groups/cover-image";
+  const responseKey = isProfile ? "profile_image_url" : "cover_image_url";
   const toast = useMobilizeToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -38,19 +49,20 @@ export default function MobilizeGroupCoverDropzone({ value, onChange, disabled =
       try {
         const fd = new FormData();
         fd.set("file", file);
-        const res = await fetch("/api/mobilize/groups/cover-image", { method: "POST", body: fd });
-        const json = (await res.json()) as { cover_image_url?: string; error?: string };
+        const res = await fetch(uploadEndpoint, { method: "POST", body: fd });
+        const json = (await res.json()) as { cover_image_url?: string; profile_image_url?: string; error?: string };
         if (!res.ok) throw new Error(json.error || "Upload failed.");
-        if (!json.cover_image_url) throw new Error("No image URL returned.");
-        onChange(json.cover_image_url);
-        toast("Cover image uploaded.", "success");
+        const url = isProfile ? json.profile_image_url : json.cover_image_url;
+        if (!url) throw new Error("No image URL returned.");
+        onChange(url);
+        toast(isProfile ? "Profile image uploaded." : "Cover image uploaded.", "success");
       } catch (e) {
         toast(e instanceof Error ? e.message : "Upload failed.", "error");
       } finally {
         setUploading(false);
       }
     },
-    [onChange, toast]
+    [isProfile, onChange, toast, uploadEndpoint]
   );
 
   function onPickFiles(files: FileList | null) {
@@ -65,7 +77,7 @@ export default function MobilizeGroupCoverDropzone({ value, onChange, disabled =
   return (
     <Box>
       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.75 }}>
-        Cover image
+        {isProfile ? "Profile image" : "Cover image"}
       </Typography>
 
       {/* Upload target: always visible so users can add or replace */}
@@ -97,7 +109,13 @@ export default function MobilizeGroupCoverDropzone({ value, onChange, disabled =
       >
         <CloudUploadIcon sx={{ fontSize: 36, color: "text.secondary", mb: 0.5 }} />
         <Typography variant="body2" fontWeight={600}>
-          {previewSrc ? "Drop a new image here or click to replace" : "Drop an image here or click to upload"}
+          {previewSrc
+            ? isProfile
+              ? "Drop a new profile photo or click to replace"
+              : "Drop a new image here or click to replace"
+            : isProfile
+              ? "Drop a profile photo or click to upload"
+              : "Drop an image here or click to upload"}
         </Typography>
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
           JPEG, PNG, WebP, or GIF · max 1 MB
@@ -116,7 +134,7 @@ export default function MobilizeGroupCoverDropzone({ value, onChange, disabled =
           }}
         >
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-            Assigned cover preview
+            {isProfile ? "Assigned profile preview" : "Assigned cover preview"}
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ sm: "flex-start" }}>
             <Box
@@ -124,11 +142,12 @@ export default function MobilizeGroupCoverDropzone({ value, onChange, disabled =
               src={previewSrc}
               alt=""
               sx={{
-                width: "100%",
-                maxWidth: 220,
-                maxHeight: 140,
+                width: isProfile ? 96 : "100%",
+                height: isProfile ? 96 : "auto",
+                maxWidth: isProfile ? 96 : 220,
+                maxHeight: isProfile ? 96 : 140,
                 objectFit: "cover",
-                borderRadius: 1,
+                borderRadius: isProfile ? "50%" : 1,
                 display: "block",
                 bgcolor: "rgba(0,0,0,0.35)",
                 border: "1px solid rgba(255,255,255,0.08)",

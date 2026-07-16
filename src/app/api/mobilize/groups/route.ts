@@ -17,20 +17,23 @@ export async function GET(req: Request) {
     .map((s) => s.trim())
     .filter(Boolean);
   const parentId = (url.searchParams.get("parent_id") || "").trim();
+  const scope = (url.searchParams.get("scope") || "chapters").toLowerCase();
 
-  if (parentId) {
+  if (parentId || scope === "subgroups") {
     await applyMobilizeAutoCloseInactive(auth.admin);
   }
 
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, created_by, created_at, parent_group_id, schedule_meeting, enrollment_mode, last_activity_at, public_slug"
+      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, profile_image_url, created_by, created_at, parent_group_id, schedule_meeting, enrollment_mode, last_activity_at, public_slug"
     )
     .order("created_at", { ascending: false });
 
   if (parentId) {
     query = query.eq("parent_group_id", parentId);
+  } else if (scope === "subgroups") {
+    query = query.not("parent_group_id", "is", null);
   } else {
     query = query.is("parent_group_id", null);
   }
@@ -51,15 +54,57 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   const rows = data ?? [];
+  const parentInfoById = new Map<
+    string,
+    { name: string; latitude: number | null; longitude: number | null; address: string | null }
+  >();
+  if (scope === "subgroups" && rows.length) {
+    const parentIds = [
+      ...new Set(
+        rows
+          .map((g: { parent_group_id?: string | null }) => g.parent_group_id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      ),
+    ];
+    if (parentIds.length) {
+      const { data: parents } = await auth.admin
+        .from("mobilize_groups")
+        .select("id, name, latitude, longitude, address")
+        .in("id", parentIds);
+      for (const p of parents ?? []) {
+        parentInfoById.set(p.id, {
+          name: p.name,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          address: p.address,
+        });
+      }
+    }
+  }
+
   const extras = await enrichMobilizeGroupsBrowse(
     auth.admin,
     rows.map((g: { id: string }) => ({ id: g.id })),
     auth.userId
   );
-  const groups = rows.map((g: { id: string }) => {
+  const groups = rows.map((g: {
+    id: string;
+    parent_group_id?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    address?: string | null;
+  }) => {
     const e = extras.get(g.id);
+    const parentIdForRow = g.parent_group_id ?? null;
+    const parent = parentIdForRow ? parentInfoById.get(parentIdForRow) : undefined;
+    const effectiveLat = g.latitude ?? parent?.latitude ?? null;
+    const effectiveLng = g.longitude ?? parent?.longitude ?? null;
     return {
       ...g,
+      latitude: effectiveLat,
+      longitude: effectiveLng,
+      address: g.address ?? parent?.address ?? null,
+      parent_chapter_name: parent?.name ?? null,
       member_count: e?.member_count ?? 0,
       leader_names: e?.leader_names ?? [],
       leaders: e?.leaders ?? [],

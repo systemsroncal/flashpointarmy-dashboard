@@ -13,9 +13,13 @@ type GroupRow = {
   longitude: number | null;
   visibility: string;
   cover_image_url?: string | null;
+  profile_image_url?: string | null;
   wall_post_policy?: string;
   created_at: string;
   created_by?: string;
+  parent_group_id?: string | null;
+  parent_chapter_name?: string | null;
+  distance_km?: number;
 };
 
 export async function GET(req: Request) {
@@ -30,6 +34,7 @@ export async function GET(req: Request) {
     .map((s) => s.trim())
     .filter(Boolean);
   const q = (url.searchParams.get("q") || "").trim().toLowerCase();
+  const scope = (url.searchParams.get("scope") || "chapters").toLowerCase();
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return NextResponse.json({ error: "lat and lng query params are required." }, { status: 400 });
@@ -39,16 +44,23 @@ export async function GET(req: Request) {
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, wall_post_policy, created_at, created_by, parent_group_id"
+      "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, profile_image_url, wall_post_policy, created_at, created_by, parent_group_id"
     )
-    .is("parent_group_id", null)
-    .eq("visibility", "public")
-    .not("latitude", "is", null)
-    .not("longitude", "is", null)
-    .gte("latitude", box.minLat)
-    .lte("latitude", box.maxLat)
-    .gte("longitude", box.minLng)
-    .lte("longitude", box.maxLng);
+    .eq("visibility", "public");
+
+  if (scope === "subgroups") {
+    query = query.not("parent_group_id", "is", null);
+  } else {
+    query = query.is("parent_group_id", null).not("latitude", "is", null).not("longitude", "is", null);
+  }
+
+  if (scope !== "subgroups") {
+    query = query
+      .gte("latitude", box.minLat)
+      .lte("latitude", box.maxLat)
+      .gte("longitude", box.minLng)
+      .lte("longitude", box.maxLng);
+  }
 
   if (types.length) {
     query = query.in("group_type", types);
@@ -64,6 +76,45 @@ export async function GET(req: Request) {
     rows = rows.filter((r) => r.name.toLowerCase().includes(q));
   }
 
+  if (scope === "subgroups" && rows.length) {
+    const parentIds = [
+      ...new Set(
+        rows
+          .map((r) => r.parent_group_id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      ),
+    ];
+    const parentById = new Map<
+      string,
+      { name: string; latitude: number | null; longitude: number | null; address: string | null }
+    >();
+    if (parentIds.length) {
+      const { data: parents } = await auth.admin
+        .from("mobilize_groups")
+        .select("id, name, latitude, longitude, address")
+        .in("id", parentIds);
+      for (const p of parents ?? []) {
+        parentById.set(p.id, {
+          name: p.name,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          address: p.address,
+        });
+      }
+    }
+    rows = rows.map((r) => {
+      const parent = r.parent_group_id ? parentById.get(r.parent_group_id) : undefined;
+      return {
+        ...r,
+        latitude: r.latitude ?? parent?.latitude ?? null,
+        longitude: r.longitude ?? parent?.longitude ?? null,
+        address: r.address ?? parent?.address ?? null,
+        parent_chapter_name: parent?.name ?? null,
+      };
+    });
+    rows = rows.filter((r) => r.latitude != null && r.longitude != null);
+  }
+
   const withDistance = rows
     .map((r) => ({
       ...r,
@@ -71,7 +122,7 @@ export async function GET(req: Request) {
     }))
     .filter((r) => r.distance_km <= radiusKm);
 
-  const merged = withDistance.sort((a, b) => a.distance_km - b.distance_km);
+  let merged = withDistance.sort((a, b) => a.distance_km - b.distance_km);
 
   const extras = await enrichMobilizeGroupsBrowse(
     auth.admin,

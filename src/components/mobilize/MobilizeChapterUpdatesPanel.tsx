@@ -11,7 +11,7 @@ type Props = {
 
 export function MobilizeChapterUpdatesPanel({ groupId, chapterName }: Props) {
   return (
-    <Box>
+    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 2.5 }}>
         <NotificationsActiveOutlinedIcon sx={{ fontSize: 28, color: "primary.main" }} />
         <Box>
@@ -28,8 +28,8 @@ export function MobilizeChapterUpdatesPanel({ groupId, chapterName }: Props) {
         groupId={groupId}
         joinRequestsTitle="Pending join requests"
         eventsTitle="Recent events"
-        emptyJoinMessage="No pending join requests for this chapter."
-        emptyEventsMessage="No new upcoming events in this chapter in the last 7 days."
+        emptyJoinMessage="No pending join requests for this group."
+        emptyEventsMessage="No new upcoming events were added in the last 7 days."
       />
     </Box>
   );

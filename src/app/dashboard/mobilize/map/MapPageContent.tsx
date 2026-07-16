@@ -15,6 +15,8 @@ import {
   Select,
   Skeleton,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -61,7 +63,12 @@ type GroupRow = {
   my_membership_status?: string | null;
   subgroups?: MobilizeSubgroupBrief[];
   subgroup_count?: number;
+  profile_image_url?: string | null;
+  parent_group_id?: string | null;
+  parent_chapter_name?: string | null;
 };
+
+type BrowseTab = "chapters" | "groups";
 
 /** Temporarily hide GPS/address search origin controls on the chapters map page. */
 const SHOW_SEARCH_ORIGIN = false;
@@ -73,6 +80,7 @@ export default function MobilizeMapPageContent() {
   const dashboardUser = useDashboardUser();
   const [canCreateGroup, setCanCreateGroup] = useState(false);
   const [originMode, setOriginMode] = useState<OriginMode>("address");
+  const [browseTab, setBrowseTab] = useState<BrowseTab>("chapters");
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -141,37 +149,43 @@ export default function MobilizeMapPageContent() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      const scope = browseTab === "groups" ? "subgroups" : "chapters";
       if (searchOrigin) {
         const params = new URLSearchParams({
           lat: String(searchOrigin.lat),
           lng: String(searchOrigin.lng),
           radiusKm: String(radiusKm),
+          scope,
         });
         if (debouncedSearch) params.set("q", debouncedSearch);
         const res = await fetch(`/api/mobilize/nearby?${params.toString()}`);
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Failed to load nearby chapters.");
+        if (!res.ok) throw new Error(json.error || "Failed to load nearby items.");
         setGroups(json.groups ?? []);
       } else {
-        const params = new URLSearchParams({ visibility: "public" });
+        const params = new URLSearchParams({ visibility: "public", scope });
         if (debouncedSearch) params.set("q", debouncedSearch);
         const res = await fetch(`/api/mobilize/groups?${params.toString()}`);
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Failed to load chapters.");
-        let rows = (json.groups ?? []).filter(
+        if (!res.ok) throw new Error(json.error || "Failed to load list.");
+        const rows = (json.groups ?? []).filter(
           (g: GroupRow) => g.latitude != null && g.longitude != null
         ) as GroupRow[];
-        const resMine = await fetch("/api/mobilize/my-groups");
-        const jsonMine = await resMine.json();
-        if (resMine.ok && Array.isArray(jsonMine.groups)) {
-          const byId = new Map(rows.map((g) => [g.id, g]));
-          for (const raw of jsonMine.groups as GroupRow[]) {
-            if (raw.latitude == null || raw.longitude == null) continue;
-            if (!isMobilizeGroupListed(raw.visibility)) continue;
-            const merged = { ...raw, ...(byId.get(raw.id) ?? {}) };
-            byId.set(raw.id, merged);
+        if (browseTab === "chapters") {
+          const resMine = await fetch("/api/mobilize/my-groups");
+          const jsonMine = await resMine.json();
+          if (resMine.ok && Array.isArray(jsonMine.groups)) {
+            const byId = new Map(rows.map((g) => [g.id, g]));
+            for (const raw of jsonMine.groups as GroupRow[]) {
+              if (raw.parent_group_id != null) continue;
+              if (raw.latitude == null || raw.longitude == null) continue;
+              if (!isMobilizeGroupListed(raw.visibility)) continue;
+              const merged = { ...raw, ...(byId.get(raw.id) ?? {}) };
+              byId.set(raw.id, merged);
+            }
+            setGroups([...byId.values()]);
+            return;
           }
-          rows = [...byId.values()];
         }
         setGroups(rows);
       }
@@ -180,7 +194,7 @@ export default function MobilizeMapPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [searchOrigin, radiusKm, debouncedSearch, toast]);
+  }, [searchOrigin, radiusKm, debouncedSearch, toast, browseTab]);
 
   useEffect(() => {
     void load();
@@ -237,10 +251,16 @@ export default function MobilizeMapPageContent() {
           lat: g.latitude as number,
           lng: g.longitude as number,
           title: g.name,
-          subtitle: `${g.group_type} · ${g.address ?? "No address"}`,
-          href: `/dashboard/mobilize/groups/${g.id}/groups`,
+          subtitle:
+            browseTab === "groups"
+              ? `${g.parent_chapter_name ?? "Group"} · ${g.group_type}`
+              : `${g.group_type} · ${g.address ?? "No address"}`,
+          href:
+            browseTab === "groups"
+              ? `/dashboard/mobilize/groups/${g.id}`
+              : `/dashboard/mobilize/groups/${g.id}/groups`,
         })),
-    [sorted]
+    [sorted, browseTab]
   );
 
   const mapCenter = useMemo(() => {
@@ -346,8 +366,8 @@ export default function MobilizeMapPageContent() {
             Chapters
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720, lineHeight: 1.55 }}>
-            Find FlashPoint Army chapters near you. Browse the map, open a chapter to explore its groups, and join
-            the group that fits your area and interests.
+            Find FlashPoint Army chapters and groups near you. Browse the map, open a chapter to explore its groups, or
+            jump directly into a group feed.
           </Typography>
         </Box>
         {canCreateGroup ? (
@@ -363,6 +383,14 @@ export default function MobilizeMapPageContent() {
       </Stack>
 
       <MobilizeContentPanel>
+      <Tabs
+        value={browseTab}
+        onChange={(_, v: BrowseTab) => setBrowseTab(v)}
+        sx={{ mb: 2, minHeight: 40 }}
+      >
+        <Tab value="chapters" label="Chapters" sx={{ textTransform: "none", fontWeight: 700, minHeight: 40 }} />
+        <Tab value="groups" label="Groups" sx={{ textTransform: "none", fontWeight: 700, minHeight: 40 }} />
+      </Tabs>
       {SHOW_SEARCH_ORIGIN ? (
       <Stack direction={{ xs: "column", lg: "row" }} spacing={1} sx={{ mb: 2 }} alignItems={{ lg: "center" }}>
         <ToggleButtonGroup
@@ -474,14 +502,17 @@ export default function MobilizeMapPageContent() {
       >
         <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Chapters ({sorted.length})
+            {browseTab === "groups" ? `Groups (${sorted.length})` : `Chapters (${sorted.length})`}
           </Typography>
           <MobilizeGroupsBrowseTable
             groups={sorted}
             loading={loading}
             maxHeight={480}
-            emptyMessage="No chapters match your filters."
-            layoutVariant="mapStacked"
+            emptyMessage={
+              browseTab === "groups" ? "No groups match your filters." : "No chapters match your filters."
+            }
+            layoutVariant={browseTab === "groups" ? "subgroupsMap" : "mapStacked"}
+            nameLinkTarget={browseTab === "groups" ? "group-detail" : "chapter-groups"}
             thumbnailScale={1}
           />
         </Box>

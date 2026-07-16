@@ -18,10 +18,6 @@ import {
   CircularProgress,
   FormControl,
   FormControlLabel,
-  List,
-  ListItemButton,
-  ListItemText,
-  Paper,
   Radio,
   RadioGroup,
   Stack,
@@ -53,18 +49,10 @@ type ProfilePayload = {
 
 type ProfilePost = UnifiedFeedPost;
 
-type ProfileTab = "feed" | "about";
-
 type Props = {
   userId: string;
   backHref: string;
 };
-
-const panelSx = {
-  bgcolor: "rgba(0,0,0,0.06)",
-  border: "1px solid rgba(0,0,0,0.08)",
-  borderRadius: 2,
-} as const;
 
 export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
@@ -77,7 +65,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [bioDraft, setBioDraft] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [savingSettings, setSavingSettings] = useState(false);
-  const [tab, setTab] = useState<ProfileTab>("feed");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -320,60 +307,17 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         subtitle={profile.handle}
         avatarSrc={profile.avatar_url}
         avatarFallback={profile.display_name}
-        tabs={[
-          { id: "feed", label: "Feed" },
-          { id: "about", label: "About" },
-        ]}
-        activeTab={tab}
-        onTabChange={(id) => setTab(id as ProfileTab)}
         headerActions={headerActions}
       >
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "220px minmax(0, 1fr)" },
-            gap: { xs: 2, md: 3 },
-            alignItems: "start",
-          }}
-        >
-          <Paper elevation={0} sx={{ ...panelSx, py: 1, display: { xs: "none", md: "block" } }}>
-            <List dense disablePadding>
-              {[
-                { id: "feed" as const, label: "Feed" },
-                { id: "about" as const, label: "About" },
-              ].map((item) => (
-                <ListItemButton
-                  key={item.id}
-                  selected={tab === item.id}
-                  onClick={() => setTab(item.id)}
-                  sx={{ mx: 1, borderRadius: 1.5 }}
-                >
-                  <ListItemText primary={item.label} />
-                </ListItemButton>
-              ))}
-            </List>
-          </Paper>
+        <Box>
+          {profile.is_private_locked ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              This profile is private. Follow to see posts and full details.
+            </Alert>
+          ) : null}
 
-          <Box>
-            {profile.is_private_locked ? (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                This profile is private. Follow to see posts and full details.
-              </Alert>
-            ) : null}
-
-            {tab === "about" ? (
-              <MobilizeContentPanel>
-                <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
-                  About
-                </Typography>
-                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                  {profile.bio || "No bio provided."}
-                </Typography>
-              </MobilizeContentPanel>
-            ) : null}
-
-            {tab === "feed" && !profile.is_private_locked ? (
-              <MobilizeSocialFeedShell leftRail={leftRail}>
+          {!profile.is_private_locked ? (
+            <MobilizeSocialFeedShell leftRail={leftRail}>
                 {profile.is_own_profile ? (
                   <Box
                     sx={{
@@ -423,8 +367,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
                   </Typography>
                 ) : null}
               </MobilizeSocialFeedShell>
-            ) : null}
-          </Box>
+          ) : null}
         </Box>
       </MobilizeProfilePageShell>
     </Box>

@@ -25,6 +25,15 @@ export const mobilizeChapterDetailPanelFillSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
   minHeight: 0,
+  overflow: "hidden",
+};
+
+/** Active tab body inside the white panel — stretches with the panel. */
+export const mobilizeGroupTabPanelSx: SxProps<Theme> = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
 };
 
 export const mobilizeCardSx: SxProps<Theme> = {

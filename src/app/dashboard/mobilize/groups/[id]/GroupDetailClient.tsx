@@ -66,6 +66,7 @@ import {
   mobilizeCardSx,
   mobilizeChapterDetailPanelFillSx,
   mobilizeChapterDetailRootSx,
+  mobilizeGroupTabPanelSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
@@ -83,9 +84,7 @@ import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/Mobiliz
 import { MobilizeSocialFeedShell } from "@/components/mobilize/social/MobilizeSocialFeedShell";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import {
-  MOBILIZE_GROUP_TAB_LABELS,
   mobilizeGroupDetailHref,
-  mobilizeGroupTabsForNav,
 } from "@/lib/mobilize/group-detail-tabs";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import { MobilizeGroupReportsPanel } from "@/components/mobilize/MobilizeGroupReportsPanel";
@@ -111,6 +110,7 @@ type Group = {
   wall_post_policy?: string;
   resources_post_policy?: string;
   cover_image_url?: string | null;
+  profile_image_url?: string | null;
   region_code?: string | null;
   created_by: string;
   created_at: string;
@@ -307,6 +307,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     enrollment_mode: "request_to_join" as MobilizeEnrollmentMode,
     event_create_policy: "any_member" as "any_member" | "leader_only",
     cover_image_url: "",
+    profile_image_url: "",
     wall_post_policy: "all_approved" as "all_approved" | "leaders_only",
     resources_post_policy: "all_approved" as "all_approved" | "leaders_only",
     created_by: "",
@@ -755,6 +756,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           : "request_to_join",
       event_create_policy: group.event_create_policy === "leader_only" ? "leader_only" : "any_member",
       cover_image_url: group.cover_image_url?.trim() ?? "",
+      profile_image_url: group.profile_image_url?.trim() ?? "",
       wall_post_policy: group.wall_post_policy === "leaders_only" ? "leaders_only" : "all_approved",
       resources_post_policy:
         group.resources_post_policy === "leaders_only" ? "leaders_only" : "all_approved",
@@ -824,6 +826,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     try {
       const cover =
         editForm.cover_image_url.trim() ? editForm.cover_image_url.trim() : null;
+      const profileImage =
+        editForm.profile_image_url.trim() ? editForm.profile_image_url.trim() : null;
       const res = await fetch(`/api/mobilize/groups/${groupId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -840,6 +844,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             editForm.enrollment_mode === "auto_closed" ? "closed" : editForm.enrollment_mode,
           event_create_policy: editForm.event_create_policy,
           cover_image_url: cover,
+          profile_image_url: profileImage,
           wall_post_policy: editForm.wall_post_policy,
           resources_post_policy: editForm.resources_post_policy,
           ...(isSuperAdmin
@@ -967,15 +972,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     );
   }, [group, groupCoverSrc, groupStateInfo, joinCallToAction]);
 
-  const profileTabs = useMemo(
-    () =>
-      mobilizeGroupTabsForNav(canViewReports).map((slug) => ({
-        id: slug,
-        label: MOBILIZE_GROUP_TAB_LABELS[slug],
-      })),
-    [canViewReports]
-  );
-
   const groupFeedLeftRail = useMemo(() => {
     if (!group) return null;
     return (
@@ -1100,12 +1096,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     gap: 0.5,
   } as const;
 
-  const tabPanelBodySx = {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    minHeight: 0,
-  } as const;
+  const tabPanelBodySx = mobilizeGroupTabPanelSx;
 
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
@@ -1124,12 +1115,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         coverSrc={groupCoverSrc}
         title={group.name}
         subtitle={group.address ?? undefined}
-        avatarSrc={group.cover_image_url}
+        avatarSrc={group.profile_image_url ?? group.cover_image_url}
         avatarFallback={group.name}
-        tabs={profileTabs}
-        activeTab={activeTab}
-        onTabChange={(tab) => router.push(mobilizeGroupDetailHref(groupId, tab as typeof activeTab))}
         headerActions={joinCallToAction}
+        fillContent
       >
       <MobilizeContentPanel
         sx={{
@@ -1150,7 +1139,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
       {activeTab === "announcements" && canViewContent ? (
         <Box sx={tabPanelBodySx}>
-          <MobilizeSocialFeedShell leftRail={groupFeedLeftRail}>
+          <MobilizeSocialFeedShell leftRail={groupFeedLeftRail} fill>
             <MobilizeGroupFeed
               embedded
               groupId={groupId}
@@ -1230,7 +1219,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           </Stack>
 
           {eventsView === "list" ? (
-            <>
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
               {events.map((e) => (
                 <Card key={e.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
                   <CardContent>
@@ -1288,12 +1277,15 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               ))}
               {!events.length ? (
                 <MobilizeSectionEmptyState
+                  fill
                   imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.events}
-                  message="There are no upcoming events in this chapter."
+                  title="No events"
+                  description="There are no upcoming events for this group. Schedule a Mobilize event to get members on the calendar."
                 />
               ) : null}
-            </>
+            </Box>
           ) : (
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
             <Box>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
                 <Button size="small" onClick={() => setEventCalCursor(new Date(eventCalCursor.getFullYear(), eventCalCursor.getMonth() - 1, 1))}>
@@ -1307,7 +1299,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 </Button>
               </Stack>
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                Events for this chapter only.
+                Events for this group only.
               </Typography>
               <Box sx={{ ...gridSx, mb: 0.5 }}>
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
@@ -1352,6 +1344,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                   })}
                 </Box>
               ))}
+            </Box>
             </Box>
           )}
         </Box>
@@ -1398,8 +1391,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                   </Card>
                 ))}
               {!members.filter((m) => m.membership_status === "pending").length ? (
-                <Typography color="text.secondary" sx={{ mb: 2 }}>
-                  No pending requests.
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  No pending join requests right now.
                 </Typography>
               ) : null}
             </>
@@ -1548,8 +1541,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             </TableContainer>
           ) : (
             <MobilizeSectionEmptyState
-              icon={<GroupsOutlinedIcon sx={{ fontSize: 40 }} />}
-              message="This group does not have any members yet. Approved members will appear here."
+              fill
+              icon={<GroupsOutlinedIcon sx={{ fontSize: "inherit", color: "text.secondary" }} />}
+              title="No members"
+              description="Approved members will appear here once they join this group."
             />
           )}
         </Box>
@@ -1930,6 +1925,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 will keep it closed until you choose Open signup or Request to join.
               </Typography>
             ) : null}
+            <MobilizeGroupCoverDropzone
+              variant="profile"
+              value={editForm.profile_image_url}
+              onChange={(url) => setEditForm((f) => ({ ...f, profile_image_url: url }))}
+              disabled={editSaving}
+            />
             <MobilizeGroupCoverDropzone
               value={editForm.cover_image_url}
               onChange={(url) => setEditForm((f) => ({ ...f, cover_image_url: url }))}

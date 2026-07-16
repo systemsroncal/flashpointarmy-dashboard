@@ -1,49 +1,147 @@
 "use client";
 
-import { mobilizeCardSx } from "@/lib/mobilize/mobilize-ui-surface";
-import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 
 type Props = {
-  message: string;
+  /** Bold heading (e.g. "No events") */
+  title: string;
+  /** Supporting copy below the title */
+  description?: string;
+  /** @deprecated Prefer title + description */
+  message?: string;
   imageSrc?: string;
   icon?: ReactNode;
-  imageSize?: number;
+  /** Grow to fill the tab panel and center the empty state vertically */
+  fill?: boolean;
 };
 
 export function MobilizeSectionEmptyState({
+  title,
+  description,
   message,
   imageSrc,
   icon,
-  imageSize = 72,
+  fill = false,
 }: Props) {
+  const heading = title || message || "Nothing here yet";
+  const body = description ?? (title && message ? message : undefined);
+
   const visual = imageSrc ? (
     <Box
       component="img"
       src={imageSrc}
       alt=""
-      sx={{ width: imageSize, height: imageSize, objectFit: "contain", display: "block" }}
+      sx={{
+        width: { xs: 72, sm: 88, md: 110 },
+        height: { xs: 72, sm: 88, md: 110 },
+        "@media (min-width: 1000px)": {
+          width: 160,
+          height: 160,
+        },
+        objectFit: "contain",
+        display: "block",
+      }}
     />
-  ) : (
-    icon
+  ) : icon ? (
+    <Box
+      sx={{
+        fontSize: { xs: 40, sm: 48, md: 56 },
+        "@media (min-width: 1000px)": {
+          fontSize: 72,
+        },
+        lineHeight: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {icon}
+    </Box>
+  ) : null;
+
+  const content = (
+    <Stack
+      direction={{ xs: "column", md: "row" }}
+      alignItems={{ xs: "center", md: "center" }}
+      spacing={{ xs: 2, md: 3 }}
+      useFlexGap
+      sx={{
+        textAlign: { xs: "center", md: "left" },
+        maxWidth: fill ? 720 : undefined,
+        mx: fill ? "auto" : undefined,
+      }}
+    >
+      {visual ? (
+        <Box
+          sx={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: { xs: 96, sm: 112, md: 140 },
+            height: { xs: 96, sm: 112, md: 140 },
+            "@media (min-width: 1000px)": {
+              width: 200,
+              height: 200,
+            },
+            borderRadius: "50%",
+            bgcolor: "rgba(0,0,0,0.04)",
+          }}
+        >
+          {visual}
+        </Box>
+      ) : null}
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          variant="h6"
+          fontWeight={800}
+          sx={{ mb: body ? 1 : 0, letterSpacing: "-0.02em", color: "text.primary" }}
+        >
+          {heading}
+        </Typography>
+        {body ? (
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{ lineHeight: 1.6, maxWidth: 480 }}
+          >
+            {body}
+          </Typography>
+        ) : null}
+      </Box>
+    </Stack>
   );
 
+  if (fill) {
+    return (
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: { xs: 240, md: 320 },
+          py: { xs: 4, md: 6 },
+          px: { xs: 2, md: 3 },
+        }}
+      >
+        {content}
+      </Box>
+    );
+  }
+
   return (
-    <Card variant="outlined" sx={mobilizeCardSx}>
-      <CardContent>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          alignItems={{ xs: "center", sm: "flex-start" }}
-          spacing={1.5}
-          useFlexGap
-          sx={{ textAlign: { xs: "center", sm: "left" } }}
-        >
-          <Box sx={{ flexShrink: 0, display: "flex" }}>{visual}</Box>
-          <Typography variant="body1" color="text.secondary">
-            {message}
-          </Typography>
-        </Stack>
-      </CardContent>
-    </Card>
+    <Box
+      sx={{
+        py: 3,
+        px: { xs: 2, md: 2.5 },
+        borderRadius: 2,
+        bgcolor: "rgba(0,0,0,0.02)",
+        border: "1px dashed rgba(0,0,0,0.1)",
+      }}
+    >
+      {content}
+    </Box>
   );
 }
