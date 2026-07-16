@@ -568,7 +568,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     (pathname === `${MOBILIZE_PREFIX}/home` ||
       pathname === MOBILIZE_PREFIX ||
       onMobilizeProfilePage ||
-      pathname.startsWith(`${MOBILIZE_PREFIX}/bookmarks`));
+      pathname.startsWith(`${MOBILIZE_PREFIX}/bookmarks`) ||
+      pathname.startsWith(`${MOBILIZE_PREFIX}/alerts`) ||
+      pathname.startsWith(`${MOBILIZE_PREFIX}/messages`) ||
+      pathname.startsWith(`${MOBILIZE_PREFIX}/social-settings`));
 
   useEffect(() => {
     if (!onMobilizeSocialHubPage) return;

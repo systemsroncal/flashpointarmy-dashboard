@@ -43,7 +43,7 @@ export async function loadMobilizeHomeFeed(
       ? Promise.resolve([])
       : scope === "following"
         ? loadProfilePosts(admin, viewerId, followingIds, limit, false)
-        : loadProfilePosts(admin, viewerId, followingIds, limit, true),
+        : loadForYouProfilePosts(admin, viewerId, groupIds, followingIds, limit),
     loadRecommendations(admin, viewerId, groupIds, followingIds),
   ]);
 
@@ -119,6 +119,52 @@ async function loadGroupMessages(
     message_id: m.id,
     group: { id: m.group_id, name: groupNameById.get(m.group_id) ?? "Group" },
   }));
+}
+
+async function loadForYouProfilePosts(
+  admin: SupabaseClient,
+  viewerId: string,
+  groupIds: string[],
+  followingIds: string[],
+  limit: number
+): Promise<UnifiedFeedPost[]> {
+  const followingSet = new Set(followingIds);
+  followingSet.add(viewerId);
+
+  let candidateIds = [...followingSet];
+
+  if (groupIds.length) {
+    const { data: coMembers } = await admin
+      .from("mobilize_group_members")
+      .select("user_id")
+      .in("group_id", groupIds)
+      .eq("membership_status", "approved")
+      .neq("user_id", viewerId)
+      .limit(80);
+
+    for (const row of coMembers ?? []) {
+      candidateIds.push(row.user_id as string);
+    }
+  }
+
+  candidateIds = [...new Set(candidateIds)];
+  if (!candidateIds.length) return [];
+
+  const { data: profiles } = await admin
+    .from("profiles")
+    .select("id, profile_visibility")
+    .in("id", candidateIds);
+
+  const visibleAuthorIds = (profiles ?? [])
+    .filter((p) => {
+      const id = p.id as string;
+      if (id === viewerId) return true;
+      if (followingSet.has(id)) return true;
+      return p.profile_visibility !== "private";
+    })
+    .map((p) => p.id as string);
+
+  return loadProfilePosts(admin, viewerId, visibleAuthorIds, limit, false);
 }
 
 async function loadProfilePosts(

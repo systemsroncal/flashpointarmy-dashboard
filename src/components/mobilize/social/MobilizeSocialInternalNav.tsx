@@ -32,14 +32,18 @@ type NavItem = {
   label: string;
   href: string;
   icon: ReactNode;
-  settingsOnly?: boolean;
 };
 
 export function MobilizeSocialInternalNav() {
   const me = useDashboardUser();
   const pathname = usePathname();
   const [search, setSearch] = useState("");
-  const isSuperAdmin = me.role_names.includes("super_admin");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<{
+    members: { id: string; display_name: string; handle: string; href: string }[];
+    groups: { id: string; name: string; href: string }[];
+  }>({ members: [], groups: [] });
   const profileHref = mobilizeMemberProfileHref(me.id);
 
   const items = useMemo<NavItem[]>(
@@ -55,7 +59,6 @@ export function MobilizeSocialInternalNav() {
         label: "Settings",
         href: MOBILIZE_SOCIAL_SETTINGS_HREF,
         icon: <SettingsOutlinedIcon fontSize="small" />,
-        settingsOnly: true,
       },
     ],
     [profileHref]
@@ -64,8 +67,31 @@ export function MobilizeSocialInternalNav() {
   function isActive(item: NavItem): boolean {
     if (item.key === "home") return pathname === MOBILIZE_HOME_HREF || pathname === "/dashboard/mobilize";
     if (item.key === "profile") return pathname === profileHref;
-    if (item.key === "groups") return pathname.startsWith(MOBILIZE_MY_GROUPS_HREF) || pathname.includes("/mobilize/groups/");
+    if (item.key === "groups") return pathname.startsWith(MOBILIZE_MY_GROUPS_HREF);
+    if (item.key === "settings") return pathname.startsWith(MOBILIZE_SOCIAL_SETTINGS_HREF);
     return pathname.startsWith(item.href);
+  }
+
+  async function runSearch(query: string) {
+    const q = query.trim();
+    if (q.length < 2) {
+      setSearchResults({ members: [], groups: [] });
+      setSearchOpen(false);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`/api/mobilize/social/search?q=${encodeURIComponent(q)}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error();
+      setSearchResults({ members: json.members ?? [], groups: json.groups ?? [] });
+      setSearchOpen(true);
+    } catch {
+      setSearchResults({ members: [], groups: [] });
+      setSearchOpen(false);
+    } finally {
+      setSearchLoading(false);
+    }
   }
 
   return (
@@ -86,7 +112,19 @@ export function MobilizeSocialInternalNav() {
         size="small"
         placeholder="Search"
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          void runSearch(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") void runSearch(search);
+        }}
+        onBlur={() => {
+          window.setTimeout(() => setSearchOpen(false), 150);
+        }}
+        onFocus={() => {
+          if (search.trim().length >= 2) setSearchOpen(true);
+        }}
         InputProps={{
           endAdornment: (
             <InputAdornment position="end">
@@ -107,9 +145,52 @@ export function MobilizeSocialInternalNav() {
         }}
       />
 
+      {searchOpen ? (
+        <Box
+          sx={{
+            mb: 2,
+            mt: -1,
+            borderRadius: 2,
+            border: "1px solid rgba(255,255,255,0.1)",
+            bgcolor: "#151b22",
+            overflow: "hidden",
+          }}
+        >
+          {searchLoading ? (
+            <Typography variant="caption" sx={{ display: "block", p: 1.25, color: "rgba(255,255,255,0.5)" }}>
+              Searching…
+            </Typography>
+          ) : null}
+          {!searchLoading && !searchResults.members.length && !searchResults.groups.length ? (
+            <Typography variant="caption" sx={{ display: "block", p: 1.25, color: "rgba(255,255,255,0.5)" }}>
+              No results
+            </Typography>
+          ) : null}
+          {searchResults.members.map((m) => (
+            <ListItemButton
+              key={m.id}
+              component={Link}
+              href={m.href}
+              sx={{ py: 0.75, color: "rgba(255,255,255,0.85)" }}
+            >
+              <ListItemText primary={m.display_name} secondary={m.handle} />
+            </ListItemButton>
+          ))}
+          {searchResults.groups.map((g) => (
+            <ListItemButton
+              key={g.id}
+              component={Link}
+              href={g.href}
+              sx={{ py: 0.75, color: "rgba(255,255,255,0.85)" }}
+            >
+              <ListItemText primary={g.name} secondary="Group" />
+            </ListItemButton>
+          ))}
+        </Box>
+      ) : null}
+
       <List disablePadding sx={{ flex: 1 }}>
         {items.map((item) => {
-          if (item.settingsOnly && !isSuperAdmin) return null;
           const active = isActive(item);
           return (
             <ListItemButton

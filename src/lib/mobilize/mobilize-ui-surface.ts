@@ -12,11 +12,18 @@ export const mobilizePanelSx: SxProps<Theme> = {
   boxSizing: "border-box",
 };
 
-/** Chapter detail: page column fills viewport below dashboard chrome. */
+/** Viewport height below dashboard main padding (toolbar offset + bottom padding). */
+export const mobilizePageViewportHeight =
+  "calc(100dvh - 5.5rem - env(safe-area-inset-bottom, 0px))";
+
+/** Page column fills and is capped to the viewport below dashboard chrome. */
 export const mobilizeChapterDetailRootSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
-  minHeight: "calc(100dvh - 5.5rem - env(safe-area-inset-bottom, 0px))",
+  height: mobilizePageViewportHeight,
+  maxHeight: mobilizePageViewportHeight,
+  minHeight: 0,
+  overflow: "hidden",
 };
 
 /** White panel grows to consume remaining chapter detail height. */

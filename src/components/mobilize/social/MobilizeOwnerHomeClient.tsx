@@ -13,6 +13,7 @@ import {
   feedPostCommentConfig,
   feedPostReactionUrl,
 } from "@/lib/mobilize/social/feed-post-urls";
+import { HOME_FEED_EMPTY } from "@/lib/mobilize/social/social-empty-copy";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { Box, Button, CircularProgress, Paper, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
@@ -24,21 +25,6 @@ const HOME_TABS = [
 ] as const;
 
 type HomeTabId = (typeof HOME_TABS)[number]["id"];
-
-const EMPTY_COPY: Record<HomeTabId, { title: string; description: string }> = {
-  for_you: {
-    title: "Nothing in your feed yet",
-    description: "Join groups and follow members to see posts from people and chapters here.",
-  },
-  following: {
-    title: "No posts from people you follow",
-    description: "When you follow members, their profile posts will show up in this feed.",
-  },
-  groups: {
-    title: "No group posts yet",
-    description: "Posts from groups you belong to will appear here.",
-  },
-};
 
 export function MobilizeOwnerHomeClient() {
   const me = useDashboardUser();
@@ -90,7 +76,7 @@ export function MobilizeOwnerHomeClient() {
     }
   }
 
-  const empty = EMPTY_COPY[activeTab];
+  const empty = HOME_FEED_EMPTY[activeTab];
 
   return (
     <Box sx={{ ...mobilizeChapterDetailRootSx, display: "flex", flexDirection: "column", minHeight: 0 }}>

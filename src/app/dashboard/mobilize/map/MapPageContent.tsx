@@ -497,13 +497,16 @@ export default function MobilizeMapPageContent() {
         sx={{
           display: "grid",
           gridTemplateColumns: { xs: "1fr", lg: "11fr 9fr" },
+          gridTemplateRows: { xs: "minmax(240px, 1fr) minmax(280px, 1fr)", lg: "1fr" },
           gap: 2,
           alignItems: "stretch",
           flex: 1,
           minHeight: 0,
+          maxHeight: "100%",
+          overflow: "hidden",
         }}
       >
-        <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <Box sx={{ minWidth: 0, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <Typography variant="subtitle2" sx={{ mb: 1, flexShrink: 0 }}>
             {browseTab === "groups" ? `Groups (${sorted.length})` : `Chapters (${sorted.length})`}
           </Typography>

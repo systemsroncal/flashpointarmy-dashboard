@@ -21,14 +21,7 @@ export async function canViewMobilizeProfile(
 ): Promise<boolean> {
   if (viewerId === profileUserId) return true;
   const visibility = await loadProfileVisibility(admin, profileUserId);
-  if (visibility === "public") return true;
-  const { data } = await admin
-    .from("mobilize_user_follows")
-    .select("follower_id")
-    .eq("follower_id", viewerId)
-    .eq("following_id", profileUserId)
-    .maybeSingle();
-  return Boolean(data);
+  return visibility === "public";
 }
 
 export async function isFollowingUser(

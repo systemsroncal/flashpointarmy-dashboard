@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
-import { canViewMobilizeProfile, isFollowingUser } from "@/lib/mobilize/social/profile-access";
+import { isFollowingUser } from "@/lib/mobilize/social/profile-access";
 import { resolveMobilizeAuthors } from "@/lib/mobilize/social/resolve-authors";
 
 type Ctx = { params: Promise<{ userId: string }> };
@@ -10,7 +10,6 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { userId } = await ctx.params;
 
-  const allowed = await canViewMobilizeProfile(auth.admin, auth.userId, userId);
   const isOwn = auth.userId === userId;
 
   const [{ data: profile }, authors, following, followers, isFollowing] = await Promise.all([
@@ -35,8 +34,9 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const visibility = profile.profile_visibility === "private" ? "private" : "public";
   const author = authors.get(userId)!;
+  const isPrivateLocked = visibility === "private" && !isOwn;
 
-  if (!allowed && !isOwn) {
+  if (isPrivateLocked) {
     return NextResponse.json({
       profile: {
         ...author,

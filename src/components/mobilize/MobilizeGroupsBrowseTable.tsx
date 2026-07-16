@@ -316,14 +316,15 @@ export default function MobilizeGroupsBrowseTable({
       }
     : null;
 
-  return (
-    <ThemeProvider theme={mobilizePanelTheme}>
+  const tableContainer = (
     <TableContainer
       sx={{
         ...(fillHeight
           ? {
               flex: 1,
               minHeight: 0,
+              maxHeight: "100%",
+              height: "100%",
               overflow: "auto",
               ...(mapTableScrollSx ?? {}),
             }
@@ -609,6 +610,17 @@ export default function MobilizeGroupsBrowseTable({
         </TableBody>
       </Table>
     </TableContainer>
+  );
+
+  return (
+    <ThemeProvider theme={mobilizePanelTheme}>
+      {fillHeight ? (
+        <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {tableContainer}
+        </Box>
+      ) : (
+        tableContainer
+      )}
     </ThemeProvider>
   );
 }

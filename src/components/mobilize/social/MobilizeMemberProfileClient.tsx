@@ -7,6 +7,10 @@ import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/Mobiliz
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
+import {
+  PRIVATE_PROFILE_TAB_MESSAGE,
+  PROFILE_TAB_EMPTY,
+} from "@/lib/mobilize/social/social-empty-copy";
 import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
@@ -102,6 +106,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTabId>("posts");
+  const [tabPosts, setTabPosts] = useState<ProfilePost[]>([]);
+  const [tabLoading, setTabLoading] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
   const [composerHtml, setComposerHtml] = useState("");
   const [posting, setPosting] = useState(false);
@@ -168,6 +174,26 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const loadTabFeed = useCallback(async () => {
+    if (profile?.is_private_locked || activeTab === "posts" || activeTab === "media") return;
+    setTabLoading(true);
+    try {
+      const tab = activeTab === "likes" ? "likes" : "replies";
+      const res = await fetch(`/api/mobilize/social/profiles/${userId}/activity?tab=${tab}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to load tab.");
+      setTabPosts((json.posts ?? []) as ProfilePost[]);
+    } catch {
+      setTabPosts([]);
+    } finally {
+      setTabLoading(false);
+    }
+  }, [activeTab, profile?.is_private_locked, userId]);
+
+  useEffect(() => {
+    if (activeTab === "replies" || activeTab === "likes") void loadTabFeed();
+  }, [activeTab, loadTabFeed]);
 
   const photoUrls = useMemo(() => {
     const urls: string[] = [];
@@ -400,10 +426,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           <MobilizeSectionEmptyState
             fill
             imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
-            title="No posts yet"
+            title={PROFILE_TAB_EMPTY.posts.title}
             description={
               p.is_own_profile
-                ? "Share an update on your wall. Posts you publish will appear here."
+                ? PROFILE_TAB_EMPTY.posts.description
                 : "This member has not posted anything yet."
             }
           />
@@ -426,12 +452,57 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     if (locked) {
       return (
         <Box sx={tabPanelSx}>
-          <Alert severity="info">
-            This profile is private. Follow to see posts and full details.
-          </Alert>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              border: "1px solid rgba(0,0,0,0.08)",
+              bgcolor: "#fff",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <MobilizeSectionEmptyState fill title="Nothing to see here" description={PRIVATE_PROFILE_TAB_MESSAGE} />
+          </Paper>
         </Box>
       );
     }
+
+    const renderPostList = (items: ProfilePost[], emptyCopy: { title: string; description: string }) => (
+      <Stack spacing={1.5}>
+        {items.map((post) => (
+          <MobilizeSocialPostCard
+            key={post.id}
+            post={post}
+            canComment
+            commentConfig={feedPostCommentConfig(post)}
+            reactionUrl={feedPostReactionUrl(post)}
+            showGroupBadge={post.kind === "group_message"}
+          />
+        ))}
+        {!items.length && !tabLoading ? (
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              border: "1px solid rgba(0,0,0,0.08)",
+              bgcolor: "#fff",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <MobilizeSectionEmptyState fill title={emptyCopy.title} description={emptyCopy.description} />
+          </Paper>
+        ) : null}
+        {tabLoading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+            <CircularProgress size={28} />
+          </Box>
+        ) : null}
+      </Stack>
+    );
 
     switch (activeTab) {
       case "posts":
@@ -450,51 +521,14 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       case "replies":
         return (
           <Box sx={tabPanelSx}>
-            <Paper
-              elevation={0}
-              sx={{
-                borderRadius: 2,
-                border: "1px solid rgba(0,0,0,0.08)",
-                bgcolor: "#fff",
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <MobilizeSectionEmptyState
-                fill
-                imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
-                title="No replies yet"
-                description={
-                  p.is_own_profile
-                    ? "Replies and shared posts will appear here when available."
-                    : "When this member replies to or shares posts, they will show up here."
-                }
-              />
-            </Paper>
+            {renderPostList(tabPosts, PROFILE_TAB_EMPTY.replies)}
           </Box>
         );
 
       case "likes":
         return (
           <Box sx={tabPanelSx}>
-            <Paper
-              elevation={0}
-              sx={{
-                borderRadius: 2,
-                border: "1px solid rgba(0,0,0,0.08)",
-                bgcolor: "#fff",
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <MobilizeSectionEmptyState
-                fill
-                title="No likes yet"
-                description="Posts you have liked will appear here."
-              />
-            </Paper>
+            {renderPostList(tabPosts, PROFILE_TAB_EMPTY.likes)}
           </Box>
         );
 
@@ -544,10 +578,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               >
                 <MobilizeSectionEmptyState
                   fill
-                  title="No media yet"
+                  title={PROFILE_TAB_EMPTY.media.title}
                   description={
                     p.is_own_profile
-                      ? "Photos and media from your posts will appear in this gallery."
+                      ? PROFILE_TAB_EMPTY.media.description
                       : "Photos and media shared in posts will appear here."
                   }
                 />

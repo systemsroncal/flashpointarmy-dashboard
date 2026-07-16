@@ -6,9 +6,12 @@ import { MobilizeSocialComments } from "@/components/mobilize/social/MobilizeSoc
 import { MobilizeSocialPostHeader } from "@/components/mobilize/social/MobilizeSocialPostHeader";
 import { MobilizeSocialReactionBar } from "@/components/mobilize/social/MobilizeSocialReactionBar";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
+import { bookmarkRefFromPost } from "@/lib/mobilize/social/bookmark-ref";
 import { mobilizeGroupDetailHref } from "@/lib/mobilize/group-detail-tabs";
 import type { ReactionType } from "@/lib/mobilize/social/reaction-summary";
-import { Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import { Box, Button, Card, CardContent, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -40,6 +43,36 @@ export function MobilizeSocialPostCard({
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [reacting, setReacting] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkBusy, setBookmarkBusy] = useState(false);
+
+  const bookmarkRef = bookmarkRefFromPost(post);
+
+  async function toggleBookmark() {
+    if (!bookmarkRef) return;
+    setBookmarkBusy(true);
+    try {
+      if (bookmarked) {
+        const params = new URLSearchParams({
+          post_kind: bookmarkRef.post_kind,
+          post_ref_id: bookmarkRef.post_ref_id,
+        });
+        const res = await fetch(`/api/mobilize/social/bookmarks?${params}`, { method: "DELETE" });
+        if (!res.ok) throw new Error();
+        setBookmarked(false);
+      } else {
+        const res = await fetch("/api/mobilize/social/bookmarks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bookmarkRef),
+        });
+        if (!res.ok) throw new Error();
+        setBookmarked(true);
+      }
+    } finally {
+      setBookmarkBusy(false);
+    }
+  }
 
   async function setReaction(next: ReactionType | null) {
     setReacting(true);
@@ -109,6 +142,23 @@ export function MobilizeSocialPostCard({
             />
           </Box>
           {manageActions ? <Box flexShrink={0}>{manageActions}</Box> : null}
+          {bookmarkRef ? (
+            <Tooltip title={bookmarked ? "Remove bookmark" : "Bookmark"}>
+              <IconButton
+                size="small"
+                onClick={() => void toggleBookmark()}
+                disabled={bookmarkBusy}
+                aria-label={bookmarked ? "Remove bookmark" : "Bookmark post"}
+                sx={{ flexShrink: 0, mt: -0.5 }}
+              >
+                {bookmarked ? (
+                  <BookmarkIcon fontSize="small" color="primary" />
+                ) : (
+                  <BookmarkBorderOutlinedIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+          ) : null}
         </Stack>
       </CardContent>
     </Card>

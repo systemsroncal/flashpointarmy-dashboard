@@ -24,7 +24,7 @@ export function MobilizeSectionEmptyState({
   icon,
   fill = false,
 }: Props) {
-  const heading = title || message || "Nothing here yet";
+  const heading = title || message || "Nothing to see here";
   const body = description ?? (title && message ? message : undefined);
 
   const visual = imageSrc ? (
