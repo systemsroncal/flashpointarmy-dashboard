@@ -78,6 +78,15 @@ import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnou
 import { MobilizeGroupFeed } from "@/components/mobilize/social/MobilizeGroupFeed";
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import type { EnrichedGroupMessage } from "@/lib/mobilize/social/enrich-group-messages";
+import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeProfilePageShell";
+import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
+import { MobilizeSocialFeedShell } from "@/components/mobilize/social/MobilizeSocialFeedShell";
+import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
+import {
+  MOBILIZE_GROUP_TAB_LABELS,
+  mobilizeGroupDetailHref,
+  mobilizeGroupTabsForNav,
+} from "@/lib/mobilize/group-detail-tabs";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import { MobilizeGroupReportsPanel } from "@/components/mobilize/MobilizeGroupReportsPanel";
 import MobilizeGroupResourcesPanel from "@/components/mobilize/MobilizeGroupResourcesPanel";
@@ -958,6 +967,74 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     );
   }, [group, groupCoverSrc, groupStateInfo, joinCallToAction]);
 
+  const profileTabs = useMemo(
+    () =>
+      mobilizeGroupTabsForNav(canViewReports).map((slug) => ({
+        id: slug,
+        label: MOBILIZE_GROUP_TAB_LABELS[slug],
+      })),
+    [canViewReports]
+  );
+
+  const groupFeedLeftRail = useMemo(() => {
+    if (!group) return null;
+    return (
+      <>
+        {group.description ? (
+          <MobilizeProfileSidebarCard title="Description">
+            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+              {group.description}
+            </Typography>
+          </MobilizeProfileSidebarCard>
+        ) : null}
+        <MobilizeProfileSidebarCard title={`Members (${approvedMembers.length})`}>
+          <Stack spacing={1}>
+            {approvedMembers.slice(0, 8).map((m) => {
+              const name = m.display_name ?? m.email ?? "Member";
+              return (
+                <Button
+                  key={m.id}
+                  component={Link}
+                  href={`${mobilizeMemberProfileHref(m.user_id)}?from=group&groupId=${groupId}`}
+                  sx={{
+                    justifyContent: "flex-start",
+                    textTransform: "none",
+                    color: "inherit",
+                    px: 0,
+                    minWidth: 0,
+                  }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <AvatarWithGraduateIcon
+                      graduateRole={m.training_graduate_badge}
+                      overlayStyle="directory"
+                      size={32}
+                      src={m.avatar_url ? publicAssetSrc(m.avatar_url) : undefined}
+                      alt={name}
+                    >
+                      {name.slice(0, 1).toUpperCase()}
+                    </AvatarWithGraduateIcon>
+                    <Typography variant="body2" fontWeight={600} noWrap>
+                      {name}
+                    </Typography>
+                  </Stack>
+                </Button>
+              );
+            })}
+          </Stack>
+          <Button
+            component={Link}
+            href={mobilizeGroupDetailHref(groupId, "members")}
+            size="small"
+            sx={{ mt: 1.5, textTransform: "none" }}
+          >
+            View all members
+          </Button>
+        </MobilizeProfileSidebarCard>
+      </>
+    );
+  }, [approvedMembers, group, groupId]);
+
   const compactHeader = useMemo(() => {
     if (!group) return null;
     return (
@@ -1042,11 +1119,21 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           </Button>
         ) : null}
       </Stack>
-      {activeTab === "announcements" ? fullHeader : compactHeader}
 
+      <MobilizeProfilePageShell
+        coverSrc={groupCoverSrc}
+        title={group.name}
+        subtitle={group.address ?? undefined}
+        avatarSrc={group.cover_image_url}
+        avatarFallback={group.name}
+        tabs={profileTabs}
+        activeTab={activeTab}
+        onTabChange={(tab) => router.push(mobilizeGroupDetailHref(groupId, tab as typeof activeTab))}
+        headerActions={joinCallToAction}
+      >
       <MobilizeContentPanel
         sx={{
-          mt: activeTab === "announcements" ? 2 : 0,
+          mt: 0,
           ...mobilizeChapterDetailPanelFillSx,
         }}
       >
@@ -1063,39 +1150,41 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
       {activeTab === "announcements" && canViewContent ? (
         <Box sx={tabPanelBodySx}>
-          <MobilizeGroupFeed
-            groupId={groupId}
-            messages={messages}
-            canPost={canPostWall}
-            canCommentOnPost={canCommentOnPost}
-            isLeader={isLeader}
-            isSuperAdmin={isSuperAdmin}
-            canManageMessage={canManageMessage}
-            onRefresh={loadWall}
-            posting={wallPosting}
-            wallHtml={wallHtml}
-            onWallHtmlChange={setWallHtml}
-            wallImages={wallImages}
-            onWallImagesChange={setWallImages}
-            leaderCommentsPolicy={leaderCommentsPolicy}
-            onLeaderCommentsPolicyChange={setLeaderCommentsPolicy}
-            onPost={postWall}
-            onEdit={(m) =>
-              setMsgEdit({
-                id: m.id,
-                content: m.content,
-                content_html: m.content_html ?? m.content,
-                image_urls: m.image_urls ?? [],
-                comments_policy: m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
-              })
-            }
-            onDelete={(m) =>
-              setDeleteMessageDialog({
-                id: m.id,
-                preview: m.content.trim() || "this post",
-              })
-            }
-          />
+          <MobilizeSocialFeedShell leftRail={groupFeedLeftRail}>
+            <MobilizeGroupFeed
+              embedded
+              groupId={groupId}
+              messages={messages}
+              canPost={canPostWall}
+              canCommentOnPost={canCommentOnPost}
+              isLeader={isLeader}
+              isSuperAdmin={isSuperAdmin}
+              canManageMessage={canManageMessage}
+              posting={wallPosting}
+              wallHtml={wallHtml}
+              onWallHtmlChange={setWallHtml}
+              wallImages={wallImages}
+              onWallImagesChange={setWallImages}
+              leaderCommentsPolicy={leaderCommentsPolicy}
+              onLeaderCommentsPolicyChange={setLeaderCommentsPolicy}
+              onPost={postWall}
+              onEdit={(m) =>
+                setMsgEdit({
+                  id: m.id,
+                  content: m.content,
+                  content_html: m.content_html ?? m.content,
+                  image_urls: m.image_urls ?? [],
+                  comments_policy: m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
+                })
+              }
+              onDelete={(m) =>
+                setDeleteMessageDialog({
+                  id: m.id,
+                  preview: m.content.trim() || "this post",
+                })
+              }
+            />
+          </MobilizeSocialFeedShell>
         </Box>
       ) : null}
 
@@ -1291,7 +1380,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 .map((m) => (
                   <Card key={m.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
                     <CardContent sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
-                      <Typography variant="body2">{m.display_name ?? m.user_id.slice(0, 8)}</Typography>
+                      <Button
+                        component={Link}
+                        href={`${mobilizeMemberProfileHref(m.user_id)}?from=group&groupId=${groupId}`}
+                        size="small"
+                        sx={{ textTransform: "none", p: 0, minWidth: 0, fontWeight: 600 }}
+                      >
+                        {m.display_name ?? m.user_id.slice(0, 8)}
+                      </Button>
                       <Button size="small" onClick={() => void approveMember(m.user_id, "approved")}>
                         Approve
                       </Button>
@@ -1354,7 +1450,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                           >
                             {(m.display_name ?? "?").slice(0, 1).toUpperCase()}
                           </AvatarWithGraduateIcon>
-                          <Typography variant="body2">{memberName}</Typography>
+                          <Typography
+                            variant="body2"
+                            component={Link}
+                            href={`${mobilizeMemberProfileHref(m.user_id)}?from=group&groupId=${groupId}`}
+                            sx={{ fontWeight: 600, color: "inherit", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                          >
+                            {memberName}
+                          </Typography>
                         </Stack>
                       </TableCell>
                       <TableCell>
@@ -1517,6 +1620,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Box>
       ) : null}
       </MobilizeContentPanel>
+      </MobilizeProfilePageShell>
 
       <Dialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>New Mobilize event</DialogTitle>

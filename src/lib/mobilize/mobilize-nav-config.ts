@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 export const MOBILIZE_PREFIX = "/dashboard/mobilize";
+export const MOBILIZE_HOME_HREF = `${MOBILIZE_PREFIX}/home`;
 export const MOBILIZE_CHAPTERS_HREF = `${MOBILIZE_PREFIX}/map`;
 export const MOBILIZE_MY_CHAPTERS_HREF = `${MOBILIZE_PREFIX}/my-groups`;
 

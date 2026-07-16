@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 type Props = {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; groupId?: string }>;
 };
 
 const UUID_RE =
@@ -26,11 +26,13 @@ export default async function MobilizeMemberProfilePage({ params, searchParams }
   }
 
   const backHref =
-    sp.from === "group"
-      ? "/dashboard/mobilize/my-groups"
-      : sp.from?.startsWith("/")
-        ? sp.from
-        : "/dashboard/mobilize/my-groups";
+    sp.from === "group" && sp.groupId
+      ? `/dashboard/mobilize/groups/${sp.groupId}?tab=members`
+      : sp.from === "group"
+        ? "/dashboard/mobilize/my-groups"
+        : sp.from?.startsWith("/")
+          ? sp.from
+          : "/dashboard/mobilize/home";
 
   return <MobilizeMemberProfileClient userId={userId} backHref={backHref} />;
 }

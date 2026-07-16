@@ -2,24 +2,18 @@
 
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnouncementImagePicker";
-import { MobilizeFeedHtml } from "@/components/mobilize/social/MobilizeFeedHtml";
-import { MobilizeSocialComments } from "@/components/mobilize/social/MobilizeSocialComments";
-import { MobilizeSocialPostHeader } from "@/components/mobilize/social/MobilizeSocialPostHeader";
-import { MobilizeSocialReactionBar } from "@/components/mobilize/social/MobilizeSocialReactionBar";
+import { MobilizeSocialFeedShell } from "@/components/mobilize/social/MobilizeSocialFeedShell";
+import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import type { EnrichedGroupMessage } from "@/lib/mobilize/social/enrich-group-messages";
-import type { ReactionType } from "@/lib/mobilize/social/reaction-summary";
+import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
+import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
-import { mobilizeCardSx } from "@/lib/mobilize/mobilize-ui-surface";
-import { MobilizeAnnouncementMediaGrid } from "@/components/mobilize/MobilizeAnnouncementMediaGrid";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   FormControl,
   FormControlLabel,
   Radio,
@@ -27,7 +21,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
 type Props = {
   groupId: string;
@@ -37,9 +31,6 @@ type Props = {
   isLeader: boolean;
   isSuperAdmin: boolean;
   canManageMessage: (post: EnrichedGroupMessage) => boolean;
-  onRefresh: () => Promise<void>;
-  onEdit?: (post: EnrichedGroupMessage) => void;
-  onDelete?: (post: EnrichedGroupMessage) => void;
   posting: boolean;
   wallHtml: string;
   onWallHtmlChange: (html: string) => void;
@@ -48,96 +39,28 @@ type Props = {
   leaderCommentsPolicy: "everyone" | "leaders_only";
   onLeaderCommentsPolicyChange: (v: "everyone" | "leaders_only") => void;
   onPost: () => Promise<void>;
+  onEdit?: (post: EnrichedGroupMessage) => void;
+  onDelete?: (post: EnrichedGroupMessage) => void;
+  /** When true, wraps feed in Truth-style shell only (no extra left rail). */
+  embedded?: boolean;
 };
 
-function GroupFeedPostCard({
-  groupId,
-  post,
-  canComment,
-  isLeader,
-  isSuperAdmin,
-  canManage,
-  onEdit,
-  onDelete,
-}: {
-  groupId: string;
-  post: EnrichedGroupMessage;
-  canComment: boolean;
-  isLeader: boolean;
-  isSuperAdmin: boolean;
-  canManage: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
-}) {
-  const [reactions, setReactions] = useState(post.reactions);
-  const [commentCount, setCommentCount] = useState(post.comment_count);
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [reacting, setReacting] = useState(false);
-
-  async function setReaction(next: ReactionType | null) {
-    setReacting(true);
-    try {
-      const res = await fetch(`/api/mobilize/groups/${groupId}/messages/${post.id}/reactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reaction_type: next }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Reaction failed.");
-      setReactions(json.reactions);
-    } finally {
-      setReacting(false);
-    }
-  }
-
-  const pol = post.comments_policy === "leaders_only" ? "Leaders only" : "Everyone";
-
-  return (
-    <Card variant="outlined" sx={{ mb: 1.5, ...mobilizeCardSx, borderRadius: 2 }}>
-      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <MobilizeSocialPostHeader author={post.author} createdAt={post.created_at} />
-            {isLeader || isSuperAdmin ? (
-              <Chip size="small" label={`Comments: ${pol}`} sx={{ mt: 1 }} variant="outlined" />
-            ) : null}
-            <Box sx={{ mt: 1 }}>
-              <MobilizeFeedHtml html={post.content_html} plain={post.content} />
-            </Box>
-            <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />
-            <MobilizeSocialReactionBar
-              reactions={reactions}
-              commentCount={commentCount}
-              onToggleLike={() => void setReaction(reactions.viewer_reaction === "like" ? null : "like")}
-              onToggleLove={() => void setReaction(reactions.viewer_reaction === "love" ? null : "love")}
-              onToggleComments={() => setCommentsOpen((v) => !v)}
-              commentsOpen={commentsOpen}
-              disabled={reacting}
-            />
-            <MobilizeSocialComments
-              open={commentsOpen}
-              canComment={canComment}
-              commentsUrl={`/api/mobilize/groups/${groupId}/messages/${post.id}/comments`}
-              commentReactionUrl={(commentId) =>
-                `/api/mobilize/groups/${groupId}/messages/${post.id}/comments/${commentId}/reactions`
-              }
-              onCountChange={setCommentCount}
-            />
-          </Box>
-          {canManage ? (
-            <Stack direction="row" spacing={0.5} flexShrink={0}>
-              <Button size="small" startIcon={<EditIcon />} onClick={onEdit}>
-                Edit
-              </Button>
-              <Button size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={onDelete}>
-                Delete
-              </Button>
-            </Stack>
-          ) : null}
-        </Stack>
-      </CardContent>
-    </Card>
-  );
+function toUnifiedPost(m: EnrichedGroupMessage, groupId: string, groupName?: string): UnifiedFeedPost {
+  return {
+    id: `gm-${m.id}`,
+    kind: "group_message",
+    created_at: m.created_at,
+    author: m.author,
+    content: m.content,
+    content_html: m.content_html,
+    image_urls: m.image_urls,
+    reactions: m.reactions,
+    comment_count: m.comment_count,
+    comments_policy: m.comments_policy,
+    group_id: groupId,
+    message_id: m.id,
+    group: groupName ? { id: groupId, name: groupName } : undefined,
+  };
 }
 
 export function MobilizeGroupFeed({
@@ -148,9 +71,6 @@ export function MobilizeGroupFeed({
   isLeader,
   isSuperAdmin,
   canManageMessage,
-  onRefresh,
-  onEdit,
-  onDelete,
   posting,
   wallHtml,
   onWallHtmlChange,
@@ -159,29 +79,36 @@ export function MobilizeGroupFeed({
   leaderCommentsPolicy,
   onLeaderCommentsPolicyChange,
   onPost,
+  onEdit,
+  onDelete,
+  embedded = false,
 }: Props) {
   const hasComposerContent = useCallback(() => {
     const plain = wallHtml.replace(/<[^>]+>/g, "").trim();
     return Boolean(plain || wallImages.length);
   }, [wallHtml, wallImages.length]);
 
-  return (
+  const feedBody = (
     <Box>
       {canPost ? (
         <Box
           sx={{
-            mb: 2,
+            mb: 1.5,
             p: 2,
-            borderRadius: 2,
-            border: "1px solid rgba(0,0,0,0.1)",
+            borderRadius: 2.5,
+            border: "1px solid rgba(0,0,0,0.08)",
             bgcolor: "#fff",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
           }}
         >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            What&apos;s on your mind?
+          </Typography>
           <GatheringDescriptionEditor
             value={wallHtml}
             onChange={onWallHtmlChange}
             disabled={posting}
-            label="What's happening?"
+            label=""
             showHelper={false}
             compact
           />
@@ -207,7 +134,7 @@ export function MobilizeGroupFeed({
             </FormControl>
           ) : null}
           <Button
-            sx={{ mt: 1 }}
+            sx={{ mt: 1, borderRadius: 99, textTransform: "none", fontWeight: 700 }}
             variant="contained"
             onClick={() => void onPost()}
             disabled={posting || !hasComposerContent()}
@@ -217,30 +144,55 @@ export function MobilizeGroupFeed({
         </Box>
       ) : (
         <Typography color="text.secondary" sx={{ mb: 2 }}>
-          Only leaders can post announcements.
+          Only leaders can post on this group feed.
         </Typography>
       )}
 
-      {messages.map((m) => (
-        <GroupFeedPostCard
-          key={m.id}
-          groupId={groupId}
-          post={m}
-          canComment={canCommentOnPost(m)}
-          isLeader={isLeader}
-          isSuperAdmin={isSuperAdmin}
-          canManage={canManageMessage(m)}
-          onEdit={onEdit ? () => onEdit(m) : undefined}
-          onDelete={onDelete ? () => onDelete(m) : undefined}
-        />
-      ))}
+      {messages.map((m) => {
+        const unified = toUnifiedPost(m, groupId);
+        const canManage = canManageMessage(m);
+        return (
+          <MobilizeSocialPostCard
+            key={m.id}
+            post={{ ...unified, group: undefined }}
+            canComment={canCommentOnPost(m)}
+            commentConfig={feedPostCommentConfig(unified)}
+            reactionUrl={feedPostReactionUrl(unified)}
+            showGroupBadge={false}
+            manageActions={
+              canManage ? (
+                <Stack direction="row" spacing={0.5}>
+                  {onEdit ? (
+                    <Button size="small" startIcon={<EditIcon />} onClick={() => onEdit(m)}>
+                      Edit
+                    </Button>
+                  ) : null}
+                  {onDelete ? (
+                    <Button
+                      size="small"
+                      color="error"
+                      startIcon={<DeleteOutlineIcon />}
+                      onClick={() => onDelete(m)}
+                    >
+                      Delete
+                    </Button>
+                  ) : null}
+                </Stack>
+              ) : undefined
+            }
+          />
+        );
+      })}
 
       {!messages.length ? (
         <MobilizeSectionEmptyState
           imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
-          message="There are no feed posts in this chapter yet."
+          message="There are no feed posts in this group yet."
         />
       ) : null}
     </Box>
   );
+
+  if (embedded) return feedBody;
+  return <MobilizeSocialFeedShell>{feedBody}</MobilizeSocialFeedShell>;
 }

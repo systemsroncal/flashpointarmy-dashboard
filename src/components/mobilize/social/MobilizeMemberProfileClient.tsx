@@ -1,27 +1,27 @@
 "use client";
 
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
-import { MobilizeFeedHtml } from "@/components/mobilize/social/MobilizeFeedHtml";
-import { MobilizeSocialComments } from "@/components/mobilize/social/MobilizeSocialComments";
-import { MobilizeSocialReactionBar } from "@/components/mobilize/social/MobilizeSocialReactionBar";
+import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeProfilePageShell";
+import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
+import { MobilizeSocialFeedShell } from "@/components/mobilize/social/MobilizeSocialFeedShell";
+import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
-import { mobilizeCardSx } from "@/lib/mobilize/mobilize-ui-surface";
-import type { ReactionType } from "@/lib/mobilize/social/reaction-summary";
+import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
+import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import {
   Alert,
-  Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   FormControl,
   FormControlLabel,
-  IconButton,
+  List,
+  ListItemButton,
+  ListItemText,
+  Paper,
   Radio,
   RadioGroup,
   Stack,
@@ -30,6 +30,9 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+
+const PROFILE_COVER =
+  "https://fparmychapters.com/wp-content/uploads/2026/07/image-cover-profile-right-scaled.jpg";
 
 type ProfilePayload = {
   id: string;
@@ -48,92 +51,20 @@ type ProfilePayload = {
   is_private_locked?: boolean;
 };
 
-type ProfilePost = {
-  id: string;
-  author_id: string;
-  content: string;
-  content_html: string | null;
-  image_urls: string[];
-  created_at: string;
-  author: ProfilePayload;
-  reactions: {
-    like: number;
-    love: number;
-    total: number;
-    viewer_reaction: ReactionType | null;
-  };
-  comment_count: number;
-};
+type ProfilePost = UnifiedFeedPost;
+
+type ProfileTab = "feed" | "about";
 
 type Props = {
   userId: string;
   backHref: string;
 };
 
-function ProfilePostCard({
-  profileUserId,
-  post,
-  canComment,
-}: {
-  profileUserId: string;
-  post: ProfilePost;
-  canComment: boolean;
-}) {
-  const [reactions, setReactions] = useState(post.reactions);
-  const [commentCount, setCommentCount] = useState(post.comment_count);
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  async function setReaction(next: ReactionType | null) {
-    setBusy(true);
-    try {
-      const res = await fetch(
-        `/api/mobilize/social/profiles/${profileUserId}/posts/${post.id}/reactions`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reaction_type: next }),
-        }
-      );
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Reaction failed.");
-      setReactions(json.reactions);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Card variant="outlined" sx={{ mb: 1.5, ...mobilizeCardSx, borderRadius: 2 }}>
-      <CardContent>
-        <Typography variant="caption" color="text.secondary">
-          {new Date(post.created_at).toLocaleString()}
-        </Typography>
-        <Box sx={{ mt: 0.75 }}>
-          <MobilizeFeedHtml html={post.content_html} plain={post.content} />
-        </Box>
-        <MobilizeSocialReactionBar
-          reactions={reactions}
-          commentCount={commentCount}
-          onToggleLike={() => void setReaction(reactions.viewer_reaction === "like" ? null : "like")}
-          onToggleLove={() => void setReaction(reactions.viewer_reaction === "love" ? null : "love")}
-          onToggleComments={() => setCommentsOpen((v) => !v)}
-          commentsOpen={commentsOpen}
-          disabled={busy}
-        />
-        <MobilizeSocialComments
-          open={commentsOpen}
-          canComment={canComment}
-          commentsUrl={`/api/mobilize/social/profiles/${profileUserId}/posts/${post.id}/comments`}
-          commentReactionUrl={(commentId) =>
-            `/api/mobilize/social/profiles/${profileUserId}/posts/${post.id}/comments/${commentId}/reactions`
-          }
-          onCountChange={setCommentCount}
-        />
-      </CardContent>
-    </Card>
-  );
-}
+const panelSx = {
+  bgcolor: "rgba(0,0,0,0.06)",
+  border: "1px solid rgba(0,0,0,0.08)",
+  borderRadius: 2,
+} as const;
 
 export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
@@ -146,6 +77,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [bioDraft, setBioDraft] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [tab, setTab] = useState<ProfileTab>("feed");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -162,7 +94,32 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       setProfile(p);
       if (!p.is_private_locked) {
         if (!postsRes.ok) throw new Error(postsJson.error || "Failed to load posts.");
-        setPosts((postsJson.posts ?? []) as ProfilePost[]);
+        const rawPosts = (postsJson.posts ?? []) as Array<{
+          id: string;
+          author_id: string;
+          content: string;
+          content_html: string | null;
+          image_urls: string[];
+          created_at: string;
+          author: ProfilePayload;
+          reactions: ProfilePost["reactions"];
+          comment_count: number;
+        }>;
+        setPosts(
+          rawPosts.map((row) => ({
+            id: `pp-${row.id}`,
+            kind: "profile_post" as const,
+            created_at: row.created_at,
+            author: row.author,
+            content: row.content,
+            content_html: row.content_html,
+            image_urls: row.image_urls,
+            reactions: row.reactions,
+            comment_count: row.comment_count,
+            profile_user_id: userId,
+            post_id: row.id,
+          }))
+        );
       } else {
         setPosts([]);
       }
@@ -189,16 +146,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       const res = await fetch(`/api/mobilize/social/profiles/${userId}/follow`, { method });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Follow action failed.");
-      setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              is_following: Boolean(json.is_following),
-              followers_count: prev.followers_count + (json.is_following ? 1 : -1),
-            }
-          : prev
-      );
-      if (json.is_following) await load();
+      await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Follow action failed.");
     } finally {
@@ -257,7 +205,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     return (
       <MobilizeContentPanel>
         <Alert severity="warning">{error}</Alert>
-        <Button component={Link} href={backHref} startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
+        <Button component={Link} href={backHref} sx={{ mt: 2 }}>
           Back
         </Button>
       </MobilizeContentPanel>
@@ -266,16 +214,99 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
 
   if (!profile) return null;
 
+  const headerActions = profile.is_own_profile ? (
+    <Typography variant="caption" color="text.secondary">
+      Your profile
+    </Typography>
+  ) : (
+    <Button
+      variant={profile.is_following ? "outlined" : "contained"}
+      onClick={() => void toggleFollow()}
+      disabled={followBusy}
+      sx={{ borderRadius: 99, textTransform: "none", fontWeight: 700 }}
+    >
+      {followBusy ? "…" : profile.is_following ? "Following" : "Follow"}
+    </Button>
+  );
+
+  const leftRail = (
+    <>
+      <MobilizeProfileSidebarCard title="About">
+        {profile.bio ? (
+          <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+            {profile.bio}
+          </Typography>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            No bio yet.
+          </Typography>
+        )}
+        <Stack direction="row" spacing={2} sx={{ mt: 1.5 }}>
+          <Typography variant="body2">
+            <strong>{profile.followers_count}</strong> Followers
+          </Typography>
+          <Typography variant="body2">
+            <strong>{profile.following_count}</strong> Following
+          </Typography>
+        </Stack>
+        {profile.city || profile.state ? (
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+            {[profile.city, profile.state].filter(Boolean).join(", ")}
+          </Typography>
+        ) : null}
+      </MobilizeProfileSidebarCard>
+      {profile.is_own_profile ? (
+        <MobilizeProfileSidebarCard title="Privacy">
+          <FormControl>
+            <RadioGroup
+              value={visibility}
+              onChange={(_, v) => setVisibility(v as "public" | "private")}
+            >
+              <FormControlLabel
+                value="public"
+                control={<Radio size="small" />}
+                label={
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <PublicOutlinedIcon fontSize="small" />
+                    <span>Public</span>
+                  </Stack>
+                }
+              />
+              <FormControlLabel
+                value="private"
+                control={<Radio size="small" />}
+                label={
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <LockOutlinedIcon fontSize="small" />
+                    <span>Private</span>
+                  </Stack>
+                }
+              />
+            </RadioGroup>
+          </FormControl>
+          <TextField
+            fullWidth
+            multiline
+            minRows={2}
+            label="Bio"
+            value={bioDraft}
+            onChange={(e) => setBioDraft(e.target.value)}
+            sx={{ mt: 1, mb: 1 }}
+            size="small"
+          />
+          <Button size="small" variant="outlined" disabled={savingSettings} onClick={() => void saveSettings()}>
+            {savingSettings ? "Saving…" : "Save settings"}
+          </Button>
+        </MobilizeProfileSidebarCard>
+      ) : null}
+    </>
+  );
+
   return (
     <Box>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-        <IconButton component={Link} href={backHref} aria-label="Back" size="small">
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h6" fontWeight={700}>
-          Member profile
-        </Typography>
-      </Stack>
+      <Button component={Link} href={backHref} size="small" sx={{ mb: 1 }}>
+        Back
+      </Button>
 
       {error ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -283,160 +314,119 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         </Alert>
       ) : null}
 
-      <MobilizeContentPanel sx={{ mb: 2 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "flex-start" }}>
-          <Avatar
-            src={profile.avatar_url ? publicAssetSrc(profile.avatar_url) : undefined}
-            sx={{ width: 88, height: 88, bgcolor: "#263238", fontSize: "2rem" }}
-          >
-            {profile.display_name.charAt(0)}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h5" fontWeight={800}>
-              {profile.display_name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {profile.handle}
-            </Typography>
-            {profile.bio ? (
-              <Typography variant="body2" sx={{ mt: 1, whiteSpace: "pre-wrap" }}>
-                {profile.bio}
-              </Typography>
-            ) : null}
-            <Stack direction="row" spacing={2} sx={{ mt: 1.5 }}>
-              <Typography variant="body2">
-                <strong>{profile.followers_count}</strong> Followers
-              </Typography>
-              <Typography variant="body2">
-                <strong>{profile.following_count}</strong> Following
-              </Typography>
-            </Stack>
-            {profile.city || profile.state ? (
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.75 }}>
-                {[profile.city, profile.state].filter(Boolean).join(", ")}
-              </Typography>
-            ) : null}
-          </Box>
+      <MobilizeProfilePageShell
+        coverSrc={PROFILE_COVER}
+        title={profile.display_name}
+        subtitle={profile.handle}
+        avatarSrc={profile.avatar_url}
+        avatarFallback={profile.display_name}
+        tabs={[
+          { id: "feed", label: "Feed" },
+          { id: "about", label: "About" },
+        ]}
+        activeTab={tab}
+        onTabChange={(id) => setTab(id as ProfileTab)}
+        headerActions={headerActions}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "220px minmax(0, 1fr)" },
+            gap: { xs: 2, md: 3 },
+            alignItems: "start",
+          }}
+        >
+          <Paper elevation={0} sx={{ ...panelSx, py: 1, display: { xs: "none", md: "block" } }}>
+            <List dense disablePadding>
+              {[
+                { id: "feed" as const, label: "Feed" },
+                { id: "about" as const, label: "About" },
+              ].map((item) => (
+                <ListItemButton
+                  key={item.id}
+                  selected={tab === item.id}
+                  onClick={() => setTab(item.id)}
+                  sx={{ mx: 1, borderRadius: 1.5 }}
+                >
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              ))}
+            </List>
+          </Paper>
+
           <Box>
-            {profile.is_own_profile ? (
-              <Typography variant="caption" color="text.secondary">
-                Your profile
-              </Typography>
-            ) : (
-              <Button
-                variant={profile.is_following ? "outlined" : "contained"}
-                onClick={() => void toggleFollow()}
-                disabled={followBusy}
-              >
-                {followBusy ? "…" : profile.is_following ? "Unfollow" : "Follow"}
-              </Button>
-            )}
+            {profile.is_private_locked ? (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                This profile is private. Follow to see posts and full details.
+              </Alert>
+            ) : null}
+
+            {tab === "about" ? (
+              <MobilizeContentPanel>
+                <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
+                  About
+                </Typography>
+                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                  {profile.bio || "No bio provided."}
+                </Typography>
+              </MobilizeContentPanel>
+            ) : null}
+
+            {tab === "feed" && !profile.is_private_locked ? (
+              <MobilizeSocialFeedShell leftRail={leftRail}>
+                {profile.is_own_profile ? (
+                  <Box
+                    sx={{
+                      mb: 1.5,
+                      p: 2,
+                      borderRadius: 2.5,
+                      bgcolor: "#fff",
+                      border: "1px solid rgba(0,0,0,0.08)",
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      What&apos;s on your mind?
+                    </Typography>
+                    <GatheringDescriptionEditor
+                      value={composerHtml}
+                      onChange={setComposerHtml}
+                      label=""
+                      showHelper={false}
+                      compact
+                      disabled={posting}
+                    />
+                    <Button
+                      variant="contained"
+                      sx={{ mt: 1, borderRadius: 99, textTransform: "none" }}
+                      disabled={posting || !composerHtml.replace(/<[^>]+>/g, "").trim()}
+                      onClick={() => void publishPost()}
+                    >
+                      {posting ? "Posting…" : "Post"}
+                    </Button>
+                  </Box>
+                ) : null}
+
+                {posts.map((post) => (
+                  <MobilizeSocialPostCard
+                    key={post.id}
+                    post={post}
+                    canComment
+                    commentConfig={feedPostCommentConfig(post)}
+                    reactionUrl={feedPostReactionUrl(post)}
+                    showGroupBadge={false}
+                  />
+                ))}
+
+                {!posts.length ? (
+                  <Typography color="text.secondary" sx={{ p: 2, bgcolor: "#fff", borderRadius: 2 }}>
+                    {profile.is_own_profile ? "You have not posted yet." : "No posts yet."}
+                  </Typography>
+                ) : null}
+              </MobilizeSocialFeedShell>
+            ) : null}
           </Box>
-        </Stack>
-
-        {profile.is_own_profile ? (
-          <Box sx={{ mt: 3, pt: 2, borderTop: "1px solid rgba(0,0,0,0.08)" }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-              Profile settings
-            </Typography>
-            <TextField
-              fullWidth
-              multiline
-              minRows={2}
-              label="Bio"
-              value={bioDraft}
-              onChange={(e) => setBioDraft(e.target.value)}
-              sx={{ mb: 1.5 }}
-            />
-            <FormControl>
-              <RadioGroup
-                row
-                value={visibility}
-                onChange={(_, v) => setVisibility(v as "public" | "private")}
-              >
-                <FormControlLabel
-                  value="public"
-                  control={<Radio size="small" />}
-                  label={
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                      <PublicOutlinedIcon fontSize="small" />
-                      <span>Public</span>
-                    </Stack>
-                  }
-                />
-                <FormControlLabel
-                  value="private"
-                  control={<Radio size="small" />}
-                  label={
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                      <LockOutlinedIcon fontSize="small" />
-                      <span>Private</span>
-                    </Stack>
-                  }
-                />
-              </RadioGroup>
-            </FormControl>
-            <Button
-              variant="outlined"
-              size="small"
-              sx={{ mt: 1 }}
-              disabled={savingSettings}
-              onClick={() => void saveSettings()}
-            >
-              {savingSettings ? "Saving…" : "Save settings"}
-            </Button>
-          </Box>
-        ) : null}
-      </MobilizeContentPanel>
-
-      <MobilizeContentPanel>
-        {profile.is_private_locked ? (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            This profile is private. Follow to see posts and full details.
-          </Alert>
-        ) : null}
-        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
-          {profile.is_own_profile ? "Your posts" : "Posts"}
-        </Typography>
-
-        {profile.is_own_profile && !profile.is_private_locked ? (
-          <Box sx={{ mb: 2 }}>
-            <GatheringDescriptionEditor
-              value={composerHtml}
-              onChange={setComposerHtml}
-              label="Share an update"
-              showHelper={false}
-              compact
-              disabled={posting}
-            />
-            <Button
-              variant="contained"
-              sx={{ mt: 1 }}
-              disabled={posting || !composerHtml.replace(/<[^>]+>/g, "").trim()}
-              onClick={() => void publishPost()}
-            >
-              {posting ? "Posting…" : "Post"}
-            </Button>
-          </Box>
-        ) : null}
-
-        {!profile.is_private_locked
-          ? posts.map((post) => (
-              <ProfilePostCard
-                key={post.id}
-                profileUserId={userId}
-                post={post}
-                canComment
-              />
-            ))
-          : null}
-
-        {!profile.is_private_locked && !posts.length ? (
-          <Typography color="text.secondary">
-            {profile.is_own_profile ? "You have not posted yet." : "No posts yet."}
-          </Typography>
-        ) : null}
-      </MobilizeContentPanel>
+        </Box>
+      </MobilizeProfilePageShell>
     </Box>
   );
 }
