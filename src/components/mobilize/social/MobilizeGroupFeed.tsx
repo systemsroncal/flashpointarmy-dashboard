@@ -90,7 +90,7 @@ export function MobilizeGroupFeed({
   }, [wallHtml, wallImages.length]);
 
   const feedBody = (
-    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+    <Box sx={embedded ? { display: "flex", flexDirection: "column" } : { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {canPost ? (
         <MobilizeSocialPostEditor
           value={wallHtml}
@@ -167,7 +167,7 @@ export function MobilizeGroupFeed({
 
       {!messages.length ? (
         <MobilizeSectionEmptyState
-          fill
+          fill={!embedded}
           imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
           title="No posts yet"
           description="When leaders or members post to the feed, updates will appear here."

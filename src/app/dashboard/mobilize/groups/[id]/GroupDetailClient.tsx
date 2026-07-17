@@ -63,9 +63,8 @@ import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSection
 import {
   mobilizeCalendarDaySx,
   mobilizeCardSx,
-  mobilizeChapterDetailPanelFillSx,
   mobilizeChapterDetailRootSx,
-  mobilizeGroupTabPanelSx,
+  mobilizeGroupTabPanelScrollSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
@@ -1145,16 +1144,30 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     gap: 0.5,
   } as const;
 
-  const tabPanelBodySx = mobilizeGroupTabPanelSx;
+  const tabPanelBodySx = mobilizeGroupTabPanelScrollSx;
 
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 1, flexShrink: 0 }}
+      >
         <Button component={Link} href={`/dashboard/mobilize/groups/${group.parent_group_id}/groups`} size="small">
           Back to chapter groups
         </Button>
       </Stack>
 
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overflowX: "hidden",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
       <MobilizeProfilePageShell
         coverSrc={groupCoverSrc}
         title={group.name}
@@ -1162,14 +1175,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         avatarSrc={group.profile_image_url ?? group.cover_image_url}
         avatarFallback={group.name}
         headerActions={profileHeaderActions}
-        fillContent
         unifiedContent
+        scrollWithHeader
       >
       <Box
         sx={{
-          ...mobilizeChapterDetailPanelFillSx,
           p: { xs: 2, sm: 2.5 },
-          overflow: "auto",
           color: "#0d0d0d",
         }}
       >
@@ -1186,7 +1197,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
       {activeTab === "announcements" && canViewContent ? (
         <Box sx={tabPanelBodySx}>
-          <MobilizeSocialFeedShell leftRail={groupFeedLeftRail} rightRail={groupFeedAdsRail} fill>
+          <MobilizeSocialFeedShell leftRail={groupFeedLeftRail} rightRail={groupFeedAdsRail}>
             <MobilizeGroupFeed
               embedded
               groupId={groupId}
@@ -1666,6 +1677,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
       </Box>
       </MobilizeProfilePageShell>
+      </Box>
 
       <MobilizeDialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Add new event</DialogTitle>

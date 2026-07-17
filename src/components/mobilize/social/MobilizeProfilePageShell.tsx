@@ -30,6 +30,8 @@ type Props = {
   socialTabStyle?: boolean;
   /** Render tabs inside the content panel (Truth-style) instead of under the profile header. */
   tabsInContent?: boolean;
+  /** Header and content grow with the page; parent owns vertical scroll (group detail). */
+  scrollWithHeader?: boolean;
 };
 
 export function MobilizeProfilePageShell({
@@ -48,9 +50,11 @@ export function MobilizeProfilePageShell({
   unifiedContent = false,
   socialTabStyle = false,
   tabsInContent = false,
+  scrollWithHeader = false,
 }: Props) {
   const tabAccent = socialTabStyle ? "#1877f2" : undefined;
   const headerTabs = tabs?.length && !tabsInContent ? tabs : undefined;
+  const panelFill = fillContent && !scrollWithHeader;
   const fallbackInitial =
     avatarFallback.trim().length > 1
       ? avatarFallback.trim().slice(0, 2).toUpperCase()
@@ -60,7 +64,7 @@ export function MobilizeProfilePageShell({
     <ThemeProvider theme={mobilizePanelTheme}>
       <Box
         sx={
-          fillContent
+          panelFill
             ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
             : undefined
         }
@@ -73,7 +77,7 @@ export function MobilizeProfilePageShell({
             border: "1px solid rgba(0,0,0,0.08)",
             mb: unifiedContent ? 0 : 1.5,
             boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-            ...(unifiedContent && fillContent
+            ...(unifiedContent && panelFill
               ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
               : {}),
           }}
@@ -261,12 +265,12 @@ export function MobilizeProfilePageShell({
           {unifiedContent ? (
             <Box
               sx={{
-                flex: 1,
-                minHeight: 0,
+                ...(scrollWithHeader
+                  ? {}
+                  : { flex: 1, minHeight: 0, overflow: "hidden" }),
                 display: "flex",
                 flexDirection: "column",
                 borderTop: "1px solid rgba(0,0,0,0.08)",
-                overflow: "hidden",
                 color: "#0d0d0d",
               }}
             >
@@ -286,7 +290,7 @@ export function MobilizeProfilePageShell({
         {!unifiedContent ? (
           <Box
             sx={
-              fillContent
+              panelFill
                 ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
                 : undefined
             }

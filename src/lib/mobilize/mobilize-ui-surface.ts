@@ -43,6 +43,11 @@ export const mobilizeGroupTabPanelSx: SxProps<Theme> = {
   minHeight: 0,
 };
 
+/** Tab body when the profile header scrolls with page content (group detail). */
+export const mobilizeGroupTabPanelScrollSx: SxProps<Theme> = {
+  width: "100%",
+};
+
 export const mobilizeCardSx: SxProps<Theme> = {
   bgcolor: "#fafafa",
   borderColor: "rgba(0,0,0,0.1)",
