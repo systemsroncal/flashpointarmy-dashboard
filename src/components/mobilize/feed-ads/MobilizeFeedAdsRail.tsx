@@ -4,57 +4,57 @@ import { MobilizeFeedHtml } from "@/components/mobilize/social/MobilizeFeedHtml"
 import { MobilizeRecommendationsCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import type { MobilizeFeedAdBlock } from "@/lib/mobilize/feed-ads-types";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { Box, Stack } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import Link from "next/link";
-import { MobilizeFeedAdsCarousel } from "./MobilizeFeedAdsCarousel";
+import { feedAdImageSx, MobilizeFeedAdsCarousel } from "./MobilizeFeedAdsCarousel";
 
 type Props = {
   items: MobilizeFeedAdBlock[];
 };
 
 function AdImageBlock({
+  title,
   image_url,
   href,
   className,
   elementId,
 }: {
+  title?: string;
   image_url: string;
   href: string;
   className?: string;
   elementId?: string;
 }) {
+  const heading = title?.trim();
   const img = (
-    <Box
-      component="img"
-      src={publicAssetSrc(image_url)}
-      alt=""
-      sx={{
-        width: "100%",
-        display: "block",
-        borderRadius: 1.5,
-        objectFit: "cover",
-      }}
-    />
+    <Box component="img" src={publicAssetSrc(image_url)} alt="" sx={feedAdImageSx} />
   );
 
-  if (href.trim()) {
-    return (
-      <Link
-        href={href.trim()}
-        target={href.startsWith("/") ? undefined : "_blank"}
-        rel={href.startsWith("/") ? undefined : "noopener noreferrer"}
-        className={className}
-        id={elementId}
-        style={{ display: "block" }}
-      >
-        {img}
-      </Link>
-    );
-  }
+  const content = href.trim() ? (
+    <Link
+      href={href.trim()}
+      target={href.startsWith("/") ? undefined : "_blank"}
+      rel={href.startsWith("/") ? undefined : "noopener noreferrer"}
+      className={className}
+      id={elementId}
+      style={{ display: "block", lineHeight: 0 }}
+    >
+      {img}
+    </Link>
+  ) : (
+    <Box id={elementId} className={className} sx={{ lineHeight: 0 }}>
+      {img}
+    </Box>
+  );
 
   return (
-    <Box id={elementId} className={className}>
-      {img}
+    <Box>
+      {heading ? (
+        <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1.25, letterSpacing: "-0.01em", color: "#0d0d0d" }}>
+          {heading}
+        </Typography>
+      ) : null}
+      {content}
     </Box>
   );
 }
@@ -63,13 +63,14 @@ export function MobilizeFeedAdsRail({ items }: Props) {
   if (!items.length) return null;
 
   return (
-    <MobilizeRecommendationsCard title="Featured">
-      <Stack spacing={2}>
+    <MobilizeRecommendationsCard>
+      <Stack spacing={2.5}>
         {items.map((block) => {
           if (block.type === "image") {
             return (
               <AdImageBlock
                 key={block.id}
+                title={block.title}
                 image_url={block.image_url}
                 href={block.href}
                 className={block.className}
@@ -81,6 +82,7 @@ export function MobilizeFeedAdsRail({ items }: Props) {
             return (
               <MobilizeFeedAdsCarousel
                 key={block.id}
+                title={block.title}
                 slides={block.slides}
                 className={block.className}
                 elementId={block.elementId}

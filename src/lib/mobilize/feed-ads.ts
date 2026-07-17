@@ -12,6 +12,7 @@ const MAX_BLOCKS = 24;
 const MAX_CAROUSEL_SLIDES = 12;
 const MAX_CLASS_LEN = 200;
 const MAX_ID_LEN = 80;
+const MAX_TITLE_LEN = 120;
 
 export function isSafeFeedAdHref(href: string): boolean {
   const s = href.trim();
@@ -63,6 +64,10 @@ function parseSlide(raw: unknown, index: number): MobilizeFeedAdCarouselSlide | 
   };
 }
 
+function parseBlockTitle(raw: Record<string, unknown>): string | undefined {
+  return cleanOptionalToken(raw.title, MAX_TITLE_LEN);
+}
+
 function parseImageBlock(raw: Record<string, unknown>, id: string, sort_order: number): MobilizeFeedAdImageBlock | null {
   const image_url = typeof raw.image_url === "string" ? raw.image_url.trim() : "";
   if (!image_url || !isSafeFeedAdImageUrl(image_url)) return null;
@@ -72,6 +77,7 @@ function parseImageBlock(raw: Record<string, unknown>, id: string, sort_order: n
     id,
     type: "image",
     sort_order,
+    title: parseBlockTitle(raw),
     image_url,
     href,
     className: cleanOptionalToken(raw.className, MAX_CLASS_LEN),
@@ -94,6 +100,7 @@ function parseCarouselBlock(
     id,
     type: "carousel",
     sort_order,
+    title: parseBlockTitle(raw),
     slides,
     className: cleanOptionalToken(raw.className, MAX_CLASS_LEN),
     elementId: cleanOptionalToken(raw.elementId, MAX_ID_LEN),

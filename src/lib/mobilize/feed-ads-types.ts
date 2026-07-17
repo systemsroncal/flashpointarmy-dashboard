@@ -12,6 +12,8 @@ export type MobilizeFeedAdImageBlock = {
   id: string;
   type: "image";
   sort_order: number;
+  /** Optional heading above the image block. */
+  title?: string;
   image_url: string;
   href: string;
   className?: string;
@@ -22,6 +24,8 @@ export type MobilizeFeedAdCarouselBlock = {
   id: string;
   type: "carousel";
   sort_order: number;
+  /** Optional heading above the carousel. */
+  title?: string;
   slides: MobilizeFeedAdCarouselSlide[];
   className?: string;
   elementId?: string;

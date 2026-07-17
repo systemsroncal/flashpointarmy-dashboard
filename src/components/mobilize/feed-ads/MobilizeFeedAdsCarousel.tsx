@@ -2,19 +2,30 @@
 
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { Box, IconButton, Stack } from "@mui/material";
+import { Box, IconButton, Stack, Typography } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import type { MobilizeFeedAdCarouselSlide } from "@/lib/mobilize/feed-ads-types";
 
+/** Renders feed-ad images at their natural aspect ratio (no forced crop). */
+export const feedAdImageSx = {
+  width: "100%",
+  height: "auto",
+  maxWidth: "100%",
+  display: "block",
+  borderRadius: 1.5,
+  verticalAlign: "middle",
+} as const;
+
 type Props = {
   slides: MobilizeFeedAdCarouselSlide[];
+  title?: string;
   className?: string;
   elementId?: string;
 };
 
-export function MobilizeFeedAdsCarousel({ slides, className, elementId }: Props) {
+export function MobilizeFeedAdsCarousel({ slides, title, className, elementId }: Props) {
   const [index, setIndex] = useState(0);
   const count = slides.length;
 
@@ -32,25 +43,25 @@ export function MobilizeFeedAdsCarousel({ slides, className, elementId }: Props)
   if (!count) return null;
 
   const slide = slides[index];
+  const heading = title?.trim();
+
   const img = (
     <Box
       component="img"
       src={publicAssetSrc(slide.image_url)}
       alt=""
-      sx={{
-        width: "100%",
-        display: "block",
-        borderRadius: 1.5,
-        objectFit: "cover",
-        aspectRatio: "16 / 10",
-        bgcolor: "rgba(0,0,0,0.06)",
-      }}
+      sx={feedAdImageSx}
     />
   );
 
   return (
     <Box id={elementId} className={className}>
-      <Box sx={{ position: "relative", borderRadius: 1.5, overflow: "hidden" }}>
+      {heading ? (
+        <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1.25, letterSpacing: "-0.01em", color: "#0d0d0d" }}>
+          {heading}
+        </Typography>
+      ) : null}
+      <Box sx={{ position: "relative", lineHeight: 0 }}>
         {slide.href.trim() ? (
           <Link
             href={slide.href.trim()}
@@ -79,6 +90,7 @@ export function MobilizeFeedAdsCarousel({ slides, className, elementId }: Props)
                 top: "50%",
                 transform: "translateY(-50%)",
                 bgcolor: "rgba(255,255,255,0.92)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
                 "&:hover": { bgcolor: "#fff" },
               }}
             >
@@ -94,6 +106,7 @@ export function MobilizeFeedAdsCarousel({ slides, className, elementId }: Props)
                 top: "50%",
                 transform: "translateY(-50%)",
                 bgcolor: "rgba(255,255,255,0.92)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
                 "&:hover": { bgcolor: "#fff" },
               }}
             >
@@ -118,7 +131,7 @@ export function MobilizeFeedAdsCarousel({ slides, className, elementId }: Props)
                 border: "none",
                 p: 0,
                 cursor: "pointer",
-                bgcolor: i === index ? "primary.main" : "rgba(0,0,0,0.2)",
+                bgcolor: i === index ? "#0d0d0d" : "rgba(0,0,0,0.2)",
               }}
             />
           ))}

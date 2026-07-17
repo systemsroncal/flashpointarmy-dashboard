@@ -34,9 +34,10 @@ export function MobilizeRecommendationsCard({
   title,
   children,
 }: {
-  title: string;
+  title?: string;
   children: ReactNode;
 }) {
+  const heading = title?.trim();
   return (
     <Paper
       elevation={0}
@@ -51,9 +52,11 @@ export function MobilizeRecommendationsCard({
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
       }}
     >
-      <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1.5 }}>
-        {title}
-      </Typography>
+      {heading ? (
+        <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1.5 }}>
+          {heading}
+        </Typography>
+      ) : null}
       <Box>{children}</Box>
     </Paper>
   );

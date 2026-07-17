@@ -29,6 +29,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ImageIcon from "@mui/icons-material/Image";
 import SlideshowIcon from "@mui/icons-material/Slideshow";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
@@ -36,13 +37,15 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
+  Collapse,
   IconButton,
   Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import { isSafeFeedAdImageUrl } from "@/lib/mobilize/feed-ads";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 function newId() {
@@ -62,6 +65,41 @@ function blockLabel(block: MobilizeFeedAdBlock): string {
   return "Rich text";
 }
 
+function blockPreviewImageUrl(block: MobilizeFeedAdBlock): string | null {
+  if (block.type === "image") {
+    const url = block.image_url.trim();
+    return url && isSafeFeedAdImageUrl(url) ? url : null;
+  }
+  if (block.type === "carousel") {
+    const slide = block.slides.find((s) => {
+      const url = s.image_url.trim();
+      return url && isSafeFeedAdImageUrl(url);
+    });
+    return slide?.image_url.trim() ?? null;
+  }
+  return null;
+}
+
+function AdBlockThumbnail({ url }: { url: string | null }) {
+  if (!url) return null;
+  return (
+    <Box
+      component="img"
+      src={publicAssetSrc(url)}
+      alt=""
+      sx={{
+        width: 36,
+        height: 36,
+        borderRadius: 1,
+        objectFit: "cover",
+        flexShrink: 0,
+        border: "1px solid rgba(0,0,0,0.08)",
+        bgcolor: "#f5f5f5",
+      }}
+    />
+  );
+}
+
 function SortableAdShell({
   id,
   children,
@@ -75,6 +113,29 @@ function SortableAdShell({
     <Box ref={setNodeRef} style={style}>
       {children({ ...attributes, ...listeners })}
     </Box>
+  );
+}
+
+function BlockTitleField({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <TextField
+      size="small"
+      fullWidth
+      label="Block title (optional)"
+      placeholder="e.g. Donate, Events"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      helperText="Shown above this image or carousel in the group feed sidebar."
+    />
   );
 }
 
@@ -138,6 +199,7 @@ export function MobilizeFeedAdsSettingsForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
 
   const dndId = "mobilize-feed-ads-dnd";
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -213,6 +275,20 @@ export function MobilizeFeedAdsSettingsForm() {
 
   function removeBlock(id: string) {
     setItems((prev) => withSortOrder(prev.filter((b) => b.id !== id)));
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
   async function save() {
@@ -292,17 +368,66 @@ export function MobilizeFeedAdsSettingsForm() {
       <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           <Stack spacing={1.5}>
-            {items.map((block, index) => (
+            {items.map((block, index) => {
+              const expanded = expandedIds.has(block.id);
+              const previewUrl = blockPreviewImageUrl(block);
+              return (
               <SortableAdShell key={block.id} id={block.id}>
                 {(handle) => (
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fff" }}>
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                  <Paper variant="outlined" sx={{ bgcolor: "#fff", overflow: "hidden" }}>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      sx={{
+                        px: 1.5,
+                        py: 1,
+                        borderBottom: expanded ? "1px solid rgba(0,0,0,0.08)" : "none",
+                      }}
+                    >
                       <DragIndicatorIcon
                         sx={{ cursor: "grab", color: "text.secondary", flexShrink: 0 }}
                         {...handle}
                       />
-                      <Chip size="small" label={blockLabel(block)} />
-                      <Box sx={{ flex: 1 }} />
+                      <Box
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => toggleExpanded(block.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            toggleExpanded(block.id);
+                          }
+                        }}
+                        sx={{
+                          flex: 1,
+                          minWidth: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          cursor: "pointer",
+                          userSelect: "none",
+                        }}
+                      >
+                        <Typography variant="body2" fontWeight={600} noWrap>
+                          {blockLabel(block)}
+                        </Typography>
+                        <AdBlockThumbnail url={previewUrl} />
+                      </Box>
+                      <IconButton
+                        size="small"
+                        aria-label={expanded ? "Collapse block" : "Expand block"}
+                        aria-expanded={expanded}
+                        onClick={() => toggleExpanded(block.id)}
+                      >
+                        <ExpandMoreIcon
+                          fontSize="small"
+                          sx={{
+                            transform: expanded ? "rotate(180deg)" : "none",
+                            transition: "transform 0.2s ease",
+                          }}
+                        />
+                      </IconButton>
                       <IconButton
                         size="small"
                         aria-label="Move up"
@@ -330,8 +455,15 @@ export function MobilizeFeedAdsSettingsForm() {
                       </IconButton>
                     </Stack>
 
+                    <Collapse in={expanded}>
+                      <Box sx={{ p: 2 }}>
                     {block.type === "image" ? (
                       <Stack spacing={2}>
+                        <BlockTitleField
+                          value={block.title ?? ""}
+                          onChange={(title) => updateBlock(block.id, { title })}
+                          disabled={loading || saving}
+                        />
                         <MobilizeFeedAdImageDropzone
                           value={block.image_url}
                           onChange={(url) => updateBlock(block.id, { image_url: url })}
@@ -351,6 +483,11 @@ export function MobilizeFeedAdsSettingsForm() {
 
                     {block.type === "carousel" ? (
                       <Stack spacing={2}>
+                        <BlockTitleField
+                          value={block.title ?? ""}
+                          onChange={(title) => updateBlock(block.id, { title })}
+                          disabled={loading || saving}
+                        />
                         <LinkTargetFields
                           href=""
                           className={block.className ?? ""}
@@ -461,10 +598,13 @@ export function MobilizeFeedAdsSettingsForm() {
                         />
                       </Stack>
                     ) : null}
+                      </Box>
+                    </Collapse>
                   </Paper>
                 )}
               </SortableAdShell>
-            ))}
+            );
+            })}
           </Stack>
         </SortableContext>
       </DndContext>
