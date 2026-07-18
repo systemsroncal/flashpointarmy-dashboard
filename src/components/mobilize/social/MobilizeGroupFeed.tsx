@@ -8,6 +8,7 @@ import type { EnrichedGroupMessage } from "@/lib/mobilize/social/enrich-group-me
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
+import { mobilizeGroupFeedCardSx } from "@/lib/mobilize/mobilize-ui-surface";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import {
@@ -15,6 +16,7 @@ import {
   Button,
   FormControl,
   FormControlLabel,
+  Paper,
   Radio,
   RadioGroup,
   Stack,
@@ -43,6 +45,7 @@ type Props = {
   onDelete?: (post: EnrichedGroupMessage) => void;
   /** When true, wraps feed in Truth-style shell only (no extra left rail). */
   embedded?: boolean;
+  authorRoleLabels?: Record<string, string>;
 };
 
 function toUnifiedPost(m: EnrichedGroupMessage, groupId: string, groupName?: string): UnifiedFeedPost {
@@ -82,6 +85,7 @@ export function MobilizeGroupFeed({
   onEdit,
   onDelete,
   embedded = false,
+  authorRoleLabels,
 }: Props) {
   const me = useDashboardUser();
   const hasComposerContent = useCallback(() => {
@@ -90,43 +94,48 @@ export function MobilizeGroupFeed({
   }, [wallHtml, wallImages.length]);
 
   const feedBody = (
-    <Box sx={embedded ? { display: "flex", flexDirection: "column" } : { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+    <Box sx={embedded ? { display: "flex", flexDirection: "column", gap: 2 } : { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {canPost ? (
-        <MobilizeSocialPostEditor
-          value={wallHtml}
-          onChange={onWallHtmlChange}
-          disabled={posting}
-          surface="light"
-          avatarUrl={me.avatar_url}
-          avatarFallback={me.display_name ?? me.email ?? "?"}
-          imageUrls={wallImages}
-          onImageUrlsChange={onWallImagesChange}
-          groupId={groupId}
-          postLabel="Post"
-          onPost={() => void onPost()}
-          posting={posting}
-          canPost={hasComposerContent()}
-        >
-          {isLeader || isSuperAdmin ? (
-            <FormControl component="fieldset" sx={{ mt: 1 }} variant="standard">
-              <Typography variant="caption" sx={{ mb: 0.5, display: "block", color: "rgba(0,0,0,0.65)" }}>
-                Who can comment on this post
-              </Typography>
-              <RadioGroup
-                row
-                value={leaderCommentsPolicy}
-                onChange={(_, v) => onLeaderCommentsPolicyChange(v as "everyone" | "leaders_only")}
-              >
-                <FormControlLabel value="everyone" control={<Radio size="small" />} label="Everyone" />
-                <FormControlLabel value="leaders_only" control={<Radio size="small" />} label="Leaders only" />
-              </RadioGroup>
-            </FormControl>
-          ) : null}
-        </MobilizeSocialPostEditor>
+        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden" }}>
+          <MobilizeSocialPostEditor
+            value={wallHtml}
+            onChange={onWallHtmlChange}
+            disabled={posting}
+            surface="light"
+            brandAccent={embedded}
+            avatarUrl={me.avatar_url}
+            avatarFallback={me.display_name ?? me.email ?? "?"}
+            imageUrls={wallImages}
+            onImageUrlsChange={onWallImagesChange}
+            groupId={groupId}
+            postLabel="Post"
+            onPost={() => void onPost()}
+            posting={posting}
+            canPost={hasComposerContent()}
+          >
+            {isLeader || isSuperAdmin ? (
+              <FormControl component="fieldset" sx={{ mt: 1 }} variant="standard">
+                <Typography variant="caption" sx={{ mb: 0.5, display: "block", color: "rgba(0,0,0,0.65)" }}>
+                  Who can comment on this post
+                </Typography>
+                <RadioGroup
+                  row
+                  value={leaderCommentsPolicy}
+                  onChange={(_, v) => onLeaderCommentsPolicyChange(v as "everyone" | "leaders_only")}
+                >
+                  <FormControlLabel value="everyone" control={<Radio size="small" />} label="Everyone" />
+                  <FormControlLabel value="leaders_only" control={<Radio size="small" />} label="Leaders only" />
+                </RadioGroup>
+              </FormControl>
+            ) : null}
+          </MobilizeSocialPostEditor>
+        </Paper>
       ) : (
-        <Typography sx={{ mb: 2, px: 2, color: "rgba(0,0,0,0.65)" }}>
-          Only leaders can post on this group feed.
-        </Typography>
+        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, p: 2 }}>
+          <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
+            Only leaders can post on this group feed.
+          </Typography>
+        </Paper>
       )}
 
       {messages.map((m) => {
@@ -140,6 +149,7 @@ export function MobilizeGroupFeed({
             commentConfig={feedPostCommentConfig(unified)}
             reactionUrl={feedPostReactionUrl(unified)}
             showGroupBadge={false}
+            authorRoleLabel={authorRoleLabels?.[m.author.id]}
             manageActions={
               canManage ? (
                 <Stack direction="row" spacing={0.5}>
@@ -166,12 +176,14 @@ export function MobilizeGroupFeed({
       })}
 
       {!messages.length ? (
-        <MobilizeSectionEmptyState
-          fill={!embedded}
-          imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
-          title="No posts yet"
-          description="When leaders or members post to the feed, updates will appear here."
-        />
+        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, p: 2 }}>
+          <MobilizeSectionEmptyState
+            fill={false}
+            imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
+            title="No posts yet"
+            description="When leaders or members post to the feed, updates will appear here."
+          />
+        </Paper>
       ) : null}
     </Box>
   );

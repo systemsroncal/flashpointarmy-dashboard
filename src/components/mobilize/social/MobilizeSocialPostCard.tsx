@@ -34,6 +34,7 @@ type Props = {
   manageActions?: React.ReactNode;
   onReactionChange?: (reactions: UnifiedFeedPost["reactions"]) => void;
   surface?: "light" | "dark";
+  authorRoleLabel?: string;
 };
 
 export function MobilizeSocialPostCard({
@@ -45,6 +46,7 @@ export function MobilizeSocialPostCard({
   manageActions,
   onReactionChange,
   surface = "light",
+  authorRoleLabel,
 }: Props) {
   const isDark = surface === "dark";
   const [reactions, setReactions] = useState(post.reactions);
@@ -115,7 +117,12 @@ export function MobilizeSocialPostCard({
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <MobilizeSocialPostHeader author={post.author} createdAt={post.created_at} tone={surface} />
+            <MobilizeSocialPostHeader
+              author={post.author}
+              createdAt={post.created_at}
+              tone={surface}
+              roleLabel={authorRoleLabel}
+            />
             {showGroupBadge && post.group ? (
               <Typography variant="caption" sx={{ display: "block", mt: 0.5, color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}>
                 in{" "}

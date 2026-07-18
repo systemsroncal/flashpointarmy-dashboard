@@ -12,39 +12,63 @@ type Props = {
   leftRail?: ReactNode;
   /** Stretch to fill parent tab panel (group detail feed tab). */
   fill?: boolean;
+  /** Group profile three-column layout on dark background. */
+  variant?: "default" | "groupProfile";
 };
 
-export function MobilizeSocialFeedShell({ children, rightRail, leftRail, fill = false }: Props) {
+export function MobilizeSocialFeedShell({
+  children,
+  rightRail,
+  leftRail,
+  fill = false,
+  variant = "default",
+}: Props) {
+  const isGroupProfile = variant === "groupProfile";
   const fillSx = fill ? { flex: 1, minHeight: 0 } : {};
   const threeColumn = Boolean(leftRail && rightRail);
   const feedColumnSx = {
-    maxWidth: threeColumn ? "none" : 680,
-    mx: threeColumn ? 0 : "auto",
+    maxWidth: threeColumn && !isGroupProfile ? "none" : isGroupProfile ? "none" : 680,
+    mx: threeColumn || isGroupProfile ? 0 : "auto",
     width: "100%",
   } as const;
+
+  const gridColumns = isGroupProfile
+    ? {
+        xs: "1fr",
+        lg: "minmax(240px, 300px) minmax(0, 1fr) minmax(220px, 280px)",
+      }
+    : {
+        xs: "1fr",
+        lg: threeColumn
+          ? "minmax(220px, 260px) minmax(0, 1fr) minmax(240px, 300px)"
+          : leftRail
+            ? "minmax(220px, 260px) minmax(0, 1fr)"
+            : rightRail
+              ? "minmax(0, 1fr) minmax(240px, 300px)"
+              : "1fr",
+      };
 
   const body = (
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: {
-          xs: "1fr",
-          lg: threeColumn
-            ? "minmax(220px, 260px) minmax(0, 1fr) minmax(240px, 300px)"
-            : leftRail
-              ? "minmax(220px, 260px) minmax(0, 1fr)"
-              : rightRail
-                ? "minmax(0, 1fr) minmax(240px, 300px)"
-                : "1fr",
-        },
-        gap: { xs: 2, lg: 2.5 },
+        gridTemplateColumns: gridColumns,
+        gap: { xs: 2, lg: isGroupProfile ? 3 : 2.5 },
         alignItems: "start",
         ...fillSx,
       }}
     >
       {leftRail ? (
         <Box sx={{ display: { xs: "contents", lg: "block" }, order: { xs: 2, lg: 0 } }}>
-          <Box sx={{ display: { xs: "block", lg: "block" } }}>{leftRail}</Box>
+          <Box
+            sx={{
+              display: { xs: "block", lg: "block" },
+              position: { lg: "sticky" },
+              top: { lg: 16 },
+            }}
+          >
+            {leftRail}
+          </Box>
         </Box>
       ) : null}
       <Box
@@ -60,7 +84,13 @@ export function MobilizeSocialFeedShell({ children, rightRail, leftRail, fill = 
         {children}
       </Box>
       {rightRail ? (
-        <Box sx={{ display: { xs: "none", lg: "block" }, position: "sticky", top: 16 }}>
+        <Box
+          sx={{
+            display: { xs: "none", lg: "block" },
+            position: "sticky",
+            top: 16,
+          }}
+        >
           {rightRail}
         </Box>
       ) : null}

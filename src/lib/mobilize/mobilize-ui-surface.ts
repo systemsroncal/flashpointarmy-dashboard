@@ -48,6 +48,29 @@ export const mobilizeGroupTabPanelScrollSx: SxProps<Theme> = {
   width: "100%",
 };
 
+/** Group profile feed content area (below cover header). */
+export const mobilizeGroupFeedContentBg = "#080808";
+
+export const mobilizeGroupFeedCardSx: SxProps<Theme> = {
+  bgcolor: "#fff",
+  color: "#0d0d0d",
+  borderRadius: 2.5,
+  border: "1px solid rgba(0,0,0,0.08)",
+  boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+};
+
+/** White panel for non-feed group tabs on the dark content background. */
+export const mobilizeGroupSecondaryTabPanelSx: SxProps<Theme> = {
+  width: "100%",
+  boxSizing: "border-box",
+  p: { xs: 2, sm: 2.5 },
+  bgcolor: "#fff",
+  color: "#0d0d0d",
+  borderRadius: 2.5,
+  border: "1px solid rgba(0,0,0,0.08)",
+  boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+};
+
 export const mobilizeCardSx: SxProps<Theme> = {
   bgcolor: "#fafafa",
   borderColor: "rgba(0,0,0,0.1)",

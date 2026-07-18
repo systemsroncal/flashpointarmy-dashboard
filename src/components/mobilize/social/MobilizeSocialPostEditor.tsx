@@ -10,6 +10,7 @@ import {
   TRUTH_HUB_TEXT_MUTED,
 } from "@/lib/mobilize/social/social-hub-surface";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
+import { flashpointYellow } from "@/theme/tokens";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import CloseIcon from "@mui/icons-material/Close";
@@ -50,6 +51,8 @@ type Props = {
   posting?: boolean;
   canPost?: boolean;
   showVisibility?: boolean;
+  /** Use Flash Point yellow for the Post button (group feed). */
+  brandAccent?: boolean;
   children?: ReactNode;
 };
 
@@ -72,6 +75,7 @@ export function MobilizeSocialPostEditor({
   posting = false,
   canPost,
   showVisibility = true,
+  brandAccent = false,
   children,
 }: Props): ReactElement {
   const toast = useMobilizeToast();
@@ -131,12 +135,13 @@ export function MobilizeSocialPostEditor({
   const borderColor = isDark ? TRUTH_HUB_BORDER : "rgba(0,0,0,0.1)";
   const muted = isDark ? TRUTH_HUB_TEXT_MUTED : "rgba(0,0,0,0.55)";
   const textColor = isDark ? TRUTH_HUB_TEXT : "#0d0d0d";
-  const postBtnBg = isDark ? TRUTH_POST_PURPLE : TRUTH_HUB_ACCENT;
+  const postBtnBg = isDark ? TRUTH_POST_PURPLE : brandAccent ? flashpointYellow : TRUTH_HUB_ACCENT;
+  const postBtnColor = brandAccent && !isDark ? "#0d0d0d" : "#fff";
 
   const body = (
     <Box
       sx={{
-        borderBottom: `1px solid ${borderColor}`,
+        borderBottom: isDark ? `1px solid ${borderColor}` : "none",
         px: { xs: 1.5, sm: 2 },
         py: 1.5,
         color: textColor,
@@ -165,11 +170,13 @@ export function MobilizeSocialPostEditor({
                   borderRadius: 99,
                   px: 1.5,
                   py: 0.35,
-                  color: textColor,
-                  border: `1px solid ${borderColor}`,
-                  bgcolor: isDark ? "rgba(255,255,255,0.04)" : "#fff",
+                  color: brandAccent ? flashpointYellow : textColor,
+                  border: `1px solid ${brandAccent ? "rgba(255,215,0,0.35)" : borderColor}`,
+                  bgcolor: brandAccent ? "#0d0d0d" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
                   minWidth: 0,
-                  "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)" },
+                  "&:hover": {
+                    bgcolor: brandAccent ? "#151515" : isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)",
+                  },
                 }}
               >
                 Post to Public
@@ -283,7 +290,7 @@ export function MobilizeSocialPostEditor({
 
             <Stack direction="row" alignItems="center" spacing={1.25}>
               <Typography variant="caption" sx={{ color: charsLeft < 0 ? "#ff6b6b" : muted, fontWeight: 500 }}>
-                {charsLeft.toLocaleString()}
+                {brandAccent ? `${charCount.toLocaleString()} / ${MAX_CHARS.toLocaleString()}` : charsLeft.toLocaleString()}
               </Typography>
               {onPost ? (
                 <Button
@@ -299,11 +306,19 @@ export function MobilizeSocialPostEditor({
                     py: 0.65,
                     minWidth: 72,
                     bgcolor: postBtnBg,
+                    color: postBtnColor,
                     boxShadow: "none",
-                    "&:hover": { bgcolor: isDark ? "#4338ca" : "#e01f45", boxShadow: "none" },
+                    "&:hover": {
+                      bgcolor: isDark ? "#4338ca" : brandAccent ? "#e6c200" : "#e01f45",
+                      boxShadow: "none",
+                    },
                     "&.Mui-disabled": {
-                      bgcolor: isDark ? "rgba(84,72,232,0.35)" : "rgba(255,41,82,0.35)",
-                      color: "rgba(255,255,255,0.5)",
+                      bgcolor: isDark
+                        ? "rgba(84,72,232,0.35)"
+                        : brandAccent
+                          ? "rgba(255,215,0,0.35)"
+                          : "rgba(255,41,82,0.35)",
+                      color: brandAccent ? "rgba(13,13,13,0.45)" : "rgba(255,255,255,0.5)",
                     },
                   }}
                 >

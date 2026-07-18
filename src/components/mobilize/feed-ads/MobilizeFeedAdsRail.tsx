@@ -63,7 +63,7 @@ export function MobilizeFeedAdsRail({ items }: Props) {
   if (!items.length) return null;
 
   return (
-    <MobilizeRecommendationsCard>
+    <MobilizeRecommendationsCard sticky={false} variant="groupFeed">
       <Stack spacing={2.5}>
         {items.map((block) => {
           if (block.type === "image") {

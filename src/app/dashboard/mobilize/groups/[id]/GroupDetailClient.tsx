@@ -65,6 +65,7 @@ import {
   mobilizeCardSx,
   mobilizeChapterDetailRootSx,
   mobilizeGroupTabPanelScrollSx,
+  mobilizeGroupSecondaryTabPanelSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
@@ -96,6 +97,7 @@ import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupState
 import { resolveMobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
+import { flashpointYellow } from "@/theme/tokens";
 
 type Group = {
   id: string;
@@ -1020,44 +1022,65 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     return (
       <>
         {group.description ? (
-          <MobilizeProfileSidebarCard title="Description">
-            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+          <MobilizeProfileSidebarCard title="About this group" variant="groupFeed">
+            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.65, color: "rgba(0,0,0,0.78)" }}>
               {group.description}
             </Typography>
           </MobilizeProfileSidebarCard>
         ) : null}
-        <MobilizeProfileSidebarCard title={`Members (${approvedMembers.length})`}>
-          <Stack spacing={1}>
+        <MobilizeProfileSidebarCard title={`Members (${approvedMembers.length})`} variant="groupFeed">
+          <Stack spacing={0.5}>
             {approvedMembers.slice(0, 8).map((m) => {
               const name = m.display_name ?? m.email ?? "Member";
               return (
-                <Button
+                <Stack
                   key={m.id}
-                  component={Link}
-                  href={`${mobilizeMemberProfileHref(m.user_id)}?from=group&groupId=${groupId}`}
-                  sx={{
-                    justifyContent: "flex-start",
-                    textTransform: "none",
-                    color: "inherit",
-                    px: 0,
-                    minWidth: 0,
-                  }}
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  sx={{ py: 0.75, minWidth: 0 }}
                 >
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <AvatarWithGraduateIcon
-                      graduateRole={m.training_graduate_badge}
-                      overlayStyle="directory"
-                      size={32}
-                      src={m.avatar_url ? publicAssetSrc(m.avatar_url) : undefined}
-                      alt={name}
-                    >
-                      {name.slice(0, 1).toUpperCase()}
-                    </AvatarWithGraduateIcon>
-                    <Typography variant="body2" fontWeight={600} noWrap>
-                      {name}
-                    </Typography>
-                  </Stack>
-                </Button>
+                  <Button
+                    component={Link}
+                    href={`${mobilizeMemberProfileHref(m.user_id)}?from=group&groupId=${groupId}`}
+                    sx={{
+                      justifyContent: "flex-start",
+                      textTransform: "none",
+                      color: "inherit",
+                      px: 0,
+                      minWidth: 0,
+                      flex: 1,
+                    }}
+                  >
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                      <AvatarWithGraduateIcon
+                        graduateRole={m.training_graduate_badge}
+                        overlayStyle="directory"
+                        size={36}
+                        src={m.avatar_url ? publicAssetSrc(m.avatar_url) : undefined}
+                        alt={name}
+                      >
+                        {name.slice(0, 1).toUpperCase()}
+                      </AvatarWithGraduateIcon>
+                      <Typography variant="body2" fontWeight={600} noWrap>
+                        {name}
+                      </Typography>
+                    </Stack>
+                  </Button>
+                  <Chip
+                    label={capitalizeRole(m.member_role)}
+                    size="small"
+                    sx={{
+                      height: 22,
+                      fontSize: "0.68rem",
+                      fontWeight: 800,
+                      bgcolor: flashpointYellow,
+                      color: "#0d0d0d",
+                      flexShrink: 0,
+                      "& .MuiChip-label": { px: 1 },
+                    }}
+                  />
+                </Stack>
               );
             })}
           </Stack>
@@ -1065,14 +1088,30 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             component={Link}
             href={mobilizeGroupDetailHref(groupId, "members")}
             size="small"
-            sx={{ mt: 1.5, textTransform: "none" }}
+            sx={{
+              mt: 1.5,
+              px: 0,
+              textTransform: "none",
+              color: flashpointYellow,
+              fontWeight: 700,
+              justifyContent: "flex-start",
+              "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+            }}
           >
-            View all members
+            View all members →
           </Button>
         </MobilizeProfileSidebarCard>
       </>
     );
   }, [approvedMembers, group, groupId]);
+
+  const groupAuthorRoleLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    for (const m of approvedMembers) {
+      labels[m.user_id] = capitalizeRole(m.member_role);
+    }
+    return labels;
+  }, [approvedMembers]);
 
   const groupFeedAdsRail = useMemo(() => {
     if (!feedAds.length) return null;
@@ -1144,7 +1183,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     gap: 0.5,
   } as const;
 
-  const tabPanelBodySx = mobilizeGroupTabPanelScrollSx;
+  const feedTabPanelSx = mobilizeGroupTabPanelScrollSx;
+  const secondaryTabPanelSx = mobilizeGroupSecondaryTabPanelSx;
 
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
@@ -1177,15 +1217,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         headerActions={profileHeaderActions}
         unifiedContent
         scrollWithHeader
+        contentVariant="groupFeed"
       >
-      <Box
-        sx={{
-          p: { xs: 2, sm: 2.5 },
-          color: "#0d0d0d",
-        }}
-      >
+      <Box sx={{ width: "100%" }}>
       {activeTab === "announcements" && !canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <JoinToViewGate
           section="announcements"
           onJoin={joinRequest}
@@ -1196,11 +1232,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "announcements" && canViewContent ? (
-        <Box sx={tabPanelBodySx}>
-          <MobilizeSocialFeedShell leftRail={groupFeedLeftRail} rightRail={groupFeedAdsRail}>
+        <Box sx={feedTabPanelSx}>
+          <MobilizeSocialFeedShell
+            leftRail={groupFeedLeftRail}
+            rightRail={groupFeedAdsRail}
+            variant="groupProfile"
+          >
             <MobilizeGroupFeed
               embedded
               groupId={groupId}
+              authorRoleLabels={groupAuthorRoleLabels}
               messages={messages}
               canPost={canPostWall}
               canCommentOnPost={canCommentOnPost}
@@ -1236,7 +1277,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "events" && !canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <JoinToViewGate
           section="events"
           onJoin={joinRequest}
@@ -1247,7 +1288,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "events" && canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
             <ToggleButtonGroup
               size="small"
@@ -1412,7 +1453,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "members" && !canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <JoinToViewGate
           section="members"
           onJoin={joinRequest}
@@ -1423,7 +1464,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "members" && canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
           {canManageMembers ? (
             <>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -1612,7 +1653,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "resources" && !canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <JoinToViewGate
           section="resources"
           onJoin={joinRequest}
@@ -1623,7 +1664,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "resources" && canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <MobilizeGroupResourcesPanel
           groupId={groupId}
           currentUserId={me.id}
@@ -1635,7 +1676,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "updates" && !canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <JoinToViewGate
           section="updates"
           onJoin={joinRequest}
@@ -1646,13 +1687,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "updates" && canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <MobilizeChapterUpdatesPanel groupId={groupId} chapterName={group.name} />
         </Box>
       ) : null}
 
       {activeTab === "reports" && !canViewContent ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <JoinToViewGate
           section="reports"
           onJoin={joinRequest}
@@ -1663,7 +1704,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "reports" && canViewContent && !canViewReports ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <Typography color="text.secondary">
           Reports are available to group owners and leaders only.
         </Typography>
@@ -1671,7 +1712,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
 
       {activeTab === "reports" && canViewContent && canViewReports ? (
-        <Box sx={tabPanelBodySx}>
+        <Box sx={secondaryTabPanelSx}>
         <MobilizeGroupReportsPanel groupId={groupId} />
         </Box>
       ) : null}
