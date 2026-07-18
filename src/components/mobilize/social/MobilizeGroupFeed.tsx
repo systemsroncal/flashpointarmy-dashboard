@@ -14,11 +14,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import {
   Box,
   Button,
-  FormControl,
-  FormControlLabel,
   Paper,
-  Radio,
-  RadioGroup,
   Stack,
   Typography,
 } from "@mui/material";
@@ -103,6 +99,11 @@ export function MobilizeGroupFeed({
             disabled={posting}
             surface="light"
             brandAccent={embedded}
+            showVisibility={!embedded}
+            commentsPolicy={isLeader || isSuperAdmin ? leaderCommentsPolicy : undefined}
+            onCommentsPolicyChange={
+              isLeader || isSuperAdmin ? onLeaderCommentsPolicyChange : undefined
+            }
             avatarUrl={me.avatar_url}
             avatarFallback={me.display_name ?? me.email ?? "?"}
             imageUrls={wallImages}
@@ -112,23 +113,7 @@ export function MobilizeGroupFeed({
             onPost={() => void onPost()}
             posting={posting}
             canPost={hasComposerContent()}
-          >
-            {isLeader || isSuperAdmin ? (
-              <FormControl component="fieldset" sx={{ mt: 1 }} variant="standard">
-                <Typography variant="caption" sx={{ mb: 0.5, display: "block", color: "rgba(0,0,0,0.65)" }}>
-                  Who can comment on this post
-                </Typography>
-                <RadioGroup
-                  row
-                  value={leaderCommentsPolicy}
-                  onChange={(_, v) => onLeaderCommentsPolicyChange(v as "everyone" | "leaders_only")}
-                >
-                  <FormControlLabel value="everyone" control={<Radio size="small" />} label="Everyone" />
-                  <FormControlLabel value="leaders_only" control={<Radio size="small" />} label="Leaders only" />
-                </RadioGroup>
-              </FormControl>
-            ) : null}
-          </MobilizeSocialPostEditor>
+          />
         </Paper>
       ) : (
         <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, p: 2 }}>

@@ -4,7 +4,7 @@ import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { mobilizeGroupFeedContentBg } from "@/lib/mobilize/mobilize-ui-surface";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { flashpointYellow } from "@/theme/tokens";
-import { Avatar, Box, ThemeProvider, Typography } from "@mui/material";
+import { Avatar, Box, Stack, ThemeProvider, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 import { MobilizeContentTabBar } from "@/components/mobilize/social/MobilizeContentTabBar";
 
@@ -65,6 +65,142 @@ export function MobilizeProfilePageShell({
       ? avatarFallback.trim().slice(0, 2).toUpperCase()
       : avatarFallback.charAt(0).toUpperCase();
 
+  const groupHeroHeader = groupFeedLayout ? (
+    <Box
+      sx={{
+        position: "relative",
+        borderRadius: 2.5,
+        overflow: "hidden",
+        mb: 2,
+        bgcolor: "#0a0a0a",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+      }}
+    >
+      <Box
+        component="img"
+        src={coverSrc}
+        alt=""
+        sx={{
+          width: "100%",
+          height: { xs: 240, sm: 300, md: 360 },
+          objectFit: "cover",
+          display: "block",
+        }}
+      />
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.82) 100%)",
+          pointerEvents: "none",
+        }}
+      />
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          p: { xs: 2, sm: 2.5, md: 3 },
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={{ xs: 2, md: 2.5 }}
+          alignItems={{ xs: "flex-start", md: "flex-end" }}
+          justifyContent="space-between"
+        >
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={{ xs: 1.5, sm: 2 }}
+            alignItems={{ xs: "flex-start", sm: "flex-end" }}
+            sx={{ minWidth: 0, flex: 1 }}
+          >
+            <Box
+              sx={{
+                flexShrink: 0,
+                borderRadius: "50%",
+                p: "4px",
+                bgcolor: flashpointYellow,
+                boxShadow: `0 0 0 2px rgba(0,0,0,0.85), 0 0 0 5px ${flashpointYellow}`,
+              }}
+            >
+              <Avatar
+                src={avatarSrc ? publicAssetSrc(avatarSrc) : undefined}
+                alt=""
+                sx={{
+                  width: { xs: 88, sm: 104, md: 120 },
+                  height: { xs: 88, sm: 104, md: 120 },
+                  border: "4px solid #0a0a0a",
+                  bgcolor: "#0d0d0d",
+                  color: flashpointYellow,
+                  fontSize: { xs: "1.5rem", md: "1.85rem" },
+                  fontWeight: 800,
+                }}
+              >
+                {fallbackInitial}
+              </Avatar>
+            </Box>
+
+            <Box sx={{ minWidth: 0, pb: { sm: 0.5 } }}>
+              <Typography
+                variant="h4"
+                fontWeight={800}
+                sx={{
+                  color: "#fff",
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.15,
+                  fontSize: { xs: "1.35rem", sm: "1.6rem", md: "1.85rem" },
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  textShadow: "0 2px 16px rgba(0,0,0,0.45)",
+                }}
+                title={title}
+              >
+                {title}
+              </Typography>
+              {subtitle ? (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mt: 0.5,
+                    color: "rgba(255,255,255,0.78)",
+                    lineHeight: 1.4,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                  title={typeof subtitle === "string" ? subtitle : undefined}
+                >
+                  {subtitle}
+                </Typography>
+              ) : null}
+              {meta ? <Box sx={{ mt: 0.85 }}>{meta}</Box> : null}
+            </Box>
+          </Stack>
+
+          {headerActions ? (
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ flexShrink: 0, width: { xs: "100%", md: "auto" } }}
+            >
+              {headerActions}
+            </Stack>
+          ) : null}
+        </Stack>
+      </Box>
+    </Box>
+  ) : null;
+
   return (
     <ThemeProvider theme={mobilizePanelTheme}>
       <Box
@@ -74,13 +210,16 @@ export function MobilizeProfilePageShell({
             : undefined
         }
       >
+        {groupFeedLayout ? (
+          groupHeroHeader
+        ) : (
         <Box
           sx={{
             borderRadius: 2,
             overflow: "hidden",
             bgcolor: "#fff",
             border: "1px solid rgba(0,0,0,0.08)",
-            mb: groupFeedLayout ? 2 : unifiedContent ? 0 : 1.5,
+            mb: unifiedContent ? 0 : 1.5,
             boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
             ...(unifiedContent && panelFill
               ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
@@ -291,6 +430,7 @@ export function MobilizeProfilePageShell({
             </Box>
           ) : null}
         </Box>
+        )}
 
         {groupFeedLayout ? (
           <Box

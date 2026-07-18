@@ -38,6 +38,7 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import MilitaryTechOutlinedIcon from "@mui/icons-material/MilitaryTechOutlined";
@@ -947,16 +948,53 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const profileHeaderActions = useMemo(() => {
     const canEdit = Boolean(group && (isLeader || group.created_by === me.id || isSuperAdmin));
     const actions: ReactNode[] = [];
-    if (joinCallToAction) actions.push(joinCallToAction);
+    const heroBtnSx = {
+      borderRadius: 1.5,
+      textTransform: "none" as const,
+      fontWeight: 600,
+      color: "#fff",
+      borderColor: flashpointYellow,
+      bgcolor: "rgba(0,0,0,0.55)",
+      backdropFilter: "blur(8px)",
+      boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+      "&:hover": {
+        borderColor: flashpointYellow,
+        bgcolor: "rgba(0,0,0,0.72)",
+      },
+    };
+    if (showJoin) {
+      actions.push(
+        <Button
+          key="join"
+          size="small"
+          variant="outlined"
+          startIcon={<PersonAddIcon sx={{ color: flashpointYellow }} />}
+          onClick={() => void joinRequest()}
+          sx={{ ...heroBtnSx, fontWeight: 700 }}
+        >
+          Join group
+        </Button>
+      );
+    } else if (membership?.membership_status === "pending") {
+      actions.push(
+        <Typography
+          key="pending"
+          variant="body2"
+          sx={{ color: flashpointYellow, maxWidth: 220, fontWeight: 600 }}
+        >
+          Membership pending approval.
+        </Typography>
+      );
+    }
     if (canEdit) {
       actions.push(
         <Button
           key="edit"
           size="small"
           variant="outlined"
-          startIcon={<EditIcon />}
+          startIcon={<EditIcon sx={{ color: flashpointYellow }} />}
           onClick={() => openEditGroup()}
-          sx={{ borderRadius: 99, textTransform: "none", fontWeight: 600 }}
+          sx={heroBtnSx}
         >
           Edit group
         </Button>
@@ -968,16 +1006,28 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         {actions}
       </Stack>
     );
-  }, [group, isLeader, isSuperAdmin, joinCallToAction, me.id, openEditGroup]);
+  }, [group, isLeader, isSuperAdmin, showJoin, membership?.membership_status, me.id, openEditGroup, joinRequest]);
 
   const profileMeta = useMemo(() => {
     if (!group) return null;
-    const parts: string[] = [];
-    if (approvedMembers.length) {
-      parts.push(`${approvedMembers.length} member${approvedMembers.length === 1 ? "" : "s"}`);
-    }
-    if (group.group_type) parts.push(group.group_type.replace(/_/g, " "));
-    return parts.length ? parts.join(" · ") : null;
+    const memberLabel = `${approvedMembers.length} member${approvedMembers.length === 1 ? "" : "s"}`;
+    const visibilityLabel = isMobilizeGroupListed(group.visibility) ? "Public group" : "Private group";
+    return (
+      <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap alignItems="center">
+        <Stack direction="row" spacing={0.75} alignItems="center">
+          <GroupsOutlinedIcon sx={{ fontSize: 17, color: "rgba(255,255,255,0.72)" }} />
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.82)", fontWeight: 500 }}>
+            {memberLabel}
+          </Typography>
+        </Stack>
+        <Stack direction="row" spacing={0.75} alignItems="center">
+          <PublicOutlinedIcon sx={{ fontSize: 17, color: "rgba(255,255,255,0.72)" }} />
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.82)", fontWeight: 500 }}>
+            {visibilityLabel}
+          </Typography>
+        </Stack>
+      </Stack>
+    );
   }, [approvedMembers.length, group]);
 
   const fullHeader = useMemo(() => {

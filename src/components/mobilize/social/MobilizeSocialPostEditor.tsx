@@ -21,7 +21,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  FormControl,
   IconButton,
+  MenuItem,
+  Select,
   Stack,
   Tooltip,
   ThemeProvider,
@@ -32,6 +35,8 @@ import { useCallback, useMemo, useRef, useState, type ReactElement, type ReactNo
 const TRUTH_POST_PURPLE = "#5448e8";
 const TRUTH_ICON = "#7c8db5";
 const MAX_CHARS = 3000;
+
+export type MobilizePostCommentsPolicy = "everyone" | "leaders_only";
 
 type EditorHandle = { execCommand: (cmd: string) => void };
 
@@ -53,6 +58,9 @@ type Props = {
   showVisibility?: boolean;
   /** Use Flash Point yellow for the Post button (group feed). */
   brandAccent?: boolean;
+  /** Replaces the visibility pill with a comments-policy select (group feed leaders). */
+  commentsPolicy?: MobilizePostCommentsPolicy;
+  onCommentsPolicyChange?: (policy: MobilizePostCommentsPolicy) => void;
   children?: ReactNode;
 };
 
@@ -76,6 +84,8 @@ export function MobilizeSocialPostEditor({
   canPost,
   showVisibility = true,
   brandAccent = false,
+  commentsPolicy,
+  onCommentsPolicyChange,
   children,
 }: Props): ReactElement {
   const toast = useMobilizeToast();
@@ -137,6 +147,35 @@ export function MobilizeSocialPostEditor({
   const textColor = isDark ? TRUTH_HUB_TEXT : "#0d0d0d";
   const postBtnBg = isDark ? TRUTH_POST_PURPLE : brandAccent ? flashpointYellow : TRUTH_HUB_ACCENT;
   const postBtnColor = brandAccent && !isDark ? "#0d0d0d" : "#fff";
+  const showCommentsPolicySelect = Boolean(commentsPolicy && onCommentsPolicyChange);
+  const pillSelectSx = {
+    minWidth: 0,
+    maxWidth: "100%",
+    fontSize: "0.85rem",
+    fontWeight: 600,
+    borderRadius: 99,
+    color: brandAccent ? flashpointYellow : textColor,
+    bgcolor: brandAccent ? "#0d0d0d" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: brandAccent ? "rgba(255,215,0,0.35)" : borderColor,
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+      borderColor: brandAccent ? flashpointYellow : borderColor,
+    },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: brandAccent ? flashpointYellow : "primary.main",
+    },
+    "& .MuiSelect-select": {
+      py: 0.65,
+      px: 1.5,
+      pr: "2rem !important",
+      display: "flex",
+      alignItems: "center",
+    },
+    "& .MuiSelect-icon": {
+      color: brandAccent ? flashpointYellow : muted,
+    },
+  } as const;
 
   const body = (
     <Box
@@ -158,7 +197,24 @@ export function MobilizeSocialPostEditor({
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-            {showVisibility ? (
+            {showCommentsPolicySelect ? (
+              <FormControl size="small" sx={{ minWidth: 0, maxWidth: "100%" }}>
+                <Select
+                  value={commentsPolicy}
+                  onChange={(e) =>
+                    onCommentsPolicyChange?.(e.target.value as MobilizePostCommentsPolicy)
+                  }
+                  disabled={disabled || posting}
+                  displayEmpty
+                  IconComponent={KeyboardArrowDownIcon}
+                  sx={pillSelectSx}
+                  inputProps={{ "aria-label": "Who can comment on this post" }}
+                >
+                  <MenuItem value="everyone">Everyone can comment</MenuItem>
+                  <MenuItem value="leaders_only">Leaders only can comment</MenuItem>
+                </Select>
+              </FormControl>
+            ) : showVisibility ? (
               <Button
                 size="small"
                 endIcon={<KeyboardArrowDownIcon sx={{ fontSize: "1rem !important" }} />}
