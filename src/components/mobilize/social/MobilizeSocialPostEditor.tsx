@@ -154,13 +154,13 @@ export function MobilizeSocialPostEditor({
     fontSize: "0.85rem",
     fontWeight: 600,
     borderRadius: 99,
-    color: brandAccent ? flashpointYellow : textColor,
-    bgcolor: brandAccent ? "#0d0d0d" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
+    color: brandAccent ? "#0d0d0d" : textColor,
+    bgcolor: brandAccent ? "#fff" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
     "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: brandAccent ? "rgba(255,215,0,0.35)" : borderColor,
+      borderColor: brandAccent ? "rgba(0,0,0,0.12)" : borderColor,
     },
     "&:hover .MuiOutlinedInput-notchedOutline": {
-      borderColor: brandAccent ? flashpointYellow : borderColor,
+      borderColor: brandAccent ? "rgba(0,0,0,0.22)" : borderColor,
     },
     "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
       borderColor: brandAccent ? flashpointYellow : "primary.main",
@@ -173,7 +173,7 @@ export function MobilizeSocialPostEditor({
       alignItems: "center",
     },
     "& .MuiSelect-icon": {
-      color: brandAccent ? flashpointYellow : muted,
+      color: brandAccent ? "#0d0d0d" : muted,
     },
   } as const;
 
