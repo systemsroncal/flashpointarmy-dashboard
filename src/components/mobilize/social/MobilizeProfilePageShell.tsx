@@ -1,7 +1,7 @@
 "use client";
 
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { mobilizeGroupFeedContentBg } from "@/lib/mobilize/mobilize-ui-surface";
+import { mobilizeGroupFeedContentBg, mobilizeGroupFeedContentFillSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { flashpointYellow } from "@/theme/tokens";
 import { Avatar, Box, Stack, ThemeProvider, Typography } from "@mui/material";
@@ -60,6 +60,7 @@ export function MobilizeProfilePageShell({
   const headerTabs = tabs?.length && !tabsInContent ? tabs : undefined;
   const panelFill = fillContent && !scrollWithHeader;
   const groupFeedLayout = contentVariant === "groupFeed" && unifiedContent;
+  const groupFeedFill = groupFeedLayout && scrollWithHeader;
   const fallbackInitial =
     avatarFallback.trim().length > 1
       ? avatarFallback.trim().slice(0, 2).toUpperCase()
@@ -207,11 +208,32 @@ export function MobilizeProfilePageShell({
         sx={
           panelFill
             ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
-            : undefined
+            : groupFeedFill
+              ? { flex: 1, display: "flex", flexDirection: "column", minHeight: "100%" }
+              : undefined
         }
       >
         {groupFeedLayout ? (
-          groupHeroHeader
+          <Box
+            sx={{
+              ...(groupFeedFill
+                ? { flex: 1, display: "flex", flexDirection: "column", minHeight: "100%" }
+                : {}),
+            }}
+          >
+            {groupHeroHeader}
+            <Box
+              sx={{
+                ...mobilizeGroupFeedContentFillSx,
+                bgcolor: mobilizeGroupFeedContentBg,
+                px: { xs: 1.5, sm: 2, md: 2.5 },
+                py: { xs: 2, sm: 2.5 },
+                borderRadius: 2,
+              }}
+            >
+              {children}
+            </Box>
+          </Box>
         ) : (
         <Box
           sx={{
@@ -431,19 +453,6 @@ export function MobilizeProfilePageShell({
           ) : null}
         </Box>
         )}
-
-        {groupFeedLayout ? (
-          <Box
-            sx={{
-              bgcolor: mobilizeGroupFeedContentBg,
-              px: { xs: 1.5, sm: 2, md: 2.5 },
-              py: { xs: 2, sm: 2.5 },
-              borderRadius: 2,
-            }}
-          >
-            {children}
-          </Box>
-        ) : null}
 
         {!unifiedContent ? (
           <Box

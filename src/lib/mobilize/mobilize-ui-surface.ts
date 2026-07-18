@@ -69,6 +69,18 @@ export const mobilizeGroupSecondaryTabPanelSx: SxProps<Theme> = {
   borderRadius: 2.5,
   border: "1px solid rgba(0,0,0,0.08)",
   boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
+};
+
+/** Dark group feed content strip — grows to fill viewport when tab content is sparse. */
+export const mobilizeGroupFeedContentFillSx: SxProps<Theme> = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
 };
 
 export const mobilizeCardSx: SxProps<Theme> = {

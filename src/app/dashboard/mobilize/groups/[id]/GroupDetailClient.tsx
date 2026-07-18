@@ -65,6 +65,7 @@ import {
   mobilizeCalendarDaySx,
   mobilizeCardSx,
   mobilizeChapterDetailRootSx,
+  mobilizeGroupFeedContentFillSx,
   mobilizeGroupTabPanelScrollSx,
   mobilizeGroupSecondaryTabPanelSx,
   mobilizeTableContainerSx,
@@ -1256,8 +1257,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           overflowY: "auto",
           overflowX: "hidden",
           WebkitOverflowScrolling: "touch",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
+      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100%" }}>
       <MobilizeProfilePageShell
         coverSrc={groupCoverSrc}
         title={group.name}
@@ -1269,7 +1273,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         scrollWithHeader
         contentVariant="groupFeed"
       >
-      <Box sx={{ width: "100%" }}>
+      <Box sx={{ ...mobilizeGroupFeedContentFillSx, width: "100%" }}>
       {activeTab === "announcements" && !canViewContent ? (
         <Box sx={secondaryTabPanelSx}>
         <JoinToViewGate
@@ -1768,6 +1772,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
       </Box>
       </MobilizeProfilePageShell>
+      </Box>
       </Box>
 
       <MobilizeDialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
