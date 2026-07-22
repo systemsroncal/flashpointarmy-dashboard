@@ -1,16 +1,24 @@
 import { CommunitySection } from "@/components/dashboard/community/CommunitySection";
-import { MODULE_SLUGS } from "@/config/modules";
-import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { canAccessPeopleMembers } from "@/lib/auth/people-section-access";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
+import { MODULE_SLUGS } from "@/config/modules";
 import { createClient } from "@/utils/supabase/server";
 import { Paper, Typography } from "@mui/material";
 import { requireServerUser } from "@/lib/auth/server-session";
+import { redirect } from "next/navigation";
 
 export default async function CommunityPageContent() {
   const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
+  const roles = await loadUserRoleNames(supabase, user.id);
+
+  if (!canAccessPeopleMembers(roles, permissions)) {
+    redirect("/dashboard");
+  }
+
   if (!can(permissions, MODULE_SLUGS.community, "read")) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
@@ -19,7 +27,6 @@ export default async function CommunityPageContent() {
     );
   }
 
-  const roles = await loadUserRoleNames(supabase, user.id);
   const chapterStaff = isChapterStaffRole(roles);
   const create = can(permissions, MODULE_SLUGS.community, "create") && chapterStaff;
   const updatePerm = can(permissions, MODULE_SLUGS.community, "update") && chapterStaff;

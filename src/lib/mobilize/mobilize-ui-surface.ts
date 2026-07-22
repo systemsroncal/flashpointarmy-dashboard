@@ -1,5 +1,15 @@
 import type { SxProps, Theme } from "@mui/material";
 
+/** Fixed bottom tab bar height (px) on mobile Mobilize routes. */
+export const MOBILIZE_BOTTOM_NAV_HEIGHT_PX = 56;
+
+/** Viewport height below dashboard main padding (toolbar offset + bottom padding). */
+export const mobilizePageViewportHeight =
+  "calc(100dvh - 5.5rem - env(safe-area-inset-bottom, 0px))";
+
+/** Mobile chapter detail: reserve space for fixed bottom tab bar. */
+export const mobilizePageViewportHeightMobileBottomNav = `calc(100dvh - 5.5rem - ${MOBILIZE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`;
+
 /** White content panel — inset on dark Mobilize page, not full-bleed. */
 export const mobilizePanelSx: SxProps<Theme> = {
   bgcolor: "#ffffff",
@@ -12,16 +22,18 @@ export const mobilizePanelSx: SxProps<Theme> = {
   boxSizing: "border-box",
 };
 
-/** Viewport height below dashboard main padding (toolbar offset + bottom padding). */
-export const mobilizePageViewportHeight =
-  "calc(100dvh - 5.5rem - env(safe-area-inset-bottom, 0px))";
-
 /** Page column fills and is capped to the viewport below dashboard chrome. */
 export const mobilizeChapterDetailRootSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
-  height: mobilizePageViewportHeight,
-  maxHeight: mobilizePageViewportHeight,
+  height: {
+    xs: mobilizePageViewportHeightMobileBottomNav,
+    lg: mobilizePageViewportHeight,
+  },
+  maxHeight: {
+    xs: mobilizePageViewportHeightMobileBottomNav,
+    lg: mobilizePageViewportHeight,
+  },
   minHeight: 0,
   overflow: "hidden",
 };

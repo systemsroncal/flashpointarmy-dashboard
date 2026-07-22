@@ -25,9 +25,14 @@ export function isElevatedRole(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "super_admin" || n === "admin");
 }
 
-/** Mobilize nav, pages, and APIs — platform admins only. */
+/** Mobilize pages, APIs, and navigation actions — super_admin only. */
 export function canAccessMobilizeModule(roleNames: string[]): boolean {
-  return isElevatedRole(roleNames);
+  return roleNames.includes("super_admin");
+}
+
+/** Chapters (Mobilize) sidebar label — visible to platform admins; only super_admin can open it. */
+export function canSeeMobilizeNavItem(roleNames: string[]): boolean {
+  return roleNames.includes("super_admin") || isAdminButNotSuper(roleNames);
 }
 
 export function isSubAdminUser(roleNames: string[]): boolean {

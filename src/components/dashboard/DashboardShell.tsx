@@ -63,7 +63,12 @@ import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
-import { canAccessMobilizeModule, isElevatedRole } from "@/lib/auth/user-roles";
+import {
+  canAccessPeopleLeaders,
+  canAccessPeopleMembers,
+  canAccessPeopleOverview,
+} from "@/lib/auth/people-section-access";
+import { canAccessMobilizeModule, canSeeMobilizeNavItem, isElevatedRole } from "@/lib/auth/user-roles";
 import { isMemberOnboardingAudience } from "@/lib/onboarding/member-onboarding-status";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -601,7 +606,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const allVisibleNav = NAV.filter((item) => {
     if (item.module === MODULE_SLUGS.movilization) {
-      return canAccessMobilizeModule(user.role_names);
+      return canSeeMobilizeNavItem(user.role_names);
     }
     /** Dashboard announcements: all signed-in users (not gated by communications module). */
     if (item.href === "/dashboard/notifications") {
@@ -625,14 +630,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     ? MISSION_PIPELINE_NAV.filter((item) => can(permissions, item.module, "read"))
     : [];
   const peopleNav = PEOPLE_NAV.filter((item) => {
-    if (!isNavModuleAllowedForRoles(item.module, user.role_names)) return false;
     if (item.href === "/dashboard/people") {
-      return (
-        can(permissions, MODULE_SLUGS.community, "read") ||
-        can(permissions, MODULE_SLUGS.leaders, "read")
-      );
+      return canAccessPeopleOverview(user.role_names, permissions);
     }
-    return can(permissions, item.module, "read");
+    if (item.href === "/dashboard/leaders") {
+      return canAccessPeopleLeaders(user.role_names, permissions);
+    }
+    if (item.href === "/dashboard/community") {
+      return canAccessPeopleMembers(user.role_names, permissions);
+    }
+    return false;
   });
   const settingsNav = settingsAllowedByRole
     ? allVisibleNav.filter((item) => {
@@ -838,6 +845,48 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     navItemTouchSx={NAV_ITEM_TOUCH_SX}
                     navSelectedSx={NAV_SELECTED_SX}
                   />
+                );
+              }
+              if (
+                item.module === MODULE_SLUGS.movilization &&
+                !canAccessMobilizeModule(user.role_names)
+              ) {
+                return (
+                  <Box key={item.href} component="span" sx={{ display: "contents" }}>
+                    <ListItem disablePadding>
+                      <ListItemButton
+                        disabled
+                        aria-disabled
+                        data-tour={`nav-${item.module}`}
+                        sx={{
+                          ...NAV_ITEM_TOUCH_SX,
+                          py: 0.75,
+                          opacity: 0.42,
+                          cursor: "default",
+                          "&.Mui-disabled": { opacity: 0.42 },
+                        }}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            color: "rgba(255,255,255,0.5)",
+                            minWidth: 38,
+                          }}
+                        >
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.label}
+                          primaryTypographyProps={{
+                            variant: "body2",
+                            fontWeight: 600,
+                            fontSize: "calc(0.82rem + 3px)",
+                            color: "rgba(255,255,255,0.45)",
+                          }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                    {afterChapters}
+                  </Box>
                 );
               }
               return (

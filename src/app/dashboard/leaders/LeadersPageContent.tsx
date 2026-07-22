@@ -1,5 +1,6 @@
 import { CommunitySection } from "@/components/dashboard/community/CommunitySection";
 import { MODULE_SLUGS } from "@/config/modules";
+import { canAccessPeopleLeaders } from "@/lib/auth/people-section-access";
 import {
   chunkIdsForInQuery,
   listDashboardUsersByIdsWithAuthFallback,
@@ -15,6 +16,7 @@ import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Paper, Typography } from "@mui/material";
 import { requireServerUser } from "@/lib/auth/server-session";
+import { redirect } from "next/navigation";
 
 const PROFILE_ID_IN_CHUNK = 100;
 
@@ -23,6 +25,10 @@ export default async function LeadersPageContent() {
 
   const permissions = await loadModulePermissions(supabase, user.id);
   const roles = await loadUserRoleNames(supabase, user.id);
+
+  if (!canAccessPeopleLeaders(roles, permissions)) {
+    redirect("/dashboard");
+  }
 
   if (
     !isNavModuleAllowedForRoles(MODULE_SLUGS.leaders, roles) ||

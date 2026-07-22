@@ -4,6 +4,7 @@ import { MobilizeToastProvider } from "@/components/mobilize/MobilizeToastProvid
 import { canAccessMobilizeModule, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { requireServerUser } from "@/lib/auth/server-session";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 export default async function MobilizeLayout({ children }: { children: React.ReactNode }) {
   const { supabase, user } = await requireServerUser();
@@ -15,7 +16,9 @@ export default async function MobilizeLayout({ children }: { children: React.Rea
   return (
     <MobilizeToastProvider>
       <MobilizeNotificationsSoundWatcher />
-      <MobilizeContentShell>{children}</MobilizeContentShell>
+      <Suspense fallback={null}>
+        <MobilizeContentShell>{children}</MobilizeContentShell>
+      </Suspense>
     </MobilizeToastProvider>
   );
 }

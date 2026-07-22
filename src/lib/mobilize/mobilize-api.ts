@@ -11,7 +11,7 @@ export type MobilizeAuthOk = {
 };
 
 /**
- * Mobilize APIs: authenticate, require admin / super_admin, return admin client for queries.
+ * Mobilize APIs: authenticate, require super_admin, return admin client for queries.
  */
 export async function requireMobilizeRead(): Promise<MobilizeAuthOk | NextResponse> {
   const authResult = await requireApiAuth();
