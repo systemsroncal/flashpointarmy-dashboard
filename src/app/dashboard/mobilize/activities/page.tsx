@@ -29,7 +29,7 @@ import NextLink from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
-import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
+import { mobilizeChapterDetailRootSx, mobilizeScrollBodySx } from "@/lib/mobilize/mobilize-ui-surface";
 
 type Ev = {
   id: string;
@@ -150,7 +150,7 @@ function ActivitiesInner() {
         groups or All.
       </Typography>
 
-      <MobilizeContentPanel fill sx={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      <MobilizeContentPanel fill sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5} sx={{ mb: 2, flexShrink: 0 }}>
         <ToggleButtonGroup size="small" value={view} exclusive onChange={(_, v) => v && setViewAndUrl(v)} aria-label="View mode">
           <ToggleButton value="list" aria-label="List" sx={{ px: 1.25 }}>
@@ -203,7 +203,7 @@ function ActivitiesInner() {
         </Stack>
       ) : null}
 
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+      <Box sx={mobilizeScrollBodySx}>
       {loading ? (
         <Skeleton variant="rectangular" height={view === "calendar" ? "100%" : 320} sx={{ borderRadius: 1, minHeight: 200 }} />
       ) : view === "list" ? (
@@ -212,7 +212,7 @@ function ActivitiesInner() {
             bgcolor: "#ffffff",
             borderRadius: 1,
             border: "1px solid rgba(0,0,0,0.12)",
-            height: "100%",
+            height: { xs: "auto", lg: "100%" },
           }}
         >
           <Table size="small" stickyHeader>

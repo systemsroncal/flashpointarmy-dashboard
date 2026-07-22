@@ -27,7 +27,7 @@ export function MobilizeSocialHubContent({ children, tone = "light" }: Props) {
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          overflow: "auto",
+          overflow: { xs: "visible", lg: "auto" },
           bgcolor: TRUTH_HUB_CENTER_BG,
           color: TRUTH_HUB_TEXT,
         }}
@@ -46,7 +46,7 @@ export function MobilizeSocialHubContent({ children, tone = "light" }: Props) {
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          overflow: "auto",
+          overflow: { xs: "visible", lg: "auto" },
           bgcolor: SOCIAL_HUB_LIGHT_BG,
           color: "#0d0d0d",
         }}

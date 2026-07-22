@@ -161,9 +161,10 @@ export function MobilizeGroupFeed({
       })}
 
       {!messages.length ? (
-        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, p: 2 }}>
+        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden" }}>
           <MobilizeSectionEmptyState
-            fill={false}
+            fill
+            layout="stacked"
             imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
             title="No posts yet"
             description="When leaders or members post to the feed, updates will appear here."

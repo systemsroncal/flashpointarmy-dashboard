@@ -222,6 +222,17 @@ export function MobilizeProfilePageShell({
             }}
           >
             {groupHeroHeader}
+            {tabs?.length && activeTab && onTabChange ? (
+              <Box sx={{ mb: 0 }}>
+                <MobilizeContentTabBar
+                  tabs={tabs}
+                  activeTab={activeTab}
+                  onTabChange={onTabChange}
+                  variant="truth"
+                  surface="dark"
+                />
+              </Box>
+            ) : null}
             <Box
               sx={{
                 ...mobilizeGroupFeedContentFillSx,

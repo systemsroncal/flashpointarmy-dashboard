@@ -18,11 +18,11 @@ export function MobilizeSocialHubLayout({ children, sidebar = null }: Props) {
       sx={{
         display: "flex",
         alignItems: "stretch",
-        flex: 1,
-        minHeight: 0,
+        flex: { xs: "0 0 auto", lg: 1 },
+        minHeight: { xs: "auto", lg: 0 },
         bgcolor: "#000",
         borderRadius: 2,
-        overflow: "hidden",
+        overflow: { xs: "visible", lg: "hidden" },
         border: `1px solid ${TRUTH_HUB_BORDER}`,
       }}
     >

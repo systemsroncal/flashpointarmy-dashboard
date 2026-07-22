@@ -22,29 +22,46 @@ export const mobilizePanelSx: SxProps<Theme> = {
   boxSizing: "border-box",
 };
 
-/** Page column fills and is capped to the viewport below dashboard chrome. */
+/**
+ * Page column: on mobile the page scrolls naturally; on desktop it fills and caps
+ * to the viewport below dashboard chrome (internal panel scroll).
+ */
 export const mobilizeChapterDetailRootSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
   height: {
-    xs: mobilizePageViewportHeightMobileBottomNav,
+    xs: "auto",
     lg: mobilizePageViewportHeight,
   },
   maxHeight: {
-    xs: mobilizePageViewportHeightMobileBottomNav,
+    xs: "none",
     lg: mobilizePageViewportHeight,
   },
-  minHeight: 0,
-  overflow: "hidden",
+  minHeight: { xs: 0, lg: 0 },
+  overflow: { xs: "visible", lg: "hidden" },
 };
 
-/** White panel grows to consume remaining chapter detail height. */
+/** White panel grows to consume remaining chapter detail height (desktop only). */
 export const mobilizeChapterDetailPanelFillSx: SxProps<Theme> = {
-  flex: 1,
+  flex: { xs: "0 0 auto", lg: 1 },
   display: "flex",
   flexDirection: "column",
-  minHeight: 0,
-  overflow: "hidden",
+  minHeight: { xs: "auto", lg: 0 },
+  overflow: { xs: "visible", lg: "hidden" },
+};
+
+/** Flex region that fills on desktop; grows with content on mobile (page scroll). */
+export const mobilizeFlexFillSx: SxProps<Theme> = {
+  flex: { xs: "0 0 auto", lg: 1 },
+  minHeight: { xs: "auto", lg: 0 },
+  overflow: { xs: "visible", lg: "hidden" },
+};
+
+/** Scrollable body inside a fill panel — page scroll on mobile, in-panel scroll on desktop. */
+export const mobilizeScrollBodySx: SxProps<Theme> = {
+  flex: { xs: "0 0 auto", lg: 1 },
+  minHeight: { xs: "auto", lg: 0 },
+  overflow: { xs: "visible", lg: "auto" },
 };
 
 /** Active tab body inside the white panel — stretches with the panel. */

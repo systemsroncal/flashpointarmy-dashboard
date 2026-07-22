@@ -15,6 +15,8 @@ import {
   TableRow,
   Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import Link from "next/link";
@@ -233,12 +235,17 @@ export default function MobilizeGroupsBrowseTable({
   nameLinkTarget = "chapter-groups",
   thumbnailScale = 1,
 }: Props) {
+  const theme = useTheme();
+  const compactThumb = useMediaQuery(theme.breakpoints.down("md"));
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const mapStacked = layoutVariant === "mapStacked";
   const subgroupsMap = layoutVariant === "subgroupsMap";
   const showActivitiesColumn = !mapStacked && !subgroupsMap;
   const thumbBase = mapStacked || subgroupsMap ? 48 : 56;
-  const thumbSize = Math.max(28, Math.round(thumbBase * thumbnailScale));
-  const listHeroCover = !mapStacked;
+  const effectiveScale = compactThumb ? 1 : thumbnailScale;
+  const mobileBase = isXs ? 40 : thumbBase;
+  const thumbSize = Math.max(28, Math.round((compactThumb ? mobileBase : thumbBase) * effectiveScale));
+  const listHeroCover = !mapStacked && !compactThumb;
   const coverImgSx = listHeroCover
     ? ({
         width: thumbSize,
@@ -321,11 +328,11 @@ export default function MobilizeGroupsBrowseTable({
       sx={{
         ...(fillHeight
           ? {
-              flex: 1,
-              minHeight: 0,
-              maxHeight: "100%",
-              height: "100%",
-              overflow: "auto",
+              flex: { xs: "0 0 auto", lg: 1 },
+              minHeight: { xs: "auto", lg: 0 },
+              maxHeight: { xs: "none", lg: "100%" },
+              height: { xs: "auto", lg: "100%" },
+              overflow: { xs: "visible", lg: "auto" },
               ...(mapTableScrollSx ?? {}),
             }
           : maxHeight != null
@@ -615,7 +622,15 @@ export default function MobilizeGroupsBrowseTable({
   return (
     <ThemeProvider theme={mobilizePanelTheme}>
       {fillHeight ? (
-        <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <Box
+          sx={{
+            flex: { xs: "0 0 auto", lg: 1 },
+            minHeight: { xs: "auto", lg: 0 },
+            display: "flex",
+            flexDirection: "column",
+            overflow: { xs: "visible", lg: "hidden" },
+          }}
+        >
           {tableContainer}
         </Box>
       ) : (

@@ -37,7 +37,7 @@ import {
   isMobilizeGroupListed,
   mobilizeGroupListingVisibilityFromListed,
 } from "@/lib/mobilize/group-ui-labels";
-import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
+import { mobilizeChapterDetailRootSx, mobilizeFlexFillSx, mobilizeScrollBodySx } from "@/lib/mobilize/mobilize-ui-surface";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -497,16 +497,13 @@ export default function MobilizeMapPageContent() {
         sx={{
           display: "grid",
           gridTemplateColumns: { xs: "1fr", lg: "11fr 9fr" },
-          gridTemplateRows: { xs: "minmax(240px, 1fr) minmax(280px, 1fr)", lg: "1fr" },
+          gridTemplateRows: { xs: "auto auto", lg: "1fr" },
           gap: 2,
           alignItems: "stretch",
-          flex: 1,
-          minHeight: 0,
-          maxHeight: "100%",
-          overflow: "hidden",
+          ...mobilizeFlexFillSx,
         }}
       >
-        <Box sx={{ minWidth: 0, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", ...mobilizeFlexFillSx }}>
           <Typography variant="subtitle2" sx={{ mb: 1, flexShrink: 0 }}>
             {browseTab === "groups" ? `Groups (${sorted.length})` : `Chapters (${sorted.length})`}
           </Typography>
@@ -522,7 +519,7 @@ export default function MobilizeMapPageContent() {
             thumbnailScale={1}
           />
         </Box>
-        <Box sx={{ minWidth: 0, position: "relative", display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <Box sx={{ minWidth: 0, position: "relative", display: "flex", flexDirection: "column", minHeight: { xs: 280, lg: 0 } }}>
           {searchOrigin ? (
             <Tooltip title="Zoom to search origin (GPS or address)">
               <IconButton

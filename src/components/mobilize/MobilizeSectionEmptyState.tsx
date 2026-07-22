@@ -16,6 +16,8 @@ type Props = {
   fill?: boolean;
   /** Truth-style dark feed vs light panels */
   surface?: "light" | "dark";
+  /** Icon above title (default on md+ is side-by-side). */
+  layout?: "stacked" | "sideBySide";
 };
 
 export function MobilizeSectionEmptyState({
@@ -26,6 +28,7 @@ export function MobilizeSectionEmptyState({
   icon,
   fill = false,
   surface = "light",
+  layout = "sideBySide",
 }: Props) {
   const heading = title || message || "Nothing to see here";
   const body = description ?? (title && message ? message : undefined);
@@ -67,14 +70,16 @@ export function MobilizeSectionEmptyState({
     </Box>
   ) : null;
 
+  const stacked = layout === "stacked";
+
   const content = (
     <Stack
-      direction={{ xs: "column", md: "row" }}
-      alignItems={{ xs: "center", md: "center" }}
-      spacing={{ xs: 2, md: 3 }}
+      direction={stacked ? "column" : { xs: "column", md: "row" }}
+      alignItems={stacked ? "center" : { xs: "center", md: "center" }}
+      spacing={stacked ? 1.5 : { xs: 2, md: 3 }}
       useFlexGap
       sx={{
-        textAlign: { xs: "center", md: "left" },
+        textAlign: "center",
         maxWidth: fill ? 720 : undefined,
         mx: fill ? "auto" : undefined,
       }}

@@ -5,7 +5,7 @@ import {
   MobilizeNotificationsFeedContent,
 } from "@/components/mobilize/MobilizeNotificationsFeed";
 import { useMobilizeNotifications } from "@/components/mobilize/useMobilizeNotifications";
-import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
+import { mobilizeChapterDetailRootSx, mobilizeScrollBodySx } from "@/lib/mobilize/mobilize-ui-surface";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import { Box, FormControlLabel, Stack, Switch, Typography } from "@mui/material";
 
@@ -45,7 +45,7 @@ export function MobilizeNotificationsClient() {
         />
       </Stack>
 
-      <MobilizeContentPanel fill sx={{ overflow: "auto" }}>
+      <MobilizeContentPanel fill sx={mobilizeScrollBodySx}>
         <MobilizeNotificationsFeedContent
           loading={loading}
           pendingJoinRequests={data.pendingJoinRequests}
