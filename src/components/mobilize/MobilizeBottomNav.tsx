@@ -1,5 +1,6 @@
 "use client";
 
+import { MobilizeBottomNavBar, type MobilizeBottomNavBarItem } from "@/components/mobilize/MobilizeBottomNavBar";
 import {
   MOBILIZE_GROUP_TAB_LABELS,
   canViewMobilizeGroupReports,
@@ -8,20 +9,25 @@ import {
   type MobilizeGroupTabSlug,
 } from "@/lib/mobilize/group-detail-tabs";
 import {
+  isMobilizeChaptersNavActive,
+  mobilizeChaptersNavItems,
+} from "@/lib/mobilize/mobilize-chapters-nav-config";
+import {
   isMobilizeSocialNavActive,
   mobilizeSocialNavItems,
   type MobilizeSocialNavKey,
 } from "@/lib/mobilize/social/mobilize-social-nav-config";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
-import { flashpointYellow } from "@/theme/tokens";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
+import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import MapIcon from "@mui/icons-material/Map";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
@@ -29,11 +35,9 @@ import SearchIcon from "@mui/icons-material/Search";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import {
-  Box,
   Dialog,
   DialogContent,
   DialogTitle,
-  IconButton,
   InputAdornment,
   ListItemButton,
   ListItemText,
@@ -44,9 +48,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { MOBILIZE_BOTTOM_NAV_HEIGHT_PX } from "@/lib/mobilize/mobilize-ui-surface";
-
-export { MOBILIZE_BOTTOM_NAV_HEIGHT_PX };
+export { MOBILIZE_BOTTOM_NAV_HEIGHT_PX } from "@/lib/mobilize/mobilize-ui-surface";
 
 const SOCIAL_ICONS: Record<MobilizeSocialNavKey, ReactNode> = {
   search: <SearchIcon sx={{ fontSize: 22 }} />,
@@ -58,6 +60,14 @@ const SOCIAL_ICONS: Record<MobilizeSocialNavKey, ReactNode> = {
   profile: <PersonOutlineIcon sx={{ fontSize: 22 }} />,
   settings: <SettingsOutlinedIcon sx={{ fontSize: 22 }} />,
 };
+
+const CHAPTERS_ICONS = {
+  chapter: <MapIcon sx={{ fontSize: 22 }} />,
+  groups: <Groups2OutlinedIcon sx={{ fontSize: 22 }} />,
+  activities: <EventAvailableOutlinedIcon sx={{ fontSize: 22 }} />,
+  notifications: <NotificationsActiveOutlinedIcon sx={{ fontSize: 22 }} />,
+  groupsSettings: <SettingsOutlinedIcon sx={{ fontSize: 22 }} />,
+} as const;
 
 const GROUP_TAB_ICONS: Record<MobilizeGroupTabSlug, ReactNode> = {
   announcements: <CampaignOutlinedIcon sx={{ fontSize: 22 }} />,
@@ -77,17 +87,15 @@ const GROUP_TAB_SHORT_LABELS: Record<MobilizeGroupTabSlug, string> = {
   reports: "Reports",
 };
 
-type SocialProps = {
-  variant: "social";
-};
-
+type SocialProps = { variant: "social" };
+type ChaptersProps = { variant: "chapters" };
 type GroupProps = {
   variant: "group";
   groupId: string;
   activeTab: MobilizeGroupTabSlug;
 };
 
-type Props = SocialProps | GroupProps;
+type Props = SocialProps | ChaptersProps | GroupProps;
 
 function MobilizeBottomNavSearchDialog({
   open,
@@ -196,100 +204,51 @@ function MobilizeSocialBottomNav() {
   const me = useDashboardUser();
   const pathname = usePathname();
   const profileHref = mobilizeMemberProfileHref(me.id);
-  const items = useMemo(() => mobilizeSocialNavItems(profileHref), [profileHref]);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  const items = useMemo<MobilizeBottomNavBarItem[]>(() => {
+    return mobilizeSocialNavItems(profileHref).map((item) => {
+      const active =
+        item.key === "search"
+          ? searchOpen
+          : isMobilizeSocialNavActive(item.key, pathname, profileHref);
+      return {
+        key: item.key,
+        label: item.label,
+        shortLabel: item.shortLabel,
+        href: item.key === "search" ? undefined : item.href,
+        onClick: item.key === "search" ? () => setSearchOpen(true) : undefined,
+        icon: SOCIAL_ICONS[item.key],
+        active,
+      };
+    });
+  }, [pathname, profileHref, searchOpen]);
 
   return (
     <>
       <MobilizeBottomNavSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <Box
-        component="nav"
-        aria-label="Mobilize social navigation"
-        sx={{
-          display: { xs: "flex", lg: "none" },
-          position: "fixed",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: (t) => t.zIndex.appBar,
-          height: MOBILIZE_BOTTOM_NAV_HEIGHT_PX,
-          pb: "env(safe-area-inset-bottom, 0px)",
-          bgcolor: "rgba(8,8,8,0.96)",
-          borderTop: "1px solid rgba(255,255,255,0.1)",
-          backdropFilter: "blur(10px)",
-          overflowX: "auto",
-          overflowY: "hidden",
-          WebkitOverflowScrolling: "touch",
-          "&::-webkit-scrollbar": { display: "none" },
-        }}
-      >
-        {items.map((item) => {
-          const active =
-            item.key === "search" ? searchOpen : isMobilizeSocialNavActive(item.key, pathname, profileHref);
-          const label = item.shortLabel ?? item.label;
-
-          if (item.key === "search") {
-            return (
-              <IconButton
-                key={item.key}
-                aria-label={item.label}
-                onClick={() => setSearchOpen(true)}
-                sx={{
-                  flex: "1 0 64px",
-                  minWidth: 64,
-                  maxWidth: 88,
-                  flexDirection: "column",
-                  gap: 0.25,
-                  borderRadius: 0,
-                  color: active ? flashpointYellow : "rgba(255,255,255,0.62)",
-                  py: 0.75,
-                }}
-              >
-                {SOCIAL_ICONS[item.key]}
-                <Typography
-                  component="span"
-                  variant="caption"
-                  sx={{ fontSize: "0.62rem", lineHeight: 1.1, fontWeight: active ? 700 : 500 }}
-                >
-                  {label}
-                </Typography>
-              </IconButton>
-            );
-          }
-
-          return (
-            <IconButton
-              key={item.key}
-              component={Link}
-              href={item.href}
-              aria-label={item.label}
-              aria-current={active ? "page" : undefined}
-              sx={{
-                flex: "1 0 64px",
-                minWidth: 64,
-                maxWidth: 88,
-                flexDirection: "column",
-                gap: 0.25,
-                borderRadius: 0,
-                color: active ? flashpointYellow : "rgba(255,255,255,0.62)",
-                py: 0.75,
-                textDecoration: "none",
-              }}
-            >
-              {SOCIAL_ICONS[item.key]}
-              <Typography
-                component="span"
-                variant="caption"
-                sx={{ fontSize: "0.62rem", lineHeight: 1.1, fontWeight: active ? 700 : 500 }}
-              >
-                {label}
-              </Typography>
-            </IconButton>
-          );
-        })}
-      </Box>
+      <MobilizeBottomNavBar items={items} ariaLabel="Mobilize social navigation" />
     </>
   );
+}
+
+function MobilizeChaptersBottomNav() {
+  const me = useDashboardUser();
+  const pathname = usePathname();
+  const showGroupsSettings = me.role_names.includes("super_admin");
+
+  const items = useMemo<MobilizeBottomNavBarItem[]>(() => {
+    return mobilizeChaptersNavItems(showGroupsSettings).map((item) => ({
+      key: item.key,
+      label: item.label,
+      shortLabel: item.shortLabel,
+      href: item.href,
+      icon: CHAPTERS_ICONS[item.key],
+      active: isMobilizeChaptersNavActive(item.key, pathname),
+    }));
+  }, [pathname, showGroupsSettings]);
+
+  return <MobilizeBottomNavBar items={items} ariaLabel="Mobilize chapters navigation" borderAccent="gold" />;
 }
 
 function MobilizeGroupBottomNav({
@@ -330,71 +289,28 @@ function MobilizeGroupBottomNav({
     };
   }, [groupId, me.id, me.role_names]);
 
-  const slugs = mobilizeGroupTabsForNav(canViewReports);
+  const items = useMemo<MobilizeBottomNavBarItem[]>(() => {
+    return mobilizeGroupTabsForNav(canViewReports).map((slug) => ({
+      key: slug,
+      label: MOBILIZE_GROUP_TAB_LABELS[slug],
+      shortLabel: GROUP_TAB_SHORT_LABELS[slug],
+      href: mobilizeGroupDetailHref(groupId, slug),
+      icon: GROUP_TAB_ICONS[slug],
+      active: activeTab === slug,
+    }));
+  }, [activeTab, canViewReports, groupId]);
 
   return (
-    <Box
-      component="nav"
-      aria-label="Group navigation"
-      sx={{
-        display: { xs: "flex", lg: "none" },
-        position: "fixed",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: (t) => t.zIndex.appBar,
-        height: MOBILIZE_BOTTOM_NAV_HEIGHT_PX,
-        pb: "env(safe-area-inset-bottom, 0px)",
-        bgcolor: "rgba(8,8,8,0.96)",
-        borderTop: "1px solid rgba(255,215,0,0.18)",
-        backdropFilter: "blur(10px)",
-        overflowX: "auto",
-        overflowY: "hidden",
-        WebkitOverflowScrolling: "touch",
-        "&::-webkit-scrollbar": { display: "none" },
-      }}
-    >
-      {slugs.map((slug) => {
-        const active = activeTab === slug;
-        const href = mobilizeGroupDetailHref(groupId, slug);
-        const label = GROUP_TAB_SHORT_LABELS[slug] ?? MOBILIZE_GROUP_TAB_LABELS[slug];
-        return (
-          <IconButton
-            key={slug}
-            component={Link}
-            href={href}
-            aria-label={MOBILIZE_GROUP_TAB_LABELS[slug]}
-            aria-current={active ? "page" : undefined}
-            sx={{
-              flex: "1 0 72px",
-              minWidth: 72,
-              maxWidth: 96,
-              flexDirection: "column",
-              gap: 0.25,
-              borderRadius: 0,
-              color: active ? flashpointYellow : "rgba(255,255,255,0.62)",
-              py: 0.75,
-              textDecoration: "none",
-            }}
-          >
-            {GROUP_TAB_ICONS[slug]}
-            <Typography
-              component="span"
-              variant="caption"
-              sx={{ fontSize: "0.62rem", lineHeight: 1.1, fontWeight: active ? 700 : 500 }}
-            >
-              {label}
-            </Typography>
-          </IconButton>
-        );
-      })}
-    </Box>
+    <MobilizeBottomNavBar items={items} ariaLabel="Group navigation" borderAccent="gold" />
   );
 }
 
 export function MobilizeBottomNav(props: Props) {
   if (props.variant === "group") {
     return <MobilizeGroupBottomNav groupId={props.groupId} activeTab={props.activeTab} />;
+  }
+  if (props.variant === "chapters") {
+    return <MobilizeChaptersBottomNav />;
   }
   return <MobilizeSocialBottomNav />;
 }

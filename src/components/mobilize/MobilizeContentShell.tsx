@@ -6,6 +6,7 @@ import {
   parseMobilizeGroupDetailId,
   parseMobilizeGroupTab,
 } from "@/lib/mobilize/group-detail-tabs";
+import { isMobilizeSocialHubPath } from "@/lib/mobilize/mobilize-chapters-nav-config";
 import { MOBILIZE_PREFIX } from "@/lib/mobilize/mobilize-nav-config";
 import { mobilizePageTheme } from "@/theme/mobilize-content-theme";
 import { Box } from "@mui/material";
@@ -19,7 +20,6 @@ function MobilizeBottomNavHost() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const groupId = parseMobilizeGroupDetailId(pathname);
-  const isProfile = MOBILIZE_PROFILE_PATH_RE.test(pathname);
   const isMobilizeRoute = pathname.startsWith(MOBILIZE_PREFIX);
 
   if (!isMobilizeRoute) return null;
@@ -29,11 +29,11 @@ function MobilizeBottomNavHost() {
     return <MobilizeBottomNav variant="group" groupId={groupId} activeTab={activeTab} />;
   }
 
-  if (isProfile) {
+  if (isMobilizeSocialHubPath(pathname) || MOBILIZE_PROFILE_PATH_RE.test(pathname)) {
     return <MobilizeBottomNav variant="social" />;
   }
 
-  return <MobilizeBottomNav variant="social" />;
+  return <MobilizeBottomNav variant="chapters" />;
 }
 
 export function MobilizeContentShell({ children }: { children: ReactNode }) {
