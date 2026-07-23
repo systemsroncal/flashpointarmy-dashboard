@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
-import { isFollowingUser } from "@/lib/mobilize/social/profile-access";
+import { isFollowingUser, isMutualFollow } from "@/lib/mobilize/social/profile-access";
 import { resolveMobilizeAuthors } from "@/lib/mobilize/social/resolve-authors";
 
 type Ctx = { params: Promise<{ userId: string }> };
@@ -12,7 +12,8 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const isOwn = auth.userId === userId;
 
-  const [{ data: profile }, authors, following, followers, isFollowing] = await Promise.all([
+  const [{ data: profile }, authors, following, followers, isFollowing, isFollowedBy, isMutual] =
+    await Promise.all([
     auth.admin
       .from("profiles")
       .select("id, display_name, first_name, last_name, avatar_url, bio, profile_visibility, created_at, city, state")
@@ -28,6 +29,8 @@ export async function GET(_req: Request, ctx: Ctx) {
       .select("following_id", { count: "exact", head: true })
       .eq("follower_id", userId),
     isFollowingUser(auth.admin, auth.userId, userId),
+    isFollowingUser(auth.admin, userId, auth.userId),
+    isMutualFollow(auth.admin, auth.userId, userId),
   ]);
 
   if (!profile) return NextResponse.json({ error: "User not found." }, { status: 404 });
@@ -49,6 +52,9 @@ export async function GET(_req: Request, ctx: Ctx) {
         following_count: followers.count ?? 0,
         is_own_profile: false,
         is_following: isFollowing,
+        is_followed_by: isFollowedBy,
+        is_mutual_follow: isMutual,
+        can_message: false,
         is_private_locked: true,
       },
     });
@@ -66,6 +72,9 @@ export async function GET(_req: Request, ctx: Ctx) {
       following_count: followers.count ?? 0,
       is_own_profile: isOwn,
       is_following: isFollowing,
+      is_followed_by: isFollowedBy,
+      is_mutual_follow: isMutual,
+      can_message: !isOwn && isMutual,
       is_private_locked: false,
     },
   });

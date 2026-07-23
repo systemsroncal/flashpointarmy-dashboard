@@ -1,17 +1,30 @@
 import { NextResponse } from "next/server";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
-import { canSendDirectMessage, loadMobilizeDirectMessages } from "@/lib/mobilize/social/load-direct-messages";
+import {
+  buildConversationSummaries,
+  canSendDirectMessage,
+  loadDirectMessageThread,
+  loadMobilizeDirectMessages,
+  loadMutualFollowRecipients,
+} from "@/lib/mobilize/social/load-direct-messages";
 
 export async function GET(req: Request) {
   const auth = await requireMobilizeRead();
   if (auth instanceof NextResponse) return auth;
 
   const url = new URL(req.url);
-  const limit = Math.min(80, Math.max(1, Number(url.searchParams.get("limit") || 60)));
+  const peerId = url.searchParams.get("peer_id")?.trim();
+  const limit = Math.min(120, Math.max(1, Number(url.searchParams.get("limit") || 60)));
 
   try {
+    if (peerId) {
+      const thread = await loadDirectMessageThread(auth.admin, auth.userId, peerId, limit);
+      return NextResponse.json({ thread });
+    }
+
     const messages = await loadMobilizeDirectMessages(auth.admin, auth.userId, limit);
-    return NextResponse.json({ messages });
+    const conversations = buildConversationSummaries(messages);
+    return NextResponse.json({ messages, conversations });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to load messages.";
     return NextResponse.json({ error: message }, { status: 500 });

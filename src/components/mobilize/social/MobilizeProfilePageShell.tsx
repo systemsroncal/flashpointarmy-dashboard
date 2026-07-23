@@ -237,7 +237,7 @@ export function MobilizeProfilePageShell({
               sx={{
                 ...mobilizeGroupFeedContentFillSx,
                 bgcolor: mobilizeGroupFeedContentBg,
-                px: { xs: 1.5, sm: 2, md: 2.5 },
+                px: { xs: 1, sm: 2, md: 2.5 },
                 py: { xs: 2, sm: 2.5 },
                 borderRadius: 2,
               }}
@@ -286,7 +286,7 @@ export function MobilizeProfilePageShell({
           {/* Identity row: only avatar overlaps cover; title stays on white */}
           <Box
             sx={{
-              px: { xs: 2, sm: 3 },
+              px: { xs: 1, sm: 3 },
               pb: headerTabs?.length ? 0 : { xs: 2, sm: 2.5 },
               position: "relative",
             }}
@@ -399,7 +399,7 @@ export function MobilizeProfilePageShell({
                   mt: 1.5,
                   overflowX: "auto",
                   mx: { xs: -2, sm: -3 },
-                  px: { xs: 2, sm: 3 },
+                  px: { xs: 1, sm: 3 },
                 }}
               >
                 <Box sx={{ display: "flex", gap: 0.25, flex: 1, minWidth: 0 }}>

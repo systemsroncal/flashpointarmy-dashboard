@@ -276,14 +276,14 @@ export default function MobilizeGroupsBrowseTable({
   function renderOpenChapter(g: MobilizeBrowseGroupRow, align: "end" | "start" = "end") {
     const justify = align === "start" ? "flex-start" : "flex-end";
     const href = rowNameHref(g.id);
+    const opensGroupDetail = nameLinkTarget === "group-detail";
     return (
       <Stack direction="row" alignItems="center" spacing={0.5} justifyContent={justify}>
-        <Tooltip title="View groups in this chapter">
+        <Tooltip title={opensGroupDetail ? "Open group" : "View groups in this chapter"}>
           <IconButton
             component={Link}
             href={href}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...(opensGroupDetail ? {} : { target: "_blank", rel: "noopener noreferrer" })}
             size="small"
             color="primary"
           >
@@ -291,6 +291,26 @@ export default function MobilizeGroupsBrowseTable({
           </IconButton>
         </Tooltip>
       </Stack>
+    );
+  }
+
+  function renderCoverThumb(cover: string, href: string) {
+    const img = <Box component="img" src={cover} alt="" sx={coverImgSx} />;
+    if (nameLinkTarget !== "group-detail") return img;
+    return (
+      <Box
+        component={Link}
+        href={href}
+        aria-label="Open group profile"
+        sx={{
+          display: "inline-block",
+          lineHeight: 0,
+          borderRadius: 1,
+          "&:hover": { opacity: 0.92 },
+        }}
+      >
+        {img}
+      </Box>
     );
   }
 
@@ -462,7 +482,7 @@ export default function MobilizeGroupsBrowseTable({
                       {mobilizeGroupInitials(g.name)}
                     </Avatar>
                   ) : (
-                    <Box component="img" src={cover} alt="" sx={coverImgSx} />
+                    renderCoverThumb(cover, detailHref)
                   )}
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Typography
@@ -562,7 +582,7 @@ export default function MobilizeGroupsBrowseTable({
                 ) : (
                   <>
                     <TableCell sx={{ py: 1 }}>
-                      <Box component="img" src={cover} alt="" sx={coverImgSx} />
+                      {renderCoverThumb(cover, detailHref)}
                     </TableCell>
                     <TableCell sx={{ minWidth: 0 }}>
                       <Typography

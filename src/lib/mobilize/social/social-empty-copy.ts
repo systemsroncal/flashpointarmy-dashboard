@@ -25,7 +25,7 @@ export const ALERTS_EMPTY: SocialEmptyCopy = {
 
 export const MESSAGES_EMPTY: SocialEmptyCopy = {
   title: SOCIAL_EMPTY_DEFAULT_TITLE,
-  description: "When someone sends you a message, or you message another member, it will appear here.",
+  description: "Messages appear here with members who follow you and whom you follow.",
 };
 
 export const BOOKMARKS_EMPTY: SocialEmptyCopy = {

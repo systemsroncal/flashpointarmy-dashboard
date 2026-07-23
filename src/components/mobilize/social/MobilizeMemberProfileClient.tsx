@@ -17,6 +17,7 @@ import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
@@ -66,6 +67,9 @@ type ProfilePayload = {
   following_count: number;
   is_own_profile: boolean;
   is_following: boolean;
+  is_followed_by?: boolean;
+  is_mutual_follow?: boolean;
+  can_message?: boolean;
   is_private_locked?: boolean;
 };
 
@@ -306,22 +310,41 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       Edit profile
     </Button>
   ) : (
-    <Button
-      variant={p.is_following ? "outlined" : "contained"}
-      onClick={() => void toggleFollow()}
-      disabled={followBusy}
-      sx={{
-        borderRadius: 99,
-        textTransform: "none",
-        fontWeight: 700,
-        minWidth: 110,
-        ...(p.is_following
-          ? { color: "text.primary", borderColor: "rgba(0,0,0,0.2)" }
-          : { bgcolor: "#1877f2", "&:hover": { bgcolor: "#166fe5" } }),
-      }}
-    >
-      {followBusy ? "…" : p.is_following ? "Following" : "Follow"}
-    </Button>
+    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      <Button
+        variant={p.is_following ? "outlined" : "contained"}
+        onClick={() => void toggleFollow()}
+        disabled={followBusy}
+        sx={{
+          borderRadius: 99,
+          textTransform: "none",
+          fontWeight: 700,
+          minWidth: 110,
+          ...(p.is_following
+            ? { color: "text.primary", borderColor: "rgba(0,0,0,0.2)" }
+            : { bgcolor: "#1877f2", "&:hover": { bgcolor: "#166fe5" } }),
+        }}
+      >
+        {followBusy ? "…" : p.is_following ? "Following" : "Follow"}
+      </Button>
+      {p.can_message ? (
+        <Button
+          component={Link}
+          href={`/dashboard/mobilize/messages?with=${userId}`}
+          variant="outlined"
+          startIcon={<MailOutlineIcon />}
+          sx={{
+            borderRadius: 99,
+            textTransform: "none",
+            fontWeight: 700,
+            color: "text.primary",
+            borderColor: "rgba(0,0,0,0.2)",
+          }}
+        >
+          Message
+        </Button>
+      ) : null}
+    </Stack>
   );
 
   const profileMeta = [
@@ -424,7 +447,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     minHeight: 0,
     bgcolor: "#f0f2f5",
     borderRadius: 2,
-    p: { xs: 1.5, sm: 2 },
+    p: { xs: 1, sm: 2 },
     display: "flex",
     flexDirection: "column",
   } as const;

@@ -37,3 +37,17 @@ export async function isFollowingUser(
     .maybeSingle();
   return Boolean(data);
 }
+
+/** True when both users follow each other. */
+export async function isMutualFollow(
+  admin: SupabaseClient,
+  userIdA: string,
+  userIdB: string
+): Promise<boolean> {
+  if (userIdA === userIdB) return false;
+  const [aFollowsB, bFollowsA] = await Promise.all([
+    isFollowingUser(admin, userIdA, userIdB),
+    isFollowingUser(admin, userIdB, userIdA),
+  ]);
+  return aFollowsB && bFollowsA;
+}

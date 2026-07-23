@@ -10,13 +10,18 @@ export const mobilizePageViewportHeight =
 /** Mobile chapter detail: reserve space for fixed bottom tab bar. */
 export const mobilizePageViewportHeightMobileBottomNav = `calc(100dvh - 5.5rem - ${MOBILIZE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`;
 
+/** Horizontal gutter for Mobilize pages on small screens. */
+export const mobilizeMobilePagePx: SxProps<Theme> = {
+  px: { xs: 1, sm: 2, md: 3 },
+};
+
 /** White content panel — inset on dark Mobilize page, not full-bleed. */
 export const mobilizePanelSx: SxProps<Theme> = {
   bgcolor: "#ffffff",
   color: "#0d0d0d",
   borderRadius: 2,
   border: "1px solid rgba(0,0,0,0.1)",
-  p: { xs: 2, sm: 2.5 },
+  p: { xs: 1.25, sm: 2.5 },
   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
   width: "100%",
   boxSizing: "border-box",

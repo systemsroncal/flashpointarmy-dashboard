@@ -1394,7 +1394,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         component="main"
         sx={{
           pt: `calc(${theme.spacing(7)} + ${maintenanceTop})`,
-          px: { xs: 2, sm: 3 },
+          px: isMobilize ? { xs: 1, sm: 2, md: 3 } : { xs: 2, sm: 3 },
           pb: "calc(32px + env(safe-area-inset-bottom, 0px))",
           ml: { md: desktopDrawerOpen ? `${DRAWER_WIDTH}px` : 0 },
           minHeight: "100vh",
