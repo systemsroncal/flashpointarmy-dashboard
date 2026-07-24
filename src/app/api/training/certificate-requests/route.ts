@@ -3,8 +3,8 @@ import { requireApiAuth } from "@/lib/auth/server-session";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import { insertCertificateRequestFeed } from "@/lib/community/training-feed";
 import { notifyCertificateRequestSubmitted } from "@/lib/notifications/certificate-request-submitted";
+import { approveCertificateRequestRecord } from "@/lib/training/certificate-request-approval";
 import {
-  approveCertificateRequestRecord,
   isExternalCertificateSubmissionEnabled,
   resolveCourseIdBySlug,
   type CertificateRequestRow,

@@ -6,10 +6,8 @@ import {
 import { loadUserRoleNames, isElevatedRole } from "@/lib/auth/user-roles";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
-import {
-  approveCertificateRequestRecord,
-  type CertificateRequestRow,
-} from "@/lib/training/certificate-requests";
+import { approveCertificateRequestRecord } from "@/lib/training/certificate-request-approval";
+import { type CertificateRequestRow } from "@/lib/training/certificate-requests";
 import { notifyCertificateRequestReviewed } from "@/lib/notifications/certificate-request-notification";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { NextResponse } from "next/server";
