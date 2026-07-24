@@ -27,7 +27,7 @@ export async function notifyCertificateRequestSubmitted(
       ? formatPrivacyName(first, last)
       : email.split("@")[0] || "A member";
 
-  const body = `${who} submitted a certificate request for ${args.courseTitle} (${args.organizationName}).`;
+  const body = `${who} confirmed prior BibCit`;
 
   await admin.from("audit_logs").insert({
     user_id: args.userId,
@@ -35,7 +35,7 @@ export async function notifyCertificateRequestSubmitted(
     entity_type: "course_certificate_request",
     entity_id: args.userId,
     payload: {
-      title: "Certificate request",
+      title: `${who} confirmed prior BibCit`,
       text: body,
       course_title: args.courseTitle,
       organization_name: args.organizationName,

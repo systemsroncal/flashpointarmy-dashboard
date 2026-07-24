@@ -23,10 +23,16 @@ import { useCallback, useState } from "react";
 
 export const CHAPTER_INVITE_SHARE_URL = "https://fparmychapters.com/join-a-chapter/";
 
-export const CHAPTER_INVITE_SHARE_SUBJECT = "Join a FlashPoint Army Chapter near you";
+export const CHAPTER_INVITE_SHARE_SUBJECT = "Help Us Reach 20,000 Members";
 
 export const CHAPTER_INVITE_SHARE_MESSAGE =
-  "God is raising up believers in every state. Know someone who should be part of it? Invite them to find or join a chapter near them.";
+  "Join the FlashPoint Army Command Center — invite friends, family, and church members who love God and America.";
+
+export const CHAPTER_INVITE_SHARE_DESCRIPTION_HTML = `<p>FlashPoint Army is more than a platform—it's a movement of Christians who love God, love America, and are committed to making a difference in their communities.</p>
+<p><strong>Our next milestone is 20,000 members</strong>, and every one of us plays a part in reaching it.</p>
+<p>Your mission is simple: invite at least <strong>5 friends, family members, or people from your church</strong> to join the FlashPoint Army Command Center over the next 10 days.</p>
+<p>Together, we'll reach 20,000. Then 100,000. Then one day, by God's grace, <strong>2 million Christians standing together for faith, liberty, and action across America.</strong></p>
+<p><strong>Every invitation matters. This mission starts with you.</strong></p>`;
 
 export function chapterInviteShareText() {
   return `${CHAPTER_INVITE_SHARE_MESSAGE}\n\n${CHAPTER_INVITE_SHARE_URL}`;
@@ -92,21 +98,32 @@ export function ChapterInviteShareDialog({ open, onClose }: Props) {
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="sm"
+      maxWidth={false}
       fullWidth
       PaperProps={{
         sx: {
+          width: "100%",
+          maxWidth: 720,
           bgcolor: "#141418",
           border: "1px solid rgba(255,215,0,0.18)",
           borderRadius: 2,
         },
       }}
     >
-      <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>Share this invitation</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>Help Us Reach 20,000 Members</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.7 }}>
-          {CHAPTER_INVITE_SHARE_MESSAGE}
-        </Typography>
+        <Box
+          sx={{
+            mb: 2.5,
+            color: "text.secondary",
+            lineHeight: 1.7,
+            fontSize: "0.9rem",
+            "& p": { m: 0, mb: 1.25 },
+            "& p:last-child": { mb: 0 },
+            "& strong": { color: "text.primary", fontWeight: 700 },
+          }}
+          dangerouslySetInnerHTML={{ __html: CHAPTER_INVITE_SHARE_DESCRIPTION_HTML }}
+        />
 
         <Box
           sx={{

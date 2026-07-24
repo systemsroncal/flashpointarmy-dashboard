@@ -6,7 +6,7 @@ import {
   isNavModuleAllowedForRoles,
   isRestrictedMemberNav,
 } from "@/lib/auth/nav-access";
-import { isChapterStaffRole, isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can, type ModulePermissionMap } from "@/types/permissions";
 
 /** Local leaders and members must not use dashboard People routes (overview, leaders, members). */
@@ -15,12 +15,17 @@ export function isDashboardPeopleSectionBlocked(roleNames: string[]): boolean {
   return isLocalLeaderNonElevated(roleNames) || isRestrictedMemberNav(roleNames);
 }
 
+/** People section (overview, leaders, members) — platform admin and super admin only. */
+export function canAccessPeopleSection(roleNames: string[]): boolean {
+  return isElevatedRole(roleNames);
+}
+
 export function canAccessPeopleOverview(
   roleNames: string[],
   permissions: ModulePermissionMap
 ): boolean {
+  if (!canAccessPeopleSection(roleNames)) return false;
   if (isDashboardPeopleSectionBlocked(roleNames)) return false;
-  if (!isChapterStaffRole(roleNames)) return false;
   if (
     !isNavModuleAllowedForRoles(MODULE_SLUGS.community, roleNames) &&
     !isNavModuleAllowedForRoles(MODULE_SLUGS.leaders, roleNames)
@@ -37,6 +42,7 @@ export function canAccessPeopleLeaders(
   roleNames: string[],
   permissions: ModulePermissionMap
 ): boolean {
+  if (!canAccessPeopleSection(roleNames)) return false;
   if (isDashboardPeopleSectionBlocked(roleNames)) return false;
   if (!isNavModuleAllowedForRoles(MODULE_SLUGS.leaders, roleNames)) return false;
   return can(permissions, MODULE_SLUGS.leaders, "read");
@@ -46,6 +52,7 @@ export function canAccessPeopleMembers(
   roleNames: string[],
   permissions: ModulePermissionMap
 ): boolean {
+  if (!canAccessPeopleSection(roleNames)) return false;
   if (isDashboardPeopleSectionBlocked(roleNames)) return false;
   if (!isNavModuleAllowedForRoles(MODULE_SLUGS.community, roleNames)) return false;
   return can(permissions, MODULE_SLUGS.community, "read");

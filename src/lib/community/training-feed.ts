@@ -82,7 +82,7 @@ export async function insertCertificateRequestFeed(args: {
   const state = await chapterStateFromProfile(args.supabase, args.userId);
   await args.supabase.from("community_activity").insert({
     feed_category: "certificate_request",
-    title: `${who} submitted a certificate request`,
+    title: `${who} confirmed prior BibCit`,
     subtitle: `${args.courseTitle} · ${args.organizationName}`,
     state_code: state,
     icon_key: "school",

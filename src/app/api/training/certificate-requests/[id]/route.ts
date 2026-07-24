@@ -7,7 +7,7 @@ import { loadUserRoleNames, isElevatedRole } from "@/lib/auth/user-roles";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
 import {
-  markAllCourseSessionsCompleteForUser,
+  approveCertificateRequestRecord,
   type CertificateRequestRow,
 } from "@/lib/training/certificate-requests";
 import { notifyCertificateRequestReviewed } from "@/lib/notifications/certificate-request-notification";
@@ -240,6 +240,30 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const newStatus = action === "approve" ? "approved" : "rejected";
   const adminNote = body.admin_note?.trim() || null;
 
+  if (action === "approve") {
+    try {
+      const result = await approveCertificateRequestRecord(admin, {
+        requestId: id,
+        userId: existing.user_id as string,
+        courseSlug,
+        courseTitle,
+        reviewedBy: user.id,
+        adminNote,
+      });
+      return NextResponse.json({
+        ok: true,
+        status: "approved",
+        reviewed_at: reviewedAt,
+        sessions_marked_complete: result.sessionCount,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Failed to approve request." },
+        { status: 500 }
+      );
+    }
+  }
+
   const { error: updateErr } = await admin
     .from("course_certificate_requests")
     .update({
@@ -253,28 +277,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
 
-  let sessionCount = 0;
-  if (action === "approve") {
-    try {
-      const result = await markAllCourseSessionsCompleteForUser(
-        admin,
-        existing.user_id as string,
-        courseSlug
-      );
-      sessionCount = result.sessionCount;
-    } catch (e) {
-      return NextResponse.json(
-        { error: e instanceof Error ? e.message : "Failed to mark sessions complete." },
-        { status: 500 }
-      );
-    }
-  }
-
   try {
     await notifyCertificateRequestReviewed(admin, {
       userId: existing.user_id as string,
       courseTitle,
-      status: newStatus,
+      status: "rejected",
       adminNote: adminNote,
       reviewedBy: user.id,
     });
@@ -283,7 +290,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       {
         error:
           e instanceof Error
-            ? `Request ${newStatus} but notification failed: ${e.message}`
+            ? `Request rejected but notification failed: ${e.message}`
             : "Request reviewed but notification failed.",
       },
       { status: 500 }
@@ -292,8 +299,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   return NextResponse.json({
     ok: true,
-    status: newStatus,
+    status: "rejected",
     reviewed_at: reviewedAt,
-    sessions_marked_complete: sessionCount,
+    sessions_marked_complete: 0,
   });
 }

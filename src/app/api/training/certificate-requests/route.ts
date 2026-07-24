@@ -4,6 +4,7 @@ import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completio
 import { insertCertificateRequestFeed } from "@/lib/community/training-feed";
 import { notifyCertificateRequestSubmitted } from "@/lib/notifications/certificate-request-submitted";
 import {
+  approveCertificateRequestRecord,
   isExternalCertificateSubmissionEnabled,
   resolveCourseIdBySlug,
   type CertificateRequestRow,
@@ -174,14 +175,18 @@ export async function POST(req: Request) {
 
   const { data: existing } = await supabase
     .from("course_certificate_requests")
-    .select("id")
+    .select("id, status")
     .eq("user_id", user.id)
     .eq("course_id", courseId)
-    .eq("status", "pending")
+    .in("status", ["pending", "approved"])
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (existing?.id) {
+  if (existing?.status === "approved") {
+    return NextResponse.json({ error: "You already have an approved request for this course." }, { status: 409 });
+  }
+  if (existing?.status === "pending") {
     return NextResponse.json({ error: "You already have a pending request for this course." }, { status: 409 });
   }
 
@@ -203,10 +208,26 @@ export async function POST(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  const admin = createAdminClient();
+  const { data: course } = await admin.from("courses").select("title").eq("id", courseId).maybeSingle();
+  const courseTitle = (course?.title as string | undefined)?.trim() || "Biblical Citizenship";
+
   try {
-    const admin = createAdminClient();
-    const { data: course } = await admin.from("courses").select("title").eq("id", courseId).maybeSingle();
-    const courseTitle = (course?.title as string | undefined)?.trim() || "Biblical Citizenship";
+    await approveCertificateRequestRecord(admin, {
+      requestId: data.id as string,
+      userId: user.id,
+      courseSlug,
+      courseTitle,
+      reviewedBy: user.id,
+    });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Could not approve certificate request." },
+      { status: 500 }
+    );
+  }
+
+  try {
     const { data: du } = await admin
       .from("dashboard_users")
       .select("first_name, last_name, email")
@@ -233,8 +254,8 @@ export async function POST(req: Request) {
       organizationName,
     });
   } catch {
-    /* non-blocking: request already saved */
+    /* non-blocking admin feed after successful approval */
   }
 
-  return NextResponse.json({ ok: true, request: data });
+  return NextResponse.json({ ok: true, request: { ...data, status: "approved" } });
 }

@@ -9,18 +9,17 @@ import {
   MISSION_PHASES,
   type MissionCard,
 } from "@/lib/missions/twelve-missions";
-import { missionPartnerLogoUrl } from "@/lib/missions/mission-partner-logos";
+import { missionPartnerLogoUrl, missionPartnerLogoUsesTallSize } from "@/lib/missions/mission-partner-logos";
+import {
+  MISSIONS_WELCOME_HTML,
+  MISSIONS_WELCOME_TITLE,
+} from "@/lib/missions/missions-welcome-content";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Box, Button, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
-
-const MISSIONS_WELCOME = [
-  "Welcome to the 12 Missions to Save America — practical assignments for FlashPoint Army Chapters.",
-  "These missions are organized in phases so your chapter can engage, grow, and take action in your community.",
-  "Pick a mission that fits your chapter, share the vision, and start making an impact where you live.",
-];
 
 const MISSION_ICON_SIZE = "2.35rem";
 
@@ -50,18 +49,21 @@ function MissionCardItem({
   mission,
   missionLinksEnabled,
   phaseHeaderBg,
+  phaseActionColor,
   onOpenShare,
 }: {
   mission: MissionCard;
   missionLinksEnabled: boolean;
   phaseHeaderBg: string;
+  phaseActionColor?: string;
   onOpenShare: () => void;
 }) {
-  const accent = MISSION_DIFFICULTY_COLORS[mission.difficulty];
+  const accent = phaseActionColor ?? MISSION_DIFFICULTY_COLORS[mission.difficulty];
   const isShareAction = Boolean(mission.opensShareDialog) && !mission.comingSoon;
   const isExternalLink = Boolean(mission.url) && !mission.comingSoon && missionLinksEnabled;
   const showActionButton = isExternalLink || isShareAction;
-  const partnerLogo = missionPartnerLogoUrl(mission.url);
+  const partnerLogo = mission.partnerLogoUrl ?? missionPartnerLogoUrl(mission.url);
+  const partnerLogoTall = missionPartnerLogoUsesTallSize(mission.url, mission.partnerLogoSize);
   const descriptionFontSize = { xs: "0.845rem", sm: "0.905rem" };
 
   return (
@@ -80,7 +82,7 @@ function MissionCardItem({
         width: "100%",
         textAlign: "left",
         color: "inherit",
-        pb: partnerLogo ? 5 : 0,
+        pb: partnerLogo ? (partnerLogoTall ? 7 : 5) : 0,
         transition: "box-shadow 0.2s, transform 0.2s",
         "&:hover": showActionButton
           ? {
@@ -236,7 +238,7 @@ function MissionCardItem({
               },
             }}
           >
-            {mission.linkLabel ?? (isShareAction ? "Share the Mission" : "Click Here")}
+            {mission.linkLabel ?? (isShareAction ? "Start Inviting" : "Click Here")}
           </Button>
         </Box>
       ) : null}
@@ -247,14 +249,22 @@ function MissionCardItem({
           src={partnerLogo}
           alt=""
           sx={{
-            width: "22%",
-            height: 31,
             display: "block",
             position: "absolute",
             bottom: 4,
             right: 4,
             objectFit: "contain",
             objectPosition: "right bottom",
+            ...(partnerLogoTall
+              ? {
+                  width: "auto",
+                  maxWidth: { xs: "52%", sm: "48%" },
+                  height: { xs: 40, sm: 55 },
+                }
+              : {
+                  width: "22%",
+                  height: 31,
+                }),
           }}
         />
       ) : null}
@@ -284,8 +294,9 @@ export function MissionsLanding({
       <JourneyWelcomeDialog
         open={welcomeOpen}
         kind="missions"
-        title="Welcome to the 12 Missions"
-        paragraphs={MISSIONS_WELCOME}
+        title={MISSIONS_WELCOME_TITLE}
+        contentHtml={MISSIONS_WELCOME_HTML}
+        maxWidthPx={850}
         ctaLabel="Start missions"
         onDismissed={() => setWelcomeOpen(false)}
       />
@@ -301,18 +312,41 @@ export function MissionsLanding({
         >
           FP ARMY CHAPTERS
         </Typography>
-        <Typography
-          component="h1"
+        <Box
           sx={{
-            fontWeight: 900,
-            fontSize: { xs: "1.75rem", sm: "2.35rem", md: "2.75rem" },
-            color: "#fff",
-            lineHeight: 1.15,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: { xs: 0.75, sm: 1 },
+            flexWrap: "wrap",
             mb: 1,
           }}
         >
-          THE 12 MISSIONS TO SAVE AMERICA
-        </Typography>
+          <Typography
+            component="h1"
+            sx={{
+              fontWeight: 900,
+              fontSize: { xs: "1.75rem", sm: "2.35rem", md: "2.75rem" },
+              color: "#fff",
+              lineHeight: 1.15,
+            }}
+          >
+            THE 12 MISSIONS TO SAVE AMERICA
+          </Typography>
+          <Tooltip title="About the 12 Missions">
+            <IconButton
+              onClick={() => setWelcomeOpen(true)}
+              aria-label="About the 12 Missions"
+              sx={{
+                color: "rgba(255,255,255,0.72)",
+                p: 0.5,
+                "&:hover": { color: "primary.main", bgcolor: "rgba(255,255,255,0.06)" },
+              }}
+            >
+              <InfoOutlinedIcon sx={{ fontSize: { xs: "1.35rem", sm: "1.55rem", md: "1.7rem" } }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       <Box sx={{ maxWidth: 1460, mx: "auto" }}>
@@ -420,6 +454,7 @@ export function MissionsLanding({
                         mission={mission}
                         missionLinksEnabled={missionLinksEnabled}
                         phaseHeaderBg={phase.headerBg}
+                        phaseActionColor={phase.actionColor}
                         onOpenShare={() => setShareOpen(true)}
                       />
                     ))}

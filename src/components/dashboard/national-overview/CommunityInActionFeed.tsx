@@ -50,7 +50,7 @@ function englishCategoryLabel(row: ActivityFeedRow): string {
     training_course: "Training · course",
     training_briefing: "Training · briefing",
     missions: "Missions",
-    certificate_request: "Certificate request",
+    certificate_request: "Prior BibCit",
   };
   if (byCat[c]) return byCat[c];
   return c

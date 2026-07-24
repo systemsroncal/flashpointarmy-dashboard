@@ -458,54 +458,96 @@ const NAV_ITEM_TOUCH_SX = {
   },
 } as const;
 
-function PeopleNavItems({
+function PeopleNavGroup({
   peopleNav,
+  peopleOpen,
+  setPeopleOpen,
+  peopleHasActive,
   pathname,
   closeMobileDrawer,
 }: {
   peopleNav: NavItem[];
+  peopleOpen: boolean;
+  setPeopleOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  peopleHasActive: boolean;
   pathname: string;
   closeMobileDrawer: () => void;
 }) {
   return (
     <>
-      {peopleNav.map((item) => {
-        const selected = isNavItemSelected(item, pathname);
-        return (
-          <ListItem key={item.href} disablePadding>
-            <ListItemButton
-              component={Link}
-              href={item.href}
-              selected={selected}
-              data-tour={`nav-${item.href.replace(/\//g, "-")}`}
-              onClick={closeMobileDrawer}
-              sx={{
-                ...NAV_ITEM_TOUCH_SX,
-                py: 0.75,
-                "&.Mui-selected": NAV_SELECTED_SX,
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
-                  minWidth: 38,
-                }}
-              >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{
-                  variant: "body2",
-                  fontWeight: 600,
-                  fontSize: "calc(0.82rem + 3px)",
-                  color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
+      <ListItem disablePadding>
+        <ListItemButton
+          onClick={() => setPeopleOpen((prev) => !prev)}
+          selected={peopleHasActive}
+          data-tour="nav-people-group"
+          sx={{
+            ...NAV_ITEM_TOUCH_SX,
+            py: 0.75,
+            "&.Mui-selected": NAV_SELECTED_SX,
+          }}
+        >
+          <ListItemIcon
+            sx={{
+              color: peopleHasActive ? "primary.main" : "rgba(255,255,255,0.92)",
+              minWidth: 38,
+            }}
+          >
+            <PeopleIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="People"
+            primaryTypographyProps={{
+              variant: "body2",
+              fontWeight: 600,
+              fontSize: "calc(0.82rem + 3px)",
+              color: peopleHasActive ? "primary.main" : "rgba(255,255,255,0.88)",
+            }}
+          />
+          {peopleOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+        </ListItemButton>
+      </ListItem>
+      <Collapse in={peopleOpen} timeout="auto" unmountOnExit>
+        <List disablePadding>
+          {peopleNav.map((item) => {
+            const selected = isNavItemSelected(item, pathname);
+            return (
+              <ListItem key={item.href} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  href={item.href}
+                  selected={selected}
+                  data-tour={`nav-${item.href.replace(/\//g, "-")}`}
+                  onClick={closeMobileDrawer}
+                  sx={{
+                    ...NAV_ITEM_TOUCH_SX,
+                    py: 0.65,
+                    pl: 4.5,
+                    "&.Mui-selected": NAV_SELECTED_SX,
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
+                      minWidth: 36,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      variant: "body2",
+                      fontWeight: 500,
+                      fontSize: "calc(0.8rem + 3px)",
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+      </Collapse>
     </>
   );
 }
@@ -520,6 +562,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [graduateCongratsOpen, setGraduateCongratsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [missionPipelineOpen, setMissionPipelineOpen] = useState(false);
+  const [peopleOpen, setPeopleOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const pathname = usePathname();
   const permissions = usePermissions();
@@ -594,18 +637,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const missionPipelineNav = missionPipelineAllowed
     ? MISSION_PIPELINE_NAV.filter((item) => can(permissions, item.module, "read"))
     : [];
-  const peopleNav = PEOPLE_NAV.filter((item) => {
-    if (item.href === "/dashboard/people") {
-      return canAccessPeopleOverview(user.role_names, permissions);
-    }
-    if (item.href === "/dashboard/leaders") {
-      return canAccessPeopleLeaders(user.role_names, permissions);
-    }
-    if (item.href === "/dashboard/community") {
-      return canAccessPeopleMembers(user.role_names, permissions);
-    }
-    return false;
-  });
+  const peopleNav = isElevatedRole(user.role_names)
+    ? PEOPLE_NAV.filter((item) => {
+        if (item.href === "/dashboard/people") {
+          return canAccessPeopleOverview(user.role_names, permissions);
+        }
+        if (item.href === "/dashboard/leaders") {
+          return canAccessPeopleLeaders(user.role_names, permissions);
+        }
+        if (item.href === "/dashboard/community") {
+          return canAccessPeopleMembers(user.role_names, permissions);
+        }
+        return false;
+      })
+    : [];
   const settingsNav = settingsAllowedByRole
     ? allVisibleNav.filter((item) => {
         if (MISSION_PIPELINE_HREFS.has(item.href)) return false;
@@ -627,6 +672,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const missionPipelineHasActive = missionPipelineNav.some((item) =>
     isNavItemSelected(item, pathname)
   );
+  const peopleHasActive = peopleNav.some((item) => isNavItemSelected(item, pathname));
   const ordersHasActive = ordersNav.some((item) => isNavItemSelected(item, pathname));
 
   const showSystemNotificationBell =
@@ -686,6 +732,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (missionPipelineHasActive) setMissionPipelineOpen(true);
   }, [missionPipelineHasActive]);
+
+  useEffect(() => {
+    if (peopleHasActive) setPeopleOpen(true);
+  }, [peopleHasActive]);
 
   useEffect(() => {
     if (ordersHasActive) setOrdersOpen(true);
@@ -786,9 +836,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               const selected = isNavItemSelected(item, pathname);
               const afterChapters =
                 item.href === "/dashboard/chapters" && peopleNav.length > 0 ? (
-                  <PeopleNavItems
-                    key="people-items"
+                  <PeopleNavGroup
+                    key="people-group"
                     peopleNav={peopleNav}
+                    peopleOpen={peopleOpen}
+                    setPeopleOpen={setPeopleOpen}
+                    peopleHasActive={peopleHasActive}
                     pathname={pathname}
                     closeMobileDrawer={closeMobileDrawer}
                   />
@@ -896,8 +949,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               );
             })}
             {!visibleNav.some((i) => i.href === "/dashboard/chapters") && peopleNav.length > 0 ? (
-              <PeopleNavItems
+              <PeopleNavGroup
                 peopleNav={peopleNav}
+                peopleOpen={peopleOpen}
+                setPeopleOpen={setPeopleOpen}
+                peopleHasActive={peopleHasActive}
                 pathname={pathname}
                 closeMobileDrawer={closeMobileDrawer}
               />

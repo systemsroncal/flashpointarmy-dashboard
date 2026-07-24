@@ -38,6 +38,10 @@ export type MissionCard = {
   linkLabel?: string;
   /** Opens the chapter invite share dialog instead of an external URL. */
   opensShareDialog?: boolean;
+  /** Explicit partner logo when there is no external URL to map. */
+  partnerLogoUrl?: string;
+  /** Larger logo footprint (55px desktop / 40px mobile). */
+  partnerLogoSize?: "default" | "tall";
   icon: IconDefinition;
   difficulty: MissionDifficulty;
   comingSoon?: boolean;
@@ -49,6 +53,8 @@ export type MissionPhase = {
   subtitle?: string;
   difficulty: MissionDifficulty;
   headerBg: string;
+  /** Overrides beginner green on link/share buttons for this phase. */
+  actionColor?: string;
   missions: MissionCard[];
 };
 
@@ -61,6 +67,16 @@ export const MISSION_PHASES: MissionPhase[] = [
     missions: [
       {
         number: 1,
+        title: "Start Inviting",
+        description:
+          "Help us reach our next milestone of 20,000 members. Invite at least 5 people who love God and America to join the movement. Every invitation makes a difference.",
+        icon: faShareNodes,
+        difficulty: "beginner",
+        opensShareDialog: true,
+        linkLabel: "Start Inviting",
+      },
+      {
+        number: 2,
         title: "Celebrate America",
         description:
           "Celebrate July 4th, Constitution Day, Veterans Day, Memorial Day, Bill of Rights Day and teach your family why they matter.",
@@ -68,7 +84,7 @@ export const MISSION_PHASES: MissionPhase[] = [
         difficulty: "beginner",
       },
       {
-        number: 2,
+        number: 3,
         title: "Know Your Representatives",
         description:
           "Learn who represents your city, county, state and Washington. Know how to contact them. Know how they vote.",
@@ -77,21 +93,12 @@ export const MISSION_PHASES: MissionPhase[] = [
         url: "https://www.house.gov/representatives/find-your-representative",
       },
       {
-        number: 3,
+        number: 4,
         title: "Pray for America",
         description:
           "Pray regularly for your nation, elected officials, schools, churches and communities. Prayer becomes a measurable mission.",
         icon: faHandsPraying,
         difficulty: "beginner",
-      },
-      {
-        number: 4,
-        title: "Share the Mission",
-        description:
-          "Invite friends, family and church members to join FlashPoint Army Chapters. Very simple. Everyone can do it.",
-        icon: faShareNodes,
-        difficulty: "beginner",
-        opensShareDialog: true,
       },
     ],
   },
@@ -99,7 +106,8 @@ export const MISSION_PHASES: MissionPhase[] = [
     id: "phase-2",
     title: "PHASE 2 — Engage",
     difficulty: "beginner",
-    headerBg: "#1e5c56",
+    headerBg: "#7E6BC4",
+    actionColor: "#7E6BC4",
     missions: [
       {
         number: 5,
@@ -179,6 +187,9 @@ export const MISSION_PHASES: MissionPhase[] = [
         description: "For Liberty & Justice. Candidates. Local office. Training.",
         icon: faUserTie,
         difficulty: "advanced",
+        partnerLogoUrl:
+          "https://fparmychapters.com/wp-content/uploads/2026/07/For-Liberty-and-justice.webp",
+        partnerLogoSize: "tall",
       },
       {
         number: 12,
