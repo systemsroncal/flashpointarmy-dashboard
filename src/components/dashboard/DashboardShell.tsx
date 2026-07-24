@@ -339,7 +339,7 @@ const NAV: NavItem[] = [
     icon: <GroupsIcon />,
   },
   {
-    label: "Events",
+    label: "FPA Events",
     href: "/dashboard/gatherings",
     module: MODULE_SLUGS.gatherings,
     icon: <EventIcon />,

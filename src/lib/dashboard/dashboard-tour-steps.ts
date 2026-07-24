@@ -88,9 +88,9 @@ const MODULE_COPY: Record<string, { title: string; description: string }> = {
       "Your home page: high-level metrics, maps, and activity across the organization. Open this anytime to see the big picture.",
   },
   [MODULE_SLUGS.chapters]: {
-    title: "Chapters",
+    title: "Churches",
     description:
-      "View and manage chapters (locations, contacts, and chapter-level settings). Administrators use this to keep chapter records up to date.",
+      "View and manage churches (locations, contacts, and church-level settings). Administrators use this to keep church records up to date.",
   },
   [MODULE_SLUGS.leaders]: {
     title: "Leaders",
@@ -103,7 +103,7 @@ const MODULE_COPY: Record<string, { title: string; description: string }> = {
       "Member directory: invite users, edit profiles, reset passwords, and manage membership for your organization.",
   },
   [MODULE_SLUGS.gatherings]: {
-    title: "Events",
+    title: "FPA Events",
     description:
       "Create and manage gatherings and events: schedules, locations, registration, and published event pages.",
   },

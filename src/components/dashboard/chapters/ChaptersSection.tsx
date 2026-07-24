@@ -141,7 +141,7 @@ function LeadersMultiAutocomplete({
       renderInput={(params) => (
         <TextField {...params} label={label} placeholder="Search name or email…" />
       )}
-      noOptionsText="No local leaders found. Users must have the Local leader role or be linked as a chapter leader."
+      noOptionsText="No local leaders found. Users must have the Local leader role or be linked as a church leader."
     />
   );
 }
@@ -478,7 +478,7 @@ export function ChaptersSection({
   if (!canRead) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
-        <Typography color="error">You do not have access to Chapters.</Typography>
+        <Typography color="error">You do not have access to Churches.</Typography>
       </Paper>
     );
   }
@@ -486,7 +486,7 @@ export function ChaptersSection({
   return (
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}>
-        Chapters
+        Churches
       </Typography>
       <Box
         sx={{
@@ -513,7 +513,7 @@ export function ChaptersSection({
               </Button>
               {isSuperAdmin ? (
               <Button variant="outlined" size="small" onClick={() => setImportOpen(true)}>
-                Import Chapters
+                Import Churches
               </Button>
               ) : null}
             </>
@@ -523,7 +523,7 @@ export function ChaptersSection({
           <TextField
             size="small"
             label="Search"
-            placeholder={showLeadersColumn ? "Chapter, state, leaders…" : "Chapter, state…"}
+            placeholder={showLeadersColumn ? "Church, state, leaders…" : "Church, state…"}
             value={tableSearch}
             onChange={(e) => setTableSearch(e.target.value)}
             sx={{ minWidth: 220 }}
@@ -549,7 +549,7 @@ export function ChaptersSection({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Chapter location</TableCell>
+              <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Church location</TableCell>
               {showLeadersColumn ? (
                 <TableCell sx={{ color: "primary.main", fontWeight: 700 }}>Leaders</TableCell>
               ) : null}
@@ -630,7 +630,7 @@ export function ChaptersSection({
       </Paper>
 
       <Dialog open={!!viewRow} onClose={() => setViewRow(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Chapter details</DialogTitle>
+        <DialogTitle>Church details</DialogTitle>
         <DialogContent>
           {viewRow ? (
             <Box sx={{ display: "grid", gap: 1, pt: 1 }}>
@@ -659,12 +659,12 @@ export function ChaptersSection({
       </Dialog>
 
       <Dialog open={!!editRow} onClose={() => setEditRow(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit chapter</DialogTitle>
+        <DialogTitle>Edit church</DialogTitle>
         <DialogContent>
           {editRow ? (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
               <TextField
-                label="Chapter name"
+                label="Church name"
                 fullWidth
                 value={editRow.name}
                 onChange={(e) => setEditRow({ ...editRow, name: e.target.value })}
@@ -728,11 +728,11 @@ export function ChaptersSection({
       </Dialog>
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add chapter</DialogTitle>
+        <DialogTitle>Add church</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             <TextField
-              label="Chapter name"
+              label="Church name"
               fullWidth
               required
               value={createForm.name}
@@ -796,14 +796,14 @@ export function ChaptersSection({
       </Dialog>
 
       <Dialog open={importOpen} onClose={() => !importing && setImportOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Import Chapters</DialogTitle>
+        <DialogTitle>Import Churches</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
             {importError ? <Typography color="error">{importError}</Typography> : null}
             <Typography variant="body2" color="text.secondary">
               Optional columns per row: <strong>Leader email</strong>, <strong>Leader name</strong>,{" "}
-              <strong>Leader phone</strong> — after each chapter is created, the app creates a local leader account or
-              links an existing user to that chapter.
+              <strong>Leader phone</strong> — after each church is created, the app creates a local leader account or
+              links an existing user to that church.
             </Typography>
             <Button component="label" variant="outlined" disabled={importing}>
               Upload Excel, CSV, or JSON
@@ -825,7 +825,7 @@ export function ChaptersSection({
               <Box sx={{ maxHeight: 260, overflow: "auto", border: "1px solid rgba(255,255,255,0.12)", p: 1 }}>
                 {importResults.map((r, idx) => (
                   <Typography key={`${r.chapter || "row"}-${idx}`} variant="caption" display="block">
-                    [{r.status.toUpperCase()}] {r.chapter || "chapter"} {r.reason ? `- ${r.reason}` : ""}
+                    [{r.status.toUpperCase()}] {r.chapter || "church"} {r.reason ? `- ${r.reason}` : ""}
                   </Typography>
                 ))}
               </Box>
@@ -843,16 +843,16 @@ export function ChaptersSection({
       </Dialog>
 
       <Dialog open={!!deleteRow} onClose={() => setDeleteRow(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Delete chapter</DialogTitle>
+        <DialogTitle>Delete church</DialogTitle>
         <DialogContent>
           <Typography variant="body2" paragraph>
-            This action cannot be undone. If this chapter is linked to other records, you must resolve those links first or accept cascading impact.
+            This action cannot be undone. If this church is linked to other records, you must resolve those links first or accept cascading impact.
           </Typography>
           {deps ? (
             <Box sx={{ mb: 2, p: 1, bgcolor: "rgba(255,200,0,0.08)", borderRadius: 1 }}>
               <Typography variant="caption" display="block">
-                Linked records: gatherings {deps.gatherings ?? 0}, chapter leaders {deps.chapter_leaders ?? 0},
-                profiles (primary chapter) {deps.profiles_primary_chapter ?? 0}
+                Linked records: gatherings {deps.gatherings ?? 0}, church leaders {deps.chapter_leaders ?? 0},
+                profiles (primary church) {deps.profiles_primary_chapter ?? 0}
               </Typography>
             </Box>
           ) : null}
