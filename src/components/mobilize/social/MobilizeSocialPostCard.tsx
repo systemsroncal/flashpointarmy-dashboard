@@ -115,40 +115,50 @@ export function MobilizeSocialPostCard({
       }}
     >
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
+        <MobilizeSocialPostHeader
+          author={post.author}
+          createdAt={post.created_at}
+          tone={surface}
+          roleLabel={authorRoleLabel}
+        />
+        {showGroupBadge && post.group ? (
+          <Typography variant="caption" sx={{ display: "block", mt: 0.5, color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}>
+            in{" "}
+            <Link
+              href={mobilizeGroupDetailHref(post.group.id, "announcements")}
+              style={{
+                color: isDark ? "#6eb5ff" : "#1565c0",
+                textDecoration: "none",
+                fontWeight: 600,
+              }}
+            >
+              {post.group.name}
+            </Link>
+          </Typography>
+        ) : null}
+        {post.comments_policy === "leaders_only" ? (
+          <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
+        ) : null}
+        <Box sx={{ mt: 1.25 }}>
+          <MobilizeFeedHtml
+            html={post.content_html}
+            plain={post.content}
+            sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
+          />
+        </Box>
+        <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          gap={1}
+          sx={{
+            mt: 1.25,
+            pt: 1,
+            borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+          }}
+        >
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <MobilizeSocialPostHeader
-              author={post.author}
-              createdAt={post.created_at}
-              tone={surface}
-              roleLabel={authorRoleLabel}
-            />
-            {showGroupBadge && post.group ? (
-              <Typography variant="caption" sx={{ display: "block", mt: 0.5, color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}>
-                in{" "}
-                <Link
-                  href={mobilizeGroupDetailHref(post.group.id, "announcements")}
-                  style={{
-                    color: isDark ? "#6eb5ff" : "#1565c0",
-                    textDecoration: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  {post.group.name}
-                </Link>
-              </Typography>
-            ) : null}
-            {post.comments_policy === "leaders_only" ? (
-              <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
-            ) : null}
-            <Box sx={{ mt: 1.25 }}>
-              <MobilizeFeedHtml
-                html={post.content_html}
-                plain={post.content}
-                sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
-              />
-            </Box>
-            <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />
             <MobilizeSocialReactionBar
               reactions={reactions}
               commentCount={commentCount}
@@ -158,35 +168,38 @@ export function MobilizeSocialPostCard({
               commentsOpen={commentsOpen}
               disabled={reacting}
               tone={surface}
-            />
-            <MobilizeSocialComments
-              open={commentsOpen}
-              canComment={canComment}
-              commentsUrl={commentConfig.commentsUrl}
-              commentReactionUrl={commentConfig.commentReactionUrl}
-              onCountChange={setCommentCount}
-              tone={surface}
+              embedded
             />
           </Box>
-          {manageActions ? <Box flexShrink={0}>{manageActions}</Box> : null}
-          {bookmarkRef ? (
-            <Tooltip title={bookmarked ? "Remove bookmark" : "Bookmark"}>
-              <IconButton
-                size="small"
-                onClick={() => void toggleBookmark()}
-                disabled={bookmarkBusy}
-                aria-label={bookmarked ? "Remove bookmark" : "Bookmark post"}
-                sx={{ flexShrink: 0, mt: -0.5, color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
-              >
-                {bookmarked ? (
-                  <BookmarkIcon fontSize="small" color={isDark ? "inherit" : "primary"} />
-                ) : (
-                  <BookmarkBorderOutlinedIcon fontSize="small" />
-                )}
-              </IconButton>
-            </Tooltip>
-          ) : null}
+          <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flexShrink: 0, ml: "auto" }}>
+            {manageActions}
+            {bookmarkRef ? (
+              <Tooltip title={bookmarked ? "Remove bookmark" : "Bookmark"}>
+                <IconButton
+                  size="small"
+                  onClick={() => void toggleBookmark()}
+                  disabled={bookmarkBusy}
+                  aria-label={bookmarked ? "Remove bookmark" : "Bookmark post"}
+                  sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
+                >
+                  {bookmarked ? (
+                    <BookmarkIcon fontSize="small" color={isDark ? "inherit" : "primary"} />
+                  ) : (
+                    <BookmarkBorderOutlinedIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </Tooltip>
+            ) : null}
+          </Stack>
         </Stack>
+        <MobilizeSocialComments
+          open={commentsOpen}
+          canComment={canComment}
+          commentsUrl={commentConfig.commentsUrl}
+          commentReactionUrl={commentConfig.commentReactionUrl}
+          onCountChange={setCommentCount}
+          tone={surface}
+        />
       </CardContent>
     </Card>
   );

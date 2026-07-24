@@ -139,9 +139,9 @@ export const MISSION_PHASES: MissionPhase[] = [
     missions: [
       {
         number: 8,
-        title: "Become a School Chaplain",
+        title: "Become a Federal Chaplain",
         description:
-          "Bring hope and biblical values to your local schools by becoming a certified chaplain by NSCA.",
+          "Bring hope and biblical values to your local community by becoming a certified chaplain through NSCA.",
         icon: faSchool,
         difficulty: "intermediate",
         url: "https://www.nsca.global/certification",

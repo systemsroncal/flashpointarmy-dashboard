@@ -10,12 +10,13 @@ import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/socia
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import { mobilizeGroupFeedCardSx } from "@/lib/mobilize/mobilize-ui-surface";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import EditIcon from "@mui/icons-material/Edit";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import {
   Box,
-  Button,
+  IconButton,
   Paper,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -127,8 +128,8 @@ export function MobilizeGroupFeed({
         const unified = toUnifiedPost(m, groupId);
         const canManage = canManageMessage(m);
         return (
-          <MobilizeSocialPostCard
-            key={m.id}
+          <Box key={m.id} sx={{ width: "100%" }}>
+            <MobilizeSocialPostCard
             post={{ ...unified, group: undefined }}
             canComment={canCommentOnPost(m)}
             commentConfig={feedPostCommentConfig(unified)}
@@ -137,26 +138,31 @@ export function MobilizeGroupFeed({
             authorRoleLabel={authorRoleLabels?.[m.author.id]}
             manageActions={
               canManage ? (
-                <Stack direction="row" spacing={0.5}>
+                <Stack direction="row" spacing={0.25}>
                   {onEdit ? (
-                    <Button size="small" startIcon={<EditIcon />} onClick={() => onEdit(m)}>
-                      Edit
-                    </Button>
+                    <Tooltip title="Edit">
+                      <IconButton size="small" onClick={() => onEdit(m)} aria-label="Edit post">
+                        <EditOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   ) : null}
                   {onDelete ? (
-                    <Button
-                      size="small"
-                      color="error"
-                      startIcon={<DeleteOutlineIcon />}
-                      onClick={() => onDelete(m)}
-                    >
-                      Delete
-                    </Button>
+                    <Tooltip title="Delete">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => onDelete(m)}
+                        aria-label="Delete post"
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   ) : null}
                 </Stack>
               ) : undefined
             }
           />
+          </Box>
         );
       })}
 

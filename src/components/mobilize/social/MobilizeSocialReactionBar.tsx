@@ -24,6 +24,8 @@ type Props = {
   commentsOpen?: boolean;
   disabled?: boolean;
   tone?: "light" | "dark";
+  /** When true, omits outer border/margin (parent provides footer row). */
+  embedded?: boolean;
 };
 
 export function MobilizeSocialReactionBar({
@@ -35,6 +37,7 @@ export function MobilizeSocialReactionBar({
   commentsOpen,
   disabled,
   tone = "light",
+  embedded = false,
 }: Props) {
   const isDark = tone === "dark";
   const muted = isDark ? "#8b98a5" : "text.secondary";
@@ -48,9 +51,13 @@ export function MobilizeSocialReactionBar({
         display: "flex",
         alignItems: "center",
         gap: 0.25,
-        mt: 1.25,
-        pt: 1,
-        borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+        ...(embedded
+          ? {}
+          : {
+              mt: 1.25,
+              pt: 1,
+              borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+            }),
       }}
     >
       <IconButton

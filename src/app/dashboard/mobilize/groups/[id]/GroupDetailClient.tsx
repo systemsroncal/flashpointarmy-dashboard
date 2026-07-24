@@ -79,6 +79,7 @@ import {
 } from "@/lib/mobilize/group-ui-labels";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnouncementImagePicker";
+import { MobilizeGroupAboutText } from "@/components/mobilize/MobilizeGroupAboutText";
 import { MobilizeGroupFeed } from "@/components/mobilize/social/MobilizeGroupFeed";
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import type { EnrichedGroupMessage } from "@/lib/mobilize/social/enrich-group-messages";
@@ -1088,9 +1089,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     if (!group?.description) return null;
     return (
       <MobilizeProfileSidebarCard title="About this group" variant="groupFeed">
-        <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.65, color: "rgba(0,0,0,0.78)" }}>
-          {group.description}
-        </Typography>
+        <MobilizeGroupAboutText text={group.description} />
       </MobilizeProfileSidebarCard>
     );
   }, [group]);
@@ -1103,9 +1102,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       <Stack spacing={2}>
         <MobilizeProfileSidebarCard title="About this group" variant="groupFeed">
           {group.description ? (
-            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.65, color: "rgba(0,0,0,0.78)" }}>
-              {group.description}
-            </Typography>
+            <MobilizeGroupAboutText text={group.description} />
           ) : (
             <Typography variant="body2" color="text.secondary">
               No description yet.

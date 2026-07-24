@@ -9,8 +9,11 @@ import {
   MISSION_PHASES,
   type MissionCard,
 } from "@/lib/missions/twelve-missions";
+import { missionPartnerLogoUrl } from "@/lib/missions/mission-partner-logos";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Box, Stack, Typography } from "@mui/material";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
 const MISSIONS_WELCOME = [
@@ -56,18 +59,13 @@ function MissionCardItem({
 }) {
   const accent = MISSION_DIFFICULTY_COLORS[mission.difficulty];
   const isShareAction = Boolean(mission.opensShareDialog) && !mission.comingSoon;
-  const isLink = Boolean(mission.url) && !mission.comingSoon && missionLinksEnabled;
-  const isInteractive = isLink || isShareAction;
-  const showLinkLabel = (Boolean(mission.url) || isShareAction) && !mission.comingSoon;
+  const isExternalLink = Boolean(mission.url) && !mission.comingSoon && missionLinksEnabled;
+  const showActionButton = isExternalLink || isShareAction;
+  const partnerLogo = missionPartnerLogoUrl(mission.url);
+  const descriptionFontSize = { xs: "0.845rem", sm: "0.905rem" };
 
   return (
     <Box
-      component={isLink ? "a" : isShareAction ? "button" : "div"}
-      type={isShareAction ? "button" : undefined}
-      href={isLink ? mission.url : undefined}
-      target={isLink ? "_blank" : undefined}
-      rel={isLink ? "noopener noreferrer" : undefined}
-      onClick={isShareAction ? onOpenShare : undefined}
       sx={{
         position: "relative",
         overflow: "hidden",
@@ -77,21 +75,19 @@ function MissionCardItem({
         boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
         minHeight: { xs: 128, sm: 140 },
         height: "100%",
-        display: "block",
+        display: "flex",
+        flexDirection: "column",
         width: "100%",
-        textDecoration: "none",
         textAlign: "left",
         color: "inherit",
-        cursor: isInteractive ? "pointer" : "default",
+        pb: partnerLogo ? 5 : 0,
         transition: "box-shadow 0.2s, transform 0.2s",
-        ...(isShareAction && {
-          font: "inherit",
-          p: 0,
-        }),
-        "&:hover": {
-          boxShadow: phaseHoverShadow(phaseHeaderBg),
-          transform: "translateY(-1px)",
-        },
+        "&:hover": showActionButton
+          ? {
+              boxShadow: phaseHoverShadow(phaseHeaderBg),
+              transform: "translateY(-1px)",
+            }
+          : undefined,
       }}
     >
       {mission.comingSoon ? (
@@ -146,7 +142,7 @@ function MissionCardItem({
           gap: { xs: 1.25, sm: 1.5 },
           p: { xs: 1.75, sm: 2.25 },
           pt: { xs: 2.5, sm: 2.75 },
-          height: "100%",
+          flex: 1,
           boxSizing: "border-box",
         }}
       >
@@ -192,7 +188,7 @@ function MissionCardItem({
             {mission.partner ? (
               <Typography
                 sx={{
-                  fontSize: { xs: "0.72rem", sm: "0.78rem" },
+                  fontSize: descriptionFontSize,
                   color: "#555",
                   lineHeight: 1.45,
                 }}
@@ -202,29 +198,66 @@ function MissionCardItem({
             ) : null}
             <Typography
               sx={{
-                fontSize: { xs: "0.72rem", sm: "0.78rem" },
+                fontSize: descriptionFontSize,
                 color: "#666",
                 lineHeight: 1.45,
               }}
             >
               {mission.description}
             </Typography>
-            {showLinkLabel ? (
-              <Typography
-                sx={{
-                  fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                  color: "#666",
-                  lineHeight: 1.45,
-                  fontStyle: "italic",
-                  textDecoration: "underline",
-                }}
-              >
-                {mission.linkLabel ?? "Click Here"}
-              </Typography>
-            ) : null}
           </Stack>
         </Box>
       </Box>
+
+      {showActionButton ? (
+        <Box sx={{ px: { xs: 1.75, sm: 2.25 }, pb: { xs: 1.75, sm: 2.25 }, pt: 0 }}>
+          <Button
+            component={isExternalLink ? "a" : "button"}
+            href={isExternalLink ? mission.url : undefined}
+            target={isExternalLink ? "_blank" : undefined}
+            rel={isExternalLink ? "noopener noreferrer" : undefined}
+            onClick={isShareAction ? onOpenShare : undefined}
+            variant="contained"
+            size="small"
+            endIcon={isExternalLink ? <OpenInNewIcon sx={{ fontSize: "0.95rem !important" }} /> : <ShareOutlinedIcon sx={{ fontSize: "0.95rem !important" }} />}
+            sx={{
+              textTransform: "none",
+              fontWeight: 700,
+              fontSize: "0.78rem",
+              borderRadius: 1.25,
+              px: 1.75,
+              py: 0.65,
+              bgcolor: accent,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.18)",
+              "&:hover": {
+                bgcolor: accent,
+                filter: "brightness(0.92)",
+                boxShadow: "0 3px 10px rgba(0,0,0,0.22)",
+              },
+            }}
+          >
+            {mission.linkLabel ?? (isShareAction ? "Share the Mission" : "Click Here")}
+          </Button>
+        </Box>
+      ) : null}
+
+      {partnerLogo ? (
+        <Box
+          component="img"
+          src={partnerLogo}
+          alt=""
+          sx={{
+            width: "22%",
+            height: 31,
+            display: "block",
+            position: "absolute",
+            bottom: 4,
+            right: 4,
+            objectFit: "contain",
+            objectPosition: "right bottom",
+          }}
+        />
+      ) : null}
     </Box>
   );
 }

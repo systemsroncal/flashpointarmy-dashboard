@@ -25,6 +25,7 @@ import PublicIcon from "@mui/icons-material/Public";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
+import NoteOutlinedIcon from "@mui/icons-material/NoteOutlined";
 import SchoolIcon from "@mui/icons-material/School";
 import SportsIcon from "@mui/icons-material/Sports";
 import SecurityIcon from "@mui/icons-material/Security";
@@ -234,6 +235,7 @@ const MISSION_PIPELINE_HREFS = new Set<string>([
   "/dashboard/onboarding/first-missions",
   "/dashboard/onboarding/ready-for-chapter",
   "/dashboard/onboarding/journey-progress",
+  "/dashboard/onboarding/user-notes",
 ]);
 
 const MISSION_PIPELINE_NAV: NavItem[] = [
@@ -272,6 +274,12 @@ const MISSION_PIPELINE_NAV: NavItem[] = [
     href: "/dashboard/onboarding/journey-progress",
     module: MODULE_SLUGS.courses,
     icon: <InsightsOutlinedIcon />,
+  },
+  {
+    label: "User Notes",
+    href: "/dashboard/onboarding/user-notes",
+    module: MODULE_SLUGS.courses,
+    icon: <NoteOutlinedIcon />,
   },
 ];
 
