@@ -184,6 +184,7 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
     );
   }
   if (item.module === MODULE_SLUGS.courses) {
+    if (isMissionPipelinePath(pathname)) return false;
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
   if (item.href === "/dashboard/notifications") {
@@ -428,21 +429,21 @@ const NAV_ITEM_TOUCH_SX = {
 
 const NESTED_NAV_ITEM_SX = {
   ...NAV_ITEM_TOUCH_SX,
-  py: 0.6,
-  pl: 3.25,
+  py: 0.55,
+  pl: 2.5,
   "&.Mui-selected": NAV_SELECTED_SX,
 } as const;
 
 const NESTED_NAV_ICON_SX = {
   color: "rgba(255,255,255,0.92)",
-  minWidth: 30,
-  "& svg": { fontSize: 17 },
+  minWidth: 28,
+  "& svg": { fontSize: 16 },
 } as const;
 
 const NESTED_NAV_ICON_SELECTED_SX = {
   color: "primary.main",
-  minWidth: 30,
-  "& svg": { fontSize: 17 },
+  minWidth: 28,
+  "& svg": { fontSize: 16 },
 } as const;
 
 function MissionPipelineNavGroup({
@@ -1083,7 +1084,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 {settingsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
               </ListItemButton>
             </ListItem>
-            <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
+            <Collapse in={settingsOpen && !missionPipelineHasActive} timeout="auto" unmountOnExit>
               <List disablePadding>
                 {settingsNav.map((item) => {
                   const selected = isNavItemSelected(item, pathname);

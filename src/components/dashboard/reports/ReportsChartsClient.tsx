@@ -217,7 +217,7 @@ export function ReportsChartsClient() {
       <ReportsPresenceSection />
       <Stack direction="row" spacing={1} alignItems="center">
         <AssessmentIcon color="primary" />
-        <Typography variant="h5">Reports</Typography>
+        <Typography variant="h5">FPA Analytics</Typography>
       </Stack>
       <Typography variant="body2" color="text.secondary">
         Time-based charts use <strong>UTC</strong> bucket labels. RBAC and chapter status pies reflect the
