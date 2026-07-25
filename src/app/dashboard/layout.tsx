@@ -6,6 +6,8 @@ import { loadDashboardUser } from "@/lib/auth/dashboard-user";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { loadTrainingGraduateBadge } from "@/lib/courses/course-completion";
 import {
+  createAdminCompletedJourneySnapshot,
+  isAdminJourneySidebarAudience,
   isMemberOnboardingAudience,
   loadMemberOnboardingSnapshot,
 } from "@/lib/onboarding/member-onboarding-status";
@@ -97,7 +99,9 @@ export default async function DashboardLayout({
   } catch {
     /* Badge is optional — never block dashboard render if course tables are unavailable. */
   }
-  if (isMemberOnboardingAudience(dashboardUser.role_names)) {
+  if (isAdminJourneySidebarAudience(dashboardUser.role_names)) {
+    memberOnboarding = createAdminCompletedJourneySnapshot();
+  } else if (isMemberOnboardingAudience(dashboardUser.role_names)) {
     try {
       memberOnboarding = await loadMemberOnboardingSnapshot(
         supabase,

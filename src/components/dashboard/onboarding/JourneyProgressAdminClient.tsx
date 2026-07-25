@@ -1,6 +1,11 @@
 "use client";
 
 import type { JourneyProgressRow, JourneyProgressStats } from "@/lib/onboarding/journey-progress-stats";
+import {
+  compareJourneyProgressRows,
+  filterJourneyProgressRows,
+  type JourneyProgressFilter,
+} from "@/lib/onboarding/journey-progress-stats";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -74,19 +79,23 @@ export function JourneyProgressAdminClient({
 }) {
   const [tab, setTab] = useState<"people" | "stats">("people");
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<JourneyProgressFilter>("all");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return initialRows;
-    return initialRows.filter((r) =>
-      [r.name, r.email, r.role_label, r.chapter_name ?? "", r.chapter_state ?? ""]
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [initialRows, search]);
+    const base = filterJourneyProgressRows(initialRows, filter);
+    const searched = !q
+      ? base
+      : base.filter((r) =>
+          [r.name, r.email, r.role_label, r.chapter_name ?? "", r.chapter_state ?? ""]
+            .join(" ")
+            .toLowerCase()
+            .includes(q)
+        );
+    return [...searched].sort(compareJourneyProgressRows);
+  }, [initialRows, search, filter]);
 
   const pageRows = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
@@ -215,23 +224,50 @@ export function JourneyProgressAdminClient({
       ) : (
         <>
           <Paper sx={{ p: 2, mb: 2, bgcolor: "rgba(0,0,0,0.35)" }}>
-            <TextField
-              size="small"
-              fullWidth
-              placeholder="Search name, email, role, chapter…"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
+            <Stack spacing={1.5}>
+              <Stack direction="row" flexWrap="wrap" gap={0.75} useFlexGap>
+                {(
+                  [
+                    ["all", "All"],
+                    ["all_three", "All three"],
+                    ["course", "Course done"],
+                    ["briefing", "Briefing done"],
+                    ["missions", "Missions started"],
+                    ["none", "None"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <Chip
+                    key={value}
+                    label={label}
+                    size="small"
+                    clickable
+                    color={filter === value ? "primary" : "default"}
+                    variant={filter === value ? "filled" : "outlined"}
+                    onClick={() => {
+                      setFilter(value);
+                      setPage(0);
+                    }}
+                  />
+                ))}
+              </Stack>
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Search name, email, role, chapter…"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Stack>
           </Paper>
           <Paper sx={{ bgcolor: "rgba(0,0,0,0.35)", overflow: "auto" }}>
             <Table size="small">

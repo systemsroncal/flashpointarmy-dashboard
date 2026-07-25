@@ -25,6 +25,48 @@ export type JourneyProgressStats = {
   noneStarted: number;
 };
 
+export type JourneyProgressFilter =
+  | "all"
+  | "course"
+  | "briefing"
+  | "missions"
+  | "all_three"
+  | "none";
+
+export function journeyProgressScore(row: JourneyProgressRow): number {
+  return (
+    (row.course_completed ? 1 : 0) +
+    (row.briefing_completed ? 1 : 0) +
+    (row.missions_started ? 1 : 0)
+  );
+}
+
+export function compareJourneyProgressRows(a: JourneyProgressRow, b: JourneyProgressRow): number {
+  const scoreDiff = journeyProgressScore(b) - journeyProgressScore(a);
+  if (scoreDiff !== 0) return scoreDiff;
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+}
+
+export function filterJourneyProgressRows(
+  rows: JourneyProgressRow[],
+  filter: JourneyProgressFilter
+): JourneyProgressRow[] {
+  switch (filter) {
+    case "course":
+      return rows.filter((r) => r.course_completed);
+    case "briefing":
+      return rows.filter((r) => r.briefing_completed);
+    case "missions":
+      return rows.filter((r) => r.missions_started);
+    case "all_three":
+      return rows.filter((r) => r.course_completed && r.briefing_completed && r.missions_started);
+    case "none":
+      return rows.filter((r) => !r.course_completed && !r.briefing_completed && !r.missions_started);
+    default:
+      return rows;
+  }
+}
+
 function roleLabel(roles: Set<string>): string {
   if (roles.has("super_admin")) return "Super admin";
   if (roles.has("admin")) return "Admin";
@@ -123,6 +165,8 @@ export async function loadJourneyProgressBundle(admin: SupabaseClient): Promise<
       missions_started,
     };
   });
+
+  rows.sort(compareJourneyProgressRows);
 
   const stats: JourneyProgressStats = {
     total: rows.length,

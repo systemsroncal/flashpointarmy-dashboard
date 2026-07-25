@@ -5,6 +5,8 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { requireServerUser } from "@/lib/auth/server-session";
 import {
+  createAdminCompletedJourneySnapshot,
+  isAdminJourneySidebarAudience,
   isMemberOnboardingAudience,
   loadMemberOnboardingSnapshot,
 } from "@/lib/onboarding/member-onboarding-status";
@@ -27,12 +29,16 @@ async function MissionBriefingPageInner() {
   }
 
   const roleNames = await loadUserRoleNames(supabase, user.id);
-  if (!isMemberOnboardingAudience(roleNames)) {
+  const adminJourneyAudience = isAdminJourneySidebarAudience(roleNames);
+  if (!isMemberOnboardingAudience(roleNames) && !adminJourneyAudience) {
     redirect("/dashboard/training");
   }
 
-  const snapshot = await loadMemberOnboardingSnapshot(supabase, user.id, roleNames);
-  if (snapshot.training !== "completed") {
+  const snapshot =
+    adminJourneyAudience && !isMemberOnboardingAudience(roleNames)
+      ? createAdminCompletedJourneySnapshot()
+      : await loadMemberOnboardingSnapshot(supabase, user.id, roleNames);
+  if (!adminJourneyAudience && snapshot.training !== "completed") {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
         <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>

@@ -464,7 +464,7 @@ export function CertificateRequestsAdminClient({ chapterOptions, courseSlug }: P
   return (
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
-        Certificate requests
+        BibCit Verification
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
         Review external Biblical Citizenship completion certificates submitted by members and leaders.

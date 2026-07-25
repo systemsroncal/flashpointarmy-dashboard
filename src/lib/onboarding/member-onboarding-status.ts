@@ -28,6 +28,35 @@ export function isMemberOnboardingAudience(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "member" || n === "local_leader");
 }
 
+/** Admins and super admins see Your Journey in the sidebar with all steps completed. */
+export function isAdminJourneySidebarAudience(roleNames: string[]): boolean {
+  return roleNames.some((n) => n === "admin" || n === "super_admin");
+}
+
+export function createAdminCompletedJourneySnapshot(): MemberOnboardingSnapshot {
+  const rankAudience: MissionRankAudience = "member";
+  const partial: MissionRankProgress = {
+    training: "completed",
+    coachMeeting: "completed",
+    firstMission: "completed",
+    rankAudience,
+  };
+  return {
+    ...partial,
+    rankLabel: resolveCurrentMissionRankLabel(partial),
+    trainingCompletedLessons: 0,
+    trainingTotalLessons: 0,
+  };
+}
+
+export function shouldShowSidebarYourJourney(
+  roleNames: string[],
+  snapshot: MemberOnboardingSnapshot | null | undefined
+): boolean {
+  if (!snapshot) return false;
+  return isMemberOnboardingAudience(roleNames) || isAdminJourneySidebarAudience(roleNames);
+}
+
 export function resolveCoachMeetingStepStatus(
   training: TrainingStepStatus,
   rowStatus: CoachMeetingStepStatus | null,

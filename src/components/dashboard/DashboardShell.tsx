@@ -2,7 +2,6 @@
 
 import AdjustIcon from "@mui/icons-material/Adjust";
 import TimelineIcon from "@mui/icons-material/Timeline";
-import WhereToVoteIcon from "@mui/icons-material/WhereToVote";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -24,7 +23,6 @@ import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import PublicIcon from "@mui/icons-material/Public";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
 import NoteOutlinedIcon from "@mui/icons-material/NoteOutlined";
 import SchoolIcon from "@mui/icons-material/School";
 import SportsIcon from "@mui/icons-material/Sports";
@@ -32,7 +30,6 @@ import SecurityIcon from "@mui/icons-material/Security";
 import EmailIcon from "@mui/icons-material/Email";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import SettingsIcon from "@mui/icons-material/Settings";
-import VolunteerActivismOutlinedIcon from "@mui/icons-material/VolunteerActivismOutlined";
 import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
 import {
   AppBar,
@@ -68,7 +65,7 @@ import {
   canAccessPeopleOverview,
 } from "@/lib/auth/people-section-access";
 import { canAccessMobilizeModule, canSeeMobilizeNavItem, isElevatedRole } from "@/lib/auth/user-roles";
-import { isMemberOnboardingAudience } from "@/lib/onboarding/member-onboarding-status";
+import { shouldShowSidebarYourJourney } from "@/lib/onboarding/member-onboarding-status";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
@@ -197,6 +194,10 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
       pathname.startsWith("/dashboard/communications/")
     );
   }
+  if (item.href === "/dashboard/courses") {
+    if (isMissionPipelinePath(pathname)) return false;
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
@@ -213,7 +214,6 @@ const SETTINGS_MODULES = new Set<string>([
   MODULE_SLUGS.adminRoles,
   MODULE_SLUGS.courses,
   MODULE_SLUGS.reports,
-  MODULE_SLUGS.donations,
 ]);
 
 const MISSION_PIPELINE_HREFS = new Set<string>([
@@ -226,42 +226,43 @@ const MISSION_PIPELINE_HREFS = new Set<string>([
   "/dashboard/onboarding/user-notes",
 ]);
 
+/** Course progress admin (BibCit) lives under /dashboard/courses/:id/progress after redirect. */
+function isMissionPipelinePath(pathname: string): boolean {
+  for (const href of MISSION_PIPELINE_HREFS) {
+    if (pathname === href || pathname.startsWith(`${href}/`)) return true;
+  }
+  if (/^\/dashboard\/courses\/[^/]+\/progress(?:\/|$)/.test(pathname)) return true;
+  return false;
+}
+
+function isMissionPipelineNavItemSelected(item: NavItem, pathname: string): boolean {
+  if (item.href === "/dashboard/onboarding/biblical-citizenship-progress") {
+    return (
+      pathname === item.href ||
+      /^\/dashboard\/courses\/[^/]+\/progress(?:\/|$)/.test(pathname)
+    );
+  }
+  return isNavItemSelected(item, pathname);
+}
+
 const MISSION_PIPELINE_NAV: NavItem[] = [
-  {
-    label: "Certificate requests",
-    href: "/dashboard/courses/certificate-requests",
-    module: MODULE_SLUGS.courses,
-    icon: <FactCheckOutlinedIcon />,
-  },
-  {
-    label: "Coach meetings",
-    href: "/dashboard/onboarding/coach-meetings",
-    module: MODULE_SLUGS.courses,
-    icon: <HandshakeOutlinedIcon />,
-  },
-  {
-    label: "Biblical Citizenship Progress",
-    href: "/dashboard/onboarding/biblical-citizenship-progress",
-    module: MODULE_SLUGS.courses,
-    icon: <TimelineIcon />,
-  },
-  {
-    label: "Mission Selected",
-    href: "/dashboard/onboarding/first-missions",
-    module: MODULE_SLUGS.courses,
-    icon: <FlagOutlined />,
-  },
-  {
-    label: "Ready for Chapter",
-    href: "/dashboard/onboarding/ready-for-chapter",
-    module: MODULE_SLUGS.courses,
-    icon: <WhereToVoteIcon />,
-  },
   {
     label: "Journey progress",
     href: "/dashboard/onboarding/journey-progress",
     module: MODULE_SLUGS.courses,
     icon: <InsightsOutlinedIcon />,
+  },
+  {
+    label: "BibCit Verification",
+    href: "/dashboard/courses/certificate-requests",
+    module: MODULE_SLUGS.courses,
+    icon: <FactCheckOutlinedIcon />,
+  },
+  {
+    label: "BibCit Progress",
+    href: "/dashboard/onboarding/biblical-citizenship-progress",
+    module: MODULE_SLUGS.courses,
+    icon: <TimelineIcon />,
   },
   {
     label: "User Notes",
@@ -366,16 +367,10 @@ const NAV: NavItem[] = [
     icon: <EmailIcon />,
   },
   {
-    label: "Reports",
+    label: "FPA Analytics",
     href: "/dashboard/reports",
     module: MODULE_SLUGS.reports,
     icon: <AssessmentIcon />,
-  },
-  {
-    label: "Donations",
-    href: "/dashboard/donations",
-    module: MODULE_SLUGS.donations,
-    icon: <VolunteerActivismOutlinedIcon />,
   },
   {
     label: "Roles & permissions",
@@ -431,6 +426,25 @@ const NAV_ITEM_TOUCH_SX = {
   },
 } as const;
 
+const NESTED_NAV_ITEM_SX = {
+  ...NAV_ITEM_TOUCH_SX,
+  py: 0.6,
+  pl: 3.25,
+  "&.Mui-selected": NAV_SELECTED_SX,
+} as const;
+
+const NESTED_NAV_ICON_SX = {
+  color: "rgba(255,255,255,0.92)",
+  minWidth: 30,
+  "& svg": { fontSize: 17 },
+} as const;
+
+const NESTED_NAV_ICON_SELECTED_SX = {
+  color: "primary.main",
+  minWidth: 30,
+  "& svg": { fontSize: 17 },
+} as const;
+
 function MissionPipelineNavGroup({
   missionPipelineNav,
   missionPipelineOpen,
@@ -468,7 +482,7 @@ function MissionPipelineNavGroup({
             <AdjustIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Mission Pipeline"
+            primary="Member Journey"
             primaryTypographyProps={{
               variant: "body2",
               fontWeight: 600,
@@ -482,7 +496,7 @@ function MissionPipelineNavGroup({
       <Collapse in={missionPipelineOpen} timeout="auto" unmountOnExit>
         <List disablePadding>
           {missionPipelineNav.map((item) => {
-            const selected = isNavItemSelected(item, pathname);
+            const selected = isMissionPipelineNavItemSelected(item, pathname);
             return (
               <ListItem key={item.href} disablePadding>
                 <ListItemButton
@@ -491,19 +505,9 @@ function MissionPipelineNavGroup({
                   selected={selected}
                   data-tour={`nav-${item.href.replace(/\//g, "-")}`}
                   onClick={closeMobileDrawer}
-                  sx={{
-                    ...NAV_ITEM_TOUCH_SX,
-                    py: 0.65,
-                    pl: 4.5,
-                    "&.Mui-selected": NAV_SELECTED_SX,
-                  }}
+                  sx={NESTED_NAV_ITEM_SX}
                 >
-                  <ListItemIcon
-                    sx={{
-                      color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
-                      minWidth: 36,
-                    }}
-                  >
+                  <ListItemIcon sx={selected ? NESTED_NAV_ICON_SELECTED_SX : NESTED_NAV_ICON_SX}>
                     {item.icon}
                   </ListItemIcon>
                   <ListItemText
@@ -585,19 +589,9 @@ function PeopleNavGroup({
                   selected={selected}
                   data-tour={`nav-${item.href.replace(/\//g, "-")}`}
                   onClick={closeMobileDrawer}
-                  sx={{
-                    ...NAV_ITEM_TOUCH_SX,
-                    py: 0.65,
-                    pl: 4.5,
-                    "&.Mui-selected": NAV_SELECTED_SX,
-                  }}
+                  sx={NESTED_NAV_ITEM_SX}
                 >
-                  <ListItemIcon
-                    sx={{
-                      color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
-                      minWidth: 36,
-                    }}
-                  >
+                  <ListItemIcon sx={selected ? NESTED_NAV_ICON_SELECTED_SX : NESTED_NAV_ICON_SX}>
                     {item.icon}
                   </ListItemIcon>
                   <ListItemText
@@ -733,10 +727,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       !MISSION_PIPELINE_HREFS.has(item.href) &&
       !PEOPLE_HREFS.has(item.href)
   );
-  const settingsHasActive = settingsNav.some((item) => isNavItemSelected(item, pathname));
-  const missionPipelineHasActive = missionPipelineNav.some((item) =>
-    isNavItemSelected(item, pathname)
-  );
+  const settingsHasActive =
+    !isMissionPipelinePath(pathname) &&
+    settingsNav.some((item) => isNavItemSelected(item, pathname));
+  const missionPipelineHasActive = isMissionPipelinePath(pathname);
   const peopleHasActive = peopleNav.some((item) => isNavItemSelected(item, pathname));
 
   const showSystemNotificationBell =
@@ -794,7 +788,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [settingsHasActive]);
 
   useEffect(() => {
-    if (missionPipelineHasActive) setMissionPipelineOpen(true);
+    if (missionPipelineHasActive) {
+      setMissionPipelineOpen(true);
+      setSettingsOpen(false);
+    }
   }, [missionPipelineHasActive]);
 
   useEffect(() => {
@@ -826,7 +823,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     user.email.split("@")[0];
 
   const showSidebarJourney =
-    !isMobilize && isMemberOnboardingAudience(user.role_names) && user.member_onboarding;
+    !isMobilize && shouldShowSidebarYourJourney(user.role_names, user.member_onboarding);
   const showTrainingSubmenu = showSidebarJourney && Boolean(user.member_onboarding);
 
   const drawer = (
@@ -1098,21 +1095,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         selected={selected}
                         data-tour={`nav-${item.module}`}
                         onClick={closeMobileDrawer}
-                        sx={{
-                          ...NAV_ITEM_TOUCH_SX,
-                          py: 0.65,
-                          pl: 4.5,
-                          "&.Mui-selected": NAV_SELECTED_SX,
-                        }}
+                        sx={NESTED_NAV_ITEM_SX}
                       >
-                        <ListItemIcon
-                          sx={{
-                            color: selected
-                              ? "primary.main"
-                              : "rgba(255,255,255,0.92)",
-                            minWidth: 36,
-                          }}
-                        >
+                        <ListItemIcon sx={selected ? NESTED_NAV_ICON_SELECTED_SX : NESTED_NAV_ICON_SX}>
                           {item.icon}
                         </ListItemIcon>
                         <ListItemText
