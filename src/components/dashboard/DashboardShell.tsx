@@ -79,6 +79,7 @@ import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { SidebarYourJourney } from "./SidebarYourJourney";
+import { SidebarNestedNavList } from "./SidebarNestedNavList";
 import { TrainingNavSubmenu } from "@/components/dashboard/training/TrainingNavSubmenu";
 import {
   AvatarWithGraduateIcon,
@@ -427,25 +428,6 @@ const NAV_ITEM_TOUCH_SX = {
   },
 } as const;
 
-const NESTED_NAV_ITEM_SX = {
-  ...NAV_ITEM_TOUCH_SX,
-  py: 0.55,
-  pl: 2.5,
-  "&.Mui-selected": NAV_SELECTED_SX,
-} as const;
-
-const NESTED_NAV_ICON_SX = {
-  color: "rgba(255,255,255,0.92)",
-  minWidth: 28,
-  "& svg": { fontSize: 16 },
-} as const;
-
-const NESTED_NAV_ICON_SELECTED_SX = {
-  color: "primary.main",
-  minWidth: 28,
-  "& svg": { fontSize: 16 },
-} as const;
-
 function MissionPipelineNavGroup({
   missionPipelineNav,
   missionPipelineOpen,
@@ -495,36 +477,17 @@ function MissionPipelineNavGroup({
         </ListItemButton>
       </ListItem>
       <Collapse in={missionPipelineOpen} timeout="auto" unmountOnExit>
-        <List disablePadding>
-          {missionPipelineNav.map((item) => {
-            const selected = isMissionPipelineNavItemSelected(item, pathname);
-            return (
-              <ListItem key={item.href} disablePadding>
-                <ListItemButton
-                  component={Link}
-                  href={item.href}
-                  selected={selected}
-                  data-tour={`nav-${item.href.replace(/\//g, "-")}`}
-                  onClick={closeMobileDrawer}
-                  sx={NESTED_NAV_ITEM_SX}
-                >
-                  <ListItemIcon sx={selected ? NESTED_NAV_ICON_SELECTED_SX : NESTED_NAV_ICON_SX}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      variant: "body2",
-                      fontWeight: 500,
-                      fontSize: "calc(0.8rem + 3px)",
-                      color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
+        <SidebarNestedNavList
+          items={missionPipelineNav.map((item) => ({
+            key: item.href,
+            label: item.label,
+            href: item.href,
+            icon: item.icon,
+            selected: isMissionPipelineNavItemSelected(item, pathname),
+            tourAttr: `nav-${item.href.replace(/\//g, "-")}`,
+          }))}
+          onNavigate={closeMobileDrawer}
+        />
       </Collapse>
     </>
   );
@@ -579,36 +542,17 @@ function PeopleNavGroup({
         </ListItemButton>
       </ListItem>
       <Collapse in={peopleOpen} timeout="auto" unmountOnExit>
-        <List disablePadding>
-          {peopleNav.map((item) => {
-            const selected = isNavItemSelected(item, pathname);
-            return (
-              <ListItem key={item.href} disablePadding>
-                <ListItemButton
-                  component={Link}
-                  href={item.href}
-                  selected={selected}
-                  data-tour={`nav-${item.href.replace(/\//g, "-")}`}
-                  onClick={closeMobileDrawer}
-                  sx={NESTED_NAV_ITEM_SX}
-                >
-                  <ListItemIcon sx={selected ? NESTED_NAV_ICON_SELECTED_SX : NESTED_NAV_ICON_SX}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      variant: "body2",
-                      fontWeight: 500,
-                      fontSize: "calc(0.8rem + 3px)",
-                      color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
+        <SidebarNestedNavList
+          items={peopleNav.map((item) => ({
+            key: item.href,
+            label: item.label,
+            href: item.href,
+            icon: item.icon,
+            selected: isNavItemSelected(item, pathname),
+            tourAttr: `nav-${item.href.replace(/\//g, "-")}`,
+          }))}
+          onNavigate={closeMobileDrawer}
+        />
       </Collapse>
     </>
   );
@@ -1085,38 +1029,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </ListItemButton>
             </ListItem>
             <Collapse in={settingsOpen && !missionPipelineHasActive} timeout="auto" unmountOnExit>
-              <List disablePadding>
-                {settingsNav.map((item) => {
-                  const selected = isNavItemSelected(item, pathname);
-                  return (
-                    <ListItem key={item.href} disablePadding>
-                      <ListItemButton
-                        component={Link}
-                        href={item.href}
-                        selected={selected}
-                        data-tour={`nav-${item.module}`}
-                        onClick={closeMobileDrawer}
-                        sx={NESTED_NAV_ITEM_SX}
-                      >
-                        <ListItemIcon sx={selected ? NESTED_NAV_ICON_SELECTED_SX : NESTED_NAV_ICON_SX}>
-                          {item.icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={item.label}
-                          primaryTypographyProps={{
-                            variant: "body2",
-                            fontWeight: 500,
-                            fontSize: "calc(0.8rem + 3px)",
-                            color: selected
-                              ? "primary.main"
-                              : "rgba(255,255,255,0.88)",
-                          }}
-                        />
-                      </ListItemButton>
-                    </ListItem>
-                  );
-                })}
-              </List>
+              <SidebarNestedNavList
+                items={settingsNav.map((item) => ({
+                  key: item.href,
+                  label: item.label,
+                  href: item.href,
+                  icon: item.icon,
+                  selected: isNavItemSelected(item, pathname),
+                  tourAttr: `nav-${item.module}`,
+                }))}
+                onNavigate={closeMobileDrawer}
+              />
             </Collapse>
           </>
         ) : null}
