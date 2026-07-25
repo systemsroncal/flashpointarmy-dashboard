@@ -43,7 +43,7 @@ export function MobilizeBookmarksClient() {
         <MobilizeSocialHubContent tone="light">
           <Box sx={{ p: { xs: 1.5, sm: 2 }, flex: 1, display: "flex", flexDirection: "column" }}>
           <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
-            Bookmarks
+            My saved
           </Typography>
 
           {loading ? (

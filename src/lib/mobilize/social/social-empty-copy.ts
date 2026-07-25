@@ -30,7 +30,7 @@ export const MESSAGES_EMPTY: SocialEmptyCopy = {
 
 export const BOOKMARKS_EMPTY: SocialEmptyCopy = {
   title: SOCIAL_EMPTY_DEFAULT_TITLE,
-  description: "Start bookmarking your favorite posts and they'll show up here!",
+  description: "Save your favorite posts and they'll show up here!",
 };
 
 export const PROFILE_TAB_EMPTY: Record<"posts" | "replies" | "media" | "likes", SocialEmptyCopy> = {

@@ -52,7 +52,7 @@ export function MobilizeSocialInternalNav() {
       { key: "alerts", label: "Alerts", href: MOBILIZE_ALERTS_HREF, icon: <NotificationsNoneOutlinedIcon fontSize="small" /> },
       { key: "messages", label: "Messages", href: MOBILIZE_MESSAGES_HREF, icon: <MailOutlineIcon fontSize="small" /> },
       { key: "groups", label: "Groups", href: MOBILIZE_MY_GROUPS_HREF, icon: <GroupsOutlinedIcon fontSize="small" /> },
-      { key: "bookmarks", label: "Bookmarks", href: MOBILIZE_BOOKMARKS_HREF, icon: <BookmarkBorderOutlinedIcon fontSize="small" /> },
+      { key: "bookmarks", label: "My saved", href: MOBILIZE_BOOKMARKS_HREF, icon: <BookmarkBorderOutlinedIcon fontSize="small" /> },
       { key: "profile", label: "Profile", href: profileHref, icon: <PersonOutlineIcon fontSize="small" /> },
       {
         key: "settings",

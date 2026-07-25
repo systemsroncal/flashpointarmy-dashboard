@@ -174,12 +174,12 @@ export function MobilizeSocialPostCard({
           <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flexShrink: 0, ml: "auto" }}>
             {manageActions}
             {bookmarkRef ? (
-              <Tooltip title={bookmarked ? "Remove bookmark" : "Bookmark"}>
+              <Tooltip title={bookmarked ? "Unsave" : "Save"}>
                 <IconButton
                   size="small"
                   onClick={() => void toggleBookmark()}
                   disabled={bookmarkBusy}
-                  aria-label={bookmarked ? "Remove bookmark" : "Bookmark post"}
+                  aria-label={bookmarked ? "Unsave post" : "Save post"}
                   sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
                 >
                   {bookmarked ? (

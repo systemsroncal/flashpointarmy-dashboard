@@ -33,7 +33,7 @@ export function mobilizeSocialNavItems(profileHref: string): MobilizeSocialNavIt
     { key: "alerts", label: "Alerts", href: MOBILIZE_ALERTS_HREF, shortLabel: "Alerts" },
     { key: "messages", label: "Messages", href: MOBILIZE_MESSAGES_HREF, shortLabel: "Msgs" },
     { key: "groups", label: "Groups", href: MOBILIZE_MY_GROUPS_HREF, shortLabel: "Groups" },
-    { key: "bookmarks", label: "Bookmarks", href: MOBILIZE_BOOKMARKS_HREF, shortLabel: "Saved" },
+    { key: "bookmarks", label: "My saved", href: MOBILIZE_BOOKMARKS_HREF, shortLabel: "Saved" },
     { key: "profile", label: "Profile", href: profileHref, shortLabel: "Profile" },
     {
       key: "settings",
