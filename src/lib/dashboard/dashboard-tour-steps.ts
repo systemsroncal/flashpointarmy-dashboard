@@ -138,7 +138,7 @@ const MODULE_COPY: Record<string, { title: string; description: string }> = {
       "Email templates and outbound messaging tools used for invites, password resets, and campaign-style communications.",
   },
   [MODULE_SLUGS.reports]: {
-    title: "Reports",
+    title: "FPA Analytics",
     description:
       "Analytics and charts: demographics, engagement, and operational reports to understand how the platform is being used.",
   },
