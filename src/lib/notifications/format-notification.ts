@@ -42,11 +42,19 @@ export function formatNotificationDisplay(n: {
   if (title === "Local leader assigned") {
     title = "Local leader application";
   }
+  if (title === "Certificate request") {
+    title = "Prior BibCit";
+  }
+  if (/submitted a certificate request/i.test(title)) {
+    title = title.replace(/submitted a certificate request/i, "confirmed prior BibCit");
+  }
 
   if (body) {
     body = body
       .replace(/^manual\.\w+\s*·\s*manual\s*·\s*/i, "")
       .replace(/^\{[\s\S]*\}$/, "")
+      .replace(/submitted a certificate request/i, "confirmed prior BibCit")
+      .replace(/submitted an external certificate request/i, "confirmed prior BibCit")
       .trim();
     if (body === title) body = null;
   }

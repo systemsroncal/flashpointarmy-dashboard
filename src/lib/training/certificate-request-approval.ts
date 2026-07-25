@@ -30,13 +30,17 @@ export async function approveCertificateRequestRecord(
 
   const result = await markAllCourseSessionsCompleteForUser(admin, args.userId, args.courseSlug);
 
-  await notifyCertificateRequestReviewed(admin, {
-    userId: args.userId,
-    courseTitle: args.courseTitle,
-    status: "approved",
-    adminNote: args.adminNote ?? null,
-    reviewedBy: args.reviewedBy,
-  });
+  try {
+    await notifyCertificateRequestReviewed(admin, {
+      userId: args.userId,
+      courseTitle: args.courseTitle,
+      status: "approved",
+      adminNote: args.adminNote ?? null,
+      reviewedBy: args.reviewedBy,
+    });
+  } catch (err) {
+    console.error("[certificate-request-approval] review notification failed:", err);
+  }
 
   return result;
 }

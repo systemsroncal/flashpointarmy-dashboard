@@ -212,6 +212,38 @@ export async function POST(req: Request) {
   const { data: course } = await admin.from("courses").select("title").eq("id", courseId).maybeSingle();
   const courseTitle = (course?.title as string | undefined)?.trim() || "Biblical Citizenship";
 
+  const [{ data: du }, { data: prof }] = await Promise.all([
+    admin.from("dashboard_users").select("first_name, last_name, email").eq("id", user.id).maybeSingle(),
+    admin.from("profiles").select("first_name, last_name").eq("id", user.id).maybeSingle(),
+  ]);
+
+  const feedErrors: string[] = [];
+  try {
+    await notifyCertificateRequestSubmitted(admin, {
+      userId: user.id,
+      courseTitle,
+      organizationName,
+    });
+  } catch (e) {
+    feedErrors.push(e instanceof Error ? e.message : "notification failed");
+    console.error("[certificate-requests] notifyCertificateRequestSubmitted failed:", e);
+  }
+
+  try {
+    await insertCertificateRequestFeed({
+      supabase: admin,
+      userId: user.id,
+      email: (du?.email as string | undefined) ?? user.email ?? "",
+      first_name: (prof?.first_name as string | null) ?? (du?.first_name as string | null) ?? null,
+      last_name: (prof?.last_name as string | null) ?? (du?.last_name as string | null) ?? null,
+      courseTitle,
+      organizationName,
+    });
+  } catch (e) {
+    feedErrors.push(e instanceof Error ? e.message : "community feed failed");
+    console.error("[certificate-requests] insertCertificateRequestFeed failed:", e);
+  }
+
   try {
     await approveCertificateRequestRecord(admin, {
       requestId: data.id as string,
@@ -227,35 +259,9 @@ export async function POST(req: Request) {
     );
   }
 
-  try {
-    const { data: du } = await admin
-      .from("dashboard_users")
-      .select("first_name, last_name, email")
-      .eq("id", user.id)
-      .maybeSingle();
-    const { data: prof } = await admin
-      .from("profiles")
-      .select("first_name, last_name")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    await notifyCertificateRequestSubmitted(admin, {
-      userId: user.id,
-      courseTitle,
-      organizationName,
-    });
-    await insertCertificateRequestFeed({
-      supabase: admin,
-      userId: user.id,
-      email: (du?.email as string | undefined) ?? user.email ?? "",
-      first_name: (prof?.first_name as string | null) ?? (du?.first_name as string | null) ?? null,
-      last_name: (prof?.last_name as string | null) ?? (du?.last_name as string | null) ?? null,
-      courseTitle,
-      organizationName,
-    });
-  } catch {
-    /* non-blocking admin feed after successful approval */
-  }
-
-  return NextResponse.json({ ok: true, request: { ...data, status: "approved" } });
+  return NextResponse.json({
+    ok: true,
+    request: { ...data, status: "approved" },
+    ...(feedErrors.length ? { feedWarnings: feedErrors } : {}),
+  });
 }

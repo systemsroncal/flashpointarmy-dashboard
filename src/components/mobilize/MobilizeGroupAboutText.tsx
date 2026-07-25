@@ -4,6 +4,7 @@ import { Box, Button, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
 const MAX_HEIGHT_PX = 130;
+const EXPAND_TRANSITION = "max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1)";
 
 type Props = {
   text: string;
@@ -13,6 +14,11 @@ export function MobilizeGroupAboutText({ text }: Props) {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
+  const [contentHeight, setContentHeight] = useState(MAX_HEIGHT_PX);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [text]);
 
   useEffect(() => {
     const el = contentRef.current;
@@ -20,7 +26,9 @@ export function MobilizeGroupAboutText({ text }: Props) {
 
     function measure() {
       if (!el) return;
-      setOverflows(el.scrollHeight > MAX_HEIGHT_PX + 1);
+      const height = el.scrollHeight;
+      setContentHeight(height);
+      setOverflows(height > MAX_HEIGHT_PX + 1);
     }
 
     measure();
@@ -30,23 +38,31 @@ export function MobilizeGroupAboutText({ text }: Props) {
 
   return (
     <Box>
-      <Typography
-        ref={contentRef}
-        variant="body2"
+      <Box
         sx={{
-          whiteSpace: "pre-wrap",
-          lineHeight: 1.65,
-          color: "rgba(0,0,0,0.78)",
-          maxHeight: expanded ? "none" : MAX_HEIGHT_PX,
-          overflow: expanded ? "visible" : "hidden",
+          maxHeight: overflows ? (expanded ? contentHeight : MAX_HEIGHT_PX) : "none",
+          overflow: "hidden",
+          transition: overflows ? EXPAND_TRANSITION : "none",
         }}
       >
-        {text}
-      </Typography>
+        <Typography
+          ref={contentRef}
+          variant="body2"
+          component="div"
+          sx={{
+            whiteSpace: "pre-wrap",
+            lineHeight: 1.65,
+            color: "rgba(0,0,0,0.78)",
+          }}
+        >
+          {text}
+        </Typography>
+      </Box>
       {overflows ? (
         <Button
           size="small"
           onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
           sx={{
             mt: 0.75,
             px: 0,
@@ -61,4 +77,4 @@ export function MobilizeGroupAboutText({ text }: Props) {
       ) : null}
     </Box>
   );
-}
+};

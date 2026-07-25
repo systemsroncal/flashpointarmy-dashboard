@@ -1,6 +1,7 @@
 import {
   renderTemplatedEmail,
   toAbsolutePublicUrl,
+  type EmailBranding,
   type EmailShortcodes,
 } from "@/lib/mail/render-email";
 
@@ -22,12 +23,7 @@ export function renderBroadcastSms(bodyText: string, shortcodes: BroadcastShortc
   return replaceShortcodes(bodyText, shortcodes);
 }
 
-type Branding = {
-  logo_url: string | null;
-  logo_bg_color: string;
-  container_bg_color: string;
-  footer_html: string;
-};
+type Branding = EmailBranding;
 
 export function renderBroadcastEmail(
   branding: Branding,

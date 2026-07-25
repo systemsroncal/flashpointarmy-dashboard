@@ -80,11 +80,12 @@ export async function insertCertificateRequestFeed(args: {
 }): Promise<void> {
   const who = displayHandle(args.first_name, args.last_name, args.email);
   const state = await chapterStateFromProfile(args.supabase, args.userId);
-  await args.supabase.from("community_activity").insert({
+  const { error } = await args.supabase.from("community_activity").insert({
     feed_category: "certificate_request",
     title: `${who} confirmed prior BibCit`,
     subtitle: `${args.courseTitle} · ${args.organizationName}`,
     state_code: state,
     icon_key: "school",
   });
+  if (error) throw new Error(error.message);
 }

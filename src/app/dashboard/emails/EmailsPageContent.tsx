@@ -50,6 +50,10 @@ export default async function EmailsPageContent({
           logo_url: null,
           logo_bg_color: "#111111",
           container_bg_color: "#0b0b0d",
+          body_bg_color: "#101215",
+          body_text_color: "#e5e7eb",
+          body_link_color: "#c9a227",
+          footer_text_color: "#a1a1aa",
           footer_html: "<p>© {current_year}</p>",
         }
       }

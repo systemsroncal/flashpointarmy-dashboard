@@ -27,18 +27,19 @@ export async function notifyCertificateRequestSubmitted(
       ? formatPrivacyName(first, last)
       : email.split("@")[0] || "A member";
 
-  const body = `${who} confirmed prior BibCit`;
+  const headline = `${who} confirmed prior BibCit`;
 
-  await admin.from("audit_logs").insert({
+  const { error: auditErr } = await admin.from("audit_logs").insert({
     user_id: args.userId,
     action: "certificate_request_submitted",
     entity_type: "course_certificate_request",
     entity_id: args.userId,
     payload: {
-      title: `${who} confirmed prior BibCit`,
-      text: body,
+      title: headline,
+      text: headline,
       course_title: args.courseTitle,
       organization_name: args.organizationName,
     },
   });
+  if (auditErr) throw new Error(auditErr.message);
 }

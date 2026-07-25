@@ -20,6 +20,10 @@ export async function PATCH(req: Request) {
       logo_url?: string | null;
       logo_bg_color?: string;
       container_bg_color?: string;
+      body_bg_color?: string;
+      body_text_color?: string;
+      body_link_color?: string;
+      footer_text_color?: string;
       footer_html?: string;
     };
 
@@ -29,6 +33,10 @@ export async function PATCH(req: Request) {
         logo_url: body.logo_url ?? null,
         logo_bg_color: body.logo_bg_color,
         container_bg_color: body.container_bg_color,
+        body_bg_color: body.body_bg_color,
+        body_text_color: body.body_text_color,
+        body_link_color: body.body_link_color,
+        footer_text_color: body.footer_text_color,
         footer_html: body.footer_html,
         updated_by: user.id,
       })

@@ -1,6 +1,6 @@
 "use client";
 
-import { renderTemplatedEmail } from "@/lib/mail/render-email";
+import { renderTemplatedEmail, type EmailBranding } from "@/lib/mail/render-email";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
@@ -38,12 +38,72 @@ import { LaunchDefaultPasswordPanel } from "@/components/dashboard/emails/Launch
 import { EmailDeliverySettingsPanel } from "@/components/dashboard/emails/EmailDeliverySettingsPanel";
 import { Fragment, useEffect, useMemo, useState } from "react";
 
-type Branding = {
-  logo_url: string | null;
-  logo_bg_color: string;
-  container_bg_color: string;
-  footer_html: string;
+type Branding = EmailBranding;
+
+const BRANDING_DEFAULTS: Branding = {
+  logo_url: null,
+  logo_bg_color: "#111111",
+  container_bg_color: "#0b0b0d",
+  body_bg_color: "#101215",
+  body_text_color: "#e5e7eb",
+  body_link_color: "#c9a227",
+  footer_text_color: "#a1a1aa",
+  footer_html: "<p>© {current_year}</p>",
 };
+
+function normalizeBranding(input: Branding): Branding {
+  return {
+    logo_url: input.logo_url ?? null,
+    logo_bg_color: input.logo_bg_color?.trim() || BRANDING_DEFAULTS.logo_bg_color,
+    container_bg_color: input.container_bg_color?.trim() || BRANDING_DEFAULTS.container_bg_color,
+    body_bg_color: input.body_bg_color?.trim() || BRANDING_DEFAULTS.body_bg_color,
+    body_text_color: input.body_text_color?.trim() || BRANDING_DEFAULTS.body_text_color,
+    body_link_color: input.body_link_color?.trim() || BRANDING_DEFAULTS.body_link_color,
+    footer_text_color: input.footer_text_color?.trim() || BRANDING_DEFAULTS.footer_text_color,
+    footer_html: input.footer_html?.trim() || BRANDING_DEFAULTS.footer_html,
+  };
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+  disabled,
+  helperText,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  helperText?: string;
+}) {
+  const pickerValue = /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#101215";
+  return (
+    <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
+      <TextField
+        type="color"
+        value={pickerValue}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        label=" "
+        InputLabelProps={{ shrink: true }}
+        sx={{
+          width: 72,
+          flexShrink: 0,
+          "& input": { height: 40, cursor: disabled ? "default" : "pointer" },
+        }}
+      />
+      <TextField
+        label={label}
+        fullWidth
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        helperText={helperText}
+      />
+    </Stack>
+  );
+}
 
 type TemplateRow = {
   id: string;
@@ -146,7 +206,7 @@ export function EmailsSettingsClient({
   gmailConnected?: boolean;
   gmailError?: string;
 }) {
-  const [branding, setBranding] = useState<Branding>(initialBranding);
+  const [branding, setBranding] = useState<Branding>(() => normalizeBranding(initialBranding));
   const [templates, setTemplates] = useState<TemplateRow[]>(initialTemplates);
   const [selectedKey, setSelectedKey] = useState(
     initialTemplates[0]?.template_key ?? "verify_email"
@@ -307,7 +367,7 @@ export function EmailsSettingsClient({
       {
         subject: "Preview subject",
         body_html:
-          "<p>This is sample <strong>body</strong> content for branding preview.</p>",
+          '<p>This is sample <strong>body</strong> content for branding preview.</p><p><a href="https://example.com">Sample link</a></p>',
       },
       PREVIEW_SHORTCODES
     );
@@ -341,6 +401,10 @@ export function EmailsSettingsClient({
           logo_url: branding.logo_url?.trim() || null,
           logo_bg_color: branding.logo_bg_color,
           container_bg_color: branding.container_bg_color,
+          body_bg_color: branding.body_bg_color,
+          body_text_color: branding.body_text_color,
+          body_link_color: branding.body_link_color,
+          footer_text_color: branding.footer_text_color,
           footer_html: branding.footer_html,
         }),
       });
@@ -405,7 +469,7 @@ export function EmailsSettingsClient({
       <Typography variant="h5">Email configuration</Typography>
       <Typography variant="body2" color="text.secondary">
         Global layout (logo area, colors, footer) wraps every transactional email. Each template only stores the inner
-        HTML body and subject line.
+        HTML body and subject line. Body background, text, and link colors apply to every template automatically.
       </Typography>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: "divider" }}>
@@ -650,24 +714,75 @@ export function EmailsSettingsClient({
               helperText="Public HTTPS URL. If empty, a text title is shown."
             />
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <TextField
+              <ColorField
                 label="Logo strip background"
-                fullWidth
                 value={branding.logo_bg_color}
-                onChange={(e) =>
-                  setBranding((b) => ({ ...b, logo_bg_color: e.target.value }))
-                }
+                onChange={(value) => setBranding((b) => ({ ...b, logo_bg_color: value }))}
                 disabled={!canEdit}
               />
-              <TextField
+              <ColorField
                 label="Outer container background"
-                fullWidth
                 value={branding.container_bg_color}
-                onChange={(e) =>
-                  setBranding((b) => ({ ...b, container_bg_color: e.target.value }))
-                }
+                onChange={(value) => setBranding((b) => ({ ...b, container_bg_color: value }))}
+                disabled={!canEdit}
+                helperText="Background behind the email card"
+              />
+            </Stack>
+            <Typography variant="subtitle2" sx={{ mt: 0.5 }}>
+              Body colors
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+              Applied to every template body (background, text, and links).
+            </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <ColorField
+                label="Body background"
+                value={branding.body_bg_color ?? BRANDING_DEFAULTS.body_bg_color!}
+                onChange={(value) => setBranding((b) => ({ ...b, body_bg_color: value }))}
+                disabled={!canEdit}
+                helperText="e.g. #ffffff"
+              />
+              <ColorField
+                label="Body text color"
+                value={branding.body_text_color ?? BRANDING_DEFAULTS.body_text_color!}
+                onChange={(value) => setBranding((b) => ({ ...b, body_text_color: value }))}
+                disabled={!canEdit}
+                helperText="e.g. #111111"
+              />
+              <ColorField
+                label="Body link color"
+                value={branding.body_link_color ?? BRANDING_DEFAULTS.body_link_color!}
+                onChange={(value) => setBranding((b) => ({ ...b, body_link_color: value }))}
+                disabled={!canEdit}
+                helperText="e.g. #1d4ed8"
+              />
+            </Stack>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
+              <ColorField
+                label="Footer text color"
+                value={branding.footer_text_color ?? BRANDING_DEFAULTS.footer_text_color!}
+                onChange={(value) => setBranding((b) => ({ ...b, footer_text_color: value }))}
                 disabled={!canEdit}
               />
+              {canEdit ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() =>
+                    setBranding((b) => ({
+                      ...b,
+                      body_bg_color: "#ffffff",
+                      body_text_color: "#111111",
+                      body_link_color: "#1d4ed8",
+                      footer_text_color: "#666666",
+                      container_bg_color: "#f4f4f5",
+                    }))
+                  }
+                  sx={{ alignSelf: { xs: "flex-start", sm: "center" }, whiteSpace: "nowrap", mt: { sm: 1 } }}
+                >
+                  Apply white body theme
+                </Button>
+              ) : null}
             </Stack>
             <TextField
               label="Footer HTML"

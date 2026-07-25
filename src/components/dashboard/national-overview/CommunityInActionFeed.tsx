@@ -167,7 +167,7 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   if (cat === "member") return orangeMember;
   if (key === "school") return oliveSchool;
 
-  if (cat === "training_session" || cat === "training_course") return oliveSchool;
+  if (cat === "training_session" || cat === "training_course" || cat === "certificate_request") return oliveSchool;
   if (cat === "manual") return manualNote;
 
   return navyBolt;
