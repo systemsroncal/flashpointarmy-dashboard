@@ -31,8 +31,6 @@ import SportsIcon from "@mui/icons-material/Sports";
 import SecurityIcon from "@mui/icons-material/Security";
 import EmailIcon from "@mui/icons-material/Email";
 import AssessmentIcon from "@mui/icons-material/Assessment";
-import AutorenewIcon from "@mui/icons-material/Autorenew";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SettingsIcon from "@mui/icons-material/Settings";
 import VolunteerActivismOutlinedIcon from "@mui/icons-material/VolunteerActivismOutlined";
 import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
@@ -199,16 +197,6 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
       pathname.startsWith("/dashboard/communications/")
     );
   }
-  if (item.href === "/dashboard/orders") {
-    return (
-      pathname === "/dashboard/orders" ||
-      (pathname.startsWith("/dashboard/orders/") &&
-        !pathname.startsWith("/dashboard/orders/subscriptions"))
-    );
-  }
-  if (item.href === "/dashboard/orders/subscriptions") {
-    return pathname === item.href || pathname.startsWith(`${item.href}/`);
-  }
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
@@ -310,21 +298,6 @@ const PEOPLE_NAV: NavItem[] = [
   },
 ];
 
-const ORDERS_DRAWER_NAV_BASE: NavItem[] = [
-  {
-    label: "Orders",
-    href: "/dashboard/orders",
-    module: MODULE_SLUGS.orders,
-    icon: <ReceiptLongIcon />,
-  },
-  {
-    label: "Subscriptions",
-    href: "/dashboard/orders/subscriptions",
-    module: MODULE_SLUGS.orders,
-    icon: <AutorenewIcon />,
-  },
-];
-
 const NAV: NavItem[] = [
   {
     label: "National overview",
@@ -333,22 +306,16 @@ const NAV: NavItem[] = [
     icon: <PublicIcon />,
   },
   {
+    label: "Chapters & Groups",
+    href: MOBILIZE_HOME,
+    module: MODULE_SLUGS.movilization,
+    icon: <FlagOutlined />,
+  },
+  {
     label: "Churches",
     href: "/dashboard/chapters",
     module: MODULE_SLUGS.chapters,
     icon: <GroupsIcon />,
-  },
-  {
-    label: "FPA Events",
-    href: "/dashboard/gatherings",
-    module: MODULE_SLUGS.gatherings,
-    icon: <EventIcon />,
-  },
-  {
-    label: "Chapters",
-    href: MOBILIZE_HOME,
-    module: MODULE_SLUGS.movilization,
-    icon: <FlagOutlined />,
   },
   {
     label: "Administrators",
@@ -379,6 +346,12 @@ const NAV: NavItem[] = [
     href: "/dashboard/notifications",
     module: MODULE_SLUGS.communications,
     icon: <CampaignIcon />,
+  },
+  {
+    label: "FPA Events",
+    href: "/dashboard/gatherings",
+    module: MODULE_SLUGS.gatherings,
+    icon: <EventIcon />,
   },
   {
     label: "Logs",
@@ -457,6 +430,100 @@ const NAV_ITEM_TOUCH_SX = {
     pointerEvents: "none",
   },
 } as const;
+
+function MissionPipelineNavGroup({
+  missionPipelineNav,
+  missionPipelineOpen,
+  setMissionPipelineOpen,
+  missionPipelineHasActive,
+  pathname,
+  closeMobileDrawer,
+}: {
+  missionPipelineNav: NavItem[];
+  missionPipelineOpen: boolean;
+  setMissionPipelineOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  missionPipelineHasActive: boolean;
+  pathname: string;
+  closeMobileDrawer: () => void;
+}) {
+  return (
+    <>
+      <ListItem disablePadding>
+        <ListItemButton
+          onClick={() => setMissionPipelineOpen((prev) => !prev)}
+          selected={missionPipelineHasActive}
+          data-tour="nav-mission-pipeline-group"
+          sx={{
+            ...NAV_ITEM_TOUCH_SX,
+            py: 0.75,
+            "&.Mui-selected": NAV_SELECTED_SX,
+          }}
+        >
+          <ListItemIcon
+            sx={{
+              color: missionPipelineHasActive ? "primary.main" : "rgba(255,255,255,0.92)",
+              minWidth: 38,
+            }}
+          >
+            <AdjustIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Mission Pipeline"
+            primaryTypographyProps={{
+              variant: "body2",
+              fontWeight: 600,
+              fontSize: "calc(0.82rem + 3px)",
+              color: missionPipelineHasActive ? "primary.main" : "rgba(255,255,255,0.88)",
+            }}
+          />
+          {missionPipelineOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+        </ListItemButton>
+      </ListItem>
+      <Collapse in={missionPipelineOpen} timeout="auto" unmountOnExit>
+        <List disablePadding>
+          {missionPipelineNav.map((item) => {
+            const selected = isNavItemSelected(item, pathname);
+            return (
+              <ListItem key={item.href} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  href={item.href}
+                  selected={selected}
+                  data-tour={`nav-${item.href.replace(/\//g, "-")}`}
+                  onClick={closeMobileDrawer}
+                  sx={{
+                    ...NAV_ITEM_TOUCH_SX,
+                    py: 0.65,
+                    pl: 4.5,
+                    "&.Mui-selected": NAV_SELECTED_SX,
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
+                      minWidth: 36,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      variant: "body2",
+                      fontWeight: 500,
+                      fontSize: "calc(0.8rem + 3px)",
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+      </Collapse>
+    </>
+  );
+}
 
 function PeopleNavGroup({
   peopleNav,
@@ -563,7 +630,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [missionPipelineOpen, setMissionPipelineOpen] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
-  const [ordersOpen, setOrdersOpen] = useState(false);
   const pathname = usePathname();
   const permissions = usePermissions();
   const user = useDashboardUser();
@@ -667,13 +733,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       !MISSION_PIPELINE_HREFS.has(item.href) &&
       !PEOPLE_HREFS.has(item.href)
   );
-  const ordersNav = ORDERS_DRAWER_NAV_BASE.filter((item) => can(permissions, item.module, "read"));
   const settingsHasActive = settingsNav.some((item) => isNavItemSelected(item, pathname));
   const missionPipelineHasActive = missionPipelineNav.some((item) =>
     isNavItemSelected(item, pathname)
   );
   const peopleHasActive = peopleNav.some((item) => isNavItemSelected(item, pathname));
-  const ordersHasActive = ordersNav.some((item) => isNavItemSelected(item, pathname));
 
   const showSystemNotificationBell =
     user.role_names.includes("admin") ||
@@ -736,10 +800,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (peopleHasActive) setPeopleOpen(true);
   }, [peopleHasActive]);
-
-  useEffect(() => {
-    if (ordersHasActive) setOrdersOpen(true);
-  }, [ordersHasActive]);
 
   async function handleSignOut() {
     try {
@@ -834,17 +894,32 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <>
             {visibleNav.map((item) => {
               const selected = isNavItemSelected(item, pathname);
-              const afterChapters =
-                item.href === "/dashboard/chapters" && peopleNav.length > 0 ? (
-                  <PeopleNavGroup
-                    key="people-group"
-                    peopleNav={peopleNav}
-                    peopleOpen={peopleOpen}
-                    setPeopleOpen={setPeopleOpen}
-                    peopleHasActive={peopleHasActive}
-                    pathname={pathname}
-                    closeMobileDrawer={closeMobileDrawer}
-                  />
+              const afterChaptersGroups =
+                item.href === MOBILIZE_HOME && item.module === MODULE_SLUGS.movilization ? (
+                  <>
+                    {missionPipelineNav.length > 0 ? (
+                      <MissionPipelineNavGroup
+                        key="mission-pipeline-group"
+                        missionPipelineNav={missionPipelineNav}
+                        missionPipelineOpen={missionPipelineOpen}
+                        setMissionPipelineOpen={setMissionPipelineOpen}
+                        missionPipelineHasActive={missionPipelineHasActive}
+                        pathname={pathname}
+                        closeMobileDrawer={closeMobileDrawer}
+                      />
+                    ) : null}
+                    {peopleNav.length > 0 ? (
+                      <PeopleNavGroup
+                        key="people-group"
+                        peopleNav={peopleNav}
+                        peopleOpen={peopleOpen}
+                        setPeopleOpen={setPeopleOpen}
+                        peopleHasActive={peopleHasActive}
+                        pathname={pathname}
+                        closeMobileDrawer={closeMobileDrawer}
+                      />
+                    ) : null}
+                  </>
                 ) : null;
               if (item.href === "/dashboard/training" && showTrainingSubmenu && user.member_onboarding) {
                 return (
@@ -896,7 +971,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         />
                       </ListItemButton>
                     </ListItem>
-                    {afterChapters}
+                    {afterChaptersGroups}
                   </Box>
                 );
               }
@@ -944,192 +1019,36 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       {item.href === "/dashboard/notifications" ? <NotificationsDrawerUnreadCount /> : null}
                     </ListItemButton>
                   </ListItem>
-                  {afterChapters}
+                  {afterChaptersGroups}
                 </Box>
               );
             })}
-            {!visibleNav.some((i) => i.href === "/dashboard/chapters") && peopleNav.length > 0 ? (
-              <PeopleNavGroup
-                peopleNav={peopleNav}
-                peopleOpen={peopleOpen}
-                setPeopleOpen={setPeopleOpen}
-                peopleHasActive={peopleHasActive}
-                pathname={pathname}
-                closeMobileDrawer={closeMobileDrawer}
-              />
+            {!visibleNav.some((i) => i.href === MOBILIZE_HOME) ? (
+              <>
+                {missionPipelineNav.length > 0 ? (
+                  <MissionPipelineNavGroup
+                    missionPipelineNav={missionPipelineNav}
+                    missionPipelineOpen={missionPipelineOpen}
+                    setMissionPipelineOpen={setMissionPipelineOpen}
+                    missionPipelineHasActive={missionPipelineHasActive}
+                    pathname={pathname}
+                    closeMobileDrawer={closeMobileDrawer}
+                  />
+                ) : null}
+                {peopleNav.length > 0 ? (
+                  <PeopleNavGroup
+                    peopleNav={peopleNav}
+                    peopleOpen={peopleOpen}
+                    setPeopleOpen={setPeopleOpen}
+                    peopleHasActive={peopleHasActive}
+                    pathname={pathname}
+                    closeMobileDrawer={closeMobileDrawer}
+                  />
+                ) : null}
+              </>
             ) : null}
           </>
         )}
-        {!isMobilize && ordersNav.length > 0 ? (
-          <>
-            <ListItem disablePadding>
-              <ListItemButton
-                onClick={() => setOrdersOpen((prev) => !prev)}
-                selected={ordersHasActive}
-                data-tour="nav-orders-group"
-                sx={{
-                  ...NAV_ITEM_TOUCH_SX,
-                  py: 0.75,
-                  "&.Mui-selected": NAV_SELECTED_SX,
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    color: ordersHasActive
-                      ? "primary.main"
-                      : "rgba(255,255,255,0.92)",
-                    minWidth: 38,
-                  }}
-                >
-                  <ReceiptLongIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Orders"
-                  primaryTypographyProps={{
-                    variant: "body2",
-                    fontWeight: 600,
-                    fontSize: "calc(0.82rem + 3px)",
-                    color: ordersHasActive
-                      ? "primary.main"
-                      : "rgba(255,255,255,0.88)",
-                  }}
-                />
-                {ordersOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-              </ListItemButton>
-            </ListItem>
-            <Collapse in={ordersOpen} timeout="auto" unmountOnExit>
-              <List disablePadding>
-                {ordersNav.map((item) => {
-                  const selected = isNavItemSelected(item, pathname);
-                  return (
-                    <ListItem key={item.href} disablePadding>
-                      <ListItemButton
-                        component={Link}
-                        href={item.href}
-                        selected={selected}
-                        data-tour={`nav-${item.href.replace(/\//g, "-")}`}
-                        onClick={closeMobileDrawer}
-                        sx={{
-                          ...NAV_ITEM_TOUCH_SX,
-                          py: 0.65,
-                          pl: 4.5,
-                          "&.Mui-selected": NAV_SELECTED_SX,
-                        }}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            color: selected
-                              ? "primary.main"
-                              : "rgba(255,255,255,0.92)",
-                            minWidth: 36,
-                          }}
-                        >
-                          {item.icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={item.label}
-                          primaryTypographyProps={{
-                            variant: "body2",
-                            fontWeight: 500,
-                            fontSize: "calc(0.8rem + 3px)",
-                            color: selected
-                              ? "primary.main"
-                              : "rgba(255,255,255,0.88)",
-                          }}
-                        />
-                      </ListItemButton>
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </Collapse>
-          </>
-        ) : null}
-        {!isMobilize && missionPipelineNav.length > 0 ? (
-          <>
-            <ListItem disablePadding>
-              <ListItemButton
-                onClick={() => setMissionPipelineOpen((prev) => !prev)}
-                selected={missionPipelineHasActive}
-                data-tour="nav-mission-pipeline-group"
-                sx={{
-                  ...NAV_ITEM_TOUCH_SX,
-                  py: 0.75,
-                  "&.Mui-selected": NAV_SELECTED_SX,
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    color: missionPipelineHasActive
-                      ? "primary.main"
-                      : "rgba(255,255,255,0.92)",
-                    minWidth: 38,
-                  }}
-                >
-                  <AdjustIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Mission Pipeline"
-                  primaryTypographyProps={{
-                    variant: "body2",
-                    fontWeight: 600,
-                    fontSize: "calc(0.82rem + 3px)",
-                    color: missionPipelineHasActive
-                      ? "primary.main"
-                      : "rgba(255,255,255,0.88)",
-                  }}
-                />
-                {missionPipelineOpen ? (
-                  <ExpandLessIcon fontSize="small" />
-                ) : (
-                  <ExpandMoreIcon fontSize="small" />
-                )}
-              </ListItemButton>
-            </ListItem>
-            <Collapse in={missionPipelineOpen} timeout="auto" unmountOnExit>
-              <List disablePadding>
-                {missionPipelineNav.map((item) => {
-                  const selected = isNavItemSelected(item, pathname);
-                  return (
-                    <ListItem key={item.href} disablePadding>
-                      <ListItemButton
-                        component={Link}
-                        href={item.href}
-                        selected={selected}
-                        data-tour={`nav-${item.href.replace(/\//g, "-")}`}
-                        onClick={closeMobileDrawer}
-                        sx={{
-                          ...NAV_ITEM_TOUCH_SX,
-                          py: 0.65,
-                          pl: 4.5,
-                          "&.Mui-selected": NAV_SELECTED_SX,
-                        }}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
-                            minWidth: 36,
-                          }}
-                        >
-                          {item.icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={item.label}
-                          primaryTypographyProps={{
-                            variant: "body2",
-                            fontWeight: 500,
-                            fontSize: "calc(0.8rem + 3px)",
-                            color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
-                          }}
-                        />
-                      </ListItemButton>
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </Collapse>
-          </>
-        ) : null}
         {!isMobilize && settingsNav.length > 0 ? (
           <>
             <ListItem disablePadding>
