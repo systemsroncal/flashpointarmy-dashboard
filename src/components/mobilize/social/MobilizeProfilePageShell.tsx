@@ -2,7 +2,6 @@
 
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import {
-  mobilizeGroupFeedContentBg,
   mobilizeGroupFeedContentFillSx,
   mobilizeGroupFeedContentScrollSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
@@ -71,17 +70,16 @@ export function MobilizeProfilePageShell({
   const groupFeedContentSx = scrollWithHeader
     ? {
         ...mobilizeGroupFeedContentScrollSx,
-        bgcolor: mobilizeGroupFeedContentBg,
-        borderRadius: 2.5,
+        bgcolor: "transparent",
         px: { xs: 1, sm: 2, md: 2.5 },
         py: { xs: 2, sm: 2.5 },
       }
     : {
         ...mobilizeGroupFeedContentFillSx,
-        bgcolor: mobilizeGroupFeedContentBg,
-        borderRadius: 2.5,
+        bgcolor: "transparent",
         px: { xs: 1, sm: 2, md: 2.5 },
         py: { xs: 2, sm: 2.5 },
+        borderRadius: 2,
       };
   const fallbackInitial =
     avatarFallback.trim().length > 1

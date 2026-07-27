@@ -1,5 +1,6 @@
 "use client";
 
+import { mobilizeGroupFeedPostsColumnSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { Box, ThemeProvider } from "@mui/material";
 import type { ReactNode } from "react";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
@@ -54,7 +55,8 @@ export function MobilizeSocialFeedShell({
         display: "grid",
         gridTemplateColumns: gridColumns,
         gap: { xs: 2, lg: isGroupProfile ? 3 : 2.5 },
-        alignItems: "start",
+        alignItems: isGroupProfile ? "stretch" : "start",
+        ...(isGroupProfile ? { minHeight: { lg: "calc(100dvh - 5.5rem - 380px)" } } : {}),
         ...fillSx,
       }}
     >
@@ -75,9 +77,7 @@ export function MobilizeSocialFeedShell({
         sx={{
           ...feedColumnSx,
           order: { xs: 1, lg: 0 },
-          display: "flex",
-          flexDirection: "column",
-          minHeight: 0,
+          ...(isGroupProfile ? mobilizeGroupFeedPostsColumnSx : { display: "flex", flexDirection: "column", minHeight: 0 }),
           ...(fill ? { flex: 1 } : {}),
         }}
       >

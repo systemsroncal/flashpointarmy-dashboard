@@ -82,8 +82,8 @@ export const mobilizeGroupTabPanelScrollSx: SxProps<Theme> = {
   width: "100%",
 };
 
-/** Group profile feed content area (below cover header). */
-export const mobilizeGroupFeedContentBg = "#080808";
+/** Group profile feed content area (below cover header) — transparent; camo shows through. */
+export const mobilizeGroupFeedContentBg = "transparent";
 
 export const mobilizeGroupFeedCardSx: SxProps<Theme> = {
   bgcolor: "#fff",
@@ -93,7 +93,7 @@ export const mobilizeGroupFeedCardSx: SxProps<Theme> = {
   boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
 };
 
-/** White panel for non-feed group tabs on the dark content background. */
+/** White panel for non-feed group tabs on the transparent content background. */
 export const mobilizeGroupSecondaryTabPanelSx: SxProps<Theme> = {
   width: "100%",
   boxSizing: "border-box",
@@ -123,10 +123,51 @@ export const mobilizeGroupFeedContentScrollSx: SxProps<Theme> = {
   overflow: "visible",
 };
 
-/** Solid surface under group hero — blocks dashboard camo backdrop from bleeding through. */
+/** Transparent content strip under group hero (camo backdrop shows through). */
 export const mobilizeGroupFeedContentSurfaceSx: SxProps<Theme> = {
-  bgcolor: mobilizeGroupFeedContentBg,
-  borderRadius: 2.5,
+  bgcolor: "transparent",
+};
+
+/** Center column: full-height stack for composer + post list. */
+export const mobilizeGroupFeedPostsColumnSx: SxProps<Theme> = {
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  minHeight: { lg: "calc(100dvh - 5.5rem - 380px)" },
+};
+
+/** Composer + posts column wrapper inside group feed. */
+export const mobilizeGroupFeedPostsStackSx: SxProps<Theme> = {
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  flex: 1,
+  minHeight: 0,
+  gap: 2,
+};
+
+/** Scrollable / growing posts list area (no panel bg — posts are individual cards). */
+export const mobilizeGroupFeedPostsListSx: SxProps<Theme> = {
+  flex: 1,
+  height: "100%",
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column",
+  bgcolor: "transparent",
+  boxShadow: "none",
+  border: "none",
+  borderRadius: 0,
+  overflow: "visible",
+};
+
+/** Single post card in group feed (elevated white tile on camo). */
+export const mobilizeGroupFeedPostCardSx: SxProps<Theme> = {
+  bgcolor: "#fff",
+  borderRadius: "1rem",
+  p: 2,
+  boxShadow: "0 0 9px 1px #d2d2d2",
+  m: 2,
+  "&:last-child": { mb: 2 },
 };
 
 /** White tab panel when the group profile scrolls with the page. */
@@ -144,7 +185,7 @@ export const mobilizeGroupSecondaryTabPanelScrollSx: SxProps<Theme> = {
   overflow: "visible",
 };
 
-/** Dark group feed content strip — fills viewport on desktop; grows with content on mobile. */
+/** Content strip under group hero — fills viewport on desktop; grows with content on mobile. */
 export const mobilizeGroupFeedContentFillSx: SxProps<Theme> = {
   flex: { xs: "0 0 auto", lg: 1 },
   display: "flex",

@@ -8,7 +8,11 @@ import type { EnrichedGroupMessage } from "@/lib/mobilize/social/enrich-group-me
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
-import { mobilizeGroupFeedCardSx } from "@/lib/mobilize/mobilize-ui-surface";
+import {
+  mobilizeGroupFeedCardSx,
+  mobilizeGroupFeedPostsListSx,
+  mobilizeGroupFeedPostsStackSx,
+} from "@/lib/mobilize/mobilize-ui-surface";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import {
@@ -91,9 +95,15 @@ export function MobilizeGroupFeed({
   }, [wallHtml, wallImages.length]);
 
   const feedBody = (
-    <Box sx={embedded ? { display: "flex", flexDirection: "column", gap: 2 } : { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+    <Box
+      sx={
+        embedded
+          ? mobilizeGroupFeedPostsStackSx
+          : { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
+      }
+    >
       {canPost ? (
-        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden" }}>
+        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden", flexShrink: 0 }}>
           <MobilizeSocialPostEditor
             value={wallHtml}
             onChange={onWallHtmlChange}
@@ -117,7 +127,7 @@ export function MobilizeGroupFeed({
           />
         </Paper>
       ) : (
-        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, p: 2 }}>
+        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, p: 2, flexShrink: 0 }}>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Only leaders can post on this group feed.
           </Typography>
@@ -125,7 +135,10 @@ export function MobilizeGroupFeed({
       )}
 
       {messages.length ? (
-        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden" }}>
+        <Paper
+          elevation={0}
+          sx={embedded ? mobilizeGroupFeedPostsListSx : { ...mobilizeGroupFeedCardSx, overflow: "hidden" }}
+        >
           {messages.map((m) => {
             const unified = toUnifiedPost(m, groupId);
             const canManage = canManageMessage(m);
@@ -137,7 +150,7 @@ export function MobilizeGroupFeed({
                 commentConfig={feedPostCommentConfig(unified)}
                 reactionUrl={feedPostReactionUrl(unified)}
                 showGroupBadge={false}
-                layout={embedded ? "groupFeedList" : "card"}
+                layout={embedded ? "groupFeedCard" : "card"}
                 authorRoleLabel={authorRoleLabels?.[m.author.id]}
                 manageActions={
                   canManage ? (
@@ -169,7 +182,14 @@ export function MobilizeGroupFeed({
           })}
         </Paper>
       ) : (
-        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden" }}>
+        <Paper
+          elevation={0}
+          sx={
+            embedded
+              ? { ...mobilizeGroupFeedPostsListSx, flex: 1 }
+              : { ...mobilizeGroupFeedCardSx, overflow: "hidden" }
+          }
+        >
           <MobilizeSectionEmptyState
             fill
             layout="stacked"

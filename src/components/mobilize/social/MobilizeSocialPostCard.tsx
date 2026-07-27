@@ -14,6 +14,7 @@ import {
   TRUTH_HUB_TEXT,
   TRUTH_HUB_TEXT_MUTED,
 } from "@/lib/mobilize/social/social-hub-surface";
+import { mobilizeGroupFeedPostCardSx } from "@/lib/mobilize/mobilize-ui-surface";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import { Box, Button, Card, CardContent, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
@@ -35,7 +36,7 @@ type Props = {
   onReactionChange?: (reactions: UnifiedFeedPost["reactions"]) => void;
   surface?: "light" | "dark";
   /** Inline row inside a shared group feed card (divider between posts). */
-  layout?: "card" | "groupFeedList";
+  layout?: "card" | "groupFeedList" | "groupFeedCard";
   authorRoleLabel?: string;
 };
 
@@ -53,6 +54,7 @@ export function MobilizeSocialPostCard({
 }: Props) {
   const isDark = surface === "dark";
   const isGroupFeedList = layout === "groupFeedList";
+  const isGroupFeedCard = layout === "groupFeedCard";
   const [reactions, setReactions] = useState(post.reactions);
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -109,21 +111,27 @@ export function MobilizeSocialPostCard({
     <Card
       elevation={0}
       sx={{
-        mb: isGroupFeedList ? 0 : isDark ? 0 : 1.5,
-        borderRadius: isGroupFeedList ? 0 : isDark ? 0 : 2.5,
-        border: isGroupFeedList ? "none" : isDark ? "none" : "1px solid rgba(0,0,0,0.08)",
+        mb: isGroupFeedList || isGroupFeedCard ? 0 : isDark ? 0 : 1.5,
+        borderRadius: isGroupFeedList || isGroupFeedCard ? 0 : isDark ? 0 : 2.5,
+        border: isGroupFeedList || isGroupFeedCard ? "none" : isDark ? "none" : "1px solid rgba(0,0,0,0.08)",
         borderBottom: isGroupFeedList
           ? "1px solid rgba(0,0,0,0.08)"
           : isDark
             ? `1px solid ${TRUTH_HUB_BORDER}`
             : undefined,
-        bgcolor: isGroupFeedList || isDark ? "transparent" : "#fff",
-        boxShadow: isGroupFeedList || isDark ? "none" : "0 1px 2px rgba(0,0,0,0.06)",
+        bgcolor: isGroupFeedList || isGroupFeedCard || isDark ? "transparent" : "#fff",
+        boxShadow: isGroupFeedList || isGroupFeedCard || isDark ? "none" : "0 1px 2px rgba(0,0,0,0.06)",
         color: isDark ? TRUTH_HUB_TEXT : undefined,
         "&:last-child": isGroupFeedList ? { borderBottom: "none" } : undefined,
       }}
     >
-      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }}>
+      <CardContent
+        sx={
+          isGroupFeedCard
+            ? { ...mobilizeGroupFeedPostCardSx, "&:last-child": { pb: 2 } }
+            : { p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }
+        }
+      >
         <MobilizeSocialPostHeader
           author={post.author}
           createdAt={post.created_at}
