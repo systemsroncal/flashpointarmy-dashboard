@@ -70,6 +70,7 @@ import {
   mobilizeGroupFeedContentFillSx,
   mobilizeGroupTabPanelScrollSx,
   mobilizeGroupSecondaryTabPanelSx,
+  mobilizeGroupMembersTableMobileSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
@@ -79,7 +80,7 @@ import {
 } from "@/lib/mobilize/group-ui-labels";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnouncementImagePicker";
-import { MobilizeGroupAboutText } from "@/components/mobilize/MobilizeGroupAboutText";
+import { MobilizeGroupMembersPreview } from "@/components/mobilize/MobilizeGroupMembersPreview";
 import { MobilizeGroupFeed } from "@/components/mobilize/social/MobilizeGroupFeed";
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import type { EnrichedGroupMessage } from "@/lib/mobilize/social/enrich-group-messages";
@@ -262,6 +263,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const searchParams = useSearchParams();
   const theme = useTheme();
   const isMobileGroupFeed = useMediaQuery(theme.breakpoints.down("lg"));
+  const isMobileMembersTable = useMediaQuery(theme.breakpoints.down("md"));
   const activeTab = parseMobilizeGroupTab(searchParams.get("tab"));
   const [feedSubTab, setFeedSubTab] = useState<GroupFeedSubTab>("feed");
   const [group, setGroup] = useState<Group | null>(null);
@@ -409,6 +411,17 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const approvedMembers = useMemo(
     () => members.filter((m) => m.membership_status === "approved"),
     [members]
+  );
+  const recentMembers = useMemo(
+    () =>
+      [...approvedMembers]
+        .sort(
+          (a, b) =>
+            new Date(b.member_since ?? b.created_at).getTime() -
+            new Date(a.member_since ?? a.created_at).getTime()
+        )
+        .slice(0, 4),
+    [approvedMembers]
   );
 
   const loadOwnerCandidates = useCallback(async () => {
@@ -1086,13 +1099,22 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   }, [group, groupCoverSrc, groupStateInfo, joinCallToAction]);
 
   const groupFeedAboutRail = useMemo(() => {
-    if (!group?.description) return null;
+    if (!group || !canViewContent) return null;
     return (
-      <MobilizeProfileSidebarCard title="About this group" variant="groupFeed">
-        <MobilizeGroupAboutText text={group.description} />
-      </MobilizeProfileSidebarCard>
+      <>
+        {group.description ? (
+          <MobilizeProfileSidebarCard title="About this group" variant="groupFeed">
+            <MobilizeGroupAboutText text={group.description} />
+          </MobilizeProfileSidebarCard>
+        ) : null}
+        <MobilizeGroupMembersPreview
+          members={recentMembers}
+          totalCount={approvedMembers.length}
+          groupId={groupId}
+        />
+      </>
     );
-  }, [group]);
+  }, [approvedMembers.length, canViewContent, group, groupId, recentMembers]);
 
   const groupAboutPanel = useMemo(() => {
     if (!group) return null;
@@ -1109,6 +1131,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             </Typography>
           )}
         </MobilizeProfileSidebarCard>
+        <MobilizeGroupMembersPreview
+          members={recentMembers}
+          totalCount={approvedMembers.length}
+          groupId={groupId}
+        />
         <MobilizeProfileSidebarCard title="Details" variant="groupFeed">
           <Stack spacing={1.25}>
             <Stack direction="row" spacing={0.75} alignItems="center">
@@ -1130,23 +1157,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             ) : null}
           </Stack>
         </MobilizeProfileSidebarCard>
-        <Button
-          component={Link}
-          href={mobilizeGroupDetailHref(groupId, "members")}
-          variant="outlined"
-          size="small"
-          sx={{
-            alignSelf: "flex-start",
-            borderRadius: 99,
-            textTransform: "none",
-            fontWeight: 700,
-          }}
-        >
-          View all members
-        </Button>
       </Stack>
     );
-  }, [approvedMembers.length, group, groupId]);
+  }, [approvedMembers.length, group, groupId, recentMembers]);
 
   const groupAuthorRoleLabels = useMemo(() => {
     const labels: Record<string, string> = {};
@@ -1562,15 +1575,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Members ({approvedMembers.length})
           </Typography>
           {approvedMembers.length ? (
-          <TableContainer sx={mobilizeTableContainerSx}>
-              <Table
-                size="small"
-                sx={{
-                  "& .MuiTableCell-root": {
-                    borderBottom: "none",
-                  },
-                }}
-              >
+          <TableContainer sx={{ ...mobilizeTableContainerSx, ...mobilizeGroupMembersTableMobileSx }}>
+              <Table size="small" sx={mobilizeGroupMembersTableMobileSx}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Member</TableCell>
@@ -1593,12 +1599,15 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                           <AvatarWithGraduateIcon
                             graduateRole={m.training_graduate_badge}
                             overlayStyle="directory"
-                            size={36}
+                            size={isMobileMembersTable ? 25 : 36}
                             src={m.avatar_url ? publicAssetSrc(m.avatar_url) : undefined}
                             alt={memberName}
                             avatarSx={{
                               bgcolor: "rgba(233,196,106,0.18)",
                               color: "primary.main",
+                              ...(isMobileMembersTable
+                                ? { width: 25, height: 25, fontSize: "0.65rem" }
+                                : {}),
                             }}
                           >
                             {(m.display_name ?? "?").slice(0, 1).toUpperCase()}
@@ -1614,7 +1623,22 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                         </Stack>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={
+                            isMobileMembersTable
+                              ? {
+                                  maxWidth: "19vw",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  fontSize: "12px !important",
+                                  lineHeight: 1.1,
+                                }
+                              : undefined
+                          }
+                        >
                           {m.email?.trim() || "—"}
                         </Typography>
                       </TableCell>

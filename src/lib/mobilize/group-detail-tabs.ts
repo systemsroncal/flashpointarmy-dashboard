@@ -15,7 +15,7 @@ export const MOBILIZE_GROUP_TAB_LABELS: Record<MobilizeGroupTabSlug, string> = {
   events: "Events",
   members: "Members",
   resources: "Resources",
-  updates: "Chapter Updates",
+  updates: "Group updates",
   reports: "Reports",
 };
 

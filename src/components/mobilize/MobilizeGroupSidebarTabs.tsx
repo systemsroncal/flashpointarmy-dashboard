@@ -53,10 +53,10 @@ const MOBILIZE_GROUP_TAB_NAV_SX = {
   borderRadius: 1,
   borderLeft: "none !important",
   "&.Mui-selected": {
-    bgcolor: "rgba(255, 215, 0, 0.16)",
-    boxShadow: "inset 0 0 0 1px rgba(255, 215, 0, 0.35)",
-    "& .MuiListItemIcon-root": { color: flashpointYellow },
-    "& .MuiListItemText-primary": { color: flashpointYellow, fontWeight: 700 },
+    bgcolor: "rgb(255 255 255 / 14%)",
+    boxShadow: "none",
+    "& .MuiListItemIcon-root": { color: "#fff" },
+    "& .MuiListItemText-primary": { color: "#fff", fontWeight: 700 },
   },
   "&:hover": {
     bgcolor: "rgba(255, 255, 255, 0.06)",

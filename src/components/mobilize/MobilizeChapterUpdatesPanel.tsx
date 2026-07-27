@@ -16,7 +16,7 @@ export function MobilizeChapterUpdatesPanel({ groupId, chapterName }: Props) {
         <NotificationsActiveOutlinedIcon sx={{ fontSize: 28, color: "primary.main" }} />
         <Box>
           <Typography variant="h6" fontWeight={700} lineHeight={1.2}>
-            Chapter Updates
+            Group updates
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Join requests and new events for {chapterName}

@@ -83,7 +83,7 @@ const GROUP_TAB_SHORT_LABELS: Record<MobilizeGroupTabSlug, string> = {
   events: "Events",
   members: "Members",
   resources: "Resources",
-  updates: "Updates",
+  updates: "Group updates",
   reports: "Reports",
 };
 

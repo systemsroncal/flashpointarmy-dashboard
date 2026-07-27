@@ -77,6 +77,62 @@ const TAB_ICONS: Record<MobilizeGroupTabSlug, ReactNode> = {
   reports: <AssessmentOutlinedIcon sx={{ fontSize: 18 }} />,
 };
 
+const GROUP_NAME_ACTIVE_SX = {
+  bgcolor: flashpointYellow,
+  "&:hover": { bgcolor: flashpointYellow },
+  "& .MuiListItemText-primary": {
+    color: "#0a0a0a",
+    fontWeight: 700,
+    lineHeight: 1.15,
+  },
+} as const;
+
+const GROUP_TAB_SELECTED_SX = {
+  bgcolor: "rgb(255 255 255 / 14%)",
+  "& .MuiListItemIcon-root": { color: "#fff" },
+  "& .MuiListItemText-primary": { color: "#fff", fontWeight: 700 },
+} as const;
+
+function SidebarGroupNameLink({
+  name,
+  href,
+  isActive,
+  onNavigate,
+}: {
+  name: string;
+  href: string;
+  isActive: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <ListItem disablePadding>
+      <ListItemButton
+        component={Link}
+        href={href}
+        onClick={onNavigate}
+        sx={{
+          py: 0.35,
+          minHeight: 36,
+          borderRadius: 1,
+          mx: 0.5,
+          ...(isActive ? GROUP_NAME_ACTIVE_SX : {}),
+        }}
+      >
+        <ListItemText
+          primary={name}
+          primaryTypographyProps={{
+            variant: "body2",
+            fontSize: "0.8rem",
+            fontWeight: isActive ? 700 : 600,
+            lineHeight: isActive ? 1.15 : undefined,
+            color: isActive ? "#0a0a0a" : undefined,
+          }}
+        />
+      </ListItemButton>
+    </ListItem>
+  );
+}
+
 type MyGroupRow = {
   id: string;
   name: string;
@@ -132,14 +188,10 @@ function ChapterTabLinks({
                 minHeight: 40,
                 borderRadius: 1,
                 mx: 0.5,
-                "&.Mui-selected": {
-                  bgcolor: "rgba(255, 215, 0, 0.14)",
-                  "& .MuiListItemIcon-root": { color: flashpointYellow },
-                  "& .MuiListItemText-primary": { color: flashpointYellow, fontWeight: 700 },
-                },
+                "&.Mui-selected": GROUP_TAB_SELECTED_SX,
               }}
             >
-              <ListItemIcon sx={{ minWidth: 30, color: selected ? flashpointYellow : "rgba(255,255,255,0.65)" }}>
+              <ListItemIcon sx={{ minWidth: 30, color: selected ? "#fff" : "rgba(255,255,255,0.65)" }}>
                 {TAB_ICONS[slug]}
               </ListItemIcon>
               <ListItemText
@@ -375,33 +427,12 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
       <Collapse in={showBrowseChapterUnderChapters && chaptersOpen} timeout="auto" unmountOnExit>
         <List dense disablePadding sx={{ pl: 1.5, pb: 0.5 }}>
           {activeGroup && !activeGroup.isSubgroup ? (
-            <ListItem disablePadding>
-              <ListItemButton
-                component={Link}
-                href={`/dashboard/mobilize/groups/${activeGroup.id}/groups`}
-                selected={activeGroupId === activeGroup.id}
-                onClick={onNavigate}
-                sx={{
-                  py: 0.35,
-                  minHeight: 36,
-                  borderRadius: 1,
-                  mx: 0.5,
-                  "&.Mui-selected .MuiListItemText-primary": {
-                    color: flashpointYellow,
-                    fontWeight: 700,
-                  },
-                }}
-              >
-                <ListItemText
-                  primary={activeGroup.name}
-                  primaryTypographyProps={{
-                    variant: "body2",
-                    fontSize: "0.8rem",
-                    fontWeight: activeGroupId === activeGroup.id ? 700 : 600,
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
+            <SidebarGroupNameLink
+              name={activeGroup.name}
+              href={`/dashboard/mobilize/groups/${activeGroup.id}/groups`}
+              isActive={activeGroupId === activeGroup.id}
+              onNavigate={onNavigate}
+            />
           ) : null}
         </List>
       </Collapse>
@@ -458,33 +489,12 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
             const groupReports = isActiveGroup && activeGroup ? activeGroup.canViewReports : false;
             return (
               <Box key={group.id}>
-                <ListItem disablePadding>
-                  <ListItemButton
-                    component={Link}
-                    href={mobilizeGroupDetailHref(group.id)}
-                    selected={isActiveGroup}
-                    onClick={onNavigate}
-                    sx={{
-                      py: 0.35,
-                      minHeight: 36,
-                      borderRadius: 1,
-                      mx: 0.5,
-                      "&.Mui-selected .MuiListItemText-primary": {
-                        color: flashpointYellow,
-                        fontWeight: 700,
-                      },
-                    }}
-                  >
-                    <ListItemText
-                      primary={group.name}
-                      primaryTypographyProps={{
-                        variant: "body2",
-                        fontSize: "0.8rem",
-                        fontWeight: isActiveGroup ? 700 : 600,
-                      }}
-                    />
-                  </ListItemButton>
-                </ListItem>
+                <SidebarGroupNameLink
+                  name={group.name}
+                  href={mobilizeGroupDetailHref(group.id)}
+                  isActive={isActiveGroup}
+                  onNavigate={onNavigate}
+                />
                 {isActiveGroup && activeGroup ? (
                   <ChapterTabLinks
                     groupId={group.id}

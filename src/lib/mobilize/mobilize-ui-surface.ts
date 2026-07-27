@@ -129,6 +129,19 @@ export const mobilizeTableContainerSx: SxProps<Theme> = {
   bgcolor: "#ffffff",
 };
 
+/** Mobilize group members table — compact rows on mobile. */
+export const mobilizeGroupMembersTableMobileSx: SxProps<Theme> = {
+  "& .MuiTableCell-root": {
+    borderBottom: "none",
+  },
+  "@media (max-width: 899.95px)": {
+    "& .MuiTableCell-root": {
+      fontSize: "12px !important",
+      lineHeight: 1.1,
+    },
+  },
+};
+
 export const mobilizeGoldBorder = "rgba(202, 154, 0, 0.35)";
 
 export const mobilizeCalendarDaySx = (inMonth: boolean) =>
