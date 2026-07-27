@@ -34,6 +34,8 @@ type Props = {
   manageActions?: React.ReactNode;
   onReactionChange?: (reactions: UnifiedFeedPost["reactions"]) => void;
   surface?: "light" | "dark";
+  /** Inline row inside a shared group feed card (divider between posts). */
+  layout?: "card" | "groupFeedList";
   authorRoleLabel?: string;
 };
 
@@ -46,9 +48,11 @@ export function MobilizeSocialPostCard({
   manageActions,
   onReactionChange,
   surface = "light",
+  layout = "card",
   authorRoleLabel,
 }: Props) {
   const isDark = surface === "dark";
+  const isGroupFeedList = layout === "groupFeedList";
   const [reactions, setReactions] = useState(post.reactions);
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -105,13 +109,18 @@ export function MobilizeSocialPostCard({
     <Card
       elevation={0}
       sx={{
-        mb: isDark ? 0 : 1.5,
-        borderRadius: isDark ? 0 : 2.5,
-        border: isDark ? "none" : "1px solid rgba(0,0,0,0.08)",
-        borderBottom: isDark ? `1px solid ${TRUTH_HUB_BORDER}` : undefined,
-        bgcolor: isDark ? "transparent" : "#fff",
-        boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.06)",
+        mb: isGroupFeedList ? 0 : isDark ? 0 : 1.5,
+        borderRadius: isGroupFeedList ? 0 : isDark ? 0 : 2.5,
+        border: isGroupFeedList ? "none" : isDark ? "none" : "1px solid rgba(0,0,0,0.08)",
+        borderBottom: isGroupFeedList
+          ? "1px solid rgba(0,0,0,0.08)"
+          : isDark
+            ? `1px solid ${TRUTH_HUB_BORDER}`
+            : undefined,
+        bgcolor: isGroupFeedList || isDark ? "transparent" : "#fff",
+        boxShadow: isGroupFeedList || isDark ? "none" : "0 1px 2px rgba(0,0,0,0.06)",
         color: isDark ? TRUTH_HUB_TEXT : undefined,
+        "&:last-child": isGroupFeedList ? { borderBottom: "none" } : undefined,
       }}
     >
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }}>

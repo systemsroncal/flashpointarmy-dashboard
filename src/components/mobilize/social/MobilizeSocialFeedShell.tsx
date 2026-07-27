@@ -1,5 +1,6 @@
 "use client";
 
+import { mobilizeGroupFeedPostsColumnSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { Box, ThemeProvider } from "@mui/material";
 import type { ReactNode } from "react";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
@@ -79,6 +80,7 @@ export function MobilizeSocialFeedShell({
           flexDirection: "column",
           minHeight: 0,
           ...(fill ? { flex: 1 } : {}),
+          ...(isGroupProfile ? mobilizeGroupFeedPostsColumnSx : {}),
         }}
       >
         {children}

@@ -124,49 +124,51 @@ export function MobilizeGroupFeed({
         </Paper>
       )}
 
-      {messages.map((m) => {
-        const unified = toUnifiedPost(m, groupId);
-        const canManage = canManageMessage(m);
-        return (
-          <Box key={m.id} sx={{ width: "100%" }}>
-            <MobilizeSocialPostCard
-            post={{ ...unified, group: undefined }}
-            canComment={canCommentOnPost(m)}
-            commentConfig={feedPostCommentConfig(unified)}
-            reactionUrl={feedPostReactionUrl(unified)}
-            showGroupBadge={false}
-            authorRoleLabel={authorRoleLabels?.[m.author.id]}
-            manageActions={
-              canManage ? (
-                <Stack direction="row" spacing={0.25}>
-                  {onEdit ? (
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => onEdit(m)} aria-label="Edit post">
-                        <EditOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  ) : null}
-                  {onDelete ? (
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => onDelete(m)}
-                        aria-label="Delete post"
-                      >
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  ) : null}
-                </Stack>
-              ) : undefined
-            }
-          />
-          </Box>
-        );
-      })}
-
-      {!messages.length ? (
+      {messages.length ? (
+        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden" }}>
+          {messages.map((m) => {
+            const unified = toUnifiedPost(m, groupId);
+            const canManage = canManageMessage(m);
+            return (
+              <MobilizeSocialPostCard
+                key={m.id}
+                post={{ ...unified, group: undefined }}
+                canComment={canCommentOnPost(m)}
+                commentConfig={feedPostCommentConfig(unified)}
+                reactionUrl={feedPostReactionUrl(unified)}
+                showGroupBadge={false}
+                layout={embedded ? "groupFeedList" : "card"}
+                authorRoleLabel={authorRoleLabels?.[m.author.id]}
+                manageActions={
+                  canManage ? (
+                    <Stack direction="row" spacing={0.25}>
+                      {onEdit ? (
+                        <Tooltip title="Edit">
+                          <IconButton size="small" onClick={() => onEdit(m)} aria-label="Edit post">
+                            <EditOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : null}
+                      {onDelete ? (
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => onDelete(m)}
+                            aria-label="Delete post"
+                          >
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : null}
+                    </Stack>
+                  ) : undefined
+                }
+              />
+            );
+          })}
+        </Paper>
+      ) : (
         <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden" }}>
           <MobilizeSectionEmptyState
             fill
@@ -176,7 +178,7 @@ export function MobilizeGroupFeed({
             description="When leaders or members post to the feed, updates will appear here."
           />
         </Paper>
-      ) : null}
+      )}
     </Box>
   );
 

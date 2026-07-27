@@ -123,6 +123,13 @@ export const mobilizeGroupFeedContentScrollSx: SxProps<Theme> = {
   overflow: "visible",
 };
 
+/** Dark background behind the group feed posts column only (composer + post list). */
+export const mobilizeGroupFeedPostsColumnSx: SxProps<Theme> = {
+  bgcolor: mobilizeGroupFeedContentBg,
+  borderRadius: 2.5,
+  p: { xs: 1.5, sm: 2 },
+};
+
 /** White tab panel when the group profile scrolls with the page. */
 export const mobilizeGroupSecondaryTabPanelScrollSx: SxProps<Theme> = {
   width: "100%",
