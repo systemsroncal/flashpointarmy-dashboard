@@ -490,6 +490,11 @@ export function EmailsSettingsClient({
               {logsLoading ? "Loading…" : "Refresh"}
             </Button>
           </Stack>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Status <strong>sent</strong> means the mail server accepted the message (SMTP handoff). It does not
+            guarantee inbox delivery — check spam, Promotions, or a different address if the recipient still does not
+            see it. Compare the <strong>To</strong> column with the member&apos;s login email in People.
+          </Alert>
           {logs.length === 0 ? (
             <Typography color="text.secondary">
               No log entries yet. Apply migration 015 if this table is missing.
@@ -568,7 +573,7 @@ export function EmailsSettingsClient({
                       direction={logOrderBy === "error_message" ? logOrder : "asc"}
                       onClick={() => handleLogSort("error_message")}
                     >
-                      Error
+                      Error / details
                     </TableSortLabel>
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
@@ -1000,11 +1005,15 @@ export function EmailsSettingsClient({
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Error description
+                  Details
                 </Typography>
                 <Typography
                   variant="body2"
-                  color={detailLog.error_message ? "error" : "text.secondary"}
+                  color={
+                    detailLog.error_message && detailLog.status === "failed"
+                      ? "error"
+                      : "text.secondary"
+                  }
                   sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
                 >
                   {detailLog.error_message ?? "— (no error — send succeeded or error not recorded)"}

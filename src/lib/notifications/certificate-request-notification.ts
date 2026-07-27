@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAppBaseUrl } from "@/lib/mail/app-base-url";
+import { resolveUserEmailForDelivery } from "@/lib/mail/resolve-user-email";
 import { sendTemplatedEmail } from "@/lib/mail/send-templated-email";
 
 type NotifyParams = {
@@ -18,14 +19,25 @@ async function resolveUserContact(
   admin: SupabaseClient,
   userId: string
 ): Promise<{ name: string; email: string }> {
-  const [{ data: du }, { data: prof }] = await Promise.all([
+  const [{ data: du }, { data: prof }, delivery] = await Promise.all([
     admin
       .from("dashboard_users")
       .select("first_name, last_name, display_name, email")
       .eq("id", userId)
       .maybeSingle(),
     admin.from("profiles").select("first_name, last_name").eq("id", userId).maybeSingle(),
+    resolveUserEmailForDelivery(admin, userId),
   ]);
+
+  if (
+    delivery.mirrorEmail &&
+    delivery.email &&
+    delivery.mirrorEmail !== delivery.email
+  ) {
+    console.warn(
+      `[certificate-request-notification] email mismatch for ${userId}: auth=${delivery.email}, dashboard_users=${delivery.mirrorEmail}; using auth email.`
+    );
+  }
 
   const first =
     (prof?.first_name as string | null) ?? (du?.first_name as string | null) ?? null;
@@ -33,9 +45,9 @@ async function resolveUserContact(
   const name =
     [first, last].filter(Boolean).join(" ").trim() ||
     (du?.display_name as string | null)?.trim() ||
-    (du?.email as string | undefined)?.split("@")[0] ||
+    delivery.email.split("@")[0] ||
     "there";
-  const email = ((du?.email as string | undefined) ?? "").trim();
+  const email = delivery.email;
   return { name, email };
 }
 

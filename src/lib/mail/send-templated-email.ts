@@ -76,12 +76,16 @@ export async function sendTemplatedEmail(
   }
 
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from,
       to,
       subject: rendered.subject,
       html: rendered.html,
     });
+    const messageId =
+      info && typeof info === "object" && "messageId" in info && info.messageId
+        ? String(info.messageId)
+        : null;
     await insertEmailSendLog({
       status: "sent",
       templateKey,
@@ -89,6 +93,7 @@ export async function sendTemplatedEmail(
       toAddress: to,
       subject: rendered.subject,
       bodyPreview: rendered.html,
+      errorMessage: messageId ? `messageId: ${messageId}` : null,
       triggeredByUserId: options?.triggeredByUserId ?? null,
     });
   } catch (e) {
