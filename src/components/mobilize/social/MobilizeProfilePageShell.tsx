@@ -61,6 +61,14 @@ export function MobilizeProfilePageShell({
   const panelFill = fillContent && !scrollWithHeader;
   const groupFeedLayout = contentVariant === "groupFeed" && unifiedContent;
   const groupFeedFill = groupFeedLayout && scrollWithHeader;
+  const groupFeedShellSx = groupFeedFill
+    ? {
+        flex: { xs: "0 0 auto" as const, lg: 1 },
+        display: "flex",
+        flexDirection: "column" as const,
+        minHeight: { xs: "auto" as const, lg: "100%" },
+      }
+    : {};
   const fallbackInitial =
     avatarFallback.trim().length > 1
       ? avatarFallback.trim().slice(0, 2).toUpperCase()
@@ -209,18 +217,12 @@ export function MobilizeProfilePageShell({
           panelFill
             ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
             : groupFeedFill
-              ? { flex: 1, display: "flex", flexDirection: "column", minHeight: "100%" }
+              ? groupFeedShellSx
               : undefined
         }
       >
         {groupFeedLayout ? (
-          <Box
-            sx={{
-              ...(groupFeedFill
-                ? { flex: 1, display: "flex", flexDirection: "column", minHeight: "100%" }
-                : {}),
-            }}
-          >
+          <Box sx={groupFeedShellSx}>
             {groupHeroHeader}
             {tabs?.length && activeTab && onTabChange ? (
               <Box sx={{ mb: 0 }}>

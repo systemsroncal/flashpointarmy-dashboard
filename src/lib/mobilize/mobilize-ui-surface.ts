@@ -103,18 +103,35 @@ export const mobilizeGroupSecondaryTabPanelSx: SxProps<Theme> = {
   borderRadius: 2.5,
   border: "1px solid rgba(0,0,0,0.08)",
   boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-  flex: 1,
+  flex: { xs: "0 0 auto", lg: 1 },
   display: "flex",
   flexDirection: "column",
-  minHeight: 0,
+  minHeight: { xs: "auto", lg: 0 },
 };
 
-/** Dark group feed content strip — grows to fill viewport when tab content is sparse. */
+/** Dark group feed content strip — fills viewport on desktop; grows with content on mobile. */
 export const mobilizeGroupFeedContentFillSx: SxProps<Theme> = {
-  flex: 1,
+  flex: { xs: "0 0 auto", lg: 1 },
   display: "flex",
   flexDirection: "column",
-  minHeight: 0,
+  minHeight: { xs: "auto", lg: 0 },
+};
+
+/** Flex child that grows on desktop only; content-sized on mobile (page scroll). */
+export const mobilizeFlexGrowDesktopOnlySx: SxProps<Theme> = {
+  flex: { xs: "0 0 auto", lg: 1 },
+  minHeight: { xs: "auto", lg: 0 },
+};
+
+/** Scroll region for group detail — in-panel scroll on desktop, page scroll on mobile. */
+export const mobilizeGroupDetailScrollRegionSx: SxProps<Theme> = {
+  flex: { xs: "0 0 auto", lg: 1 },
+  minHeight: { xs: "auto", lg: 0 },
+  overflowY: { xs: "visible", lg: "auto" },
+  overflowX: "hidden",
+  WebkitOverflowScrolling: "touch",
+  display: "flex",
+  flexDirection: "column",
 };
 
 export const mobilizeCardSx: SxProps<Theme> = {

@@ -67,6 +67,8 @@ import {
   mobilizeCalendarDaySx,
   mobilizeCardSx,
   mobilizeChapterDetailRootSx,
+  mobilizeFlexGrowDesktopOnlySx,
+  mobilizeGroupDetailScrollRegionSx,
   mobilizeGroupFeedContentFillSx,
   mobilizeGroupTabPanelScrollSx,
   mobilizeGroupSecondaryTabPanelSx,
@@ -1256,18 +1258,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Button>
       </Stack>
 
-      <Box
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: "auto",
-          overflowX: "hidden",
-          WebkitOverflowScrolling: "touch",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100%" }}>
+      <Box sx={mobilizeGroupDetailScrollRegionSx}>
+      <Box sx={{ ...mobilizeFlexGrowDesktopOnlySx, display: "flex", flexDirection: "column" }}>
       <MobilizeProfilePageShell
         coverSrc={groupCoverSrc}
         title={group.name}
@@ -1393,7 +1385,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           </Stack>
 
           {eventsView === "list" ? (
-            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <Box sx={{ ...mobilizeFlexGrowDesktopOnlySx, display: "flex", flexDirection: "column" }}>
               {events.map((e) => (
                 <Card key={e.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
                   <CardContent>
@@ -1459,7 +1451,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               ) : null}
             </Box>
           ) : (
-            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <Box sx={{ ...mobilizeFlexGrowDesktopOnlySx, display: "flex", flexDirection: "column" }}>
             <Box>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
                 <Button size="small" onClick={() => setEventCalCursor(new Date(eventCalCursor.getFullYear(), eventCalCursor.getMonth() - 1, 1))}>
