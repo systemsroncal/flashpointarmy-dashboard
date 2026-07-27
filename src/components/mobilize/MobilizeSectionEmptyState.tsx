@@ -128,12 +128,11 @@ export function MobilizeSectionEmptyState({
     return (
       <Box
         sx={{
-          flex: { xs: "0 0 auto", lg: 1 },
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          minHeight: { xs: 240, md: 320 },
-          py: { xs: 4, md: 6 },
+          minHeight: { xs: 200, sm: 260, md: 320 },
+          py: { xs: 3, md: 5 },
           px: { xs: 2, md: 3 },
         }}
       >

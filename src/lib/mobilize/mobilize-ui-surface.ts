@@ -109,6 +109,35 @@ export const mobilizeGroupSecondaryTabPanelSx: SxProps<Theme> = {
   minHeight: { xs: "auto", lg: 0 },
 };
 
+/** Group detail page (scrollWithHeader): natural page scroll at every breakpoint. */
+export const mobilizeGroupDetailPageRootSx: SxProps<Theme> = {
+  display: "flex",
+  flexDirection: "column",
+  overflow: "visible",
+};
+
+/** Dark strip under group hero when tabs scroll with the page. */
+export const mobilizeGroupFeedContentScrollSx: SxProps<Theme> = {
+  display: "flex",
+  flexDirection: "column",
+  overflow: "visible",
+};
+
+/** White tab panel when the group profile scrolls with the page. */
+export const mobilizeGroupSecondaryTabPanelScrollSx: SxProps<Theme> = {
+  width: "100%",
+  boxSizing: "border-box",
+  p: { xs: 2, sm: 2.5 },
+  bgcolor: "#fff",
+  color: "#0d0d0d",
+  borderRadius: 2.5,
+  border: "1px solid rgba(0,0,0,0.08)",
+  boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "visible",
+};
+
 /** Dark group feed content strip — fills viewport on desktop; grows with content on mobile. */
 export const mobilizeGroupFeedContentFillSx: SxProps<Theme> = {
   flex: { xs: "0 0 auto", lg: 1 },

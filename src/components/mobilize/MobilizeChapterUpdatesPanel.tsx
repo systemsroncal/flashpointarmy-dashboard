@@ -11,7 +11,7 @@ type Props = {
 
 export function MobilizeChapterUpdatesPanel({ groupId, chapterName }: Props) {
   return (
-    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+    <Box sx={{ display: "flex", flexDirection: "column" }}>
       <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 2.5 }}>
         <NotificationsActiveOutlinedIcon sx={{ fontSize: 28, color: "primary.main" }} />
         <Box>

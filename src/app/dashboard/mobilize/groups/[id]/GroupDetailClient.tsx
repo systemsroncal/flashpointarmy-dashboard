@@ -66,12 +66,10 @@ import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSection
 import {
   mobilizeCalendarDaySx,
   mobilizeCardSx,
-  mobilizeChapterDetailRootSx,
-  mobilizeFlexGrowDesktopOnlySx,
-  mobilizeGroupDetailScrollRegionSx,
-  mobilizeGroupFeedContentFillSx,
+  mobilizeGroupDetailPageRootSx,
+  mobilizeGroupFeedContentScrollSx,
   mobilizeGroupTabPanelScrollSx,
-  mobilizeGroupSecondaryTabPanelSx,
+  mobilizeGroupSecondaryTabPanelScrollSx,
   mobilizeGroupMembersTableMobileSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
@@ -1243,10 +1241,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   } as const;
 
   const feedTabPanelSx = mobilizeGroupTabPanelScrollSx;
-  const secondaryTabPanelSx = mobilizeGroupSecondaryTabPanelSx;
+  const secondaryTabPanelSx = mobilizeGroupSecondaryTabPanelScrollSx;
 
   return (
-    <Box sx={mobilizeChapterDetailRootSx}>
+    <Box sx={mobilizeGroupDetailPageRootSx}>
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -1258,8 +1256,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Button>
       </Stack>
 
-      <Box sx={mobilizeGroupDetailScrollRegionSx}>
-      <Box sx={{ ...mobilizeFlexGrowDesktopOnlySx, display: "flex", flexDirection: "column" }}>
       <MobilizeProfilePageShell
         coverSrc={groupCoverSrc}
         title={group.name}
@@ -1274,7 +1270,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         activeTab={feedSubTab}
         onTabChange={(id) => setFeedSubTab(id as GroupFeedSubTab)}
       >
-      <Box sx={{ ...mobilizeGroupFeedContentFillSx, width: "100%" }}>
+      <Box sx={{ ...mobilizeGroupFeedContentScrollSx, width: "100%" }}>
       {activeTab === "announcements" && !canViewContent ? (
         <Box sx={secondaryTabPanelSx}>
         <JoinToViewGate
@@ -1385,7 +1381,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           </Stack>
 
           {eventsView === "list" ? (
-            <Box sx={{ ...mobilizeFlexGrowDesktopOnlySx, display: "flex", flexDirection: "column" }}>
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
               {events.map((e) => (
                 <Card key={e.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
                   <CardContent>
@@ -1451,7 +1447,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               ) : null}
             </Box>
           ) : (
-            <Box sx={{ ...mobilizeFlexGrowDesktopOnlySx, display: "flex", flexDirection: "column" }}>
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
             <Box>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
                 <Button size="small" onClick={() => setEventCalCursor(new Date(eventCalCursor.getFullYear(), eventCalCursor.getMonth() - 1, 1))}>
@@ -1568,7 +1564,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Members ({approvedMembers.length})
           </Typography>
           {approvedMembers.length ? (
-          <TableContainer sx={mobilizeTableContainerSx}>
+          <TableContainer sx={{ ...mobilizeTableContainerSx, overflowX: "auto" }}>
               <Table size="small" sx={mobilizeGroupMembersTableMobileSx}>
                 <TableHead>
                   <TableRow>
@@ -1793,8 +1789,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
       </Box>
       </MobilizeProfilePageShell>
-      </Box>
-      </Box>
 
       <MobilizeDialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Add new event</DialogTitle>

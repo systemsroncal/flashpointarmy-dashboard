@@ -384,7 +384,7 @@ export default function MobilizeGroupResourcesPanel({
   }
 
   return (
-    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+    <Box sx={{ display: "flex", flexDirection: "column" }}>
       {canPost ? (
         <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
           <Button
