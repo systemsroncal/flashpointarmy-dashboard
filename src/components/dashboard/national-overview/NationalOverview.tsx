@@ -22,6 +22,7 @@ import {
 import { loadCommunityActivityFeed } from "@/lib/community/community-activity-feed";
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
 import { ChapterMapInviteCta } from "./ChapterMapInviteCta";
+import { InviteFriendsBanner } from "./InviteFriendsBanner";
 import { MemberOnboardingProgressCard } from "./MemberOnboardingProgressCard";
 import type { MemberOnboardingSnapshot } from "@/lib/onboarding/member-onboarding-status";
 import dynamic from "next/dynamic";
@@ -508,6 +509,7 @@ export function NationalOverview({
             ...(feedPanelHeight != null ? { height: feedPanelHeight } : {}),
           }}
         >
+          <InviteFriendsBanner />
           <Paper
             sx={{
               p: 1.75,
