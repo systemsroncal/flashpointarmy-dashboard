@@ -3,7 +3,7 @@ import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { requireServerUser } from "@/lib/auth/server-session";
-import { loadJourneyProgressBundle } from "@/lib/onboarding/journey-progress-stats";
+import { loadJourneyProgressStats } from "@/lib/onboarding/journey-progress-stats";
 import { can } from "@/types/permissions";
 import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { Paper, Typography } from "@mui/material";
@@ -30,7 +30,7 @@ export default async function JourneyProgressPageContent() {
   }
 
   const admin = createAdminClient();
-  const { rows, stats } = await loadJourneyProgressBundle(admin);
+  const stats = await loadJourneyProgressStats(admin);
 
-  return <JourneyProgressAdminClient initialRows={rows} initialStats={stats} />;
+  return <JourneyProgressAdminClient initialStats={stats} />;
 }
