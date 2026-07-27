@@ -80,6 +80,7 @@ import {
 } from "@/lib/mobilize/group-ui-labels";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnouncementImagePicker";
+import { MobilizeGroupAboutText } from "@/components/mobilize/MobilizeGroupAboutText";
 import { MobilizeGroupMembersPreview } from "@/components/mobilize/MobilizeGroupMembersPreview";
 import { MobilizeGroupFeed } from "@/components/mobilize/social/MobilizeGroupFeed";
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
@@ -1575,7 +1576,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             Members ({approvedMembers.length})
           </Typography>
           {approvedMembers.length ? (
-          <TableContainer sx={{ ...mobilizeTableContainerSx, ...mobilizeGroupMembersTableMobileSx }}>
+          <TableContainer sx={mobilizeTableContainerSx}>
               <Table size="small" sx={mobilizeGroupMembersTableMobileSx}>
                 <TableHead>
                   <TableRow>
