@@ -146,17 +146,23 @@ export const mobilizeGroupFeedPostsStackSx: SxProps<Theme> = {
   gap: 2,
 };
 
-/** Scrollable / growing posts list area (no panel bg — posts are individual cards). */
+/** White Paper shell for group feed composer and posts column. */
+export const mobilizeGroupFeedPaperSx: SxProps<Theme> = {
+  bgcolor: "#fff",
+  borderRadius: "1rem",
+  boxShadow: "none",
+  color: "#0d0d0d",
+};
+
+/** Scrollable / growing posts list area — white panel, full height. */
 export const mobilizeGroupFeedPostsListSx: SxProps<Theme> = {
+  ...mobilizeGroupFeedPaperSx,
   flex: 1,
   height: "100%",
   minHeight: 0,
   display: "flex",
   flexDirection: "column",
-  bgcolor: "transparent",
-  boxShadow: "none",
   border: "none",
-  borderRadius: 0,
   overflow: "visible",
 };
 

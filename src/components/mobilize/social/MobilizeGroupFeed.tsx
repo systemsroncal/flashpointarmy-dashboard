@@ -10,6 +10,7 @@ import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/socia
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import {
   mobilizeGroupFeedCardSx,
+  mobilizeGroupFeedPaperSx,
   mobilizeGroupFeedPostsListSx,
   mobilizeGroupFeedPostsStackSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
@@ -94,6 +95,9 @@ export function MobilizeGroupFeed({
     return Boolean(plain || wallImages.length);
   }, [wallHtml, wallImages.length]);
 
+  const embeddedPaperSx = { ...mobilizeGroupFeedPaperSx, overflow: "hidden" as const };
+  const standalonePaperSx = { ...mobilizeGroupFeedCardSx, overflow: "hidden" as const };
+
   const feedBody = (
     <Box
       sx={
@@ -103,7 +107,7 @@ export function MobilizeGroupFeed({
       }
     >
       {canPost ? (
-        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden", flexShrink: 0 }}>
+        <Paper elevation={0} sx={{ ...(embedded ? embeddedPaperSx : standalonePaperSx), flexShrink: 0 }}>
           <MobilizeSocialPostEditor
             value={wallHtml}
             onChange={onWallHtmlChange}
@@ -127,7 +131,7 @@ export function MobilizeGroupFeed({
           />
         </Paper>
       ) : (
-        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, p: 2, flexShrink: 0 }}>
+        <Paper elevation={0} sx={{ ...(embedded ? embeddedPaperSx : standalonePaperSx), p: 2, flexShrink: 0 }}>
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Only leaders can post on this group feed.
           </Typography>
@@ -137,7 +141,7 @@ export function MobilizeGroupFeed({
       {messages.length ? (
         <Paper
           elevation={0}
-          sx={embedded ? mobilizeGroupFeedPostsListSx : { ...mobilizeGroupFeedCardSx, overflow: "hidden" }}
+          sx={embedded ? mobilizeGroupFeedPostsListSx : standalonePaperSx}
         >
           {messages.map((m) => {
             const unified = toUnifiedPost(m, groupId);
