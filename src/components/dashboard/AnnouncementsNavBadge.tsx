@@ -1,45 +1,27 @@
 "use client";
 
-import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-
-const POLL_MS = 12_000;
+import { MissionUpdatesNavIcon } from "./MissionUpdatesNavIcon";
+import { useMissionUpdatesUnread } from "./MissionUpdatesUnreadProvider";
 
 export function AnnouncementsNavBadge() {
-  const [unread, setUnread] = useState(0);
-
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/dashboard/announcements", { cache: "no-store" });
-      const data = (await res.json()) as { unreadCount?: number; error?: string };
-      if (res.ok && typeof data.unreadCount === "number") setUnread(data.unreadCount);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    const t = setInterval(() => void load(), POLL_MS);
-    return () => clearInterval(t);
-  }, [load]);
+  const { unread } = useMissionUpdatesUnread();
 
   return (
-    <Tooltip title="Notifications">
+    <Tooltip title="Mission Updates">
       <IconButton
         component={Link}
         href="/dashboard/notifications"
         color="inherit"
         size="small"
-        aria-label="Notifications"
+        aria-label="Mission Updates"
       >
         <Badge badgeContent={unread || undefined} color="primary">
-          <NotificationsNoneOutlinedIcon />
+          <MissionUpdatesNavIcon>
+            <CampaignOutlinedIcon />
+          </MissionUpdatesNavIcon>
         </Badge>
       </IconButton>
     </Tooltip>

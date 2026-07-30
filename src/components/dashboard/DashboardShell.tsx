@@ -73,6 +73,8 @@ import { DashboardPresenceProvider } from "@/contexts/DashboardPresenceContext";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/client";
 import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
+import { MissionUpdatesNavIcon } from "./MissionUpdatesNavIcon";
+import { MissionUpdatesUnreadProvider } from "./MissionUpdatesUnreadProvider";
 import { HeaderAccountSettingsButton } from "./HeaderAccountSettingsButton";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
@@ -941,7 +943,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                           minWidth: 38,
                         }}
                       >
-                        {item.icon}
+                        {item.href === "/dashboard/notifications" ? (
+                          <MissionUpdatesNavIcon>{item.icon}</MissionUpdatesNavIcon>
+                        ) : (
+                          item.icon
+                        )}
                       </ListItemIcon>
                       <ListItemText
                         primary={item.label}
@@ -1140,6 +1146,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       setProfileEditMode={setProfileEditMode}
     >
     <DashboardPresenceProvider userId={user.id}>
+    <MissionUpdatesUnreadProvider>
       <Box sx={{ minHeight: "100vh" }}>
       <FirstLoginPasswordGate />
       <AppBar
@@ -1265,6 +1272,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         onEditModeChange={setProfileEditMode}
       />
     </Box>
+    </MissionUpdatesUnreadProvider>
     </DashboardPresenceProvider>
     </DashboardTourProvider>
   );

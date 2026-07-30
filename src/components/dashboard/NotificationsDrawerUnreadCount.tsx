@@ -1,39 +1,18 @@
 "use client";
 
 import { Box } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useMissionUpdatesUnread } from "./MissionUpdatesUnreadProvider";
 
-const POLL_MS = 12_000;
-
-/** Unread dashboard announcements count (same source as `/dashboard/notifications`). */
+/** Unread Mission Updates count badge for sidebar nav. */
 export function NotificationsDrawerUnreadCount() {
-  const [unread, setUnread] = useState(0);
-
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/dashboard/announcements", { cache: "no-store" });
-      const data = (await res.json()) as { unreadCount?: number };
-      if (res.ok && typeof data.unreadCount === "number") setUnread(data.unreadCount);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    const t = setInterval(() => void load(), POLL_MS);
-    return () => clearInterval(t);
-  }, [load]);
+  const { unread, hasUnread } = useMissionUpdatesUnread();
 
   if (unread < 1) return null;
 
   const label = unread > 99 ? "99+" : String(unread);
   return (
     <Box
-      aria-label={`${unread} unread notifications`}
+      aria-label={`${unread} unread mission updates`}
       sx={{
         minWidth: 22,
         height: 22,
@@ -49,6 +28,15 @@ export function NotificationsDrawerUnreadCount() {
         justifyContent: "center",
         flexShrink: 0,
         pointerEvents: "none",
+        ...(hasUnread
+          ? {
+              animation: "missionUpdatesBadgeBounce 1.15s ease-in-out infinite",
+              "@keyframes missionUpdatesBadgeBounce": {
+                "0%, 100%": { transform: "translateY(0) scale(1)" },
+                "50%": { transform: "translateY(-2px) scale(1.08)" },
+              },
+            }
+          : {}),
       }}
     >
       {label}
