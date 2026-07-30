@@ -64,7 +64,7 @@ import {
   canAccessPeopleMembers,
   canAccessPeopleOverview,
 } from "@/lib/auth/people-section-access";
-import { canAccessMobilizeModule, canSeeMobilizeNavItem, isElevatedRole } from "@/lib/auth/user-roles";
+import { canAccessMobilizeModule, canSeeMobilizeNavItem, isChapterStaffRole, isElevatedRole } from "@/lib/auth/user-roles";
 import { shouldShowSidebarYourJourney } from "@/lib/onboarding/member-onboarding-status";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -227,7 +227,6 @@ const MISSION_PIPELINE_HREFS = new Set<string>([
   "/dashboard/onboarding/first-missions",
   "/dashboard/onboarding/ready-for-chapter",
   "/dashboard/onboarding/journey-progress",
-  "/dashboard/onboarding/user-notes",
 ]);
 
 /** Course progress admin (BibCit) lives under /dashboard/courses/:id/progress after redirect. */
@@ -268,18 +267,13 @@ const MISSION_PIPELINE_NAV: NavItem[] = [
     module: MODULE_SLUGS.courses,
     icon: <TimelineIcon />,
   },
-  {
-    label: "User Notes",
-    href: "/dashboard/onboarding/user-notes",
-    module: MODULE_SLUGS.courses,
-    icon: <NoteOutlinedIcon />,
-  },
 ];
 
 const PEOPLE_HREFS = new Set<string>([
   "/dashboard/people",
   "/dashboard/leaders",
   "/dashboard/community",
+  "/dashboard/onboarding/user-notes",
 ]);
 
 const PEOPLE_NAV: NavItem[] = [
@@ -300,6 +294,12 @@ const PEOPLE_NAV: NavItem[] = [
     href: "/dashboard/community",
     module: MODULE_SLUGS.community,
     icon: <PeopleIcon />,
+  },
+  {
+    label: "User Notes",
+    href: "/dashboard/onboarding/user-notes",
+    module: MODULE_SLUGS.courses,
+    icon: <NoteOutlinedIcon />,
   },
 ];
 
@@ -654,6 +654,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         }
         if (item.href === "/dashboard/community") {
           return canAccessPeopleMembers(user.role_names, permissions);
+        }
+        if (item.href === "/dashboard/onboarding/user-notes") {
+          return isChapterStaffRole(user.role_names) && can(permissions, MODULE_SLUGS.courses, "read");
         }
         return false;
       })
