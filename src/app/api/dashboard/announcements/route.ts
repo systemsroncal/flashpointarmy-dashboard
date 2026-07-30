@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
-import { normalizeAnnouncementAudience, normalizeCtas } from "@/lib/dashboard/announcements-types";
+import type { AnnouncementTargetUser } from "@/lib/dashboard/announcement-recipients";
+import {
+  loadAnnouncementRecipientsByIds,
+  normalizeTargetUserIds,
+  syncAnnouncementRecipients,
+} from "@/lib/dashboard/announcement-recipients";
+import {
+  normalizeAnnouncementAudience,
+  normalizeCtas,
+} from "@/lib/dashboard/announcements-types";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 function isCommunicationsAdmin(roleNames: string[]) {
@@ -14,6 +24,9 @@ export async function GET() {
   const { supabase, user } = authResult;
 
   await supabase.rpc("prune_expired_dashboard_announcements");
+
+  const roles = await loadUserRoleNames(supabase, user.id);
+  const canManage = isCommunicationsAdmin(roles);
 
   const nowIso = new Date().toISOString();
   const { data: rows, error } = await supabase
@@ -37,8 +50,16 @@ export async function GET() {
   const dismissed = new Set<string>();
   if (ids.length) {
     const [readsRes, disRes] = await Promise.all([
-      supabase.from("announcement_reads").select("announcement_id, read_at").eq("user_id", user.id).in("announcement_id", ids),
-      supabase.from("announcement_dismissed").select("announcement_id").eq("user_id", user.id).in("announcement_id", ids),
+      supabase
+        .from("announcement_reads")
+        .select("announcement_id, read_at")
+        .eq("user_id", user.id)
+        .in("announcement_id", ids),
+      supabase
+        .from("announcement_dismissed")
+        .select("announcement_id")
+        .eq("user_id", user.id)
+        .in("announcement_id", ids),
     ]);
     for (const row of (readsRes.data ?? []) as { announcement_id: string; read_at: string }[]) {
       readBy.set(row.announcement_id, row.read_at);
@@ -49,10 +70,35 @@ export async function GET() {
   }
 
   const visible = announcements.filter((a) => !dismissed.has(a.id));
-  const withRead = visible.map((a) => ({
-    ...a,
-    read_at: readBy.get(a.id) ?? null,
-  }));
+
+  let recipientsById = new Map<string, AnnouncementTargetUser[]>();
+  if (canManage) {
+    const specificIds = visible
+      .filter((a) => a.audience === "specific_users")
+      .map((a) => a.id);
+    if (specificIds.length) {
+      try {
+        const admin = createAdminClient();
+        recipientsById = await loadAnnouncementRecipientsByIds(admin, specificIds);
+      } catch {
+        recipientsById = new Map();
+      }
+    }
+  }
+
+  const withRead = visible.map((a) => {
+    const targetUsers = recipientsById.get(a.id) ?? [];
+    return {
+      ...a,
+      read_at: readBy.get(a.id) ?? null,
+      ...(canManage && a.audience === "specific_users"
+        ? {
+            target_user_ids: targetUsers.map((u) => u.id),
+            target_users: targetUsers,
+          }
+        : {}),
+    };
+  });
 
   const unreadCount = withRead.filter((a) => !a.read_at).length;
 
@@ -91,6 +137,14 @@ export async function POST(req: Request) {
   const read_more_collapsed = Boolean(body.read_more_collapsed);
   const ctas = normalizeCtas(body.ctas);
   const audience = normalizeAnnouncementAudience(body.audience);
+  const targetUserIds = normalizeTargetUserIds(body.target_user_ids);
+
+  if (audience === "specific_users" && targetUserIds.length === 0) {
+    return NextResponse.json(
+      { error: "Select at least one user for Specific user(s)." },
+      { status: 400 }
+    );
+  }
 
   const { data: row, error } = await supabase
     .from("dashboard_announcements")
@@ -101,6 +155,7 @@ export async function POST(req: Request) {
       read_more_collapsed,
       audience,
       ctas,
+      target_user_id: null,
       created_by: user.id,
       updated_at: new Date().toISOString(),
     })
@@ -110,11 +165,28 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  const announcementId = String((row as { id: string }).id);
+
+  if (audience === "specific_users") {
+    try {
+      const admin = createAdminClient();
+      await syncAnnouncementRecipients(admin, announcementId, targetUserIds);
+    } catch (e) {
+      await supabase.from("dashboard_announcements").delete().eq("id", announcementId);
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Could not assign recipients." },
+        { status: 500 }
+      );
+    }
+  }
+
   return NextResponse.json({
     announcement: {
       ...row,
       audience: normalizeAnnouncementAudience((row as { audience?: unknown }).audience),
       ctas: normalizeCtas(row.ctas),
+      ...(audience === "specific_users" ? { target_user_ids: targetUserIds } : {}),
     },
   });
 }

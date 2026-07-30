@@ -1,3 +1,5 @@
+import type { AnnouncementTargetUser } from "@/lib/dashboard/announcement-recipients";
+
 export type AnnouncementCta = {
   label: string;
   url: string;
@@ -7,13 +9,27 @@ export type AnnouncementCta = {
   text_color: string;
 };
 
-/** Who can see the notification (RLS + app). */
-export const ANNOUNCEMENT_AUDIENCES = ["everyone", "leaders", "members"] as const;
+/** Who can see the Mission Update (RLS + app). */
+export const ANNOUNCEMENT_AUDIENCES = [
+  "everyone",
+  "leaders",
+  "members",
+  "admins",
+  "specific_users",
+] as const;
 export type AnnouncementAudience = (typeof ANNOUNCEMENT_AUDIENCES)[number];
 
 export function normalizeAnnouncementAudience(raw: unknown): AnnouncementAudience {
   const s = String(raw ?? "everyone").trim().toLowerCase();
-  if (s === "leaders" || s === "members" || s === "everyone") return s;
+  if (
+    s === "leaders" ||
+    s === "members" ||
+    s === "everyone" ||
+    s === "admins" ||
+    s === "specific_users"
+  ) {
+    return s;
+  }
   return "everyone";
 }
 
@@ -21,6 +37,8 @@ export const AUDIENCE_LABELS: Record<AnnouncementAudience, string> = {
   everyone: "Everyone",
   leaders: "Leaders",
   members: "Members",
+  admins: "Admins",
+  specific_users: "Specific user(s)",
 };
 
 export type DashboardAnnouncementRow = {
@@ -34,6 +52,8 @@ export type DashboardAnnouncementRow = {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  target_user_ids?: string[];
+  target_users?: AnnouncementTargetUser[];
 };
 
 export type AnnouncementListItem = DashboardAnnouncementRow & {
@@ -58,4 +78,22 @@ export function normalizeCtas(raw: unknown): AnnouncementCta[] {
     });
   }
   return out;
+}
+
+export function audienceChipLabel(
+  audience: AnnouncementAudience,
+  targetUsers?: AnnouncementTargetUser[]
+): string {
+  if (audience === "specific_users" && targetUsers?.length) {
+    if (targetUsers.length === 1) {
+      const u = targetUsers[0];
+      const name =
+        [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
+        u.display_name?.trim() ||
+        u.email;
+      return `Specific: ${name}`;
+    }
+    return `Specific users (${targetUsers.length})`;
+  }
+  return AUDIENCE_LABELS[audience];
 }

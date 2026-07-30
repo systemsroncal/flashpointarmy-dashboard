@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
+import {
+  loadAnnouncementRecipientsByIds,
+  normalizeTargetUserIds,
+  syncAnnouncementRecipients,
+  type AnnouncementTargetUser,
+} from "@/lib/dashboard/announcement-recipients";
 import { normalizeAnnouncementAudience, normalizeCtas } from "@/lib/dashboard/announcements-types";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -34,7 +40,12 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   if (body.description !== undefined) patch.description = String(body.description ?? "").trim();
   if (body.read_more_collapsed !== undefined) patch.read_more_collapsed = Boolean(body.read_more_collapsed);
   if (body.ctas !== undefined) patch.ctas = normalizeCtas(body.ctas);
-  if (body.audience !== undefined) patch.audience = normalizeAnnouncementAudience(body.audience);
+  if (body.audience !== undefined) {
+    patch.audience = normalizeAnnouncementAudience(body.audience);
+    if (patch.audience !== "specific_users") {
+      patch.target_user_id = null;
+    }
+  }
   if (body.expires_at !== undefined) {
     const v = body.expires_at;
     patch.expires_at =
@@ -43,6 +54,18 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
 
   if (String(patch.title ?? "").length === 0 && body.title !== undefined) {
     return NextResponse.json({ error: "Title cannot be empty." }, { status: 400 });
+  }
+
+  const nextAudience =
+    body.audience !== undefined ? normalizeAnnouncementAudience(body.audience) : null;
+  const targetUserIds =
+    body.target_user_ids !== undefined ? normalizeTargetUserIds(body.target_user_ids) : null;
+
+  if (nextAudience === "specific_users" && targetUserIds !== null && targetUserIds.length === 0) {
+    return NextResponse.json(
+      { error: "Select at least one user for Specific user(s)." },
+      { status: 400 }
+    );
   }
 
   const { data: row, error } = await supabase
@@ -56,11 +79,58 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   if (!row) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  const audienceAfter = normalizeAnnouncementAudience((row as { audience?: unknown }).audience);
+  const admin = createAdminClient();
+
+  if (audienceAfter === "specific_users") {
+    let ids = targetUserIds;
+    if (ids === null) {
+      const existing = await loadAnnouncementRecipientsByIds(admin, [id]);
+      ids = (existing.get(id) ?? []).map((u) => u.id);
+    }
+    if (!ids.length) {
+      return NextResponse.json(
+        { error: "Select at least one user for Specific user(s)." },
+        { status: 400 }
+      );
+    }
+    try {
+      await syncAnnouncementRecipients(admin, id, ids);
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Could not update recipients." },
+        { status: 500 }
+      );
+    }
+  } else if (body.audience !== undefined || targetUserIds !== null) {
+    try {
+      await syncAnnouncementRecipients(admin, id, []);
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Could not update recipients." },
+        { status: 500 }
+      );
+    }
+  }
+
+  let target_users: AnnouncementTargetUser[] = [];
+  if (audienceAfter === "specific_users") {
+    const map = await loadAnnouncementRecipientsByIds(admin, [id]);
+    target_users = map.get(id) ?? [];
+  }
+
   return NextResponse.json({
     announcement: {
       ...row,
-      audience: normalizeAnnouncementAudience((row as { audience?: unknown }).audience),
+      audience: audienceAfter,
       ctas: normalizeCtas(row.ctas),
+      ...(audienceAfter === "specific_users"
+        ? {
+            target_user_ids: target_users.map((u) => u.id),
+            target_users,
+          }
+        : {}),
     },
   });
 }

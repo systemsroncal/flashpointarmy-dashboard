@@ -1,12 +1,18 @@
 "use client";
 
+import type { AnnouncementTargetUser } from "@/lib/dashboard/announcement-recipients";
 import {
-  AUDIENCE_LABELS,
+  audienceChipLabel,
   normalizeAnnouncementAudience,
   type AnnouncementAudience,
   type AnnouncementCta,
   type AnnouncementListItem,
 } from "@/lib/dashboard/announcements-types";
+import { AnnouncementTargetUsersField } from "@/components/dashboard/notifications/AnnouncementTargetUsersField";
+import {
+  getMissionUpdateSoundEnabled,
+  setMissionUpdateSoundEnabled as persistMissionUpdateSoundEnabled,
+} from "@/lib/notifications/mission-update-sound-pref";
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import {
   AnnouncementDescriptionBody,
@@ -87,6 +93,8 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   const [description, setDescription] = useState("");
   const [readMoreCollapsed, setReadMoreCollapsed] = useState(false);
   const [audience, setAudience] = useState<AnnouncementAudience>("everyone");
+  const [targetUsers, setTargetUsers] = useState<AnnouncementTargetUser[]>([]);
+  const [missionUpdateSoundEnabled, setMissionUpdateSoundEnabled] = useState(true);
   const [useExpiry, setUseExpiry] = useState(false);
   const [expiresLocal, setExpiresLocal] = useState("");
   const [ctas, setCtas] = useState<AnnouncementCta[]>([]);
@@ -94,6 +102,10 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   const [confirmSaveEdit, setConfirmSaveEdit] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDismissId, setConfirmDismissId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMissionUpdateSoundEnabled(getMissionUpdateSoundEnabled());
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -119,6 +131,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setDescription("");
     setReadMoreCollapsed(false);
     setAudience("everyone");
+    setTargetUsers([]);
     setUseExpiry(false);
     setExpiresLocal("");
     setCtas([]);
@@ -131,6 +144,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setDescription(row.description);
     setReadMoreCollapsed(row.read_more_collapsed);
     setAudience(normalizeAnnouncementAudience(row.audience));
+    setTargetUsers(row.target_users ?? []);
     const ex = row.expires_at;
     if (ex) {
       setUseExpiry(true);
@@ -154,6 +168,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
       description: description.trim(),
       read_more_collapsed: readMoreCollapsed,
       audience,
+      target_user_ids: audience === "specific_users" ? targetUsers.map((u) => u.id) : [],
       expires_at: useExpiry ? fromLocalDatetimeValue(expiresLocal) : null,
       ctas: ctas
         .filter((c) => c.label.trim() && c.url.trim())
@@ -166,12 +181,16 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
           text_color: c.text_color || "#ffffff",
         })),
     }),
-    [title, description, readMoreCollapsed, audience, useExpiry, expiresLocal, ctas]
+    [title, description, readMoreCollapsed, audience, targetUsers, useExpiry, expiresLocal, ctas]
   );
 
   const performSave = async () => {
     if (!submitPayload.title) {
       setSnack({ message: "Title is required.", severity: "error" });
+      return;
+    }
+    if (audience === "specific_users" && targetUsers.length === 0) {
+      setSnack({ message: "Select at least one user.", severity: "error" });
       return;
     }
     try {
@@ -192,7 +211,10 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         const data = (await res.json()) as { error?: string };
         if (!res.ok) throw new Error(data.error || "Create failed.");
       }
-      setSnack({ message: editingId ? "Notification updated." : "Notification created.", severity: "success" });
+      setSnack({
+        message: editingId ? "Mission Update saved." : "Mission Update created.",
+        severity: "success",
+      });
       closeDialog();
       await load();
     } catch (e) {
@@ -210,7 +232,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
       const res = await fetch(`/api/dashboard/announcements/${id}`, { method: "DELETE" });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Delete failed.");
-      setSnack({ message: "Notification deleted.", severity: "success" });
+      setSnack({ message: "Mission Update deleted.", severity: "success" });
       setConfirmDeleteId(null);
       await load();
     } catch (e) {
@@ -264,7 +286,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
       <Stack spacing={2} sx={{ mb: 3 }}>
         {canManage ? (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ alignSelf: "flex-start" }}>
-            Add new notification
+            Add new Mission Update
           </Button>
         ) : null}
         <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -275,9 +297,22 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {canManage
-                ? "Create announcements and choose who can see them. Expired items are hidden automatically."
-                : "Stay up to date with announcements from your organization."}
+                ? "Create Mission Updates and choose who can see them. Expired items are hidden automatically."
+                : "Stay up to date with Mission Updates from your organization."}
             </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={missionUpdateSoundEnabled}
+                  onChange={(_, checked) => {
+                    setMissionUpdateSoundEnabled(checked);
+                    persistMissionUpdateSoundEnabled(checked);
+                  }}
+                />
+              }
+              label="Play trumpet sound for new Mission Updates"
+              sx={{ mt: 0.5 }}
+            />
           </Box>
         </Stack>
       </Stack>
@@ -295,7 +330,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
             borderRadius: 2,
           }}
         >
-          <Typography color="text.secondary">No notifications right now.</Typography>
+          <Typography color="text.secondary">No Mission Updates right now.</Typography>
         </Paper>
       ) : (
         <Stack spacing={2.5}>
@@ -339,7 +374,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                       {unread ? <Chip size="small" label="Unread" color="primary" variant="outlined" /> : null}
                       <Chip
                         size="small"
-                        label={`Visible to: ${AUDIENCE_LABELS[normalizeAnnouncementAudience(row.audience)]}`}
+                        label={`Visible to: ${audienceChipLabel(normalizeAnnouncementAudience(row.audience), row.target_users)}`}
                         variant="outlined"
                         sx={{ borderColor: "rgba(129,140,248,0.45)", color: "primary.light" }}
                       />
@@ -456,14 +491,14 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         disableRestoreFocus
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 1 }}>
-          {editingId ? "Edit notification" : "New notification"}
+          {editingId ? "Edit Mission Update" : "New Mission Update"}
           <IconButton aria-label="Close" onClick={closeDialog} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ maxHeight: "min(88vh, 900px)", overflow: "auto" }}>
           <Stack spacing={2.25}>
-            <TextField label="Notification title" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth required />
+            <TextField label="Mission Update title" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth required />
             <GatheringDescriptionEditor
               key={editingId ?? "new-notification"}
               label="Description"
@@ -479,17 +514,27 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                   labelId="announcement-audience-label"
                   label="Visible to"
                   value={audience}
-                  onChange={(e) => setAudience(e.target.value as AnnouncementAudience)}
+                  onChange={(e) => {
+                    const next = e.target.value as AnnouncementAudience;
+                    setAudience(next);
+                    if (next !== "specific_users") setTargetUsers([]);
+                  }}
                 >
                   <MenuItem value="everyone">Everyone</MenuItem>
                   <MenuItem value="leaders">Leaders</MenuItem>
                   <MenuItem value="members">Members</MenuItem>
+                  <MenuItem value="admins">Admins</MenuItem>
+                  <MenuItem value="specific_users">Specific user(s)</MenuItem>
                 </Select>
                 <FormHelperText>
-                  Everyone: all signed-in users. Leaders: users with the Local leader role. Members: users with the
-                  Member role who are not Local leaders.
+                  Everyone: all signed-in users. Leaders: Local leader role. Members: Member role without Local
+                  leader. Admins: Administrator, Sub administrator, and Super administrator. Specific user(s): only the
+                  people you select below.
                 </FormHelperText>
               </FormControl>
+            ) : null}
+            {canManage && audience === "specific_users" ? (
+              <AnnouncementTargetUsersField value={targetUsers} onChange={setTargetUsers} />
             ) : null}
             <FormControlLabel
               control={<Switch checked={readMoreCollapsed} onChange={(_, v) => setReadMoreCollapsed(v)} />}

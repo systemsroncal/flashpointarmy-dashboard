@@ -1,6 +1,6 @@
 "use client";
 
-import { getNotificationSoundEnabled } from "@/lib/notifications/notification-sound-pref";
+import { getMissionUpdateSoundEnabled } from "@/lib/notifications/mission-update-sound-pref";
 import { playMissionUpdateSound } from "@/lib/notifications/play-mission-update-sound";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
@@ -50,7 +50,7 @@ export function MissionUpdatesUnreadProvider({ children }: { children: React.Rea
       prevUnreadRef.current = unread;
       return;
     }
-    if (unread > prevUnreadRef.current && getNotificationSoundEnabled()) {
+    if (unread > prevUnreadRef.current && getMissionUpdateSoundEnabled()) {
       playMissionUpdateSound();
     }
     prevUnreadRef.current = unread;
