@@ -46,6 +46,7 @@ function englishCategoryLabel(row: ActivityFeedRow): string {
     hosted_events: "Recently hosted events",
     growth: "Growth milestone",
     community: "Community",
+    member_invite: "Member invite",
     training_session: "Training · session",
     training_course: "Training · course",
     training_briefing: "Training · briefing",
@@ -164,7 +165,7 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   if (cat === "growth") return tealGrowth;
   if (cat === "leadership") return goldLead;
   if (cat === "chapter") return blueChapter;
-  if (cat === "member") return orangeMember;
+  if (cat === "member" || cat === "member_invite") return orangeMember;
   if (key === "school") return oliveSchool;
 
   if (cat === "training_session" || cat === "training_course" || cat === "certificate_request") return oliveSchool;

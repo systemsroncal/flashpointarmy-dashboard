@@ -735,7 +735,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (missionPipelineHasActive) {
       setMissionPipelineOpen(true);
-      setSettingsOpen(false);
     }
   }, [missionPipelineHasActive]);
 
@@ -1028,7 +1027,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 {settingsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
               </ListItemButton>
             </ListItem>
-            <Collapse in={settingsOpen && !missionPipelineHasActive} timeout="auto" unmountOnExit>
+            <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
               <SidebarNestedNavList
                 items={settingsNav.map((item) => ({
                   key: item.href,

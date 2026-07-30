@@ -18,6 +18,8 @@ type Body = {
   phone?: string;
   primaryChapterId?: string;
   roleName?: "admin" | "sub_admin";
+  dateOfBirth?: string | null;
+  gender?: string | null;
 };
 
 export async function POST(req: Request) {
@@ -116,15 +118,44 @@ export async function POST(req: Request) {
     }
 
     const displayName = `${fn} ${ln}`.trim();
+
+    const profileUpdate: Record<string, unknown> = {
+      first_name: fn,
+      last_name: ln,
+      display_name: displayName,
+      primary_chapter_id: chapterRaw,
+      ...(phone ? { phone } : {}),
+    };
+    if ("dateOfBirth" in body) {
+      const raw = body.dateOfBirth;
+      if (raw === null || raw === "") {
+        profileUpdate.date_of_birth = null;
+      } else {
+        const dob = String(raw).trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+          await admin.auth.admin.deleteUser(newId);
+          return NextResponse.json({ error: "Invalid date of birth." }, { status: 400 });
+        }
+        profileUpdate.date_of_birth = dob;
+      }
+    }
+    if ("gender" in body) {
+      const raw = body.gender;
+      if (raw === null || raw === "") {
+        profileUpdate.gender = null;
+      } else {
+        const g = String(raw).trim().toLowerCase();
+        if (g !== "male" && g !== "female") {
+          await admin.auth.admin.deleteUser(newId);
+          return NextResponse.json({ error: "Gender must be male or female." }, { status: 400 });
+        }
+        profileUpdate.gender = g;
+      }
+    }
+
     const { error: profErr } = await admin
       .from("profiles")
-      .update({
-        first_name: fn,
-        last_name: ln,
-        display_name: displayName,
-        primary_chapter_id: chapterRaw,
-        ...(phone ? { phone } : {}),
-      })
+      .update(profileUpdate)
       .eq("id", newId);
 
     if (profErr) {
@@ -150,6 +181,8 @@ export async function POST(req: Request) {
         first_name: fn,
         last_name: ln,
         phone: phone || null,
+        date_of_birth: (profileUpdate.date_of_birth as string | null | undefined) ?? null,
+        gender: (profileUpdate.gender as string | null | undefined) ?? null,
         role_names: [staffRoleName],
       },
     });

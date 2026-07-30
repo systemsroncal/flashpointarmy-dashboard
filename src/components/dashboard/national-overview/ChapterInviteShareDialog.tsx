@@ -20,6 +20,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useCallback, useState } from "react";
+import type { InviteShareChannel } from "@/lib/community/invite-share-feed";
 
 export const CHAPTER_INVITE_SHARE_URL = "https://fparmychapters.com/join-a-chapter/";
 
@@ -38,7 +39,17 @@ export function chapterInviteShareText() {
   return `${CHAPTER_INVITE_SHARE_MESSAGE}\n\n${CHAPTER_INVITE_SHARE_URL}`;
 }
 
-type SharePlatform = "whatsapp" | "facebook" | "x" | "linkedin" | "telegram" | "email";
+type SharePlatform = Exclude<InviteShareChannel, "direct_link">;
+
+function logInviteShare(channel: InviteShareChannel) {
+  void fetch("/api/community/invite-share", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ channel }),
+  }).catch(() => {
+    /* non-blocking */
+  });
+}
 
 function shareHref(platform: SharePlatform, url: string, message: string, subject: string): string {
   const u = encodeURIComponent(url);
@@ -88,6 +99,7 @@ export function ChapterInviteShareDialog({ open, onClose }: Props) {
     try {
       await navigator.clipboard.writeText(chapterInviteShareText());
       setCopied(true);
+      logInviteShare("direct_link");
       window.setTimeout(() => setCopied(false), 2500);
     } catch {
       setCopied(false);
@@ -148,6 +160,7 @@ export function ChapterInviteShareDialog({ open, onClose }: Props) {
                 variant="outlined"
                 size="small"
                 startIcon={icon}
+                onClick={() => logInviteShare(platform)}
                 sx={{
                   justifyContent: "center",
                   textTransform: "none",

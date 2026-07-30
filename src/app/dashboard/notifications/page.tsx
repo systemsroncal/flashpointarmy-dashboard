@@ -4,7 +4,7 @@ import NotificationsPageContent from "./NotificationsPageContent";
 
 export default function NotificationsPage() {
   return (
-    <Suspense fallback={<DataPaneFallback label="Loading notifications" />}>
+    <Suspense fallback={<DataPaneFallback label="Loading mission updates" />}>
       <NotificationsPageContent />
     </Suspense>
   );

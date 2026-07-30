@@ -71,6 +71,8 @@ export default async function AdminsPageContent() {
     city: string | null;
     state: string | null;
     zip_code: string | null;
+    date_of_birth: string | null;
+    gender: string | null;
   };
 
   type ChapterRow = {
@@ -127,6 +129,8 @@ export default async function AdminsPageContent() {
         city: string | null;
         state: string | null;
         zip_code: string | null;
+        date_of_birth: string | null;
+        gender: string | null;
       }
     >();
     for (const row of profileRows ?? []) {
@@ -139,6 +143,8 @@ export default async function AdminsPageContent() {
         city: (row as { city?: string | null }).city ?? null,
         state: (row as { state?: string | null }).state ?? null,
         zip_code: (row as { zip_code?: string | null }).zip_code ?? null,
+        date_of_birth: (row as { date_of_birth?: string | null }).date_of_birth ?? null,
+        gender: (row as { gender?: string | null }).gender ?? null,
       });
     }
 
@@ -156,6 +162,8 @@ export default async function AdminsPageContent() {
         city: preferNonEmptyAddr(m?.city, u.city),
         state: preferNonEmptyAddr(m?.state, u.state),
         zip_code: preferNonEmptyAddr(m?.zip_code, u.zip_code),
+        date_of_birth: m?.date_of_birth ?? null,
+        gender: m?.gender ?? null,
       };
     });
     if (!isSuperAdmin) {

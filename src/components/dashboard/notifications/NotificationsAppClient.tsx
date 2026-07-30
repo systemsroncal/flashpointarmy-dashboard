@@ -271,7 +271,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
           <NotificationsActiveOutlinedIcon sx={{ color: "primary.main", fontSize: 32 }} />
           <Box>
             <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: 0.3 }}>
-              Notifications
+              Missions updates
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {canManage

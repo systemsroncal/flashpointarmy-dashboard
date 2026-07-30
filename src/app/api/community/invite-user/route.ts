@@ -20,6 +20,8 @@ type InviteBody = {
   primaryChapterId?: string;
   roleName?: string;
   context?: string;
+  dateOfBirth?: string | null;
+  gender?: string | null;
 };
 
 export async function POST(req: Request) {
@@ -152,6 +154,38 @@ export async function POST(req: Request) {
     }
 
     const displayName = `${fn} ${ln}`.trim();
+
+    const profileExtras: Record<string, unknown> = {};
+    if ("dateOfBirth" in body) {
+      const raw = body.dateOfBirth;
+      if (raw === null || raw === "") {
+        profileExtras.date_of_birth = null;
+      } else {
+        const dob = String(raw).trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+          await admin.auth.admin.deleteUser(newId);
+          return NextResponse.json({ error: "Invalid date of birth." }, { status: 400 });
+        }
+        profileExtras.date_of_birth = dob;
+      }
+    }
+    if ("gender" in body) {
+      const raw = body.gender;
+      if (raw === null || raw === "") {
+        profileExtras.gender = null;
+      } else {
+        const g = String(raw).trim().toLowerCase();
+        if (g !== "male" && g !== "female") {
+          await admin.auth.admin.deleteUser(newId);
+          return NextResponse.json({ error: "Gender must be male or female." }, { status: 400 });
+        }
+        profileExtras.gender = g;
+      }
+    }
+    if (Object.keys(profileExtras).length > 0) {
+      await admin.from("profiles").update(profileExtras).eq("id", newId);
+    }
+
     if (roleToAssign === "local_leader") {
       try {
         await sendTemplatedEmail(
@@ -184,6 +218,8 @@ export async function POST(req: Request) {
         first_name: fn,
         last_name: ln,
         phone: phone || null,
+        date_of_birth: (profileExtras.date_of_birth as string | null | undefined) ?? null,
+        gender: (profileExtras.gender as string | null | undefined) ?? null,
         role_names: [roleToAssign],
       },
     });

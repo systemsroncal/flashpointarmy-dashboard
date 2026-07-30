@@ -36,6 +36,8 @@ export type ProfileMailRow = {
   city: string | null;
   state: string | null;
   zip_code: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
 };
 
 export type RoleJoinRow = {
@@ -50,8 +52,8 @@ const IN_CHUNK = 100;
 const USER_ROLE_NAME_CHUNK = 80;
 
 const PROFILES_SELECT_FULL =
-  "id, avatar_url, primary_chapter_id, phone, address_line, city, state, zip_code";
-const PROFILES_SELECT_MIN = "id, avatar_url, primary_chapter_id, phone";
+  "id, avatar_url, primary_chapter_id, phone, address_line, city, state, zip_code, date_of_birth, gender";
+const PROFILES_SELECT_MIN = "id, avatar_url, primary_chapter_id, phone, date_of_birth, gender";
 
 /** Batch UUID lists for PostgREST `.in()` (URL length limits). */
 export function chunkIdsForInQuery<T>(arr: T[], size: number): T[][] {
@@ -220,6 +222,8 @@ function profileRowsWithMailingDefaults(
       city: mailingFromFullSelect ? ((r.city as string | null) ?? null) : null,
       state: mailingFromFullSelect ? ((r.state as string | null) ?? null) : null,
       zip_code: mailingFromFullSelect ? ((r.zip_code as string | null) ?? null) : null,
+      date_of_birth: (r.date_of_birth as string | null) ?? null,
+      gender: (r.gender as string | null) ?? null,
     };
   });
 }

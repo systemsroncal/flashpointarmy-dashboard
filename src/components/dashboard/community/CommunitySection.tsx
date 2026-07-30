@@ -74,6 +74,8 @@ export type CommunityUserRow = {
   city: string | null;
   state: string | null;
   zip_code: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
   /** Role slugs from `public.roles.name` (e.g. member, local_leader). */
   role_names: string[];
   /** Biblical Citizenship graduate badge, when applicable. */
@@ -340,6 +342,8 @@ export function CommunitySection({
   }
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [inviteDateOfBirth, setInviteDateOfBirth] = useState("");
+  const [inviteGender, setInviteGender] = useState<"" | "male" | "female">("");
   const [chapterId, setChapterId] = useState<string>(
     localChapterId ?? chapterOptions[0]?.id ?? ""
   );
@@ -403,6 +407,8 @@ export function CommunitySection({
   const [editAddrCity, setEditAddrCity] = useState("");
   const [editAddrState, setEditAddrState] = useState("");
   const [editAddrZip, setEditAddrZip] = useState("");
+  const [editDateOfBirth, setEditDateOfBirth] = useState("");
+  const [editGender, setEditGender] = useState<"" | "male" | "female">("");
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [editRoleDraft, setEditRoleDraft] = useState<EditableRole>("member");
@@ -921,6 +927,8 @@ export function CommunitySection({
     setEditAddrCity(u.city?.trim() ?? "");
     setEditAddrState(u.state?.trim() ?? "");
     setEditAddrZip(u.zip_code?.trim() ?? "");
+    setEditDateOfBirth(u.date_of_birth?.slice(0, 10) ?? "");
+    setEditGender(u.gender === "male" || u.gender === "female" ? u.gender : "");
     setEditChapterId(u.primary_chapter_id ?? chapterOptions[0]?.id ?? "");
     setEditError(null);
     setEditRoleError(null);
@@ -982,6 +990,8 @@ export function CommunitySection({
           city: editAddrCity.trim() || null,
           state: usStateByCode(editAddrState)?.code ?? null,
           zipCode: editAddrZip.trim() || null,
+          dateOfBirth: editDateOfBirth.trim() || null,
+          gender: editGender || null,
           ...passwordPayload,
         }),
       });
@@ -1010,6 +1020,11 @@ export function CommunitySection({
                       ? row.state
                       : usStateByCode(editAddrState)?.code ?? null,
                   zip_code: row.zip_code !== undefined ? row.zip_code : editAddrZip.trim() || null,
+                  date_of_birth:
+                    row.date_of_birth !== undefined
+                      ? row.date_of_birth
+                      : editDateOfBirth.trim() || null,
+                  gender: row.gender !== undefined ? row.gender : editGender || null,
                 }
               : x
           )
@@ -1104,6 +1119,8 @@ export function CommunitySection({
             phone: phone.trim() || undefined,
             primaryChapterId: assignChapter,
             roleName: inviteAdminRole,
+            dateOfBirth: inviteDateOfBirth.trim() || null,
+            gender: inviteGender || null,
           }),
         });
         const payload = (await res.json()) as {
@@ -1136,6 +1153,8 @@ export function CommunitySection({
         setLastName("");
         setPassword("");
         setPhone("");
+        setInviteDateOfBirth("");
+        setInviteGender("");
         setInviteAdminRole("admin");
         router.refresh();
       } finally {
@@ -1158,6 +1177,8 @@ export function CommunitySection({
             phone: phone.trim() || undefined,
             primaryChapterId: assignChapter,
             roleName: inviteRole,
+            dateOfBirth: inviteDateOfBirth.trim() || null,
+            gender: inviteGender || null,
           }),
         });
         const payload = (await res.json()) as {
@@ -1188,6 +1209,8 @@ export function CommunitySection({
         setLastName("");
         setPassword("");
         setPhone("");
+        setInviteDateOfBirth("");
+        setInviteGender("");
         if (isLeaders) setInviteRole("local_leader");
         else setInviteRole("member");
         router.refresh();
@@ -1217,6 +1240,8 @@ export function CommunitySection({
           primaryChapterId: assignChapter,
           roleName: roleToAssign,
           context: isLeaders ? "leaders" : "community",
+          dateOfBirth: inviteDateOfBirth.trim() || null,
+          gender: inviteGender || null,
         }),
       });
       const payload = (await res.json()) as {
@@ -1249,6 +1274,8 @@ export function CommunitySection({
       else setInviteRole("member");
       setPassword("");
       setPhone("");
+      setInviteDateOfBirth("");
+      setInviteGender("");
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -1424,13 +1451,18 @@ export function CommunitySection({
     }
   }
 
+  const displayRecordCount = remoteMode ? totalCount : sorted.length;
+
   return (
     <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.45)", maxWidth: "100%", overflow: "hidden" }}>
       <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
         {isAdmins ? "Administrators" : isLeaders ? "Leaders" : "Community"}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="body2" color="text.secondary">
         {subtitle}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, mt: 0.5 }}>
+        {displayRecordCount.toLocaleString()} record{displayRecordCount === 1 ? "" : "s"}
       </Typography>
       {inviteFlash ? (
         <Alert
@@ -1483,6 +1515,8 @@ export function CommunitySection({
                 setEmail("");
                 setPassword("");
                 setPhone("");
+                setInviteDateOfBirth("");
+                setInviteGender("");
                 setSubmitError(null);
                 setAddOpen(true);
               }}
@@ -1978,6 +2012,32 @@ export function CommunitySection({
               autoComplete="tel"
             />
             <TextField
+              label="Birthday (optional)"
+              type="date"
+              fullWidth
+              value={inviteDateOfBirth}
+              onChange={(e) => setInviteDateOfBirth(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <FormControl fullWidth>
+              <InputLabel id="invite-gender-label">Gender (optional)</InputLabel>
+              <Select
+                labelId="invite-gender-label"
+                label="Gender (optional)"
+                value={inviteGender}
+                MenuProps={DIALOG_SELECT_MENU_PROPS}
+                onChange={(e) =>
+                  setInviteGender(e.target.value as "" | "male" | "female")
+                }
+              >
+                <MenuItem value="">
+                  <em>Not specified</em>
+                </MenuItem>
+                <MenuItem value="male">Male</MenuItem>
+                <MenuItem value="female">Female</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
               label="Email"
               type="email"
               fullWidth
@@ -2370,6 +2430,34 @@ export function CommunitySection({
               onChange={(e) => setEditPhone(e.target.value)}
               autoComplete="tel"
             />
+            <TextField
+              label="Birthday (optional)"
+              type="date"
+              fullWidth
+              value={editDateOfBirth}
+              onChange={(e) => setEditDateOfBirth(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              disabled={editSaving || editRoleSaving}
+            />
+            <FormControl fullWidth>
+              <InputLabel id="edit-gender-label">Gender (optional)</InputLabel>
+              <Select
+                labelId="edit-gender-label"
+                label="Gender (optional)"
+                value={editGender}
+                MenuProps={DIALOG_SELECT_MENU_PROPS}
+                onChange={(e) =>
+                  setEditGender(e.target.value as "" | "male" | "female")
+                }
+                disabled={editSaving || editRoleSaving}
+              >
+                <MenuItem value="">
+                  <em>Not specified</em>
+                </MenuItem>
+                <MenuItem value="male">Male</MenuItem>
+                <MenuItem value="female">Female</MenuItem>
+              </Select>
+            </FormControl>
             <Typography variant="subtitle2" sx={{ color: "primary.main", mt: 0.5 }}>
               Mailing address (optional)
             </Typography>
