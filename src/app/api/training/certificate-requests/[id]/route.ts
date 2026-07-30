@@ -253,6 +253,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         status: "approved",
         reviewed_at: reviewedAt,
         sessions_marked_complete: result.sessionCount,
+        email_sent: result.emailSent,
+        email_error: result.emailError ?? null,
       });
     } catch (e) {
       return NextResponse.json(

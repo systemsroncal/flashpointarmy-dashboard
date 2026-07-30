@@ -6,6 +6,8 @@ import { createClient } from "@/utils/supabase/client";
 import AssignmentIndOutlined from "@mui/icons-material/AssignmentIndOutlined";
 import BoltOutlined from "@mui/icons-material/BoltOutlined";
 import CheckCircleOutline from "@mui/icons-material/CheckCircleOutline";
+import FlagOutlined from "@mui/icons-material/FlagOutlined";
+import GroupWorkOutlined from "@mui/icons-material/GroupWorkOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import { Box, Card, CardContent, Paper, Typography } from "@mui/material";
@@ -14,6 +16,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
+import {
+  isChapterStaffRole,
+  isMemberOrLeader,
+  isSuperAdminUser,
+} from "@/lib/auth/user-roles";
 import {
   aggregateReferenceLeaderMemberByState,
   sumReferenceTotals,
@@ -73,11 +80,13 @@ export function NationalOverview({
   initialFeed,
   chapters,
   memberOnboarding = null,
+  viewerRoles = [],
 }: {
   initialStats: OverviewStatBlock;
   initialFeed: ActivityFeedRow[];
   chapters: ChapterRow[];
   memberOnboarding?: MemberOnboardingSnapshot | null;
+  viewerRoles?: string[];
 }) {
   const [stats, setStats] = useState(initialStats);
   const [feed, setFeed] = useState(initialFeed);
@@ -246,6 +255,8 @@ export function NationalOverview({
       "user_roles",
       "chapter_leaders",
       "audit_logs",
+      "mobilize_groups",
+      "member_first_missions",
     ] as const;
 
     try {
@@ -300,21 +311,43 @@ export function NationalOverview({
     setPopupData(null);
   }
 
-  const statCards = useMemo(
-    () =>
-      [
-        {
-          label: "Chapter Applications",
-          value: stats.activeChapters,
-          color: "#3b82f6",
-          icon: PlaceOutlined,
-        },
-        {
-          label: "Community Events",
-          value: stats.communityGatherings,
-          color: "#22c55e",
-          icon: CheckCircleOutline,
-        },
+  const statCards = useMemo(() => {
+    const chapterStaff = isChapterStaffRole(viewerRoles);
+    const memberLeaderOnly = isMemberOrLeader(viewerRoles) && !chapterStaff;
+    const superAdmin = isSuperAdminUser(viewerRoles);
+
+    type StatCard = {
+      label: string;
+      value: number;
+      color: string;
+      icon: SvgIconComponent;
+      pulse?: boolean;
+    };
+
+    const cards: StatCard[] = [
+      {
+        label: "Churches",
+        value: stats.activeChapters,
+        color: "#3b82f6",
+        icon: PlaceOutlined,
+      },
+      {
+        label: "FPA Live Events",
+        value: stats.communityGatherings,
+        color: "#22c55e",
+        icon: CheckCircleOutline,
+      },
+    ];
+
+    if (memberLeaderOnly) {
+      cards.push({
+        label: "Members",
+        value: stats.membersEngaged,
+        color: "#f97316",
+        icon: GroupsOutlined,
+      });
+    } else if (chapterStaff) {
+      cards.push(
         {
           label: "Members",
           value: stats.membersEngaged,
@@ -326,23 +359,37 @@ export function NationalOverview({
           value: stats.localLeaders,
           color: "#eab308",
           icon: AssignmentIndOutlined,
-        },
-        {
-          label: "Happening Now",
-          value: stats.happeningNow,
-          color: "#ef4444",
-          icon: BoltOutlined,
-          pulse: true,
-        },
-      ] as const satisfies ReadonlyArray<{
-        label: string;
-        value: number;
-        color: string;
-        icon: SvgIconComponent;
-        pulse?: boolean;
-      }>,
-    [stats]
-  );
+        }
+      );
+    }
+
+    if (superAdmin) {
+      cards.push({
+        label: "Groups",
+        value: stats.mobilizeGroups,
+        color: "#8b5cf6",
+        icon: GroupWorkOutlined,
+      });
+    }
+
+    cards.push(
+      {
+        label: "Missions",
+        value: stats.peopleInMissions,
+        color: "#06b6d4",
+        icon: FlagOutlined,
+      },
+      {
+        label: "Happening Now",
+        value: stats.happeningNow,
+        color: "#ef4444",
+        icon: BoltOutlined,
+        pulse: true,
+      }
+    );
+
+    return cards;
+  }, [stats, viewerRoles]);
 
   return (
     <Box>

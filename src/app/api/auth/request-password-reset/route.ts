@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { createRawToken, hashActionToken } from "@/lib/auth/email-action-token";
+import { resolveAuthUserByEmail } from "@/lib/auth/resolve-auth-user-by-email";
+import { getAppBaseUrl } from "@/lib/mail/app-base-url";
 import { sendTemplatedEmail } from "@/lib/mail/send-templated-email";
 import { createAdminClient } from "@/utils/supabase/admin";
-
-function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
-}
 
 export async function POST(req: Request) {
   try {
@@ -16,8 +14,7 @@ export async function POST(req: Request) {
     }
 
     const supabase = createAdminClient();
-    const users = await supabase.auth.admin.listUsers({ page: 1, perPage: 2000 });
-    const user = users.data.users.find((u) => (u.email || "").toLowerCase() === normalized);
+    const user = await resolveAuthUserByEmail(supabase, normalized);
 
     // Always return ok to avoid leaking account existence.
     if (!user?.id || !user.email) return NextResponse.json({ ok: true });
@@ -34,11 +31,13 @@ export async function POST(req: Request) {
       payload: {},
     });
 
-    const resetUrl = `${siteUrl()}/auth/reset-password?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(normalized)}`;
+    const siteBase = await getAppBaseUrl(supabase);
+    const resetUrl = `${siteBase}/auth/reset-password?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(normalized)}`;
     await sendTemplatedEmail("password_reset", normalized, {
-      user_fullname: (user.user_metadata?.first_name && user.user_metadata?.last_name)
-        ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
-        : normalized,
+      user_fullname:
+        user.user_metadata?.first_name && user.user_metadata?.last_name
+          ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+          : normalized,
       user_email: normalized,
       resetpassword_url: resetUrl,
       validateemail_url: "",

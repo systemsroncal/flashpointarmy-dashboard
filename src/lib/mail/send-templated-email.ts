@@ -58,8 +58,9 @@ export async function sendTemplatedEmail(
   const rendered = renderTemplatedEmail(brandingResolved, template, shortcodes);
   let transporter: Awaited<ReturnType<typeof getMailTransportAndFrom>>["transporter"];
   let from: string;
+  let mailProvider: Awaited<ReturnType<typeof getMailTransportAndFrom>>["provider"];
   try {
-    ({ transporter, from } = await getMailTransportAndFrom());
+    ({ transporter, from, provider: mailProvider } = await getMailTransportAndFrom());
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await insertEmailSendLog({
@@ -74,6 +75,8 @@ export async function sendTemplatedEmail(
     });
     throw e;
   }
+
+  const transportLabel = `[${mailProvider}]`;
 
   try {
     const info = await transporter.sendMail({
@@ -105,7 +108,7 @@ export async function sendTemplatedEmail(
       toAddress: to,
       subject: rendered.subject,
       bodyPreview: rendered.html,
-      errorMessage: msg,
+      errorMessage: `${transportLabel} ${msg}`,
       triggeredByUserId: options?.triggeredByUserId ?? null,
     });
     throw e;

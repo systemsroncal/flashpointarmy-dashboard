@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { OAuth2Client } from "google-auth-library";
 import { createAdminClient } from "@/utils/supabase/admin";
-import type { EmailDeliveryRow } from "@/lib/mail/email-delivery-settings";
+import type { EmailDeliveryRow, EmailDeliveryProvider } from "@/lib/mail/email-delivery-settings";
 import { fetchEmailDeliverySettings, loadEncryptionPassphrase } from "@/lib/mail/email-delivery-settings";
 import { hasGmailOAuthClientSecretInEnv } from "@/lib/mail/gmail-oauth-client-secret-env";
 import { resolveGmailOAuthClientSecret } from "@/lib/mail/gmail-oauth-env";
@@ -22,6 +22,7 @@ export function formatMailFrom(displayName: string | null | undefined, email: st
 export type MailFromConfig = {
   transporter: Transporter;
   from: string;
+  provider: EmailDeliveryProvider | "env_smtp_fallback";
 };
 
 /** OAuth can send mail when encrypted secrets + refresh token + sender exist in DB. */
@@ -54,7 +55,7 @@ export async function getMailTransportAndFrom(): Promise<MailFromConfig> {
     const phrase = await loadEncryptionPassphrase(admin);
     let pass: string;
     try {
-      pass = decryptEmailSecret(passEnc, phrase);
+      pass = decryptEmailSecret(passEnc, phrase).trim().replace(/\s+/g, "");
     } catch {
       throw new Error(
         "Could not decrypt the SMTP password. Set the same encryption passphrase used when it was saved, or enter a new SMTP password and save."
@@ -68,7 +69,7 @@ export async function getMailTransportAndFrom(): Promise<MailFromConfig> {
       secure,
       auth: { user: authUser, pass },
     });
-    return { transporter, from: formatMailFrom(row.smtp_from_name, fromEmail) };
+    return { transporter, from: formatMailFrom(row.smtp_from_name, fromEmail), provider: "dashboard_smtp" };
   }
 
   /** Gmail OAuth only when selected in DB, or legacy fallback if provider is neither env nor dashboard nor oauth but OAuth is complete — never override explicit `env_smtp`. */
@@ -118,7 +119,7 @@ export async function getMailTransportAndFrom(): Promise<MailFromConfig> {
         accessToken,
       },
     });
-    return { transporter, from: sender };
+    return { transporter, from: sender, provider: "gmail_workspace_oauth" };
   }
 
   const host = process.env.SMTP_HOST?.trim();
@@ -138,5 +139,5 @@ export async function getMailTransportAndFrom(): Promise<MailFromConfig> {
     secure: process.env.SMTP_SECURE === "true",
     auth: { user, pass },
   });
-  return { transporter, from: fromEnv };
+  return { transporter, from: fromEnv, provider: row?.provider === "env_smtp" ? "env_smtp" : "env_smtp_fallback" };
 }

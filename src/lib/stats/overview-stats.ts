@@ -8,6 +8,10 @@ export type OverviewStatBlock = {
   membersEngaged: number;
   localLeaders: number;
   happeningNow: number;
+  /** Mobilize subgroups (parent_group_id set). */
+  mobilizeGroups: number;
+  /** Members / leaders with first mission pending or in progress. */
+  peopleInMissions: number;
 };
 
 export function normalizeStateCode(state: string | null | undefined): string | null {
@@ -144,6 +148,24 @@ export async function loadOverviewStats(
   }
   const { count: happeningNow } = await happeningQuery;
 
+  let mobilizeGroups = 0;
+  if (!stateFilter) {
+    const { count } = await supabase
+      .from("mobilize_groups")
+      .select("id", { count: "exact", head: true })
+      .not("parent_group_id", "is", null);
+    mobilizeGroups = count ?? 0;
+  }
+
+  let peopleInMissions = 0;
+  if (!stateFilter) {
+    const { count } = await supabase
+      .from("member_first_missions")
+      .select("user_id", { count: "exact", head: true })
+      .in("status", ["pending", "in_progress"]);
+    peopleInMissions = count ?? 0;
+  }
+
   const ref = opts.referenceAddition;
   if (ref && !stateFilter) {
     activeChapters += ref.leaders;
@@ -157,6 +179,8 @@ export async function loadOverviewStats(
     membersEngaged,
     localLeaders,
     happeningNow: happeningNow ?? 0,
+    mobilizeGroups,
+    peopleInMissions,
   };
 }
 

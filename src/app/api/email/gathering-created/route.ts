@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { loadUserRoleNames, isChapterStaffRole } from "@/lib/auth/user-roles";
+import { getAppBaseUrl } from "@/lib/mail/app-base-url";
+import { resolveUserEmailForDelivery } from "@/lib/mail/resolve-user-email";
 import { sendTemplatedEmail } from "@/lib/mail/send-templated-email";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-
-function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
-}
 
 async function displayNameForUser(
   admin: ReturnType<typeof createAdminClient>,
@@ -97,13 +95,15 @@ export async function POST(req: Request) {
       }
     }
 
-    const gatheringUrl = `${siteUrl()}/dashboard/gatherings/${ev.id}`;
+    const siteBase = await getAppBaseUrl(admin);
+    const gatheringUrl = `${siteBase}/dashboard/gatherings/${ev.id}`;
     const seen = new Set<string>();
     let sent = 0;
 
     for (const row of recipientRows) {
-      const to = row.email?.trim().toLowerCase();
-      if (!to || seen.has(to)) continue;
+      const delivery = await resolveUserEmailForDelivery(admin, row.id);
+      const to = delivery.email?.trim().toLowerCase();
+      if (!to || !to.includes("@") || seen.has(to)) continue;
       seen.add(to);
       const full = await displayNameForUser(admin, row.id, to);
       await sendTemplatedEmail(

@@ -63,6 +63,8 @@ export default async function DashboardHomeContent() {
       membersEngaged: 0,
       localLeaders: 0,
       happeningNow: 0,
+      mobilizeGroups: 0,
+      peopleInMissions: 0,
     };
   }
 
@@ -101,6 +103,7 @@ export default async function DashboardHomeContent() {
       initialFeed={feed}
       chapters={chapters}
       memberOnboarding={memberOnboarding}
+      viewerRoles={roleNames}
     />
   );
 }

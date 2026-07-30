@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isEmailInUse } from "@/lib/auth/email-in-use";
 import { ensureMemberRoleIfUserHasNoRoles } from "@/lib/import/dashboard-user-mirror";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { hashOtp, normalizeEmail, OTP_PURPOSE_REGISTER } from "@/lib/auth/email-otp";
@@ -62,9 +63,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid verification code." }, { status: 400 });
     }
 
-    const { data: existingUsers } = await supabase.auth.admin.listUsers({ page: 1, perPage: 2000 });
-    const already = existingUsers.users.find((u) => (u.email || "").toLowerCase() === email);
-    if (already) {
+    if (await isEmailInUse(supabase, email)) {
       return NextResponse.json({ error: "This email is already registered." }, { status: 409 });
     }
 

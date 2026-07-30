@@ -13,7 +13,7 @@ export async function approveCertificateRequestRecord(
     reviewedBy: string;
     adminNote?: string | null;
   }
-): Promise<{ sessionCount: number }> {
+): Promise<{ sessionCount: number; emailSent: boolean; emailError?: string }> {
   const reviewedAt = new Date().toISOString();
   const { error: updateErr } = await admin
     .from("course_certificate_requests")
@@ -38,9 +38,10 @@ export async function approveCertificateRequestRecord(
       adminNote: args.adminNote ?? null,
       reviewedBy: args.reviewedBy,
     });
+    return { ...result, emailSent: true };
   } catch (err) {
+    const emailError = err instanceof Error ? err.message : String(err);
     console.error("[certificate-request-approval] review notification failed:", err);
+    return { ...result, emailSent: false, emailError };
   }
-
-  return result;
 }
