@@ -25,12 +25,12 @@ export default async function MissionsPage() {
       loadJourneyMilestones(supabase, user.id),
     ]);
     missionLinksEnabled = snapshot.firstMission !== "locked";
-    // Welcome marks "started"; hide once started. Completed will be wired in a later phase.
-    const missionsAlreadyStarted =
-      snapshot.firstMission === "in_progress" ||
-      snapshot.firstMission === "completed" ||
-      Boolean(milestones?.missions_started_notified_at);
-    showWelcome = !missionsAlreadyStarted;
+    // Popup only hides after the user confirms/dismisses the Missions welcome
+    // (Journey Progress "Missions started"). First-mission status alone must not suppress it.
+    const missionsMarkedStarted = Boolean(
+      milestones?.missions_started_notified_at || milestones?.missions_welcome_seen_at
+    );
+    showWelcome = !missionsMarkedStarted;
   } else if (!isElevatedRole(roleNames) && !can(permissions, MODULE_SLUGS.training, "read")) {
     missionLinksEnabled = false;
   }

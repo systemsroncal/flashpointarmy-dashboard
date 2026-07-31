@@ -77,6 +77,34 @@ function displayFeedTitle(title: string): string {
   return scrubPrivacyNamesInText(t);
 }
 
+const MEMBER_JOINED_SUBTITLE = "Welcome to the movement. Start your journey today!";
+
+function resolveMemberRegistrationDisplay(row: ActivityFeedRow): {
+  title: string;
+  subtitle: string;
+} | null {
+  const cat = row.feed_category.trim().toLowerCase();
+  if (cat !== "member") return null;
+
+  const title = row.title.trim();
+  if (/joined FlashPoint Army/i.test(title)) {
+    return {
+      title: displayFeedTitle(title),
+      subtitle: row.subtitle?.trim() || MEMBER_JOINED_SUBTITLE,
+    };
+  }
+
+  if (/^New member registered$/i.test(title)) {
+    const who = scrubPrivacyNamesInText((row.subtitle ?? "").trim() || "A member");
+    return {
+      title: `🎉 ${who} joined FlashPoint Army!`,
+      subtitle: MEMBER_JOINED_SUBTITLE,
+    };
+  }
+
+  return null;
+}
+
 function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   const cat = row.feed_category.trim().toLowerCase();
   const key = (row.icon_key || "").trim().toLowerCase();
@@ -196,6 +224,9 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   if (key === "shield") return securityManual;
 
   if (cat === "member_invite") return purpleGrowth;
+  if (cat === "member" && /joined FlashPoint Army|New member registered/i.test(row.title)) {
+    return purpleGrowth;
+  }
   if (cat === "auto_weekly_members") return tealCommunityUpdate;
   if (cat === "auto_member_goal") return blueMilestone;
   if (cat === "auto_shares_today") return redEngagement;
@@ -284,8 +315,18 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
   const state = row.state_code?.trim().toUpperCase().slice(0, 2) || null;
   const categoryDisplay = visual.categoryLabel;
   const isMemberInvite = row.feed_category.trim().toLowerCase() === "member_invite";
-  const displayTitle = isMemberInvite ? row.title : displayFeedTitle(row.title);
-  const displaySubtitle = row.subtitle ? scrubPrivacyNamesInText(row.subtitle) : null;
+  const memberJoined = resolveMemberRegistrationDisplay(row);
+  const displayTitle = isMemberInvite
+    ? row.title
+    : memberJoined
+      ? memberJoined.title
+      : displayFeedTitle(row.title);
+  const displaySubtitle = memberJoined
+    ? memberJoined.subtitle
+    : row.subtitle
+      ? scrubPrivacyNamesInText(row.subtitle)
+      : null;
+  const italicSubtitle = isMemberInvite || Boolean(memberJoined);
   const showSubtitle =
     displaySubtitle &&
     displaySubtitle.trim() !== "" &&
@@ -375,7 +416,7 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
                 minWidth: 0,
                 lineHeight: 1.4,
                 fontSize: FEED_DESC_FONT_SIZE,
-                fontStyle: isMemberInvite ? "italic" : "normal",
+                fontStyle: italicSubtitle ? "italic" : "normal",
               }}
             >
               {displaySubtitle}

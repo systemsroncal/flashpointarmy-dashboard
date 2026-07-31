@@ -45,6 +45,14 @@ export function formatNotificationDisplay(n: {
   if (title === "Certificate request") {
     title = "Prior BibCit";
   }
+  if (title === "New member registered") {
+    const nameFromBody =
+      body?.match(/^(.+?)\s+registered and joined\b/i)?.[1]?.trim() ?? null;
+    title = nameFromBody
+      ? `🎉 ${nameFromBody} joined FlashPoint Army!`
+      : "🎉 A member joined FlashPoint Army!";
+    body = "Welcome to the movement. Start your journey today!";
+  }
   if (/submitted a certificate request/i.test(title)) {
     title = title.replace(/submitted a certificate request/i, "confirmed prior BibCit");
   }
