@@ -52,6 +52,7 @@ import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion"
 import { canViewMobilizeGroupReports, parseMobilizeGroupTab } from "@/lib/mobilize/group-detail-tabs";
 import {
   canManageMobilizeGroupContent,
+  canPinMobilizeGroupMessage,
   canViewMobilizeGroupMemberContent,
 } from "@/lib/mobilize/mobilize-content-access";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
@@ -398,6 +399,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const isApproved = membership?.membership_status === "approved";
   const isLeader = membership?.member_role === "leader" && isApproved;
   const isSuperAdmin = me.role_names.includes("super_admin");
+  const canPinPosts = canPinMobilizeGroupMessage({
+    roleNames: me.role_names,
+    isLeader,
+  });
   const canViewContent = canViewMobilizeGroupMemberContent({
     roleNames: me.role_names,
     isApprovedMember: isApproved,
@@ -592,6 +597,22 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       await loadWall();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Update failed.", "error");
+    }
+  }
+
+  async function pinMessage(m: MessageRow, pin: boolean) {
+    try {
+      const res = await fetch(`/api/mobilize/groups/${groupId}/messages/${m.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Pin update failed.");
+      toast(pin ? "Post pinned." : "Post unpinned.", "success");
+      await loadWall();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Pin update failed.", "error");
     }
   }
 
@@ -1326,6 +1347,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                       preview: m.content.trim() || "this post",
                     })
                   }
+                  onPin={(m, pin) => void pinMessage(m, pin)}
+                  canPinPost={canPinPosts}
                 />
               </MobilizeSocialFeedShell>
               {isMobileGroupFeed && feedSubTab === "feed" && groupFeedAdsRail ? (

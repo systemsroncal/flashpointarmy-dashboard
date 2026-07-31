@@ -12,10 +12,11 @@ export type CommunityActivityFeedRow = {
   state_code: string | null;
   created_at: string;
   icon_key: string | null;
+  actor_user_id: string | null;
 };
 
 const feedSelect =
-  "id, feed_category, title, subtitle, state_code, created_at, icon_key";
+  "id, feed_category, title, subtitle, state_code, created_at, icon_key, actor_user_id";
 
 function mapFeedRows(
   rows: {
@@ -26,9 +27,14 @@ function mapFeedRows(
     state_code: string | null;
     created_at: string;
     icon_key: string | null;
+    actor_user_id?: string | null;
   }[]
 ): CommunityActivityFeedRow[] {
-  return rows.map((r) => ({ ...r, icon_key: r.icon_key ?? null }));
+  return rows.map((r) => ({
+    ...r,
+    icon_key: r.icon_key ?? null,
+    actor_user_id: r.actor_user_id ?? null,
+  }));
 }
 
 /**

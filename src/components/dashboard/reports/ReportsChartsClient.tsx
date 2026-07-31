@@ -2,6 +2,7 @@
 
 import { CourseCompletionComparison } from "@/components/dashboard/courses/CourseCompletionComparison";
 import { ReportsPresenceSection } from "@/components/dashboard/reports/ReportsPresenceSection";
+import { ReportsRegistrationComparison } from "@/components/dashboard/reports/ReportsRegistrationComparison";
 import type { CourseCompletionRow } from "@/lib/courses/course-completion-stats";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import {
@@ -366,19 +367,23 @@ export function ReportsChartsClient() {
               )}
             </Paper>
           </Stack>
-
-          <Paper sx={{ p: 2 }}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ color: "#90be6d" }}>
-                Course completion comparison
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Snapshot for a single course: how many local leaders vs. members started and how many finished every session.
-              </Typography>
-            </Box>
-            <CourseCompletionComparison courses={courseCompletionRows} />
-          </Paper>
         </Stack>
+      ) : null}
+
+      <ReportsRegistrationComparison />
+
+      {data ? (
+        <Paper sx={{ p: 2 }}>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ color: "#90be6d" }}>
+              Course completion comparison
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Snapshot for a single course: how many local leaders vs. members started and how many finished every session.
+            </Typography>
+          </Box>
+          <CourseCompletionComparison courses={courseCompletionRows} />
+        </Paper>
       ) : null}
     </Stack>
   );

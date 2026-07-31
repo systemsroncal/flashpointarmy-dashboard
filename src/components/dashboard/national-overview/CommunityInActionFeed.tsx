@@ -14,6 +14,7 @@ import TrendingUpOutlined from "@mui/icons-material/TrendingUpOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import { Box, Chip, Typography } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
+import Link from "next/link";
 import { scrubPrivacyNamesInText } from "@/lib/user/format-privacy-name";
 
 export type ActivityFeedRow = {
@@ -24,6 +25,7 @@ export type ActivityFeedRow = {
   state_code: string | null;
   created_at: string;
   icon_key: string | null;
+  actor_user_id?: string | null;
 };
 
 type FeedVisual = {
@@ -47,6 +49,9 @@ function englishCategoryLabel(row: ActivityFeedRow): string {
     growth: "Growth milestone",
     community: "Community",
     member_invite: "Member invite",
+    auto_weekly_members: "Growth milestone",
+    auto_member_goal: "Growth milestone",
+    auto_shares_today: "Community",
     training_session: "Training · session",
     training_course: "Training · course",
     training_briefing: "Training · briefing",
@@ -162,10 +167,10 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
 
   if (cat === "upcoming_gatherings" || cat === "gathering") return purple;
   if (cat === "hosted_events") return tealClock;
-  if (cat === "growth") return tealGrowth;
+  if (cat === "growth" || cat === "auto_weekly_members" || cat === "auto_member_goal") return tealGrowth;
   if (cat === "leadership") return goldLead;
   if (cat === "chapter") return blueChapter;
-  if (cat === "member" || cat === "member_invite") return orangeMember;
+  if (cat === "member" || cat === "member_invite" || cat === "auto_shares_today") return orangeMember;
   if (key === "school") return oliveSchool;
 
   if (cat === "training_session" || cat === "training_course" || cat === "certificate_request") return oliveSchool;
@@ -191,12 +196,62 @@ const FEED_TITLE_FONT_SIZE = "13px";
 const FEED_DESC_FONT_SIZE = "12px";
 const FEED_META_FONT_SIZE = "0.72rem";
 
+function MemberInviteTitle({ row }: { row: ActivityFeedRow }) {
+  const title = row.title.trim();
+  const match = title.match(/^🎉\s+(.+?)\s+(helped grow FPA Chapters .+)$/);
+  if (row.actor_user_id && match) {
+    return (
+      <Typography
+        variant="subtitle2"
+        component="div"
+        sx={{
+          width: "100%",
+          fontWeight: 700,
+          color: "common.white",
+          lineHeight: 1.35,
+          fontSize: FEED_TITLE_FONT_SIZE,
+        }}
+      >
+        🎉{" "}
+        <Box
+          component={Link}
+          href={`/dashboard/people/${row.actor_user_id}?from=community`}
+          sx={{
+            color: "inherit",
+            textDecoration: "underline",
+            fontWeight: 700,
+            "&:hover": { color: "primary.light" },
+          }}
+        >
+          {match[1]}
+        </Box>{" "}
+        {match[2]}
+      </Typography>
+    );
+  }
+  return (
+    <Typography
+      variant="subtitle2"
+      sx={{
+        width: "100%",
+        fontWeight: 700,
+        color: "common.white",
+        lineHeight: 1.35,
+        fontSize: FEED_TITLE_FONT_SIZE,
+      }}
+    >
+      {displayFeedTitle(title)}
+    </Typography>
+  );
+}
+
 function FeedRow({ row }: { row: ActivityFeedRow }) {
   const visual = resolveFeedVisual(row);
   const Icon = visual.Icon;
   const state = row.state_code?.trim().toUpperCase().slice(0, 2) || null;
   const categoryDisplay = visual.categoryLabel;
-  const displayTitle = displayFeedTitle(row.title);
+  const isMemberInvite = row.feed_category.trim().toLowerCase() === "member_invite";
+  const displayTitle = isMemberInvite ? row.title : displayFeedTitle(row.title);
   const displaySubtitle = row.subtitle ? scrubPrivacyNamesInText(row.subtitle) : null;
   const showSubtitle =
     displaySubtitle &&
@@ -237,18 +292,22 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
       </Box>
 
       <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", py: 0.25 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            width: "100%",
-            fontWeight: 700,
-            color: "common.white",
-            lineHeight: 1.35,
-            fontSize: FEED_TITLE_FONT_SIZE,
-          }}
-        >
-          {displayTitle}
-        </Typography>
+        {isMemberInvite ? (
+          <MemberInviteTitle row={row} />
+        ) : (
+          <Typography
+            variant="subtitle2"
+            sx={{
+              width: "100%",
+              fontWeight: 700,
+              color: "common.white",
+              lineHeight: 1.35,
+              fontSize: FEED_TITLE_FONT_SIZE,
+            }}
+          >
+            {displayTitle}
+          </Typography>
+        )}
         {state ? (
           <Chip
             label={state}
@@ -278,7 +337,13 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ flex: 1, minWidth: 0, lineHeight: 1.4, fontSize: FEED_DESC_FONT_SIZE }}
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                lineHeight: 1.4,
+                fontSize: FEED_DESC_FONT_SIZE,
+                fontStyle: isMemberInvite ? "italic" : "normal",
+              }}
             >
               {displaySubtitle}
             </Typography>

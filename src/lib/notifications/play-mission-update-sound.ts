@@ -1,4 +1,6 @@
-/** Short military-style bugle fanfare via Web Audio (no external sample). */
+import { playSoundRepeated } from "@/lib/notifications/play-sound-repeat";
+
+/** Plays the mission bugle fanfare once. */
 let audioCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
@@ -58,4 +60,12 @@ export function playMissionUpdateSound(): void {
   } catch {
     /* ignore */
   }
+}
+
+const MISSION_UPDATE_SOUND_REPEATS = 3;
+const MISSION_UPDATE_SOUND_GAP_MS = 650;
+
+/** Mission Updates alert: bugle fanfare repeated 3 times. */
+export function playMissionUpdateSoundAlert(): void {
+  playSoundRepeated(playMissionUpdateSound, MISSION_UPDATE_SOUND_REPEATS, MISSION_UPDATE_SOUND_GAP_MS);
 }

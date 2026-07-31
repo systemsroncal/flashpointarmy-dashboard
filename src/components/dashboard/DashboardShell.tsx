@@ -56,6 +56,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardTourHelpButton, DashboardTourProvider } from "@/components/dashboard/DashboardTour";
 import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
+import { scrollTourTargetIntoView } from "@/lib/dashboard/dashboard-tour-actions";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
 import { isNavModuleAllowedForRoles } from "@/lib/auth/nav-access";
@@ -64,7 +65,7 @@ import {
   canAccessPeopleMembers,
   canAccessPeopleOverview,
 } from "@/lib/auth/people-section-access";
-import { canAccessMobilizeModule, canSeeMobilizeNavItem, isChapterStaffRole, isElevatedRole } from "@/lib/auth/user-roles";
+import { canAccessMobilizeModule, canSeeMobilizeNavItem, isChapterStaffRole, isElevatedRole, isSuperAdminUser } from "@/lib/auth/user-roles";
 import { shouldShowSidebarYourJourney } from "@/lib/onboarding/member-onboarding-status";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -76,6 +77,7 @@ import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
 import { MissionUpdatesNavIcon } from "./MissionUpdatesNavIcon";
 import { MissionUpdatesUnreadProvider } from "./MissionUpdatesUnreadProvider";
 import { HeaderAccountSettingsButton } from "./HeaderAccountSettingsButton";
+import { HeaderSuperAdminProfileAvatar } from "./HeaderSuperAdminProfileAvatar";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
@@ -92,6 +94,7 @@ import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
 import { flashpointYellow } from "@/theme/tokens";
 import { MobilizeSidebarNav } from "@/components/mobilize/MobilizeSidebarNav";
+import { PoweredByDreamsAnimation } from "@/components/PoweredByDreamsAnimation";
 
 const DRAWER_WIDTH = 220;
 
@@ -229,20 +232,23 @@ const MISSION_PIPELINE_HREFS = new Set<string>([
   "/dashboard/onboarding/journey-progress",
 ]);
 
+const BIBCIT_PROGRESS_NAV_TOUR_ATTR = "nav--dashboard-onboarding-biblical-citizenship-progress";
+
+const COURSE_PROGRESS_PATH_RE = /^\/dashboard\/courses\/[^/]+\/progress(?:\/|$)/;
+
 /** Course progress admin (BibCit) lives under /dashboard/courses/:id/progress after redirect. */
 function isMissionPipelinePath(pathname: string): boolean {
   for (const href of MISSION_PIPELINE_HREFS) {
     if (pathname === href || pathname.startsWith(`${href}/`)) return true;
   }
-  if (/^\/dashboard\/courses\/[^/]+\/progress(?:\/|$)/.test(pathname)) return true;
+  if (COURSE_PROGRESS_PATH_RE.test(pathname)) return true;
   return false;
 }
 
 function isMissionPipelineNavItemSelected(item: NavItem, pathname: string): boolean {
   if (item.href === "/dashboard/onboarding/biblical-citizenship-progress") {
     return (
-      pathname === item.href ||
-      /^\/dashboard\/courses\/[^/]+\/progress(?:\/|$)/.test(pathname)
+      pathname === item.href || COURSE_PROGRESS_PATH_RE.test(pathname)
     );
   }
   return isNavItemSelected(item, pathname);
@@ -574,6 +580,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const permissions = usePermissions();
   const user = useDashboardUser();
+  const isSuperAdmin = isSuperAdminUser(user.role_names);
   const isMobilize =
     pathname.startsWith(MOBILIZE_PREFIX) && canAccessMobilizeModule(user.role_names);
   const onMobilizeSocialHub =
@@ -746,6 +753,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (peopleHasActive) setPeopleOpen(true);
   }, [peopleHasActive]);
+
+  useEffect(() => {
+    if (!COURSE_PROGRESS_PATH_RE.test(pathname)) return;
+    setMissionPipelineOpen(true);
+    const timer = window.setTimeout(() => {
+      const el = document.querySelector(`[data-tour="${BIBCIT_PROGRESS_NAV_TOUR_ATTR}"]`);
+      if (el) scrollTourTargetIntoView(el);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
 
   async function handleSignOut() {
     try {
@@ -1083,6 +1100,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       ) : null}
       <Box sx={{ flexShrink: 0 }}>
         <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
+        {!isSuperAdmin ? (
         <Box
           data-tour="sidebar-profile"
           sx={{
@@ -1131,7 +1149,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Typography>
           </Box>
         </Box>
+        <PoweredByDreamsAnimation sx={{ fontSize: "0.65rem", mt: 0.75 }} />
         </Box>
+        ) : (
+          <Box sx={{ p: 1.5, pb: "calc(12px + env(safe-area-inset-bottom, 0px))" }}>
+            <PoweredByDreamsAnimation sx={{ fontSize: "0.65rem" }} />
+          </Box>
+        )}
       </Box>
     </Box>
   );
@@ -1204,6 +1228,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             onOpenProfile={() => setProfileOpen(true)}
             onSignOut={() => void handleSignOut()}
           />
+          {isSuperAdmin ? (
+            <HeaderSuperAdminProfileAvatar
+              onOpenProfile={() => setProfileOpen(true)}
+              onSignOut={() => void handleSignOut()}
+            />
+          ) : null}
         </Toolbar>
       </AppBar>
 

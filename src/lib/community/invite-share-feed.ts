@@ -13,18 +13,18 @@ export const INVITE_SHARE_CHANNELS = [
 
 export type InviteShareChannel = (typeof INVITE_SHARE_CHANNELS)[number];
 
-const CHANNEL_LABELS: Record<InviteShareChannel, string> = {
+const CHANNEL_THROUGH_LABELS: Record<InviteShareChannel, string> = {
   whatsapp: "WhatsApp",
   facebook: "Facebook",
   x: "X",
   linkedin: "LinkedIn",
   telegram: "Telegram",
   email: "Email",
-  direct_link: "direct link",
+  direct_link: "the invite link",
 };
 
 export function inviteShareChannelLabel(channel: InviteShareChannel): string {
-  return CHANNEL_LABELS[channel];
+  return CHANNEL_THROUGH_LABELS[channel];
 }
 
 export function isInviteShareChannel(value: string): value is InviteShareChannel {
@@ -89,13 +89,16 @@ export async function insertInviteShareActivity(args: {
   const who = displayHandle(first, last, email);
   const state = await chapterStateFromProfile(args.supabase, args.userId);
   const via = inviteShareChannelLabel(args.channel);
+  const through =
+    args.channel === "direct_link" ? "by copying the invite link" : `through ${via}`;
 
   const { error } = await args.supabase.from("community_activity").insert({
     feed_category: "member_invite",
-    title: `${who} just invited a new member to FlashPoint Army through ${via}`,
-    subtitle: "Help Us Reach 20,000 Members",
+    title: `🎉 ${who} helped grow FPA Chapters ${through}!`,
+    subtitle: "Thank you for inviting others to join the movement.",
     state_code: state,
     icon_key: "person",
+    actor_user_id: args.userId,
   });
   if (error) throw new Error(error.message);
 }

@@ -56,7 +56,7 @@ export function MobilizeSocialFeedShell({
         gridTemplateColumns: gridColumns,
         gap: { xs: 2, lg: isGroupProfile ? 3 : 2.5 },
         alignItems: isGroupProfile ? "stretch" : "start",
-        ...(isGroupProfile ? { minHeight: { lg: "calc(100dvh - 5.5rem - 380px)" } } : {}),
+        ...(isGroupProfile ? {} : { minHeight: { lg: "calc(100dvh - 5.5rem - 380px)" } }),
         ...fillSx,
       }}
     >

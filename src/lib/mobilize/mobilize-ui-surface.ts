@@ -128,21 +128,18 @@ export const mobilizeGroupFeedContentSurfaceSx: SxProps<Theme> = {
   bgcolor: "transparent",
 };
 
-/** Center column: full-height stack for composer + post list. */
+/** Center column: composer + post list (content-sized, no forced viewport fill). */
 export const mobilizeGroupFeedPostsColumnSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
-  height: "100%",
-  minHeight: { lg: "calc(100dvh - 5.5rem - 380px)" },
+  minHeight: 0,
 };
 
 /** Composer + posts column wrapper inside group feed. */
 export const mobilizeGroupFeedPostsStackSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
-  height: "100%",
-  flex: 1,
-  minHeight: 0,
+  flex: "0 0 auto",
   gap: 2,
 };
 
@@ -154,12 +151,10 @@ export const mobilizeGroupFeedPaperSx: SxProps<Theme> = {
   color: "#0d0d0d",
 };
 
-/** Scrollable / growing posts list area — white panel, full height. */
+/** Scrollable / growing posts list area — white panel, content-sized. */
 export const mobilizeGroupFeedPostsListSx: SxProps<Theme> = {
   ...mobilizeGroupFeedPaperSx,
-  flex: 1,
-  height: "100%",
-  minHeight: 0,
+  flex: "0 0 auto",
   display: "flex",
   flexDirection: "column",
   border: "none",

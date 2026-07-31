@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-images";
-import { canManageMobilizeGroupContent, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
+import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { getMobilizeWallPostAccess } from "@/lib/mobilize/mobilize-wall-post-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { enrichGroupMessages } from "@/lib/mobilize/social/enrich-group-messages";
@@ -38,8 +38,9 @@ export async function GET(req: Request, ctx: Ctx) {
 
   let q = auth.admin
     .from("mobilize_group_messages")
-    .select("id, group_id, author_id, content, content_html, comments_policy, image_urls, created_at")
+    .select("id, group_id, author_id, content, content_html, comments_policy, image_urls, created_at, pinned_at")
     .eq("group_id", id)
+    .order("pinned_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(limit);
 

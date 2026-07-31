@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-images";
-import { canManageMobilizeGroupContent, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
+import { canManageMobilizeGroupContent, canPinMobilizeGroupMessage, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { normalizeFeedContent } from "@/lib/mobilize/social/sanitize-feed-html";
 
@@ -57,7 +57,30 @@ export async function PATCH(req: Request, ctx: Ctx) {
     content_html?: string;
     comments_policy?: string;
     image_urls?: unknown;
+    pin?: boolean;
   };
+
+  if (typeof body.pin === "boolean") {
+    const isLeader = me?.membership_status === "approved" && me.member_role === "leader";
+    if (
+      !canPinMobilizeGroupMessage({
+        roleNames: auth.roleNames,
+        isLeader,
+      })
+    ) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+    const patch = { pinned_at: body.pin ? new Date().toISOString() : null };
+    const { data, error } = await auth.admin
+      .from("mobilize_group_messages")
+      .update(patch)
+      .eq("id", messageId)
+      .eq("group_id", groupId)
+      .select("*")
+      .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ message: data });
+  }
 
   const patch: Record<string, unknown> = {};
   if (typeof body.content_html === "string" || typeof body.content === "string") {

@@ -12,14 +12,26 @@ export function canViewMobilizeGroupMemberContent(input: {
   return input.isApprovedMember || isMobilizeSuperAdmin(input.roleNames);
 }
 
-/** Leaders, super admins, and content authors may edit or delete published chapter content. */
+/** Leaders, admins, super admins, and content authors may edit or delete published chapter content. */
 export function canManageMobilizeGroupContent(input: {
   roleNames: string[];
   isLeader?: boolean;
   isAuthor?: boolean;
 }): boolean {
   if (isMobilizeSuperAdmin(input.roleNames)) return true;
+  if (input.roleNames.includes("admin")) return true;
   if (input.isLeader) return true;
   if (input.isAuthor) return true;
+  return false;
+}
+
+/** Pin/unpin group feed posts — leaders, admins, and super admins only. */
+export function canPinMobilizeGroupMessage(input: {
+  roleNames: string[];
+  isLeader?: boolean;
+}): boolean {
+  if (isMobilizeSuperAdmin(input.roleNames)) return true;
+  if (input.roleNames.includes("admin")) return true;
+  if (input.isLeader) return true;
   return false;
 }

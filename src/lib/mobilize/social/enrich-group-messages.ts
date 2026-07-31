@@ -11,6 +11,7 @@ export type EnrichedGroupMessage = {
   comments_policy: string;
   image_urls: string[];
   created_at: string;
+  pinned_at: string | null;
   author: {
     id: string;
     display_name: string;
@@ -38,6 +39,7 @@ export async function enrichGroupMessages(
     comments_policy?: string;
     image_urls?: string[] | null;
     created_at: string;
+    pinned_at?: string | null;
   }[]
 ): Promise<EnrichedGroupMessage[]> {
   if (!rows.length) return [];
@@ -92,6 +94,7 @@ export async function enrichGroupMessages(
       comments_policy: row.comments_policy ?? "everyone",
       image_urls: row.image_urls ?? [],
       created_at: row.created_at,
+      pinned_at: row.pinned_at ?? null,
       author,
       reactions: summarizeReactions(reactionRows, viewerReaction),
       comment_count: commentCountByMessage.get(row.id) ?? 0,

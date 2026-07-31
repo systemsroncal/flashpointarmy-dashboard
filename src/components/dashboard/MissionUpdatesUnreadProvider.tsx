@@ -1,7 +1,7 @@
 "use client";
 
 import { getMissionUpdateSoundEnabled } from "@/lib/notifications/mission-update-sound-pref";
-import { playMissionUpdateSound } from "@/lib/notifications/play-mission-update-sound";
+import { playMissionUpdateSoundAlert } from "@/lib/notifications/play-mission-update-sound";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 const POLL_MS = 12_000;
@@ -51,7 +51,7 @@ export function MissionUpdatesUnreadProvider({ children }: { children: React.Rea
       return;
     }
     if (unread > prevUnreadRef.current && getMissionUpdateSoundEnabled()) {
-      playMissionUpdateSound();
+      playMissionUpdateSoundAlert();
     }
     prevUnreadRef.current = unread;
   }, [unread]);

@@ -121,9 +121,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [savingSettings, setSavingSettings] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [unfollowConfirmOpen, setUnfollowConfirmOpen] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     setError(null);
     try {
       const [profileRes, postsRes] = await Promise.all([
@@ -173,7 +174,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       setPosts([]);
       setError(e instanceof Error ? e.message : "Failed to load profile.");
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [userId]);
 
@@ -217,14 +218,36 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     try {
       const method = profile.is_following ? "DELETE" : "POST";
       const res = await fetch(`/api/mobilize/social/profiles/${userId}/follow`, { method });
-      const json = await res.json();
+      const json = (await res.json()) as { error?: string; is_following?: boolean };
       if (!res.ok) throw new Error(json.error || "Follow action failed.");
-      await load();
+      const nextFollowing = Boolean(json.is_following);
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              is_following: nextFollowing,
+              followers_count: Math.max(
+                0,
+                prev.followers_count + (nextFollowing ? 1 : -1)
+              ),
+            }
+          : prev
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Follow action failed.");
     } finally {
       setFollowBusy(false);
+      setUnfollowConfirmOpen(false);
     }
+  }
+
+  function handleFollowClick() {
+    if (!profile || profile.is_own_profile) return;
+    if (profile.is_following) {
+      setUnfollowConfirmOpen(true);
+      return;
+    }
+    void toggleFollow();
   }
 
   async function publishPost() {
@@ -313,7 +336,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
       <Button
         variant={p.is_following ? "outlined" : "contained"}
-        onClick={() => void toggleFollow()}
+        onClick={() => handleFollowClick()}
         disabled={followBusy}
         sx={{
           borderRadius: 99,
@@ -689,6 +712,33 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             }}
           >
             {savingSettings ? "Saving…" : "Save"}
+          </Button>
+        </DialogActions>
+      </MobilizeDialog>
+
+      <MobilizeDialog
+        open={unfollowConfirmOpen}
+        onClose={() => !followBusy && setUnfollowConfirmOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Unfollow {p.display_name}?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Their posts will no longer appear in your Following feed.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUnfollowConfirmOpen(false)} disabled={followBusy}>
+            No
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={followBusy}
+            onClick={() => void toggleFollow()}
+          >
+            {followBusy ? "…" : "Yes, unfollow"}
           </Button>
         </DialogActions>
       </MobilizeDialog>

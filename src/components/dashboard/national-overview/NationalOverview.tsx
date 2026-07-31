@@ -26,8 +26,10 @@ import {
   sumReferenceTotals,
   type CitiesDonorsJson,
 } from "@/lib/donors/aggregate-donors-by-state";
-import { loadCommunityActivityFeed } from "@/lib/community/community-activity-feed";
+import { loadCommunityActivityFeed, COMMUNITY_ACTIVITY_FEED_LIMIT } from "@/lib/community/community-activity-feed";
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
+import { getNotificationSoundEnabled } from "@/lib/notifications/notification-sound-pref";
+import { playCommunityActionSoundAlert } from "@/lib/notifications/play-community-action-sound";
 import { ChapterMapInviteCta } from "./ChapterMapInviteCta";
 import { InviteFriendsBanner } from "./InviteFriendsBanner";
 import { MemberOnboardingProgressCard } from "./MemberOnboardingProgressCard";
@@ -121,7 +123,28 @@ export function NationalOverview({
 
   useEffect(() => {
     setFeed(initialFeed);
+    feedKnownIdsRef.current = new Set(initialFeed.map((r) => r.id));
+    feedSoundReadyRef.current = false;
   }, [initialFeed]);
+
+  useEffect(() => {
+    const ids = feed.map((r) => r.id);
+    if (!feedSoundReadyRef.current) {
+      feedKnownIdsRef.current = new Set(ids);
+      if (ids.length > 0) feedSoundReadyRef.current = true;
+      return;
+    }
+    let hasNew = false;
+    for (const id of ids) {
+      if (!feedKnownIdsRef.current.has(id)) {
+        feedKnownIdsRef.current.add(id);
+        hasNew = true;
+      }
+    }
+    if (hasNew && getNotificationSoundEnabled()) {
+      playCommunityActionSoundAlert();
+    }
+  }, [feed]);
 
   useEffect(() => {
     setChapterRows(chapters);
@@ -219,6 +242,8 @@ export function NationalOverview({
   const overviewReloadBusyRef = useRef(false);
   const overviewReloadQueuedRef = useRef(false);
   const realtimeOverviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedSoundReadyRef = useRef(false);
+  const feedKnownIdsRef = useRef<Set<string>>(new Set());
 
   const kickReloadOverview = useCallback(async () => {
     if (overviewReloadBusyRef.current) {
@@ -256,12 +281,39 @@ export function NationalOverview({
       "chapter_leaders",
       "audit_logs",
       "mobilize_groups",
-      "member_first_missions",
+      "member_journey_milestones",
     ] as const;
 
     try {
       channel = supabase.channel("national-overview-sync");
+      channel.on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "community_activity" },
+        (payload) => {
+          const row = payload.new as ActivityFeedRow & { actor_user_id?: string | null };
+          if (!row?.id) return;
+          setFeed((prev) => {
+            if (prev.some((r) => r.id === row.id)) return prev;
+            const next: ActivityFeedRow[] = [
+              {
+                id: String(row.id),
+                feed_category: String(row.feed_category ?? ""),
+                title: String(row.title ?? ""),
+                subtitle: (row.subtitle as string | null) ?? null,
+                state_code: (row.state_code as string | null) ?? null,
+                created_at: String(row.created_at ?? new Date().toISOString()),
+                icon_key: (row.icon_key as string | null) ?? null,
+                actor_user_id: (row.actor_user_id as string | null) ?? null,
+              },
+              ...prev,
+            ];
+            return next.slice(0, COMMUNITY_ACTIVITY_FEED_LIMIT);
+          });
+          scheduleRealtimeOverviewReload();
+        }
+      );
       for (const table of tables) {
+        if (table === "community_activity") continue;
         channel.on(
           "postgres_changes",
           { event: "*", schema: "public", table },
@@ -284,6 +336,15 @@ export function NationalOverview({
       if (channel) void supabase.removeChannel(channel);
     };
   }, [kickReloadOverview, scheduleRealtimeOverviewReload]);
+
+  useEffect(() => {
+    const runAutoTick = () => {
+      void fetch("/api/community/activity/auto-tick", { method: "POST" }).catch(() => {});
+    };
+    void runAutoTick();
+    const autoTickInterval = setInterval(runAutoTick, 10 * 60 * 1000);
+    return () => clearInterval(autoTickInterval);
+  }, []);
 
   const scrollMapSectionIntoView = useCallback(() => {
     const el = mapSectionRef.current;
@@ -342,7 +403,7 @@ export function NationalOverview({
     if (memberLeaderOnly) {
       cards.push({
         label: "Members",
-        value: stats.membersEngaged,
+        value: stats.membersEngaged + stats.localLeaders,
         color: "#f97316",
         icon: GroupsOutlined,
       });
@@ -374,7 +435,7 @@ export function NationalOverview({
 
     cards.push(
       {
-        label: "Missions",
+        label: "Started Missions",
         value: stats.peopleInMissions,
         color: "#06b6d4",
         icon: FlagOutlined,

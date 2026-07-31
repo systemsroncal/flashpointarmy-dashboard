@@ -24,23 +24,35 @@ function RecommendedUserRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [following, setFollowing] = useState(user.is_following);
+  const [confirmUnfollow, setConfirmUnfollow] = useState(false);
 
-  async function toggle() {
+  async function applyFollow(nextFollowing: boolean) {
     setBusy(true);
     try {
       const res = await fetch(`/api/mobilize/social/profiles/${user.id}/follow`, {
-        method: following ? "DELETE" : "POST",
+        method: nextFollowing ? "POST" : "DELETE",
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Follow failed.");
-      setFollowing(Boolean(json.is_following));
-      onFollowChange(user.id, Boolean(json.is_following));
+      const isFollowing = Boolean(json.is_following);
+      setFollowing(isFollowing);
+      onFollowChange(user.id, isFollowing);
     } finally {
       setBusy(false);
+      setConfirmUnfollow(false);
     }
   }
 
+  function handleClick() {
+    if (following) {
+      setConfirmUnfollow(true);
+      return;
+    }
+    void applyFollow(true);
+  }
+
   return (
+    <>
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, py: 1.25 }}>
       <Link href={mobilizeMemberProfileHref(user.id)} style={{ flexShrink: 0 }}>
         <Avatar
@@ -65,12 +77,28 @@ function RecommendedUserRow({
         size="small"
         variant={following ? "outlined" : "contained"}
         disabled={busy}
-        onClick={() => void toggle()}
+        onClick={() => handleClick()}
         sx={{ textTransform: "none", borderRadius: 99, minWidth: 88 }}
       >
         {following ? "Following" : "Follow"}
       </Button>
     </Box>
+    {confirmUnfollow ? (
+      <Box sx={{ px: 1, pb: 1 }}>
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+          Unfollow {user.display_name}?
+        </Typography>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button size="small" disabled={busy} onClick={() => setConfirmUnfollow(false)}>
+            No
+          </Button>
+          <Button size="small" color="error" variant="contained" disabled={busy} onClick={() => void applyFollow(false)}>
+            Yes
+          </Button>
+        </Box>
+      </Box>
+    ) : null}
+    </>
   );
 }
 

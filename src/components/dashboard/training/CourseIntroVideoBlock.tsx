@@ -2,6 +2,7 @@
 
 import { BIBLICAL_CITIZENSHIP_POSTER_SRC } from "@/lib/courses/course-completion";
 import { ExternalTrainingCertificateBanner } from "@/components/dashboard/training/ExternalTrainingCertificateBanner";
+import { InviteFriendsBanner } from "@/components/dashboard/national-overview/InviteFriendsBanner";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Box, IconButton, Typography } from "@mui/material";
 import Link from "next/link";
@@ -96,32 +97,34 @@ export function CourseIntroVideoBlock({
           ) : null}
         </Box>
 
-        <Box
-          sx={{
-            position: "relative",
-            borderRadius: 1.5,
-            overflow: "hidden",
-            aspectRatio: "1 / 1",
-            alignSelf: "center",
-            width: "100%",
-            maxWidth: { md: 420 },
-            mx: { xs: "auto", md: 0 },
-            boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
-          }}
-        >
+        <Box sx={{ alignSelf: "center", width: "100%", maxWidth: { md: 420 }, mx: { xs: "auto", md: 0 } }}>
+          <Box sx={{ mb: 1.5 }}>
+            <InviteFriendsBanner variant="compact" />
+          </Box>
           <Box
-            component="img"
-            src={posterSrc}
-            alt="Biblical Citizenship in Modern America — Full Course"
             sx={{
-              position: "absolute",
-              inset: 0,
+              position: "relative",
+              borderRadius: 1.5,
+              overflow: "hidden",
+              aspectRatio: "1 / 1",
               width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              display: "block",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
             }}
-          />
+          >
+            <Box
+              component="img"
+              src={posterSrc}
+              alt="Biblical Citizenship in Modern America — Full Course"
+              sx={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+          </Box>
         </Box>
       </Box>
     </Box>

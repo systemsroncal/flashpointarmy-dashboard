@@ -7,8 +7,9 @@ import { ChapterInviteShareDialog } from "./ChapterInviteShareDialog";
 export const INVITE_FRIENDS_BANNER_URL =
   "https://fparmychapters.com/wp-content/uploads/2026/07/invite-FP.png";
 
-export function InviteFriendsBanner() {
+export function InviteFriendsBanner({ variant = "full" }: { variant?: "full" | "compact" }) {
   const [open, setOpen] = useState(false);
+  const isCompact = variant === "compact";
 
   return (
     <>
@@ -19,9 +20,10 @@ export function InviteFriendsBanner() {
         aria-label="Invite someone to join FlashPoint Army"
         sx={{
           display: "block",
-          width: "100%",
+          width: isCompact ? { xs: "100%", sm: 240, md: 280 } : "100%",
+          maxWidth: isCompact ? 320 : undefined,
           p: 0,
-          mb: 1.25,
+          mb: isCompact ? 0 : 1.25,
           border: "none",
           borderRadius: 2,
           overflow: "hidden",

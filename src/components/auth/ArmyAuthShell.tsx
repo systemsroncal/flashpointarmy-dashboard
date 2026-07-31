@@ -6,6 +6,7 @@ import {
   LOGIN_LOGO_WATERMARK,
 } from "@/config/login";
 import { flashpointYellow } from "@/theme/tokens";
+import { PoweredByDreamsAnimation } from "@/components/PoweredByDreamsAnimation";
 import { Box, Typography } from "@mui/material";
 import Image from "next/image";
 import type { ReactNode } from "react";
@@ -118,16 +119,7 @@ export function ArmyAuthShell({ children }: { children: ReactNode }) {
           }}
         >
           {children}
-          <Typography
-            sx={{
-              color: grayText,
-              fontSize: "0.75rem",
-              textAlign: "center",
-              mt: 0.2,
-            }}
-          >
-            Powered by Dreams Animation
-          </Typography>
+          <PoweredByDreamsAnimation sx={{ color: grayText, mt: 0.2 }} />
         </Box>
       </Box>
 

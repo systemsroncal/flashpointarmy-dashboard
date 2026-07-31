@@ -16,6 +16,7 @@ import {
 } from "@/lib/mobilize/mobilize-ui-surface";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import PushPinIcon from "@mui/icons-material/PushPin";
 import {
   Box,
   IconButton,
@@ -45,6 +46,8 @@ type Props = {
   onPost: () => Promise<void>;
   onEdit?: (post: EnrichedGroupMessage) => void;
   onDelete?: (post: EnrichedGroupMessage) => void;
+  onPin?: (post: EnrichedGroupMessage, pin: boolean) => void;
+  canPinPost?: boolean;
   /** When true, wraps feed in Truth-style shell only (no extra left rail). */
   embedded?: boolean;
   authorRoleLabels?: Record<string, string>;
@@ -86,6 +89,8 @@ export function MobilizeGroupFeed({
   onPost,
   onEdit,
   onDelete,
+  onPin,
+  canPinPost = false,
   embedded = false,
   authorRoleLabels,
 }: Props) {
@@ -146,6 +151,7 @@ export function MobilizeGroupFeed({
           {messages.map((m) => {
             const unified = toUnifiedPost(m, groupId);
             const canManage = canManageMessage(m);
+            const isPinned = Boolean(m.pinned_at);
             return (
               <MobilizeSocialPostCard
                 key={m.id}
@@ -157,8 +163,20 @@ export function MobilizeGroupFeed({
                 layout={embedded ? "groupFeedCard" : "card"}
                 authorRoleLabel={authorRoleLabels?.[m.author.id]}
                 manageActions={
-                  canManage ? (
+                  canManage || canPinPost ? (
                     <Stack direction="row" spacing={0.25}>
+                      {canPinPost && onPin ? (
+                        <Tooltip title={isPinned ? "Unpin post" : "Pin post"}>
+                          <IconButton
+                            size="small"
+                            color={isPinned ? "primary" : "default"}
+                            onClick={() => onPin(m, !isPinned)}
+                            aria-label={isPinned ? "Unpin post" : "Pin post"}
+                          >
+                            <PushPinIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : null}
                       {onEdit ? (
                         <Tooltip title="Edit">
                           <IconButton size="small" onClick={() => onEdit(m)} aria-label="Edit post">
@@ -190,7 +208,7 @@ export function MobilizeGroupFeed({
           elevation={0}
           sx={
             embedded
-              ? { ...mobilizeGroupFeedPostsListSx, flex: 1 }
+              ? mobilizeGroupFeedPostsListSx
               : { ...mobilizeGroupFeedCardSx, overflow: "hidden" }
           }
         >

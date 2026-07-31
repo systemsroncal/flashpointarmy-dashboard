@@ -10,7 +10,7 @@ export type OverviewStatBlock = {
   happeningNow: number;
   /** Mobilize subgroups (parent_group_id set). */
   mobilizeGroups: number;
-  /** Members / leaders with first mission pending or in progress. */
+  /** Members who confirmed starting missions via the welcome popup. */
   peopleInMissions: number;
 };
 
@@ -160,9 +160,9 @@ export async function loadOverviewStats(
   let peopleInMissions = 0;
   if (!stateFilter) {
     const { count } = await supabase
-      .from("member_first_missions")
+      .from("member_journey_milestones")
       .select("user_id", { count: "exact", head: true })
-      .in("status", ["pending", "in_progress"]);
+      .not("missions_started_notified_at", "is", null);
     peopleInMissions = count ?? 0;
   }
 

@@ -3,13 +3,14 @@
 import { JourneyWelcomeDialog } from "@/components/dashboard/onboarding/JourneyWelcomeDialog";
 import { ChapterMapInviteCta } from "@/components/dashboard/national-overview/ChapterMapInviteCta";
 import { ChapterInviteShareDialog } from "@/components/dashboard/national-overview/ChapterInviteShareDialog";
+import { InviteFriendsBanner } from "@/components/dashboard/national-overview/InviteFriendsBanner";
 import {
   MISSION_DIFFICULTY_COLORS,
   MISSION_DIFFICULTY_LABELS,
   MISSION_PHASES,
   type MissionCard,
 } from "@/lib/missions/twelve-missions";
-import { missionPartnerLogoUrl, missionPartnerLogoUsesTallSize } from "@/lib/missions/mission-partner-logos";
+import { missionPartnerLogoCustomSize, missionPartnerLogoUrl, missionPartnerLogoUsesTallSize } from "@/lib/missions/mission-partner-logos";
 import {
   MISSIONS_WELCOME_HTML,
   MISSIONS_WELCOME_TITLE,
@@ -63,6 +64,7 @@ function MissionCardItem({
   const isExternalLink = Boolean(mission.url) && !mission.comingSoon && missionLinksEnabled;
   const showActionButton = isExternalLink || isShareAction;
   const partnerLogo = mission.partnerLogoUrl ?? missionPartnerLogoUrl(mission.url);
+  const partnerLogoCustomSize = missionPartnerLogoCustomSize(mission.url);
   const partnerLogoTall = missionPartnerLogoUsesTallSize(mission.url, mission.partnerLogoSize);
   const descriptionFontSize = { xs: "0.845rem", sm: "0.905rem" };
 
@@ -255,7 +257,14 @@ function MissionCardItem({
             right: 4,
             objectFit: "contain",
             objectPosition: "right bottom",
-            ...(partnerLogoTall
+            ...(partnerLogoCustomSize
+              ? {
+                  width: partnerLogoCustomSize.width,
+                  ...(partnerLogoCustomSize.height != null
+                    ? { height: partnerLogoCustomSize.height }
+                    : {}),
+                }
+              : partnerLogoTall
               ? {
                   width: "auto",
                   maxWidth: { xs: "52%", sm: "48%" },
@@ -300,52 +309,69 @@ export function MissionsLanding({
         ctaLabel="Start missions"
         onDismissed={() => setWelcomeOpen(false)}
       />
-      <Box sx={{ textAlign: "center", mb: { xs: 3, md: 4 } }}>
-        <Typography
-          sx={{
-            fontWeight: 900,
-            letterSpacing: 3,
-            fontSize: { xs: "0.85rem", sm: "0.95rem" },
-            color: "rgba(255,255,255,0.75)",
-            mb: 1.5,
-          }}
-        >
-          FP ARMY CHAPTERS
-        </Typography>
-        <Box
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: { xs: 0.75, sm: 1 },
-            flexWrap: "wrap",
-            mb: 1,
-          }}
-        >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          alignItems: { xs: "flex-start", md: "center" },
+          justifyContent: "space-between",
+          gap: { xs: 2, md: 3 },
+          mb: { xs: 3, md: 4 },
+          maxWidth: 1460,
+          mx: "auto",
+          px: { xs: 0.5, sm: 0 },
+        }}
+      >
+        <Box sx={{ textAlign: "left", minWidth: 0, flex: 1 }}>
           <Typography
-            component="h1"
             sx={{
               fontWeight: 900,
-              fontSize: { xs: "1.75rem", sm: "2.35rem", md: "2.75rem" },
-              color: "#fff",
-              lineHeight: 1.15,
+              letterSpacing: 3,
+              fontSize: { xs: "0.85rem", sm: "0.95rem" },
+              color: "rgba(255,255,255,0.75)",
+              mb: 1.5,
             }}
           >
-            THE 12 MISSIONS TO SAVE AMERICA
+            FP ARMY CHAPTERS
           </Typography>
-          <Tooltip title="About the 12 Missions">
-            <IconButton
-              onClick={() => setWelcomeOpen(true)}
-              aria-label="About the 12 Missions"
+          <Box
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "flex-start",
+              gap: { xs: 0.75, sm: 1 },
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography
+              component="h1"
               sx={{
-                color: "rgba(255,255,255,0.72)",
-                p: 0.5,
-                "&:hover": { color: "primary.main", bgcolor: "rgba(255,255,255,0.06)" },
+                fontWeight: 900,
+                fontSize: { xs: "1.75rem", sm: "2.35rem", md: "2.75rem" },
+                color: "#fff",
+                lineHeight: 1.15,
+                textAlign: "left",
               }}
             >
-              <InfoOutlinedIcon sx={{ fontSize: { xs: "1.35rem", sm: "1.55rem", md: "1.7rem" } }} />
-            </IconButton>
-          </Tooltip>
+              THE 12 MISSIONS TO SAVE AMERICA
+            </Typography>
+            <Tooltip title="About the 12 Missions">
+              <IconButton
+                onClick={() => setWelcomeOpen(true)}
+                aria-label="About the 12 Missions"
+                sx={{
+                  color: "rgba(255,255,255,0.72)",
+                  p: 0.5,
+                  "&:hover": { color: "primary.main", bgcolor: "rgba(255,255,255,0.06)" },
+                }}
+              >
+                <InfoOutlinedIcon sx={{ fontSize: { xs: "1.35rem", sm: "1.55rem", md: "1.7rem" } }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+        <Box sx={{ flexShrink: 0, width: { xs: "100%", md: "auto" } }}>
+          <InviteFriendsBanner variant="compact" />
         </Box>
       </Box>
 
