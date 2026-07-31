@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { countDashboardUsersMissionsStarted } from "@/lib/onboarding/missions-started";
 
 export type OverviewScope = "national" | "state";
 
@@ -10,7 +11,7 @@ export type OverviewStatBlock = {
   happeningNow: number;
   /** Mobilize subgroups (parent_group_id set). */
   mobilizeGroups: number;
-  /** Members who confirmed starting missions via the welcome popup. */
+  /** Users with Missions started = Yes (same as Journey Progress). */
   peopleInMissions: number;
 };
 
@@ -69,14 +70,9 @@ async function countMobilizeChapterGroups(supabase: SupabaseClient): Promise<num
   return count ?? 0;
 }
 
-/** Members who confirmed the Missions welcome popup (Community in Action notification). */
+/** Same “Missions started = Yes” set as /dashboard/onboarding/journey-progress. */
 async function countStartedMissions(supabase: SupabaseClient): Promise<number> {
-  const { count, error } = await supabase
-    .from("member_journey_milestones")
-    .select("user_id", { count: "exact", head: true })
-    .not("missions_started_notified_at", "is", null);
-  if (error) throw new Error(error.message);
-  return count ?? 0;
+  return countDashboardUsersMissionsStarted(supabase);
 }
 
 export async function loadOverviewStats(

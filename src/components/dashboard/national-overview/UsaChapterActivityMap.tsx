@@ -441,7 +441,7 @@ export function UsaChapterActivityMap({
               }}
             >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1, gap: 1 }}>
-                <Box sx={{ display: "flex", gap: 1.25, alignItems: "flex-start", minWidth: 0 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, gap: 0.75 }}>
                   {selectedStateInfo ? (
                     <MobilizeGroupStateFlag state={selectedStateInfo} size={44} />
                   ) : null}

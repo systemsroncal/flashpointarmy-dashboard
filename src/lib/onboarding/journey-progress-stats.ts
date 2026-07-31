@@ -1,8 +1,8 @@
-import { chunkIdsForInQuery } from "@/lib/admin/dashboard-user-queries";
 import {
   loadCoachMeetingsMap,
   loadTrainingStepStatusesForUsers,
 } from "@/lib/onboarding/onboarding-records";
+import { loadMissionsStartedUserIds } from "@/lib/onboarding/missions-started";
 import {
   journeyProgressSortDbColumn,
   sortJourneyProgressRows,
@@ -174,22 +174,6 @@ async function loadChapterMap(
   return chapterById;
 }
 
-async function loadMissionsStartedSet(admin: SupabaseClient, ids: string[]): Promise<Set<string>> {
-  const out = new Set<string>();
-  for (const part of chunkIdsForInQuery(ids, 200)) {
-    const { data } = await admin
-      .from("member_journey_milestones")
-      .select("user_id, missions_started_notified_at")
-      .in("user_id", part);
-    for (const row of data ?? []) {
-      if (row.missions_started_notified_at) {
-        out.add(row.user_id as string);
-      }
-    }
-  }
-  return out;
-}
-
 async function loadJourneyProgressBaseIndex(admin: SupabaseClient): Promise<BaseJourneyRow[]> {
   const users = await fetchAllDashboardUsers(admin);
   const ids = users.map((u) => u.id);
@@ -237,7 +221,7 @@ async function enrichJourneyRows(
   const [trainingMap, coachMap, missionsStarted] = await Promise.all([
     loadTrainingStepStatusesForUsers(admin, ids),
     loadCoachMeetingsMap(admin, ids),
-    loadMissionsStartedSet(admin, ids),
+    loadMissionsStartedUserIds(admin, ids),
   ]);
 
   return baseRows.map((row) => ({
