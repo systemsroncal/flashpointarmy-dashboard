@@ -1100,7 +1100,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       ) : null}
       <Box sx={{ flexShrink: 0 }}>
         <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
-        {!isSuperAdmin ? (
         <Box
           data-tour="sidebar-profile"
           sx={{
@@ -1151,11 +1150,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </Box>
         <PoweredByDreamsAnimation sx={{ fontSize: "0.65rem", mt: 0.75 }} />
         </Box>
-        ) : (
-          <Box sx={{ p: 1.5, pb: "calc(12px + env(safe-area-inset-bottom, 0px))" }}>
-            <PoweredByDreamsAnimation sx={{ fontSize: "0.65rem" }} />
-          </Box>
-        )}
       </Box>
     </Box>
   );

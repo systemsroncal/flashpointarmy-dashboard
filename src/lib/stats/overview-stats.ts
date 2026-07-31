@@ -201,7 +201,8 @@ export async function loadOverviewStats(
 
 export async function loadStatePopupStats(supabase: SupabaseClient, stateCode: string) {
   const st = stateMatch(stateCode);
-  const { count: activeChapters } = await supabase
+
+  const { count: churches } = await supabase
     .from("chapters")
     .select("id", { count: "exact", head: true })
     .eq("state", st)
@@ -210,28 +211,31 @@ export async function loadStatePopupStats(supabase: SupabaseClient, stateCode: s
   const { data: chRows } = await supabase.from("chapters").select("id").eq("state", st);
   const chapterIds = (chRows ?? []).map((r: { id: string }) => r.id);
 
-  let registeredMembers = 0;
-  if (chapterIds.length > 0) {
-    const { count } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .in("primary_chapter_id", chapterIds);
-    registeredMembers = count ?? 0;
-  }
+  const { data: memberRole } = await supabase
+    .from("roles")
+    .select("id")
+    .eq("name", "member")
+    .maybeSingle();
 
-  const nowIso = new Date().toISOString();
-  let upcomingGatherings = 0;
-  if (chapterIds.length > 0) {
-    const { count } = await supabase
-      .from("gatherings")
-      .select("id", { count: "exact", head: true })
-      .gt("starts_at", nowIso)
-      .in("chapter_id", chapterIds);
-    upcomingGatherings = count ?? 0;
-  }
-
+  let members = 0;
   let localLeaders = 0;
+
   if (chapterIds.length > 0) {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("primary_chapter_id", chapterIds);
+    const userIds = (profs ?? []).map((p: { id: string }) => p.id);
+
+    if (userIds.length > 0 && memberRole) {
+      const { data: ur } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role_id", memberRole.id as string)
+        .in("user_id", userIds);
+      members = new Set((ur ?? []).map((r: { user_id: string }) => r.user_id)).size;
+    }
+
     const { data: cl } = await supabase
       .from("chapter_leaders")
       .select("user_id")
@@ -239,34 +243,28 @@ export async function loadStatePopupStats(supabase: SupabaseClient, stateCode: s
     localLeaders = new Set((cl ?? []).map((r: { user_id: string }) => r.user_id)).size;
   }
 
-  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  let recentCommunityEvents = 0;
-  if (chapterIds.length > 0) {
-    const { count } = await supabase
-      .from("gatherings")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", monthAgo)
-      .in("chapter_id", chapterIds);
-    recentCommunityEvents = count ?? 0;
-  }
+  // National upcoming FPA events (not filtered by state).
+  const nowIso = new Date().toISOString();
+  const { count: upcomingEvents } = await supabase
+    .from("gatherings")
+    .select("id", { count: "exact", head: true })
+    .gt("starts_at", nowIso);
 
   const { data: newest } = await supabase
     .from("chapters")
-    .select("name, city, updated_at")
+    .select("name, city")
     .eq("state", st)
+    .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   return {
     state: st,
-    activeChapters: activeChapters ?? 0,
-    registeredMembers,
-    upcomingGatherings,
-    localLeaders,
-    recentCommunityEvents,
-    newestChapterName: newest?.name ?? "—",
-    newestChapterCity: newest?.city ?? "—",
-    lastActivity: newest?.updated_at ?? null,
+    churches: churches ?? 0,
+    registeredMembers: members + localLeaders,
+    upcomingEvents: upcomingEvents ?? 0,
+    newestChurchName: newest?.name ?? "—",
+    newestChurchCity: newest?.city ?? "—",
   };
 }

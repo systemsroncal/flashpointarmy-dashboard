@@ -43,7 +43,7 @@ export async function insertCourseSessionCompletedFeed(args: {
   const subtitle = `"${args.sessionTitle}" · ${args.courseTitle}`;
   await args.supabase.from("community_activity").insert({
     feed_category: "training_session",
-    title: `${who} completed a session`,
+    title: `${who} completed a lesson`,
     subtitle,
     state_code: state,
     icon_key: "school",
@@ -60,12 +60,13 @@ export async function insertCourseCompletedFeed(args: {
 }): Promise<void> {
   const who = displayHandle(args.first_name, args.last_name, args.email);
   const state = await chapterStateFromProfile(args.supabase, args.userId);
+  const course = args.courseTitle.trim() || "Biblical Citizenship";
   await args.supabase.from("community_activity").insert({
     feed_category: "training_course",
-    title: `${who} finished a course`,
-    subtitle: args.courseTitle,
+    title: `🥳 ${who} finished ${course}`,
+    subtitle: "Great job! Attend the Mission Briefing now.",
     state_code: state,
-    icon_key: "school",
+    icon_key: "graduate",
   });
 }
 

@@ -443,13 +443,16 @@ export function UsaChapterActivityMap({
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1, gap: 1 }}>
                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, gap: 0.75 }}>
                   {selectedStateInfo ? (
-                    <MobilizeGroupStateFlag state={selectedStateInfo} size={44} />
+                    <MobilizeGroupStateFlag state={selectedStateInfo} size={64} />
                   ) : null}
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.2 }}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.2, fontSize: "1.15rem" }}
+                    >
                       {selectedStateName}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.9rem" }}>
                       {selectedStateCode}
                     </Typography>
                   </Box>

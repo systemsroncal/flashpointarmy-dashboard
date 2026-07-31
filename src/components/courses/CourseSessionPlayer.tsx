@@ -352,16 +352,6 @@ export function CourseSessionPlayer({
       await mergePersist({ completed_at: completedAt });
       setCompleted(true);
       try {
-        await insertCourseSessionCompletedFeed({
-          supabase,
-          userId: user.id,
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          sessionTitle,
-          courseTitle,
-        });
-
         const { data: progRows } = await supabase
           .from("course_session_progress")
           .select("session_id, completed_at")
@@ -375,7 +365,9 @@ export function CourseSessionPlayer({
         done.add(sessionId);
         const allSessions = sortedSessionIds.length > 0 ? sortedSessionIds : [sessionId];
         const allDone = allSessions.length > 0 && allSessions.every((id) => done.has(id));
+
         if (allDone) {
+          // Last session: announce course completion (not a per-session row).
           await insertCourseCompletedFeed({
             supabase,
             userId: user.id,
@@ -391,6 +383,16 @@ export function CourseSessionPlayer({
               /* best-effort */
             }
           }
+        } else {
+          await insertCourseSessionCompletedFeed({
+            supabase,
+            userId: user.id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            sessionTitle,
+            courseTitle,
+          });
         }
       } catch {
         /* feed is best-effort */

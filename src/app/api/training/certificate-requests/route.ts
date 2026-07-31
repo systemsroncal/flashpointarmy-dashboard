@@ -1,7 +1,7 @@
 import { loadUserRoleNames, isElevatedRole } from "@/lib/auth/user-roles";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { BIBLICAL_CITIZENSHIP_COURSE_SLUG } from "@/lib/courses/course-completion";
-import { insertCertificateRequestFeed } from "@/lib/community/training-feed";
+import { insertCertificateRequestFeed, insertCourseCompletedFeed } from "@/lib/community/training-feed";
 import { notifyCertificateRequestSubmitted } from "@/lib/notifications/certificate-request-submitted";
 import { approveCertificateRequestRecord } from "@/lib/training/certificate-request-approval";
 import {
@@ -242,6 +242,20 @@ export async function POST(req: Request) {
   } catch (e) {
     feedErrors.push(e instanceof Error ? e.message : "community feed failed");
     console.error("[certificate-requests] insertCertificateRequestFeed failed:", e);
+  }
+
+  try {
+    await insertCourseCompletedFeed({
+      supabase: admin,
+      userId: user.id,
+      email: (du?.email as string | undefined) ?? user.email ?? "",
+      first_name: (prof?.first_name as string | null) ?? (du?.first_name as string | null) ?? null,
+      last_name: (prof?.last_name as string | null) ?? (du?.last_name as string | null) ?? null,
+      courseTitle,
+    });
+  } catch (e) {
+    feedErrors.push(e instanceof Error ? e.message : "course completed feed failed");
+    console.error("[certificate-requests] insertCourseCompletedFeed failed:", e);
   }
 
   try {

@@ -533,26 +533,21 @@ export function NationalOverview({
               <Box>
                 {popupData ? (
                   <>
-                    {(() => {
-                      const ref = popupState ? referenceSplitByState.get(popupState) : undefined;
-                      const rl = ref?.leaders ?? 0;
-                      const rm = ref?.members ?? 0;
-                      return [
-                        ["Chapters", popupData.activeChapters, "#0ea5e9"],
-                        ["Registered Members", popupData.registeredMembers + rm + rl, "#15803d"],
-                        ["Upcoming Gatherings", popupData.upcomingGatherings, "#ca8a04"],
-                        ["Local Leaders", popupData.localLeaders + rl, "#7c3aed"],
-                        ["Recent community events", popupData.recentCommunityEvents, "#b91c1c"],
-                      ] as const;
-                    })().map(([label, val, col]) => (
-                      <Box key={String(label)} sx={{ display: "flex", justifyContent: "space-between", py: 0.75 }}>
-                        <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
+                    {(
+                      [
+                        ["Churches", popupData.churches, "#0ea5e9"],
+                        ["Registered Members", popupData.registeredMembers, "#15803d"],
+                        ["Upcoming Events", popupData.upcomingEvents, "#ca8a04"],
+                      ] as const
+                    ).map(([label, val, col]) => (
+                      <Box key={label} sx={{ display: "flex", justifyContent: "space-between", py: 0.85 }}>
+                        <Typography variant="body2" sx={{ fontSize: "0.95rem", fontWeight: 600 }}>
                           {label}
                         </Typography>
                         <Box
                           component="span"
                           sx={{
-                            bgcolor: col as string,
+                            bgcolor: col,
                             color: "#fff",
                             px: 1.25,
                             py: 0.25,
@@ -561,27 +556,21 @@ export function NationalOverview({
                             fontWeight: 700,
                           }}
                         >
-                          {val as number}
+                          {val}
                         </Box>
                       </Box>
                     ))}
                     <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-                      <Typography variant="caption" display="block">
-                        Newest chapter: {popupData.newestChapterName}
+                      <Typography variant="body2" display="block" sx={{ fontSize: "0.9rem", mb: 0.35 }}>
+                        Newest Church: {popupData.newestChurchName}
                       </Typography>
-                      <Typography variant="caption" display="block">
-                        City: {popupData.newestChapterCity}
-                      </Typography>
-                      <Typography variant="caption" display="block">
-                        Last activity:{" "}
-                        {popupData.lastActivity
-                          ? new Date(popupData.lastActivity).toLocaleString()
-                          : "—"}
+                      <Typography variant="body2" display="block" sx={{ fontSize: "0.9rem" }}>
+                        City: {popupData.newestChurchCity}
                       </Typography>
                     </Box>
                   </>
                 ) : (
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.95rem" }}>
                     Loading dashboard stats…
                   </Typography>
                 )}

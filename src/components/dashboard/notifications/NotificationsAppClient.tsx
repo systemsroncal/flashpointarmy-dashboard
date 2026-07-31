@@ -19,6 +19,7 @@ import {
   announcementPlainTextPreview,
 } from "@/components/dashboard/notifications/AnnouncementDescriptionBody";
 import AddIcon from "@mui/icons-material/Add";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -372,6 +373,19 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                         {row.title}
                       </Typography>
                       {unread ? <Chip size="small" label="Unread" color="primary" variant="outlined" /> : null}
+                      <Chip
+                        size="small"
+                        icon={<AccessTimeIcon sx={{ fontSize: "16px !important" }} />}
+                        label={new Date(row.created_at).toLocaleString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        variant="outlined"
+                        sx={{ borderColor: "rgba(255,255,255,0.25)", color: "grey.400" }}
+                      />
                       <Chip
                         size="small"
                         label={`Visible to: ${audienceChipLabel(normalizeAnnouncementAudience(row.audience), row.target_users)}`}

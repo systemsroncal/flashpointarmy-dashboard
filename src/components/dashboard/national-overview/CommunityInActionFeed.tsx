@@ -14,8 +14,11 @@ import ScheduleOutlined from "@mui/icons-material/ScheduleOutlined";
 import StarOutlined from "@mui/icons-material/StarOutlined";
 import TrackChangesOutlined from "@mui/icons-material/TrackChangesOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import { faGraduationCap } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Chip, Typography } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { isHiddenCommunityFeedRow } from "@/lib/community/community-activity-feed";
 import { scrubPrivacyNamesInText } from "@/lib/user/format-privacy-name";
 
@@ -32,7 +35,8 @@ export type ActivityFeedRow = {
 
 type FeedVisual = {
   categoryLabel: string;
-  Icon: SvgIconComponent;
+  Icon?: SvgIconComponent;
+  faIcon?: IconDefinition;
   railBg: string;
   glow: string;
   iconColor: string;
@@ -54,7 +58,7 @@ function englishCategoryLabel(row: ActivityFeedRow): string {
     auto_weekly_members: "Community Update",
     auto_member_goal: "Milestone Update",
     auto_shares_today: "Engagement",
-    training_session: "Training · session",
+    training_session: "Training · lesson",
     training_course: "Training · course",
     training_briefing: "Training · briefing",
     missions: "Missions",
@@ -74,10 +78,12 @@ function displayFeedTitle(title: string): string {
   t = t.replace(/^\u{1F1FA}\u{1F1F8}\s*/u, "🎯 ");
   if (/^New chapter:/i.test(t)) t = t.replace(/^New chapter:/i, "Chapter request:");
   if (t === "Local leader assigned") t = "Local leader application";
+  t = t.replace(/\bcompleted a session\b/i, "completed a lesson");
   return scrubPrivacyNamesInText(t);
 }
 
 const MEMBER_JOINED_SUBTITLE = "Welcome to the movement. Start your journey today!";
+const COURSE_FINISHED_SUBTITLE = "Great job! Attend the Mission Briefing now.";
 
 function resolveMemberRegistrationDisplay(row: ActivityFeedRow): {
   title: string;
@@ -99,6 +105,37 @@ function resolveMemberRegistrationDisplay(row: ActivityFeedRow): {
     return {
       title: `🎉 ${who} joined FlashPoint Army!`,
       subtitle: MEMBER_JOINED_SUBTITLE,
+    };
+  }
+
+  return null;
+}
+
+function resolveCourseFinishedDisplay(row: ActivityFeedRow): {
+  title: string;
+  subtitle: string;
+} | null {
+  const cat = row.feed_category.trim().toLowerCase();
+  if (cat !== "training_course") return null;
+
+  const title = row.title.trim();
+  const finishedMatch = title.match(/^🥳\s+(.+?)\s+finished\s+(.+)$/i);
+  if (finishedMatch) {
+    return {
+      title: `🥳 ${scrubPrivacyNamesInText(finishedMatch[1])} finished ${finishedMatch[2]}`,
+      subtitle: row.subtitle?.trim() || COURSE_FINISHED_SUBTITLE,
+    };
+  }
+
+  const legacy =
+    title.match(/^(.+?)\s+(?:finished a course|completed the course)$/i) ??
+    title.match(/^(.+?)\s+completed the course$/i);
+  if (legacy) {
+    const who = scrubPrivacyNamesInText(legacy[1].replace(/^🥳\s*/u, "").trim());
+    const course = (row.subtitle ?? "").trim() || "Biblical Citizenship";
+    return {
+      title: `🥳 ${who} finished ${course}`,
+      subtitle: COURSE_FINISHED_SUBTITLE,
     };
   }
 
@@ -208,6 +245,13 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
     glow: "rgba(212, 232, 120, 0.35)",
     iconColor: "#ecfccb",
   };
+  const graduateGold: FeedVisual = {
+    categoryLabel: englishCategoryLabel(row),
+    faIcon: faGraduationCap,
+    railBg: "rgba(120, 53, 15, 0.58)",
+    glow: "rgba(251, 191, 36, 0.42)",
+    iconColor: "#fde68a",
+  };
 
   if (key === "calendar") return purple;
   if (key === "clock") return tealClock;
@@ -222,6 +266,7 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   if (key === "bolt") return navyBolt;
   if (key === "edit_note") return manualNote;
   if (key === "shield") return securityManual;
+  if (key === "graduate") return graduateGold;
 
   if (cat === "member_invite") return purpleGrowth;
   if (cat === "member" && /joined FlashPoint Army|New member registered/i.test(row.title)) {
@@ -238,7 +283,8 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   if (cat === "member") return orangeMember;
   if (key === "school") return oliveSchool;
 
-  if (cat === "training_session" || cat === "training_course" || cat === "certificate_request") return oliveSchool;
+  if (cat === "training_course") return graduateGold;
+  if (cat === "training_session" || cat === "certificate_request") return oliveSchool;
   if (cat === "manual") return manualNote;
 
   return navyBolt;
@@ -316,16 +362,21 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
   const categoryDisplay = visual.categoryLabel;
   const isMemberInvite = row.feed_category.trim().toLowerCase() === "member_invite";
   const memberJoined = resolveMemberRegistrationDisplay(row);
+  const courseFinished = resolveCourseFinishedDisplay(row);
   const displayTitle = isMemberInvite
     ? row.title
     : memberJoined
       ? memberJoined.title
-      : displayFeedTitle(row.title);
+      : courseFinished
+        ? courseFinished.title
+        : displayFeedTitle(row.title);
   const displaySubtitle = memberJoined
     ? memberJoined.subtitle
-    : row.subtitle
-      ? scrubPrivacyNamesInText(row.subtitle)
-      : null;
+    : courseFinished
+      ? courseFinished.subtitle
+      : row.subtitle
+        ? scrubPrivacyNamesInText(row.subtitle)
+        : null;
   const italicSubtitle = isMemberInvite || Boolean(memberJoined);
   const showSubtitle =
     displaySubtitle &&
@@ -362,7 +413,11 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
           },
         }}
       >
-        <Icon sx={{ color: visual.iconColor, display: "block" }} />
+        {visual.faIcon ? (
+          <FontAwesomeIcon icon={visual.faIcon} style={{ color: visual.iconColor, width: 16, height: 16 }} />
+        ) : Icon ? (
+          <Icon sx={{ color: visual.iconColor, display: "block" }} />
+        ) : null}
       </Box>
 
       <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", py: 0.25 }}>
