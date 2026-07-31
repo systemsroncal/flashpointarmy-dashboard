@@ -78,6 +78,7 @@ import { MissionUpdatesNavIcon } from "./MissionUpdatesNavIcon";
 import { MissionUpdatesUnreadProvider } from "./MissionUpdatesUnreadProvider";
 import { HeaderAccountSettingsButton } from "./HeaderAccountSettingsButton";
 import { HeaderSuperAdminProfileAvatar } from "./HeaderSuperAdminProfileAvatar";
+import { GlobalContainerShareItemListener } from "./GlobalContainerShareItemListener";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
@@ -1298,6 +1299,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         editMode={profileEditMode}
         onEditModeChange={setProfileEditMode}
       />
+      <GlobalContainerShareItemListener />
     </Box>
     </MissionUpdatesUnreadProvider>
     </DashboardPresenceProvider>
