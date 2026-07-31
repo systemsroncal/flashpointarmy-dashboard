@@ -7,16 +7,29 @@ const MEMBER_GOAL = 20_000;
 const AUTO_CATEGORIES = {
   weeklyMembers: "auto_weekly_members",
   memberGoal: "auto_member_goal",
-  sharesToday: "auto_shares_today",
 } as const;
 
 type AutoCategory = (typeof AUTO_CATEGORIES)[keyof typeof AUTO_CATEGORIES];
 
 const MIN_INTERVAL_MS: Record<AutoCategory, number> = {
   [AUTO_CATEGORIES.weeklyMembers]: 4 * 60 * 60 * 1000,
-  [AUTO_CATEGORIES.memberGoal]: 1 * 60 * 60 * 1000,
-  [AUTO_CATEGORIES.sharesToday]: 1 * 60 * 60 * 1000,
+  [AUTO_CATEGORIES.memberGoal]: 6 * 24 * 60 * 60 * 1000,
 };
+
+/** FlashPoint Army default schedule timezone for weekly milestone posts. */
+const MILESTONE_TZ = "America/New_York";
+
+function isThursdayNoonInTimeZone(now = new Date(), timeZone = MILESTONE_TZ): boolean {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+    hour: "numeric",
+    hour12: false,
+  }).formatToParts(now);
+  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? -1);
+  return weekday === "Thu" && hour === 12;
+}
 
 async function lastAutoFeedAt(
   admin: SupabaseClient,
@@ -43,28 +56,11 @@ function startOfUtcWeekMs(now = Date.now()): number {
   return d.getTime();
 }
 
-function startOfUtcDayMs(now = Date.now()): number {
-  const d = new Date(now);
-  d.setUTCHours(0, 0, 0, 0);
-  return d.getTime();
-}
-
 async function countWeeklyMembers(admin: SupabaseClient): Promise<number> {
   const sinceIso = new Date(startOfUtcWeekMs()).toISOString();
   const { count, error } = await admin
     .from("profiles")
     .select("id", { count: "exact", head: true })
-    .gte("created_at", sinceIso);
-  if (error) throw new Error(error.message);
-  return count ?? 0;
-}
-
-async function countSharesToday(admin: SupabaseClient): Promise<number> {
-  const sinceIso = new Date(startOfUtcDayMs()).toISOString();
-  const { count, error } = await admin
-    .from("community_activity")
-    .select("id", { count: "exact", head: true })
-    .eq("feed_category", "member_invite")
     .gte("created_at", sinceIso);
   if (error) throw new Error(error.message);
   return count ?? 0;
@@ -79,6 +75,7 @@ async function maybeInsertAutoFeed(
   admin: SupabaseClient,
   category: AutoCategory,
   title: string,
+  subtitle: string,
   iconKey: string
 ): Promise<boolean> {
   const now = Date.now();
@@ -92,7 +89,7 @@ async function maybeInsertAutoFeed(
   const { error } = await admin.from("community_activity").insert({
     feed_category: category,
     title,
-    subtitle: null,
+    subtitle,
     state_code: null,
     icon_key: iconKey,
   });
@@ -110,8 +107,9 @@ export async function tickCommunityAutoFeeds(): Promise<{ inserted: string[] }> 
     await maybeInsertAutoFeed(
       admin,
       AUTO_CATEGORIES.weeklyMembers,
-      `🎯 ${weekly.toLocaleString("en-US")} new members joined FlashPoint Army this week!`,
-      "trend"
+      `👥 ${weekly.toLocaleString("en-US")} new members joined FlashPoint Army this week!`,
+      "Welcome to our growing community",
+      "groups"
     )
   ) {
     inserted.push(AUTO_CATEGORIES.weeklyMembers);
@@ -120,26 +118,16 @@ export async function tickCommunityAutoFeeds(): Promise<{ inserted: string[] }> 
   const total = await totalMembersApprox(admin);
   const remaining = Math.max(0, MEMBER_GOAL - total);
   if (
-    await maybeInsertAutoFeed(
+    isThursdayNoonInTimeZone() &&
+    (await maybeInsertAutoFeed(
       admin,
       AUTO_CATEGORIES.memberGoal,
-      `🇺🇸 Only ${remaining.toLocaleString("en-US")} members until we reach 20,000!`,
-      "trend"
-    )
+      `🎯 Only ${remaining.toLocaleString("en-US")} members until we reach 20,000!`,
+      "Together we're almost there",
+      "target"
+    ))
   ) {
     inserted.push(AUTO_CATEGORIES.memberGoal);
-  }
-
-  const shares = await countSharesToday(admin);
-  if (
-    await maybeInsertAutoFeed(
-      admin,
-      AUTO_CATEGORIES.sharesToday,
-      `🙌 ${shares.toLocaleString("en-US")} members have shared FlashPoint Army today.`,
-      "person"
-    )
-  ) {
-    inserted.push(AUTO_CATEGORIES.sharesToday);
   }
 
   return { inserted };

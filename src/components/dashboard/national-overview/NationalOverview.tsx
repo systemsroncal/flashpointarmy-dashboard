@@ -15,7 +15,6 @@ import type { SvgIconComponent } from "@mui/icons-material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
 import {
   isChapterStaffRole,
   isMemberOrLeader,
@@ -23,10 +22,9 @@ import {
 } from "@/lib/auth/user-roles";
 import {
   aggregateReferenceLeaderMemberByState,
-  sumReferenceTotals,
   type CitiesDonorsJson,
 } from "@/lib/donors/aggregate-donors-by-state";
-import { loadCommunityActivityFeed, COMMUNITY_ACTIVITY_FEED_LIMIT } from "@/lib/community/community-activity-feed";
+import { loadCommunityActivityFeed, COMMUNITY_ACTIVITY_FEED_LIMIT, isHiddenCommunityFeedRow } from "@/lib/community/community-activity-feed";
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
 import { getNotificationSoundEnabled } from "@/lib/notifications/notification-sound-pref";
 import { playCommunityActionSoundAlert } from "@/lib/notifications/play-community-action-sound";
@@ -203,24 +201,9 @@ export function NationalOverview({
       const rows = chData ?? [];
       setChapterRows(rows);
 
-      const { loadOverviewStats } = await import("@/lib/stats/overview-stats");
-      let referenceAddition: { leaders: number; members: number } | undefined;
-      if (includeReferenceInOverviewStatTotals()) {
-        try {
-          const res = await fetch("/backgrounds/cities_donors.json", { cache: "force-cache" });
-          if (res.ok) {
-            const json = (await res.json()) as CitiesDonorsJson;
-            referenceAddition = sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
-          }
-        } catch {
-          referenceAddition = undefined;
-        }
-      }
-      const next = await loadOverviewStats(supabase, {
-        scope: "national",
-        stateCode: null,
-        referenceAddition,
-      });
+      const statsRes = await fetch("/api/stats/overview", { cache: "no-store" });
+      if (!statsRes.ok) throw new Error("Overview stats request failed.");
+      const next = (await statsRes.json()) as OverviewStatBlock;
       setStats(next);
 
       const feedData = await loadCommunityActivityFeed(supabase);
@@ -292,6 +275,7 @@ export function NationalOverview({
         (payload) => {
           const row = payload.new as ActivityFeedRow & { actor_user_id?: string | null };
           if (!row?.id) return;
+          if (isHiddenCommunityFeedRow(row)) return;
           setFeed((prev) => {
             if (prev.some((r) => r.id === row.id)) return prev;
             const next: ActivityFeedRow[] = [

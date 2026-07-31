@@ -52,6 +52,33 @@ async function countUpcomingGatherings(
 /** Extra counts from reference data (e.g. cities_donors.json), not stored in DB. */
 export type ReferenceAddition = { leaders: number; members: number };
 
+/** Count Mobilize subgroups belonging to chapter-level groups (parent is a top-level chapter). */
+async function countMobilizeChapterGroups(supabase: SupabaseClient): Promise<number> {
+  const { data: chapters, error: chErr } = await supabase
+    .from("mobilize_groups")
+    .select("id")
+    .is("parent_group_id", null);
+  if (chErr) throw new Error(chErr.message);
+  const chapterIds = (chapters ?? []).map((r: { id: string }) => r.id);
+  if (chapterIds.length === 0) return 0;
+  const { count, error } = await supabase
+    .from("mobilize_groups")
+    .select("id", { count: "exact", head: true })
+    .in("parent_group_id", chapterIds);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+/** Members who confirmed the Missions welcome popup (Community in Action notification). */
+async function countStartedMissions(supabase: SupabaseClient): Promise<number> {
+  const { count, error } = await supabase
+    .from("member_journey_milestones")
+    .select("user_id", { count: "exact", head: true })
+    .not("missions_started_notified_at", "is", null);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 export async function loadOverviewStats(
   supabase: SupabaseClient,
   opts: {
@@ -59,10 +86,13 @@ export async function loadOverviewStats(
     stateCode: string | null;
     /** Added to national overview totals when present; gated by `NEXT_PUBLIC_REFERENCE_OVERVIEW_STATS`. */
     referenceAddition?: ReferenceAddition | null;
-  }
+  },
+  /** Bypass RLS for national aggregate metrics (Mobilize groups, started missions). */
+  aggregateSupabase?: SupabaseClient
 ): Promise<OverviewStatBlock> {
   const st = opts.stateCode ? stateMatch(opts.stateCode) : null;
   const stateFilter = opts.scope === "state" ? st : null;
+  const agg = aggregateSupabase ?? supabase;
 
   let activeChapters = 0;
   if (stateFilter) {
@@ -149,21 +179,10 @@ export async function loadOverviewStats(
   const { count: happeningNow } = await happeningQuery;
 
   let mobilizeGroups = 0;
-  if (!stateFilter) {
-    const { count } = await supabase
-      .from("mobilize_groups")
-      .select("id", { count: "exact", head: true })
-      .not("parent_group_id", "is", null);
-    mobilizeGroups = count ?? 0;
-  }
-
   let peopleInMissions = 0;
   if (!stateFilter) {
-    const { count } = await supabase
-      .from("member_journey_milestones")
-      .select("user_id", { count: "exact", head: true })
-      .not("missions_started_notified_at", "is", null);
-    peopleInMissions = count ?? 0;
+    mobilizeGroups = await countMobilizeChapterGroups(agg);
+    peopleInMissions = await countStartedMissions(agg);
   }
 
   const ref = opts.referenceAddition;

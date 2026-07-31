@@ -4,6 +4,21 @@ export const COMMUNITY_ACTIVITY_FEED_LIMIT = 25;
 
 export const COMMUNITY_ACTIVITY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+/** Auto-generated share aggregate rows (removed from product). */
+export const HIDDEN_COMMUNITY_FEED_CATEGORIES = new Set(["auto_shares_today"]);
+
+export function isHiddenCommunityFeedRow(row: {
+  feed_category: string;
+  title?: string;
+}): boolean {
+  const cat = row.feed_category.trim().toLowerCase();
+  if (HIDDEN_COMMUNITY_FEED_CATEGORIES.has(cat)) return true;
+  const title = (row.title ?? "").trim();
+  if (/shared FlashPoint Army today/i.test(title)) return true;
+  if (/shared FlashPoint Army this month/i.test(title)) return true;
+  return false;
+}
+
 export type CommunityActivityFeedRow = {
   id: string;
   feed_category: string;
@@ -53,7 +68,7 @@ export async function loadCommunityActivityFeed(
     .order("created_at", { ascending: false })
     .limit(COMMUNITY_ACTIVITY_FEED_LIMIT);
 
-  const windowRows = withinWindow ?? [];
+  const windowRows = (withinWindow ?? []).filter((r) => !isHiddenCommunityFeedRow(r));
   if (windowRows.length >= COMMUNITY_ACTIVITY_FEED_LIMIT) {
     return mapFeedRows(windowRows);
   }
@@ -62,7 +77,8 @@ export async function loadCommunityActivityFeed(
     .from("community_activity")
     .select(feedSelect)
     .order("created_at", { ascending: false })
-    .limit(COMMUNITY_ACTIVITY_FEED_LIMIT);
+    .limit(COMMUNITY_ACTIVITY_FEED_LIMIT * 2);
 
-  return mapFeedRows(latest ?? []);
+  const visible = (latest ?? []).filter((r) => !isHiddenCommunityFeedRow(r)).slice(0, COMMUNITY_ACTIVITY_FEED_LIMIT);
+  return mapFeedRows(visible);
 }

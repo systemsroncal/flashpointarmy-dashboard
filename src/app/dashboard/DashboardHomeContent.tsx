@@ -17,6 +17,7 @@ import {
 import { loadOverviewStats } from "@/lib/stats/overview-stats";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient, hasSupabaseAdminEnv } from "@/utils/supabase/admin";
 import { readFile } from "fs/promises";
 import path from "path";
 import { requireServerUser } from "@/lib/auth/server-session";
@@ -51,11 +52,16 @@ export default async function DashboardHomeContent() {
 
   let stats;
   try {
-    stats = await loadOverviewStats(supabase, {
-      scope: "national",
-      stateCode: null,
-      referenceAddition,
-    });
+    const aggregateSupabase = hasSupabaseAdminEnv() ? createAdminClient() : supabase;
+    stats = await loadOverviewStats(
+      supabase,
+      {
+        scope: "national",
+        stateCode: null,
+        referenceAddition,
+      },
+      aggregateSupabase
+    );
   } catch {
     stats = {
       activeChapters: 0,

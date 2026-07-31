@@ -4,17 +4,19 @@ import AccessTime from "@mui/icons-material/AccessTime";
 import BoltOutlined from "@mui/icons-material/BoltOutlined";
 import CalendarMonthOutlined from "@mui/icons-material/CalendarMonthOutlined";
 import CampaignOutlined from "@mui/icons-material/CampaignOutlined";
+import CelebrationOutlined from "@mui/icons-material/CelebrationOutlined";
 import EditNoteOutlined from "@mui/icons-material/EditNoteOutlined";
+import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import LocationOnOutlined from "@mui/icons-material/LocationOnOutlined";
 import PersonAddAltOutlined from "@mui/icons-material/PersonAddAltOutlined";
 import SecurityOutlined from "@mui/icons-material/SecurityOutlined";
 import ScheduleOutlined from "@mui/icons-material/ScheduleOutlined";
 import StarOutlined from "@mui/icons-material/StarOutlined";
-import TrendingUpOutlined from "@mui/icons-material/TrendingUpOutlined";
+import TrackChangesOutlined from "@mui/icons-material/TrackChangesOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import { Box, Chip, Typography } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
-import Link from "next/link";
+import { isHiddenCommunityFeedRow } from "@/lib/community/community-activity-feed";
 import { scrubPrivacyNamesInText } from "@/lib/user/format-privacy-name";
 
 export type ActivityFeedRow = {
@@ -48,10 +50,10 @@ function englishCategoryLabel(row: ActivityFeedRow): string {
     hosted_events: "Recently hosted events",
     growth: "Growth milestone",
     community: "Community",
-    member_invite: "Member invite",
-    auto_weekly_members: "Growth milestone",
-    auto_member_goal: "Growth milestone",
-    auto_shares_today: "Community",
+    member_invite: "Community Growth",
+    auto_weekly_members: "Community Update",
+    auto_member_goal: "Milestone Update",
+    auto_shares_today: "Engagement",
     training_session: "Training · session",
     training_course: "Training · course",
     training_briefing: "Training · briefing",
@@ -67,6 +69,9 @@ function englishCategoryLabel(row: ActivityFeedRow): string {
 
 function displayFeedTitle(title: string): string {
   let t = title;
+  // Regional flag emojis (e.g. 🇺🇸) render poorly on Windows — use cross-platform 🎯.
+  t = t.replace(/^🇺🇸\s*/u, "🎯 ");
+  t = t.replace(/^\u{1F1FA}\u{1F1F8}\s*/u, "🎯 ");
   if (/^New chapter:/i.test(t)) t = t.replace(/^New chapter:/i, "Chapter request:");
   if (t === "Local leader assigned") t = "Local leader application";
   return scrubPrivacyNamesInText(t);
@@ -104,12 +109,33 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
     glow: "rgba(147, 197, 253, 0.4)",
     iconColor: "#bfdbfe",
   };
-  const tealGrowth: FeedVisual = {
+  const purpleGrowth: FeedVisual = {
     categoryLabel: englishCategoryLabel(row),
-    Icon: TrendingUpOutlined,
-    railBg: "rgba(19, 78, 74, 0.55)",
-    glow: "rgba(110, 231, 183, 0.35)",
-    iconColor: "#a7f3d0",
+    Icon: CelebrationOutlined,
+    railBg: "rgba(88, 28, 135, 0.58)",
+    glow: "rgba(167, 139, 250, 0.48)",
+    iconColor: "#e9d5ff",
+  };
+  const tealCommunityUpdate: FeedVisual = {
+    categoryLabel: englishCategoryLabel(row),
+    Icon: GroupsOutlined,
+    railBg: "rgba(15, 118, 110, 0.52)",
+    glow: "rgba(45, 212, 191, 0.42)",
+    iconColor: "#99f6e4",
+  };
+  const blueMilestone: FeedVisual = {
+    categoryLabel: englishCategoryLabel(row),
+    Icon: TrackChangesOutlined,
+    railBg: "rgba(37, 99, 235, 0.52)",
+    glow: "rgba(96, 165, 250, 0.42)",
+    iconColor: "#93c5fd",
+  };
+  const redEngagement: FeedVisual = {
+    categoryLabel: englishCategoryLabel(row),
+    Icon: CampaignOutlined,
+    railBg: "rgba(185, 28, 28, 0.52)",
+    glow: "rgba(248, 113, 113, 0.38)",
+    iconColor: "#fecaca",
   };
   const blueChapter: FeedVisual = {
     categoryLabel: englishCategoryLabel(row),
@@ -157,7 +183,11 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
 
   if (key === "calendar") return purple;
   if (key === "clock") return tealClock;
-  if (key === "trend") return tealGrowth;
+  if (key === "celebration" || key === "community_growth") return purpleGrowth;
+  if (key === "groups" || key === "community_update") return tealCommunityUpdate;
+  if (key === "target" || key === "milestone") return blueMilestone;
+  if (key === "megaphone" || key === "engagement") return redEngagement;
+  if (key === "trend") return tealCommunityUpdate;
   if (key === "location") return blueChapter;
   if (key === "person") return orangeMember;
   if (key === "star") return starLeader;
@@ -165,12 +195,16 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   if (key === "edit_note") return manualNote;
   if (key === "shield") return securityManual;
 
+  if (cat === "member_invite") return purpleGrowth;
+  if (cat === "auto_weekly_members") return tealCommunityUpdate;
+  if (cat === "auto_member_goal") return blueMilestone;
+  if (cat === "auto_shares_today") return redEngagement;
   if (cat === "upcoming_gatherings" || cat === "gathering") return purple;
   if (cat === "hosted_events") return tealClock;
-  if (cat === "growth" || cat === "auto_weekly_members" || cat === "auto_member_goal") return tealGrowth;
+  if (cat === "growth") return tealCommunityUpdate;
   if (cat === "leadership") return goldLead;
   if (cat === "chapter") return blueChapter;
-  if (cat === "member" || cat === "member_invite" || cat === "auto_shares_today") return orangeMember;
+  if (cat === "member") return orangeMember;
   if (key === "school") return oliveSchool;
 
   if (cat === "training_session" || cat === "training_course" || cat === "certificate_request") return oliveSchool;
@@ -198,8 +232,10 @@ const FEED_META_FONT_SIZE = "0.72rem";
 
 function MemberInviteTitle({ row }: { row: ActivityFeedRow }) {
   const title = row.title.trim();
-  const match = title.match(/^🎉\s+(.+?)\s+(helped grow FPA Chapters .+)$/);
-  if (row.actor_user_id && match) {
+  const match =
+    title.match(/^🎉\s+(.+?)\s+(helped grow FlashPoint Army .+)$/) ??
+    title.match(/^🎉\s+(.+?)\s+(helped grow FPA Chapters .+)$/);
+  if (match) {
     return (
       <Typography
         variant="subtitle2"
@@ -214,13 +250,10 @@ function MemberInviteTitle({ row }: { row: ActivityFeedRow }) {
       >
         🎉{" "}
         <Box
-          component={Link}
-          href={`/dashboard/people/${row.actor_user_id}?from=community`}
+          component="span"
           sx={{
-            color: "inherit",
             textDecoration: "underline",
             fontWeight: 700,
-            "&:hover": { color: "primary.light" },
           }}
         >
           {match[1]}
@@ -386,7 +419,9 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
 }
 
 export function CommunityInActionFeed({ items }: { items: ActivityFeedRow[] }) {
-  if (items.length === 0) {
+  const visible = items.filter((row) => !isHiddenCommunityFeedRow(row));
+
+  if (visible.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ py: 1 }}>
         No community activity to show yet.
@@ -396,7 +431,7 @@ export function CommunityInActionFeed({ items }: { items: ActivityFeedRow[] }) {
 
   return (
     <Box sx={{ mt: 1.5 }}>
-      {items.map((row) => (
+      {visible.map((row) => (
         <FeedRow key={row.id} row={row} />
       ))}
     </Box>

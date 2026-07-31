@@ -15,7 +15,9 @@ import {
   ZoomableGroup,
 } from "react-simple-maps";
 
+import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupStateFlag";
 import { US_STATES, usStateByCode, usStateById } from "@/data/usStates";
+import { usStateInfoFromCode } from "@/lib/mobilize/group-state-flag";
 
 const COLORS = {
   noActivity: "#1c1a1a",
@@ -237,6 +239,11 @@ export function UsaChapterActivityMap({
     return usStateByCode(selectedStateCode)?.name ?? selectedStateCode;
   }, [selectedStateCode]);
 
+  const selectedStateInfo = useMemo(
+    () => (selectedStateCode ? usStateInfoFromCode(selectedStateCode) : null),
+    [selectedStateCode]
+  );
+
   return (
     <Box
       ref={wrapRef}
@@ -434,13 +441,18 @@ export function UsaChapterActivityMap({
               }}
             >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1, gap: 1 }}>
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.2 }}>
-                    {selectedStateName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {selectedStateCode}
-                  </Typography>
+                <Box sx={{ display: "flex", gap: 1.25, alignItems: "flex-start", minWidth: 0 }}>
+                  {selectedStateInfo ? (
+                    <MobilizeGroupStateFlag state={selectedStateInfo} size={44} />
+                  ) : null}
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.2 }}>
+                      {selectedStateName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {selectedStateCode}
+                    </Typography>
+                  </Box>
                 </Box>
                 <IconButton
                   size="small"

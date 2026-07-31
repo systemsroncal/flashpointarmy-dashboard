@@ -36,6 +36,15 @@ export function usStateFlagSrc(code: string): string {
   return US_STATE_FLAG_URL_BY_FIPS[state.id] ?? "";
 }
 
+export function usStateInfoFromCode(code: string): MobilizeGroupStateInfo | null {
+  const normalized = code.trim().toUpperCase();
+  const state = usStateByCode(normalized);
+  if (!state) return null;
+  const flagSrc = usStateFlagSrc(normalized);
+  if (!flagSrc) return null;
+  return { code: state.code, name: state.name, flagSrc };
+}
+
 export function resolveMobilizeGroupStateInfo(input: {
   regionCode?: string | null;
   address?: string | null;

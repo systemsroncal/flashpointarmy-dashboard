@@ -94,10 +94,10 @@ export async function insertInviteShareActivity(args: {
 
   const { error } = await args.supabase.from("community_activity").insert({
     feed_category: "member_invite",
-    title: `🎉 ${who} helped grow FPA Chapters ${through}!`,
-    subtitle: "Thank you for inviting others to join the movement.",
+    title: `🎉 ${who} helped grow FlashPoint Army ${through}!`,
+    subtitle: "Thank you for inviting others to join the community",
     state_code: state,
-    icon_key: "person",
+    icon_key: "celebration",
     actor_user_id: args.userId,
   });
   if (error) throw new Error(error.message);
