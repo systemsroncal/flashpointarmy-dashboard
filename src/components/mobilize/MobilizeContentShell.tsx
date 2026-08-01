@@ -41,7 +41,12 @@ export function MobilizeContentShell({ children }: { children: ReactNode }) {
     <ThemeProvider theme={mobilizePageTheme}>
       <Box
         sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignSelf: "stretch",
           minHeight: "100%",
+          width: "100%",
           pb: {
             xs: `calc(${MOBILIZE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`,
             lg: 0,

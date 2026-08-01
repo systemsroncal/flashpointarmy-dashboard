@@ -25,7 +25,7 @@ export function MobilizeSocialFeedShell({
   variant = "default",
 }: Props) {
   const isGroupProfile = variant === "groupProfile";
-  const fillSx = fill ? { flex: 1, minHeight: 0 } : {};
+  const fillSx = fill || isGroupProfile ? { flex: 1, minHeight: 0, height: "100%", display: "flex", flexDirection: "column" as const } : {};
   const threeColumn = Boolean(leftRail && rightRail);
   const feedColumnSx = {
     maxWidth: threeColumn && !isGroupProfile ? "none" : isGroupProfile ? "none" : 680,
@@ -56,8 +56,10 @@ export function MobilizeSocialFeedShell({
         gridTemplateColumns: gridColumns,
         gap: { xs: 2, lg: isGroupProfile ? 3 : 2.5 },
         alignItems: isGroupProfile ? "stretch" : "start",
-        ...(isGroupProfile ? {} : { minHeight: { lg: "calc(100dvh - 5.5rem - 380px)" } }),
-        ...fillSx,
+        ...(isGroupProfile
+          ? { flex: 1, minHeight: 0, height: "100%", width: "100%" }
+          : { minHeight: { lg: "calc(100dvh - 5.5rem - 380px)" } }),
+        ...(!isGroupProfile && fill ? { flex: 1, minHeight: 0 } : {}),
       }}
     >
       {leftRail ? (

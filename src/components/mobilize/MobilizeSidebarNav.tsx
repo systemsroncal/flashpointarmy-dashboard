@@ -115,17 +115,21 @@ function SidebarGroupNameLink({
           minHeight: 36,
           borderRadius: 1,
           mx: 0.5,
+          maxWidth: 155,
           ...(isActive ? GROUP_NAME_ACTIVE_SX : {}),
         }}
       >
         <ListItemText
           primary={name}
+          sx={{ m: 0, minWidth: 0, overflow: "hidden" }}
           primaryTypographyProps={{
             variant: "body2",
             fontSize: "0.8rem",
             fontWeight: isActive ? 700 : 600,
             lineHeight: isActive ? 1.15 : undefined,
             color: isActive ? "#0a0a0a" : undefined,
+            noWrap: true,
+            title: name,
           }}
         />
       </ListItemButton>

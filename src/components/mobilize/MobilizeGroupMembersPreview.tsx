@@ -98,10 +98,10 @@ export function MobilizeGroupMembersPreview({ members, totalCount, groupId }: Pr
           display: "inline-flex",
           alignItems: "center",
           gap: 0.35,
-          color: flashpointYellow,
+          color: "#000",
           fontWeight: 700,
           fontSize: "0.82rem",
-          "&:hover": { textDecoration: "underline" },
+          "&:hover": { textDecoration: "underline", color: "#000" },
         }}
       >
         View all members →

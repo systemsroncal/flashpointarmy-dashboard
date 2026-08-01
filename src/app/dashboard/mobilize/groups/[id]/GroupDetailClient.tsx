@@ -1277,6 +1277,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Button>
       </Stack>
 
+      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, width: "100%" }}>
       <MobilizeProfilePageShell
         coverSrc={groupCoverSrc}
         title={group.name}
@@ -1313,6 +1314,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 leftRail={isMobileGroupFeed ? null : groupFeedAboutRail}
                 rightRail={isMobileGroupFeed ? null : groupFeedAdsRail}
                 variant="groupProfile"
+                fill
               >
                 <MobilizeGroupFeed
                   embedded
@@ -1812,6 +1814,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       ) : null}
       </Box>
       </MobilizeProfilePageShell>
+      </Box>
 
       <MobilizeDialog open={eventOpen} onClose={() => setEventOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Add new event</DialogTitle>

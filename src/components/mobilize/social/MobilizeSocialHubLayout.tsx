@@ -10,9 +10,15 @@ import type { ReactNode } from "react";
 type Props = {
   children: ReactNode;
   sidebar?: HubSidebarPayload | null;
+  /** When false, hides the Truth-style left social nav (e.g. member profile pages). */
+  showInternalNav?: boolean;
 };
 
-export function MobilizeSocialHubLayout({ children, sidebar = null }: Props) {
+export function MobilizeSocialHubLayout({
+  children,
+  sidebar = null,
+  showInternalNav = true,
+}: Props) {
   return (
     <Box
       sx={{
@@ -26,7 +32,7 @@ export function MobilizeSocialHubLayout({ children, sidebar = null }: Props) {
         border: `1px solid ${TRUTH_HUB_BORDER}`,
       }}
     >
-      <MobilizeSocialInternalNav />
+      {showInternalNav ? <MobilizeSocialInternalNav /> : null}
       <Box sx={{ flex: 1, minWidth: 0, display: "flex", minHeight: 0 }}>{children}</Box>
       <MobilizeSocialHubRightRail initial={sidebar} />
     </Box>

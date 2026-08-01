@@ -53,7 +53,11 @@ export function SidebarNestedNavList({ items, onNavigate }: Props) {
                 py: 0,
                 px: 0,
                 pl: "3px",
-                "&.Mui-selected": { bgcolor: "rgba(255,215,0,0.06)" },
+                "&.Mui-selected": {
+                  bgcolor: "rgba(255, 255, 255, 0.14)",
+                  color: "#fff !important",
+                  "&:hover": { bgcolor: "rgba(255, 255, 255, 0.14)" },
+                },
               }}
             >
               <Box
@@ -85,7 +89,7 @@ export function SidebarNestedNavList({ items, onNavigate }: Props) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: item.selected ? "primary.main" : "rgba(255,255,255,0.92)",
+                    color: item.selected ? "#fff" : "rgba(255,255,255,0.92)",
                     "& svg": { fontSize: 16 },
                   }}
                 >
@@ -95,7 +99,7 @@ export function SidebarNestedNavList({ items, onNavigate }: Props) {
                   sx={{
                     minWidth: 0,
                     flex: 1,
-                    color: item.selected ? "primary.main" : "#fff",
+                    color: item.selected ? "#fff !important" : "#fff",
                     fontWeight: 600,
                     fontSize: "0.78rem",
                     lineHeight: 1.35,

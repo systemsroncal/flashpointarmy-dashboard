@@ -209,7 +209,7 @@ export function MobilizeProfilePageShell({
           panelFill
             ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
             : groupFeedFill
-              ? { flex: 1, display: "flex", flexDirection: "column", minHeight: "100%" }
+              ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }
               : undefined
         }
       >
@@ -217,7 +217,7 @@ export function MobilizeProfilePageShell({
           <Box
             sx={{
               ...(groupFeedFill
-                ? { flex: 1, display: "flex", flexDirection: "column", minHeight: "100%" }
+                ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }
                 : {}),
             }}
           >

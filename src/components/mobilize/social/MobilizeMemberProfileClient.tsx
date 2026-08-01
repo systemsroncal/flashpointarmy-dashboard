@@ -630,7 +630,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         </Alert>
       ) : null}
 
-      <MobilizeSocialHubLayout>
+      <MobilizeSocialHubLayout showInternalNav={false}>
         <MobilizeSocialHubContent tone="light">
           <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", p: { xs: 1, sm: 1.5 } }}>
           <MobilizeProfilePageShell

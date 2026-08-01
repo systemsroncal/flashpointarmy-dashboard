@@ -602,10 +602,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       pathname.startsWith(`${MOBILIZE_PREFIX}/social-settings`));
 
   useEffect(() => {
+    /** Keep Mobilize sidebar visible on member profiles (internal social nav is hidden there). */
+    if (onMobilizeProfilePage) {
+      if (desktop) setDesktopDrawerOpen(true);
+      return;
+    }
     if (!onMobilizeSocialHubPage) return;
     setDesktopDrawerOpen(false);
     setMobileDrawerOpen(false);
-  }, [onMobilizeSocialHubPage, pathname]);
+  }, [onMobilizeSocialHubPage, onMobilizeProfilePage, pathname, desktop]);
 
   const mobilizeDrawerNav = useMemo(() => {
     const items = [...MOBILIZE_DRAWER_NAV_BASE];
@@ -1169,7 +1174,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     >
     <DashboardPresenceProvider userId={user.id}>
     <MissionUpdatesUnreadProvider>
-      <Box sx={{ minHeight: "100vh" }}>
+      <Box sx={{ minHeight: "100vh", flex: 1, display: "flex", flexDirection: "column" }}>
       <FirstLoginPasswordGate />
       <AppBar
         position="fixed"
@@ -1271,6 +1276,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           pb: "calc(32px + env(safe-area-inset-bottom, 0px))",
           ml: { md: desktopDrawerOpen ? `${DRAWER_WIDTH}px` : 0 },
           minHeight: "100vh",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
           color: "grey.100",
           transition: theme.transitions.create("margin", {
             easing: theme.transitions.easing.sharp,

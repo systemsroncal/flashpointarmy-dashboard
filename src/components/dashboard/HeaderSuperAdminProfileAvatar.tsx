@@ -2,11 +2,23 @@
 
 import { AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
-import { isElevatedRole } from "@/lib/auth/user-roles";
+import { isElevatedRole, isSuperAdminUser } from "@/lib/auth/user-roles";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import {
+  isMobilizeSocialNavActive,
+  mobilizeSocialNavItems,
+  type MobilizeSocialNavKey,
+} from "@/lib/mobilize/social/mobilize-social-nav-config";
+import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
+import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import {
   Divider,
   IconButton,
@@ -17,8 +29,20 @@ import {
   Popover,
   Tooltip,
 } from "@mui/material";
-import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useMemo, useState, type ReactNode } from "react";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
+
+const SOCIAL_MENU_ICONS: Record<Exclude<MobilizeSocialNavKey, "search">, ReactNode> = {
+  home: <HomeOutlinedIcon fontSize="small" />,
+  alerts: <NotificationsNoneOutlinedIcon fontSize="small" />,
+  messages: <MailOutlineIcon fontSize="small" />,
+  groups: <GroupsOutlinedIcon fontSize="small" />,
+  bookmarks: <BookmarkBorderOutlinedIcon fontSize="small" />,
+  profile: <PersonOutlineIcon fontSize="small" />,
+  settings: <SettingsOutlinedIcon fontSize="small" />,
+};
 
 export function HeaderSuperAdminProfileAvatar({
   onOpenProfile,
@@ -28,9 +52,20 @@ export function HeaderSuperAdminProfileAvatar({
   onSignOut: () => void;
 }) {
   const user = useDashboardUser();
+  const pathname = usePathname();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const open = Boolean(anchor);
+  const isSuperAdmin = isSuperAdminUser(user.role_names);
+  const profileHref = mobilizeMemberProfileHref(user.id);
+
+  const socialItems = useMemo(
+    () =>
+      isSuperAdmin
+        ? mobilizeSocialNavItems(profileHref).filter((item) => item.key !== "search")
+        : [],
+    [isSuperAdmin, profileHref]
+  );
 
   const displayInitial =
     user.display_name?.trim() ||
@@ -80,6 +115,22 @@ export function HeaderSuperAdminProfileAvatar({
         }}
       >
         <MenuList dense disablePadding sx={{ py: 0.5 }}>
+          {socialItems.map((item) => {
+            const active = isMobilizeSocialNavActive(item.key, pathname, profileHref);
+            return (
+              <MenuItem
+                key={item.key}
+                component={Link}
+                href={item.href}
+                selected={active}
+                onClick={closeMenu}
+              >
+                <ListItemIcon>{SOCIAL_MENU_ICONS[item.key as Exclude<MobilizeSocialNavKey, "search">]}</ListItemIcon>
+                <ListItemText primary={item.label} />
+              </MenuItem>
+            );
+          })}
+          {socialItems.length > 0 ? <Divider sx={{ my: 0.5 }} /> : null}
           <MenuItem
             onClick={() => {
               closeMenu();

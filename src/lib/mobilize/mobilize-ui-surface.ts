@@ -79,6 +79,10 @@ export const mobilizeGroupTabPanelSx: SxProps<Theme> = {
 
 /** Tab body when the profile header scrolls with page content (group detail). */
 export const mobilizeGroupTabPanelScrollSx: SxProps<Theme> = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
   width: "100%",
 };
 
@@ -103,23 +107,40 @@ export const mobilizeGroupSecondaryTabPanelSx: SxProps<Theme> = {
   borderRadius: 2.5,
   border: "1px solid rgba(0,0,0,0.08)",
   boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-  flex: { xs: "0 0 auto", lg: 1 },
+  flex: 1,
   display: "flex",
   flexDirection: "column",
-  minHeight: { xs: "auto", lg: 0 },
+  alignSelf: "stretch",
+  minHeight: {
+    xs: "calc(100dvh - 18rem)",
+    sm: "calc(100dvh - 22rem)",
+    md: "calc(100dvh - 26rem)",
+  },
 };
 
-/** Group detail page (scrollWithHeader): natural page scroll at every breakpoint. */
+/** Group detail page: fill main height so feed column can stretch. */
 export const mobilizeGroupDetailPageRootSx: SxProps<Theme> = {
+  flex: 1,
   display: "flex",
   flexDirection: "column",
+  alignSelf: "stretch",
+  minHeight: "100%",
+  width: "100%",
   overflow: "visible",
 };
 
 /** Dark strip under group hero when tabs scroll with the page. */
 export const mobilizeGroupFeedContentScrollSx: SxProps<Theme> = {
+  flex: 1,
   display: "flex",
   flexDirection: "column",
+  alignSelf: "stretch",
+  width: "100%",
+  minHeight: {
+    xs: "calc(100dvh - 18rem)",
+    sm: "calc(100dvh - 22rem)",
+    md: "calc(100dvh - 26rem)",
+  },
   overflow: "visible",
 };
 
@@ -128,18 +149,22 @@ export const mobilizeGroupFeedContentSurfaceSx: SxProps<Theme> = {
   bgcolor: "transparent",
 };
 
-/** Center column: composer + post list (content-sized, no forced viewport fill). */
+/** Center column: composer + post list — stretches with parent height. */
 export const mobilizeGroupFeedPostsColumnSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
+  flex: 1,
   minHeight: 0,
+  height: "100%",
 };
 
 /** Composer + posts column wrapper inside group feed. */
 export const mobilizeGroupFeedPostsStackSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
-  flex: "0 0 auto",
+  flex: 1,
+  minHeight: 0,
+  height: "100%",
   gap: 2,
 };
 
@@ -151,12 +176,18 @@ export const mobilizeGroupFeedPaperSx: SxProps<Theme> = {
   color: "#0d0d0d",
 };
 
-/** Scrollable / growing posts list area — white panel, content-sized. */
+/** Growing posts list area — fills remaining height below the composer. */
 export const mobilizeGroupFeedPostsListSx: SxProps<Theme> = {
   ...mobilizeGroupFeedPaperSx,
-  flex: "0 0 auto",
+  flex: 1,
   display: "flex",
   flexDirection: "column",
+  alignSelf: "stretch",
+  minHeight: {
+    xs: "calc(100dvh - 28rem)",
+    sm: "calc(100dvh - 32rem)",
+    md: "calc(100dvh - 36rem)",
+  },
   border: "none",
   overflow: "visible",
 };
@@ -171,7 +202,7 @@ export const mobilizeGroupFeedPostCardSx: SxProps<Theme> = {
   "&:last-child": { mb: 2 },
 };
 
-/** White tab panel when the group profile scrolls with the page. */
+/** White tab panel — fills remaining height below the group hero. */
 export const mobilizeGroupSecondaryTabPanelScrollSx: SxProps<Theme> = {
   width: "100%",
   boxSizing: "border-box",
@@ -181,17 +212,29 @@ export const mobilizeGroupSecondaryTabPanelScrollSx: SxProps<Theme> = {
   borderRadius: 2.5,
   border: "1px solid rgba(0,0,0,0.08)",
   boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+  flex: 1,
   display: "flex",
   flexDirection: "column",
+  alignSelf: "stretch",
+  minHeight: {
+    xs: "calc(100dvh - 18rem)",
+    sm: "calc(100dvh - 22rem)",
+    md: "calc(100dvh - 26rem)",
+  },
   overflow: "visible",
 };
 
-/** Content strip under group hero — fills viewport on desktop; grows with content on mobile. */
+/** Content strip under group hero — fills remaining main height. */
 export const mobilizeGroupFeedContentFillSx: SxProps<Theme> = {
-  flex: { xs: "0 0 auto", lg: 1 },
+  flex: 1,
   display: "flex",
   flexDirection: "column",
-  minHeight: { xs: "auto", lg: 0 },
+  alignSelf: "stretch",
+  minHeight: {
+    xs: "calc(100dvh - 18rem)",
+    sm: "calc(100dvh - 22rem)",
+    md: "calc(100dvh - 26rem)",
+  },
 };
 
 /** Flex child that grows on desktop only; content-sized on mobile (page scroll). */

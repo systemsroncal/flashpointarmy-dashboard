@@ -279,7 +279,11 @@ export function TrainingNavSubmenu({
                         py: 0,
                         px: 0,
                         pl: "3px",
-                        "&.Mui-selected": { bgcolor: "rgba(255,215,0,0.06)" },
+                        "&.Mui-selected": {
+                          bgcolor: "rgba(255, 255, 255, 0.14)",
+                          color: "#fff !important",
+                          "&:hover": { bgcolor: "rgba(255, 255, 255, 0.14)" },
+                        },
                       }}
                     >
                       {content}

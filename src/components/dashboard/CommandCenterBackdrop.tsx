@@ -27,7 +27,17 @@ export function CommandCenterBackdrop({ children }: { children: ReactNode }) {
           zIndex: 0,
         }}
       />
-      <Box sx={{ position: "relative", zIndex: 1 }}>{children}</Box>
+      <Box
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {children}
+      </Box>
     </Box>
   );
 }
