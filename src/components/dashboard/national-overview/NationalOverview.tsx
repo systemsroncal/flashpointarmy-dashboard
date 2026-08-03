@@ -28,7 +28,6 @@ import { loadCommunityActivityFeed, COMMUNITY_ACTIVITY_FEED_LIMIT, isHiddenCommu
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
 import { getNotificationSoundEnabled } from "@/lib/notifications/notification-sound-pref";
 import { playCommunityActionSoundAlert } from "@/lib/notifications/play-community-action-sound";
-import { ChapterMapInviteCta } from "./ChapterMapInviteCta";
 import { InviteFriendsBanner } from "./InviteFriendsBanner";
 import { MemberOnboardingProgressCard } from "./MemberOnboardingProgressCard";
 import type { MemberOnboardingSnapshot } from "@/lib/onboarding/member-onboarding-status";
@@ -656,7 +655,6 @@ export function NationalOverview({
                 )}
               </Box>
             </UsaChapterActivityMap>
-            <ChapterMapInviteCta />
           </Paper>
         </Box>
         <Box
