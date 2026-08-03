@@ -5,6 +5,7 @@ import { resolveMobilizeAuthors } from "@/lib/mobilize/social/resolve-authors";
 import { summarizeReactions, type ReactionType } from "@/lib/mobilize/social/reaction-summary";
 import { normalizeFeedContent } from "@/lib/mobilize/social/sanitize-feed-html";
 import { sanitizeSocialPostImageUrls } from "@/lib/mobilize/announcement-images";
+import { loadMobilizeImageUploadLimits } from "@/lib/mobilize/image-upload-limits";
 
 type Ctx = { params: Promise<{ userId: string }> };
 
@@ -83,7 +84,9 @@ export async function POST(req: Request, ctx: Ctx) {
 
   const body = (await req.json()) as { content?: string; content_html?: string; image_urls?: unknown };
   const normalized = normalizeFeedContent(body);
-  const image_urls = sanitizeSocialPostImageUrls(body.image_urls) ?? [];
+  const limits = await loadMobilizeImageUploadLimits(auth.admin);
+  const image_urls =
+    sanitizeSocialPostImageUrls(body.image_urls, limits.profile_image_max_count) ?? [];
   if (!normalized.content && !image_urls.length) {
     return NextResponse.json({ error: "Add text or at least one image." }, { status: 400 });
   }

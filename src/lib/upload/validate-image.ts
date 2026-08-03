@@ -9,12 +9,23 @@ const ALLOWED_CLIENT_MIME = new Set([
 
 export type ValidatedImageKind = "jpeg" | "png" | "gif" | "webp";
 
-export function validateAvatarFile(file: File): { error: string } | null {
+function formatMaxMbLabel(maxBytes: number): string {
+  const mb = maxBytes / (1024 * 1024);
+  const rounded = Math.round(mb * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}
+
+/** Validate image type/size. Pass `maxBytes` to override the default 1 MB avatar cap. */
+export function validateAvatarFile(
+  file: File,
+  maxBytes: number = MAX_AVATAR_BYTES
+): { error: string } | null {
   if (!file || !(file instanceof File)) {
     return { error: "No file selected." };
   }
-  if (file.size > MAX_AVATAR_BYTES) {
-    return { error: "Image must be 1 MB or smaller." };
+  const limit = Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : MAX_AVATAR_BYTES;
+  if (file.size > limit) {
+    return { error: `Image must be ${formatMaxMbLabel(limit)} MB or smaller.` };
   }
   if (file.size < 16) {
     return { error: "File is too small to be a valid image." };

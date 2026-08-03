@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { loadMobilizeImageUploadLimits, mbToBytes } from "@/lib/mobilize/image-upload-limits";
 import { getMobilizeWallPostAccess } from "@/lib/mobilize/mobilize-wall-post-access";
 import {
   assertMimeMatchesKind,
@@ -31,7 +32,8 @@ export async function POST(req: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Missing file." }, { status: 400 });
     }
 
-    const basicErr = validateAvatarFile(file);
+    const limits = await loadMobilizeImageUploadLimits(auth.admin);
+    const basicErr = validateAvatarFile(file, mbToBytes(limits.groups_image_max_mb));
     if (basicErr) {
       return NextResponse.json({ error: basicErr.error }, { status: 400 });
     }

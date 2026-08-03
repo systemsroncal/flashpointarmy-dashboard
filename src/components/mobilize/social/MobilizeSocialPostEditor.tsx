@@ -3,6 +3,7 @@
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import { MAX_MOBILIZE_ANNOUNCEMENT_IMAGES } from "@/lib/mobilize/announcement-images";
+import { DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS } from "@/lib/mobilize/image-upload-limits";
 import {
   TRUTH_HUB_ACCENT,
   TRUTH_HUB_BORDER,
@@ -30,7 +31,7 @@ import {
   ThemeProvider,
   Typography,
 } from "@mui/material";
-import { useCallback, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 
 const TRUTH_POST_PURPLE = "#5448e8";
 const TRUTH_ICON = "#7c8db5";
@@ -93,6 +94,38 @@ export function MobilizeSocialPostEditor({
   const fileRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<EditorHandle | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [maxImages, setMaxImages] = useState(MAX_MOBILIZE_ANNOUNCEMENT_IMAGES);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/mobilize/upload-limits");
+        if (!res.ok) return;
+        const j = (await res.json()) as {
+          groups_image_max_count?: number;
+          profile_image_max_count?: number;
+        };
+        const next = groupId
+          ? Number(j.groups_image_max_count)
+          : Number(j.profile_image_max_count);
+        if (!cancelled && Number.isFinite(next) && next >= 1) {
+          setMaxImages(Math.min(20, Math.round(next)));
+        }
+      } catch {
+        if (!cancelled) {
+          setMaxImages(
+            groupId
+              ? DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.groups_image_max_count
+              : DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.profile_image_max_count
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [groupId]);
 
   const charCount = useMemo(() => plainTextLength(value), [value]);
   const charsLeft = MAX_CHARS - charCount;
@@ -116,14 +149,14 @@ export function MobilizeSocialPostEditor({
 
   function onPickFiles(files: FileList | null) {
     if (!files?.length || disabled || uploading || !onImageUrlsChange) return;
-    const room = MAX_MOBILIZE_ANNOUNCEMENT_IMAGES - imageUrls.length;
+    const room = maxImages - imageUrls.length;
     const batch = Array.from(files).slice(0, room);
     void (async () => {
       setUploading(true);
       let next = [...imageUrls];
       try {
         for (const file of batch) {
-          if (next.length >= MAX_MOBILIZE_ANNOUNCEMENT_IMAGES) break;
+          if (next.length >= maxImages) break;
           const url = await uploadFile(file);
           if (url) {
             next = [...next, url];
@@ -320,7 +353,7 @@ export function MobilizeSocialPostEditor({
                     <span>
                       <IconButton
                         size="small"
-                        disabled={disabled || posting || uploading || imageUrls.length >= MAX_MOBILIZE_ANNOUNCEMENT_IMAGES}
+                        disabled={disabled || posting || uploading || imageUrls.length >= maxImages}
                         onClick={() => fileRef.current?.click()}
                         sx={{ color: TRUTH_ICON }}
                       >

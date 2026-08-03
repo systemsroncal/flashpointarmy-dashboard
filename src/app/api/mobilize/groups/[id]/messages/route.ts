@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-images";
+import { loadMobilizeImageUploadLimits } from "@/lib/mobilize/image-upload-limits";
 import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { getMobilizeWallPostAccess } from "@/lib/mobilize/mobilize-wall-post-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
@@ -76,7 +77,11 @@ export async function POST(req: Request, ctx: Ctx) {
   const normalized = normalizeFeedContent(body);
   const content = normalized.content;
   const content_html = normalized.content_html;
-  const image_urls = sanitizeAnnouncementImageUrls(body.image_urls);
+  const limits = await loadMobilizeImageUploadLimits(auth.admin);
+  const image_urls = sanitizeAnnouncementImageUrls(
+    body.image_urls,
+    limits.groups_image_max_count
+  );
   if (image_urls === null) {
     return NextResponse.json({ error: "Invalid image URLs." }, { status: 400 });
   }
