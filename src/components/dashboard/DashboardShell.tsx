@@ -829,6 +829,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             px: 0.75,
             py: 0.5,
             boxSizing: "border-box",
+            display: { xs: "none", md: "block" },
           }}
         >
           <Image
@@ -1154,7 +1155,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Typography>
           </Box>
         </Box>
-        <PoweredByDreamsAnimation sx={{ fontSize: "0.65rem", mt: 0.75 }} />
         </Box>
       </Box>
     </Box>
@@ -1193,7 +1193,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           }),
         }}
       >
-        <Toolbar variant="dense" sx={{ minHeight: 48, gap: 1 }}>
+        <Toolbar variant="dense" sx={{ minHeight: 48, gap: 1, position: "relative" }}>
           {!desktop ? (
             <IconButton
               color="inherit"
@@ -1213,6 +1213,29 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             >
               <MenuIcon />
             </IconButton>
+          ) : null}
+          {!desktop ? (
+            <Box
+              sx={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                width: 140,
+                height: 32,
+                pointerEvents: "none",
+              }}
+            >
+              <Image
+                src={DASHBOARD_DRAWER_LOGO}
+                alt="FlashPoint"
+                fill
+                sizes="140px"
+                style={{ objectFit: "contain" }}
+                priority
+                unoptimized
+              />
+            </Box>
           ) : null}
           <Box sx={{ flexGrow: 1 }} />
           <RoleWelcomeVideoPrompt />
@@ -1286,7 +1309,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           }),
         }}
       >
-        {children}
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          {children}
+        </Box>
+        <PoweredByDreamsAnimation
+          sx={{
+            fontSize: "0.65rem",
+            mt: 2,
+            pt: 1.5,
+            borderTop: "1px solid rgba(255,215,0,0.12)",
+            flexShrink: 0,
+          }}
+        />
       </Box>
 
       <CourseGraduateCongratulationsDialog

@@ -582,12 +582,12 @@ export function NationalOverview({
         <Box
           sx={{
             width: "100%",
-            maxWidth: 345,
-            minWidth: 285,
-            flex: "0 0 auto",
+            maxWidth: { xs: "100%", md: 345 },
+            minWidth: { xs: 0, sm: 285 },
+            flex: { xs: "1 1 100%", md: "0 0 auto" },
             display: "flex",
             flexDirection: "column",
-            ...(feedPanelHeight != null ? { height: feedPanelHeight } : {}),
+            ...(feedPanelHeight != null ? { height: { xs: "auto", md: feedPanelHeight } } : {}),
           }}
         >
           <InviteFriendsBanner />
@@ -598,7 +598,7 @@ export function NationalOverview({
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              minHeight: 0,
+              minHeight: { xs: 360, md: 0 },
               overflow: "hidden",
             }}
           >
