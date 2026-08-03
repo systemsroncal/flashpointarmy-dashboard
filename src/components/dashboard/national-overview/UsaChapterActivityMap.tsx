@@ -245,200 +245,202 @@ export function UsaChapterActivityMap({
   );
 
   return (
-    <Box
-      ref={wrapRef}
-      sx={{
-        position: "relative",
-        borderRadius: 1,
-        overflow: "hidden",
-        border: "1px solid rgba(255, 215, 0, 0.3)",
-        bgcolor: "rgba(0,0,0,0.35)",
-        minHeight: { xs: 320, sm: 400, md: popupOpen ? 420 : 480 },
-        cursor: "default",
-      }}
-    >
+    <Box>
       <Box
+        ref={wrapRef}
         sx={{
-          position: "absolute",
-          bottom: 12,
-          left: 12,
-          zIndex: 2,
-          display: "flex",
-          flexDirection: "column",
-          gap: 0.5,
-          bgcolor: "rgba(28,26,26,0.92)",
-          border: "1px solid rgba(255, 215, 0, 0.3)",
+          position: "relative",
           borderRadius: 1,
-          p: 0.5,
+          overflow: "hidden",
+          border: "1px solid rgba(255, 215, 0, 0.3)",
+          bgcolor: "rgba(0,0,0,0.35)",
+          minHeight: { xs: 320, sm: 400, md: popupOpen ? 420 : 480 },
+          cursor: "default",
         }}
-        onClick={(e) => e.stopPropagation()}
       >
-        <IconButton
-          size="small"
-          aria-label="Zoom in"
-          onClick={() => zoomBy(1.2)}
-          sx={{ color: "primary.main", border: "1px solid rgba(255,215,0,0.3)" }}
-        >
-          <AddIcon fontSize="small" />
-        </IconButton>
-        <IconButton
-          size="small"
-          aria-label="Zoom out"
-          onClick={() => zoomBy(1 / 1.2)}
-          sx={{ color: "primary.main", border: "1px solid rgba(255,215,0,0.3)" }}
-        >
-          <RemoveIcon fontSize="small" />
-        </IconButton>
-      </Box>
-
-      {geoError ? (
-        <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
-          <Typography variant="body2" color="error.main" sx={{ mb: 1 }}>
-            Could not load the map. Please refresh the page.
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {geoError}
-          </Typography>
-        </Box>
-      ) : !geography ? (
-        <Box sx={{ px: 2, py: 6, textAlign: "center" }}>
-          <Typography variant="body2" color="text.secondary">
-            Loading map…
-          </Typography>
-        </Box>
-      ) : (
         <Box
           sx={{
+            position: "absolute",
+            bottom: 12,
+            left: 12,
+            zIndex: 2,
             display: "flex",
-            flexDirection: popupOpen ? { xs: "column", md: "row" } : "column",
-            alignItems: "stretch",
-            minHeight: { xs: 280, sm: 360, md: popupOpen ? 380 : 440 },
+            flexDirection: "column",
+            gap: 0.5,
+            bgcolor: "rgba(28,26,26,0.92)",
+            border: "1px solid rgba(255, 215, 0, 0.3)",
+            borderRadius: 1,
+            p: 0.5,
           }}
+          onClick={(e) => e.stopPropagation()}
         >
+          <IconButton
+            size="small"
+            aria-label="Zoom in"
+            onClick={() => zoomBy(1.2)}
+            sx={{ color: "primary.main", border: "1px solid rgba(255,215,0,0.3)" }}
+          >
+            <AddIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            aria-label="Zoom out"
+            onClick={() => zoomBy(1 / 1.2)}
+            sx={{ color: "primary.main", border: "1px solid rgba(255,215,0,0.3)" }}
+          >
+            <RemoveIcon fontSize="small" />
+          </IconButton>
+        </Box>
+
+        {geoError ? (
+          <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
+            <Typography variant="body2" color="error.main" sx={{ mb: 1 }}>
+              Could not load the map. Please refresh the page.
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {geoError}
+            </Typography>
+          </Box>
+        ) : !geography ? (
+          <Box sx={{ px: 2, py: 6, textAlign: "center" }}>
+            <Typography variant="body2" color="text.secondary">
+              Loading map…
+            </Typography>
+          </Box>
+        ) : (
           <Box
             sx={{
-              flex: popupOpen ? { xs: "1 1 auto", md: "1 1 58%" } : "1 1 auto",
-              minWidth: 0,
-              position: "relative",
+              display: "flex",
+              flexDirection: popupOpen ? { xs: "column", md: "row" } : "column",
+              alignItems: "stretch",
+              minHeight: { xs: 280, sm: 360, md: popupOpen ? 380 : 440 },
             }}
           >
-            <ComposableMap
-              projection="geoAlbersUsa"
-              width={900}
-              height={520}
-              projectionConfig={{ scale: 1000 }}
-              style={{
-                width: "100%",
-                height: "auto",
-                maxHeight: popupOpen ? "min(62vh, 480px)" : "min(74vh, 520px)",
-                display: "block",
-                touchAction: "none",
-              }}
-            >
-              <ZoomableGroup
-                zoom={mapView.zoom}
-                center={mapView.center}
-                minZoom={0.5}
-                maxZoom={8}
-                onMoveEnd={handleMoveEnd}
-              >
-                <Geographies geography={geography}>
-                  {({ geographies }) =>
-                    geographies.map((geo) => {
-                      const g = geo as RsmGeo;
-                      const code = geographyToStateCode(g);
-                      const selected = code && code === selectedStateCode;
-                      const base = fillForState(code);
-                      return (
-                        <Geography
-                          key={g.rsmKey}
-                          geography={geo}
-                          onClick={(e) => onGeoClick(g, e)}
-                          style={{
-                            default: {
-                              fill: base,
-                              stroke: selected ? COLORS.selected : COLORS.stateBorder,
-                              strokeWidth: selected ? 2 : 0.6,
-                              outline: "none",
-                              cursor: code ? "pointer" : "default",
-                              opacity: popupOpen && code && code !== selectedStateCode ? 0.35 : 1,
-                            },
-                            hover: {
-                              fill: code ? base : base,
-                              stroke: COLORS.selected,
-                              strokeWidth: 2.2,
-                              outline: "none",
-                              filter: code ? "brightness(1.15)" : undefined,
-                              opacity: popupOpen && code && code !== selectedStateCode ? 0.5 : 1,
-                            },
-                            pressed: {
-                              fill: base,
-                              stroke: COLORS.selected,
-                              strokeWidth: 2.2,
-                              outline: "none",
-                            },
-                          }}
-                        />
-                      );
-                    })
-                  }
-                </Geographies>
-              </ZoomableGroup>
-            </ComposableMap>
-          </Box>
-
-          {popupOpen ? (
-            <Paper
-              elevation={8}
-              role="dialog"
-              aria-modal="true"
+            <Box
               sx={{
-                flex: { xs: "0 0 auto", md: "0 0 300px" },
-                width: { xs: "100%", md: 300 },
-                m: { xs: 1.5, md: 1.5 },
-                mt: { xs: 0, md: 1.5 },
-                p: 2,
-                bgcolor: "rgba(28,26,26,0.95)",
-                border: "1px solid rgba(255, 215, 0, 0.35)",
-                color: "grey.100",
-                alignSelf: { md: "stretch" },
-                display: "flex",
-                flexDirection: "column",
-                maxHeight: { xs: "none", md: "min(62vh, 480px)" },
-                overflow: "auto",
+                flex: popupOpen ? { xs: "1 1 auto", md: "1 1 58%" } : "1 1 auto",
+                minWidth: 0,
+                position: "relative",
               }}
             >
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1, gap: 1 }}>
-                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, gap: 0.75 }}>
-                  {selectedStateInfo ? (
-                    <MobilizeGroupStateFlag state={selectedStateInfo} size={64} />
-                  ) : null}
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.2, fontSize: "1.15rem" }}
-                    >
-                      {selectedStateName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.9rem" }}>
-                      {selectedStateCode}
-                    </Typography>
-                  </Box>
-                </Box>
-                <IconButton
-                  size="small"
-                  onClick={onClosePopup}
-                  aria-label="Close"
-                  sx={{ color: "grey.400", mt: -0.5 }}
+              <ComposableMap
+                projection="geoAlbersUsa"
+                width={900}
+                height={520}
+                projectionConfig={{ scale: 1000 }}
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  maxHeight: popupOpen ? "min(62vh, 480px)" : "min(74vh, 520px)",
+                  display: "block",
+                  touchAction: "none",
+                }}
+              >
+                <ZoomableGroup
+                  zoom={mapView.zoom}
+                  center={mapView.center}
+                  minZoom={0.5}
+                  maxZoom={8}
+                  onMoveEnd={handleMoveEnd}
                 >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </Box>
-              {children}
-            </Paper>
-          ) : null}
-        </Box>
-      )}
+                  <Geographies geography={geography}>
+                    {({ geographies }) =>
+                      geographies.map((geo) => {
+                        const g = geo as RsmGeo;
+                        const code = geographyToStateCode(g);
+                        const selected = code && code === selectedStateCode;
+                        const base = fillForState(code);
+                        return (
+                          <Geography
+                            key={g.rsmKey}
+                            geography={geo}
+                            onClick={(e) => onGeoClick(g, e)}
+                            style={{
+                              default: {
+                                fill: base,
+                                stroke: selected ? COLORS.selected : COLORS.stateBorder,
+                                strokeWidth: selected ? 2 : 0.6,
+                                outline: "none",
+                                cursor: code ? "pointer" : "default",
+                                opacity: popupOpen && code && code !== selectedStateCode ? 0.35 : 1,
+                              },
+                              hover: {
+                                fill: code ? base : base,
+                                stroke: COLORS.selected,
+                                strokeWidth: 2.2,
+                                outline: "none",
+                                filter: code ? "brightness(1.15)" : undefined,
+                                opacity: popupOpen && code && code !== selectedStateCode ? 0.5 : 1,
+                              },
+                              pressed: {
+                                fill: base,
+                                stroke: COLORS.selected,
+                                strokeWidth: 2.2,
+                                outline: "none",
+                              },
+                            }}
+                          />
+                        );
+                      })
+                    }
+                  </Geographies>
+                </ZoomableGroup>
+              </ComposableMap>
+            </Box>
+
+            {popupOpen ? (
+              <Paper
+                elevation={8}
+                role="dialog"
+                aria-modal="true"
+                sx={{
+                  flex: { xs: "0 0 auto", md: "0 0 300px" },
+                  width: { xs: "100%", md: 300 },
+                  m: { xs: 1.5, md: 1.5 },
+                  mt: { xs: 0, md: 1.5 },
+                  p: 2,
+                  bgcolor: "rgba(28,26,26,0.95)",
+                  border: "1px solid rgba(255, 215, 0, 0.35)",
+                  color: "grey.100",
+                  alignSelf: { md: "stretch" },
+                  display: "flex",
+                  flexDirection: "column",
+                  maxHeight: { xs: "none", md: "min(62vh, 480px)" },
+                  overflow: "auto",
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1, gap: 1 }}>
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, gap: 0.75 }}>
+                    {selectedStateInfo ? (
+                      <MobilizeGroupStateFlag state={selectedStateInfo} size={64} />
+                    ) : null}
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.2, fontSize: "1.15rem" }}
+                      >
+                        {selectedStateName}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.9rem" }}>
+                        {selectedStateCode}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={onClosePopup}
+                    aria-label="Close"
+                    sx={{ color: "grey.400", mt: -0.5 }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {children}
+              </Paper>
+            ) : null}
+          </Box>
+        )}
+      </Box>
 
       <Box
         sx={{
@@ -446,9 +448,9 @@ export function UsaChapterActivityMap({
           flexWrap: "wrap",
           gap: 1.5,
           alignItems: "center",
-          px: 1.5,
-          py: 1,
-          borderTop: "1px solid rgba(255,215,0,0.12)",
+          px: 0.25,
+          pt: 1.25,
+          pb: 0.25,
         }}
       >
         <Typography variant="caption" sx={{ fontWeight: 700, color: "grey.400" }}>
