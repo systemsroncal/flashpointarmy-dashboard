@@ -477,55 +477,86 @@ export function NationalOverview({
               >
                 <CardContent
                   sx={{
-                    py: { xs: 1.25, sm: 1.5 },
+                    py: { xs: 1.25, sm: 2 },
                     px: { xs: 1.25, sm: 2 },
+                    pb: { xs: 1.25, sm: 1.5 },
                     "&:last-child": { pb: { xs: 1.25, sm: 1.5 } },
                   }}
                 >
                   <Box
                     sx={{
                       display: "flex",
-                      alignItems: "center",
-                      gap: { xs: 1.25, sm: 1.5 },
+                      flexDirection: { xs: "row", sm: "column" },
+                      alignItems: { xs: "center", sm: "stretch" },
+                      gap: { xs: 1.25, sm: 0 },
                     }}
                   >
                     <Box
                       sx={{
-                        width: { xs: 40, sm: 44 },
-                        height: { xs: 40, sm: 44 },
-                        borderRadius: 1.5,
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        bgcolor: s.color,
-                        boxShadow: `0 0 27px ${s.color}`,
-                        border: `1px solid ${s.color}`,
+                        justifyContent: { xs: "flex-start", sm: "space-between" },
+                        alignItems: { xs: "center", sm: "flex-start" },
+                        mb: { xs: 0, sm: 1.25 },
                         flexShrink: 0,
-                        position: "relative",
                       }}
                     >
-                      <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
+                      <Box
+                        sx={{
+                          width: { xs: 40, sm: 44 },
+                          height: { xs: 40, sm: 44 },
+                          borderRadius: 1.5,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          bgcolor: s.color,
+                          boxShadow: `0 0 27px ${s.color}`,
+                          border: `1px solid ${s.color}`,
+                          flexShrink: 0,
+                          position: "relative",
+                        }}
+                      >
+                        <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
+                        {"pulse" in s && s.pulse ? (
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              top: -3,
+                              right: -3,
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              bgcolor: "#ef4444",
+                              boxShadow: "0 0 8px #ef4444",
+                              animation: "fpPulse 1.5s ease-in-out infinite",
+                              "@keyframes fpPulse": {
+                                "0%, 100%": { opacity: 1 },
+                                "50%": { opacity: 0.35 },
+                              },
+                              display: { xs: "block", sm: "none" },
+                            }}
+                          />
+                        ) : null}
+                      </Box>
                       {"pulse" in s && s.pulse ? (
                         <Box
                           sx={{
-                            position: "absolute",
-                            top: -3,
-                            right: -3,
                             width: 10,
                             height: 10,
                             borderRadius: "50%",
                             bgcolor: "#ef4444",
+                            mt: 0.5,
                             boxShadow: "0 0 8px #ef4444",
                             animation: "fpPulse 1.5s ease-in-out infinite",
                             "@keyframes fpPulse": {
                               "0%, 100%": { opacity: 1 },
                               "50%": { opacity: 0.35 },
                             },
+                            display: { xs: "none", sm: "block" },
                           }}
                         />
                       ) : null}
                     </Box>
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Box sx={{ minWidth: 0, flex: { xs: 1, sm: "none" } }}>
                       <Typography
                         variant="h4"
                         sx={{
@@ -542,7 +573,7 @@ export function NationalOverview({
                         color="text.secondary"
                         sx={{
                           display: "block",
-                          mt: 0.25,
+                          mt: { xs: 0.25, sm: 0.5 },
                           lineHeight: 1.25,
                           fontSize: { xs: "0.7rem", sm: "0.75rem" },
                         }}
