@@ -344,14 +344,14 @@ export function buildMainDashboardTourEntries(
       "header-sign-out",
       '[data-tour="header-account-settings"]',
       "Sign out",
-      "Open the gear icon in the top bar, then choose Sign out when you are done. You will return to the login page.",
+      "Open your avatar in the top bar, then choose Sign out when you are done. You will return to the login page.",
       "bottom"
     ),
     stepForSelector(
       "header-account-settings",
       '[data-tour="header-account-settings"]',
-      "Account settings",
-      "Open Settings in the top bar to change your password or edit your profile. This is the quickest way to update your sign-in details.",
+      "Account menu",
+      "Open your avatar in the top bar to change your password or edit your profile. This is the quickest way to update your sign-in details.",
       "bottom"
     ),
     stepForSelector(

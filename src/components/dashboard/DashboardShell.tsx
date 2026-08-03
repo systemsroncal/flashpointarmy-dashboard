@@ -65,7 +65,7 @@ import {
   canAccessPeopleMembers,
   canAccessPeopleOverview,
 } from "@/lib/auth/people-section-access";
-import { canAccessMobilizeModule, canSeeMobilizeNavItem, isChapterStaffRole, isElevatedRole, isSuperAdminUser } from "@/lib/auth/user-roles";
+import { canAccessMobilizeModule, canSeeMobilizeNavItem, isChapterStaffRole, isElevatedRole } from "@/lib/auth/user-roles";
 import { shouldShowSidebarYourJourney } from "@/lib/onboarding/member-onboarding-status";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -76,7 +76,6 @@ import { createClient } from "@/utils/supabase/client";
 import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
 import { MissionUpdatesNavIcon } from "./MissionUpdatesNavIcon";
 import { MissionUpdatesUnreadProvider } from "./MissionUpdatesUnreadProvider";
-import { HeaderAccountSettingsButton } from "./HeaderAccountSettingsButton";
 import { HeaderSuperAdminProfileAvatar } from "./HeaderSuperAdminProfileAvatar";
 import { GlobalContainerShareItemListener } from "./GlobalContainerShareItemListener";
 import { NotificationMenu } from "./NotificationMenu";
@@ -581,7 +580,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const permissions = usePermissions();
   const user = useDashboardUser();
-  const isSuperAdmin = isSuperAdminUser(user.role_names);
   const isMobilize =
     pathname.startsWith(MOBILIZE_PREFIX) && canAccessMobilizeModule(user.role_names);
   const onMobilizeSocialHub =
@@ -1256,16 +1254,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <AnnouncementsNavBadge />
             )}
           </Box>
-          <HeaderAccountSettingsButton
+          <HeaderSuperAdminProfileAvatar
             onOpenProfile={() => setProfileOpen(true)}
             onSignOut={() => void handleSignOut()}
           />
-          {isSuperAdmin ? (
-            <HeaderSuperAdminProfileAvatar
-              onOpenProfile={() => setProfileOpen(true)}
-              onSignOut={() => void handleSignOut()}
-            />
-          ) : null}
         </Toolbar>
       </AppBar>
 

@@ -11,6 +11,8 @@ import {
 } from "@/lib/mobilize/social/mobilize-social-nav-config";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -18,8 +20,10 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import {
+  Collapse,
   Divider,
   IconButton,
   ListItemIcon,
@@ -31,7 +35,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
 const SOCIAL_MENU_ICONS: Record<Exclude<MobilizeSocialNavKey, "search">, ReactNode> = {
@@ -55,6 +59,7 @@ export function HeaderSuperAdminProfileAvatar({
   const pathname = usePathname();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [publicProfileOpen, setPublicProfileOpen] = useState(false);
   const open = Boolean(anchor);
   const isSuperAdmin = isSuperAdminUser(user.role_names);
   const profileHref = mobilizeMemberProfileHref(user.id);
@@ -67,6 +72,16 @@ export function HeaderSuperAdminProfileAvatar({
     [isSuperAdmin, profileHref]
   );
 
+  const anySocialActive = useMemo(
+    () =>
+      socialItems.some((item) => isMobilizeSocialNavActive(item.key, pathname, profileHref)),
+    [pathname, profileHref, socialItems]
+  );
+
+  useEffect(() => {
+    if (open && anySocialActive) setPublicProfileOpen(true);
+  }, [anySocialActive, open]);
+
   const displayInitial =
     user.display_name?.trim() ||
     [user.first_name, user.last_name].filter(Boolean).join(" ").trim() ||
@@ -78,14 +93,14 @@ export function HeaderSuperAdminProfileAvatar({
 
   return (
     <>
-      <Tooltip title="My profile">
+      <Tooltip title="Account">
         <IconButton
           color="inherit"
           onClick={(e) => setAnchor(e.currentTarget)}
-          aria-label="My profile"
+          aria-label="Account menu"
           aria-haspopup="menu"
           aria-expanded={open ? "true" : undefined}
-          data-tour="header-super-admin-profile"
+          data-tour="header-account-settings"
           size="small"
           sx={{ ml: 0.25 }}
         >
@@ -115,22 +130,48 @@ export function HeaderSuperAdminProfileAvatar({
         }}
       >
         <MenuList dense disablePadding sx={{ py: 0.5 }}>
-          {socialItems.map((item) => {
-            const active = isMobilizeSocialNavActive(item.key, pathname, profileHref);
-            return (
+          {socialItems.length > 0 ? (
+            <>
               <MenuItem
-                key={item.key}
-                component={Link}
-                href={item.href}
-                selected={active}
-                onClick={closeMenu}
+                onClick={() => setPublicProfileOpen((prev) => !prev)}
+                selected={anySocialActive}
+                aria-expanded={publicProfileOpen}
               >
-                <ListItemIcon>{SOCIAL_MENU_ICONS[item.key as Exclude<MobilizeSocialNavKey, "search">]}</ListItemIcon>
-                <ListItemText primary={item.label} />
+                <ListItemIcon>
+                  <PublicOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Public Profile" />
+                {publicProfileOpen ? (
+                  <ExpandLessIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                ) : (
+                  <ExpandMoreIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                )}
               </MenuItem>
-            );
-          })}
-          {socialItems.length > 0 ? <Divider sx={{ my: 0.5 }} /> : null}
+              <Collapse in={publicProfileOpen} timeout="auto" unmountOnExit>
+                <MenuList dense disablePadding>
+                  {socialItems.map((item) => {
+                    const active = isMobilizeSocialNavActive(item.key, pathname, profileHref);
+                    return (
+                      <MenuItem
+                        key={item.key}
+                        component={Link}
+                        href={item.href}
+                        selected={active}
+                        onClick={closeMenu}
+                        sx={{ pl: 3.5 }}
+                      >
+                        <ListItemIcon>
+                          {SOCIAL_MENU_ICONS[item.key as Exclude<MobilizeSocialNavKey, "search">]}
+                        </ListItemIcon>
+                        <ListItemText primary={item.label} />
+                      </MenuItem>
+                    );
+                  })}
+                </MenuList>
+              </Collapse>
+              <Divider sx={{ my: 0.5 }} />
+            </>
+          ) : null}
           <MenuItem
             onClick={() => {
               closeMenu();
