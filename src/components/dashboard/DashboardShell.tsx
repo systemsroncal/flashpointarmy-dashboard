@@ -801,46 +801,57 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Box sx={{ flexShrink: 0, px: 1.25, pt: 1.25, pb: 1.25 }}>
-        <IconButton
-          size="small"
-          aria-label={sidebarOpen ? "Hide menu" : "Show menu"}
-          data-tour="sidebar-toggle"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          sx={{
-            color: "primary.main",
-            alignSelf: "flex-start",
-            mb: 1.5,
-            borderRadius: 1,
-          }}
-        >
-          <Box component="span" sx={{ display: "flex", alignItems: "center", gap: 0 }}>
-            <ChevronLeftIcon sx={{ fontSize: 20 }} />
-            <MenuIcon sx={{ fontSize: 22, ml: -0.25 }} />
-          </Box>
-        </IconButton>
         <Box
           sx={{
-            position: "relative",
-            width: "100%",
-            height: 52,
-            borderRadius: 1.5,
-            overflow: "hidden",
-            bgcolor: "rgba(0,0,0,0.35)",
-            px: 0.75,
-            py: 0.5,
-            boxSizing: "border-box",
-            display: { xs: "none", md: "block" },
+            display: "flex",
+            flexDirection: { xs: "row", md: "column" },
+            alignItems: { xs: "center", md: "stretch" },
+            gap: { xs: 1, md: 0 },
           }}
         >
-          <Image
-            src={DASHBOARD_DRAWER_LOGO}
-            alt=""
-            fill
-            sizes={`${DRAWER_WIDTH}px`}
-            style={{ objectFit: "contain" }}
-            priority
-            unoptimized
-          />
+          <IconButton
+            size="small"
+            aria-label={sidebarOpen ? "Hide menu" : "Show menu"}
+            data-tour="sidebar-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            sx={{
+              color: "primary.main",
+              alignSelf: { xs: "center", md: "flex-start" },
+              mb: { xs: 0, md: 1.5 },
+              borderRadius: 1,
+              flexShrink: 0,
+            }}
+          >
+            <Box component="span" sx={{ display: "flex", alignItems: "center", gap: 0 }}>
+              <ChevronLeftIcon sx={{ fontSize: 20 }} />
+              <MenuIcon sx={{ fontSize: 22, ml: -0.25 }} />
+            </Box>
+          </IconButton>
+          <Box
+            sx={{
+              position: "relative",
+              flex: { xs: 1, md: "none" },
+              width: { xs: "auto", md: "100%" },
+              minWidth: 0,
+              height: { xs: 40, md: 52 },
+              borderRadius: 1.5,
+              overflow: "hidden",
+              bgcolor: "rgba(0,0,0,0.35)",
+              px: 0.75,
+              py: 0.5,
+              boxSizing: "border-box",
+            }}
+          >
+            <Image
+              src={DASHBOARD_DRAWER_LOGO}
+              alt=""
+              fill
+              sizes={`${DRAWER_WIDTH}px`}
+              style={{ objectFit: "contain" }}
+              priority
+              unoptimized
+            />
+          </Box>
         </Box>
       </Box>
       <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
