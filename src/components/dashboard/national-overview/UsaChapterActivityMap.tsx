@@ -5,7 +5,7 @@ import { getStateCentroid } from "@/lib/reports/us-city-coordinates";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import RemoveIcon from "@mui/icons-material/Remove";
-import { Box, IconButton, Paper, Typography } from "@mui/material";
+import { Box, Dialog, IconButton, Paper, Typography, useMediaQuery, useTheme } from "@mui/material";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -244,6 +244,33 @@ export function UsaChapterActivityMap({
     [selectedStateCode]
   );
 
+  const theme = useTheme();
+  const isMobileMap = useMediaQuery(theme.breakpoints.down("md"));
+  const showInlinePopup = popupOpen && !isMobileMap;
+  const showMobilePopup = popupOpen && isMobileMap;
+
+  const popupHeader = (
+    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1, gap: 1 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, gap: 0.75 }}>
+        {selectedStateInfo ? <MobilizeGroupStateFlag state={selectedStateInfo} size={isMobileMap ? 48 : 64} /> : null}
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.2, fontSize: { xs: "1.05rem", md: "1.15rem" } }}
+          >
+            {selectedStateName}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.9rem" }}>
+            {selectedStateCode}
+          </Typography>
+        </Box>
+      </Box>
+      <IconButton size="small" onClick={onClosePopup} aria-label="Close" sx={{ color: "grey.400", mt: -0.5 }}>
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </Box>
+  );
+
   return (
     <Box>
       <Box
@@ -254,23 +281,23 @@ export function UsaChapterActivityMap({
           overflow: "hidden",
           border: "1px solid rgba(255, 215, 0, 0.3)",
           bgcolor: "rgba(0,0,0,0.35)",
-          minHeight: { xs: 320, sm: 400, md: popupOpen ? 420 : 480 },
+          minHeight: { xs: "50vw", md: showInlinePopup ? 420 : 480 },
           cursor: "default",
         }}
       >
         <Box
           sx={{
             position: "absolute",
-            bottom: 12,
-            left: 12,
+            bottom: { xs: 8, md: 12 },
+            left: { xs: 8, md: 12 },
             zIndex: 2,
             display: "flex",
             flexDirection: "column",
-            gap: 0.5,
+            gap: { xs: 0.25, md: 0.5 },
             bgcolor: "rgba(28,26,26,0.92)",
             border: "1px solid rgba(255, 215, 0, 0.3)",
             borderRadius: 1,
-            p: 0.5,
+            p: { xs: 0.25, md: 0.5 },
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -278,7 +305,13 @@ export function UsaChapterActivityMap({
             size="small"
             aria-label="Zoom in"
             onClick={() => zoomBy(1.2)}
-            sx={{ color: "primary.main", border: "1px solid rgba(255,215,0,0.3)" }}
+            sx={{
+              color: "primary.main",
+              border: "1px solid rgba(255,215,0,0.3)",
+              width: { xs: 28, md: 34 },
+              height: { xs: 28, md: 34 },
+              "& .MuiSvgIcon-root": { fontSize: { xs: 16, md: 20 } },
+            }}
           >
             <AddIcon fontSize="small" />
           </IconButton>
@@ -286,7 +319,13 @@ export function UsaChapterActivityMap({
             size="small"
             aria-label="Zoom out"
             onClick={() => zoomBy(1 / 1.2)}
-            sx={{ color: "primary.main", border: "1px solid rgba(255,215,0,0.3)" }}
+            sx={{
+              color: "primary.main",
+              border: "1px solid rgba(255,215,0,0.3)",
+              width: { xs: 28, md: 34 },
+              height: { xs: 28, md: 34 },
+              "& .MuiSvgIcon-root": { fontSize: { xs: 16, md: 20 } },
+            }}
           >
             <RemoveIcon fontSize="small" />
           </IconButton>
@@ -311,14 +350,14 @@ export function UsaChapterActivityMap({
           <Box
             sx={{
               display: "flex",
-              flexDirection: popupOpen ? { xs: "column", md: "row" } : "column",
+              flexDirection: showInlinePopup ? { xs: "column", md: "row" } : "column",
               alignItems: "stretch",
-              minHeight: { xs: 280, sm: 360, md: popupOpen ? 380 : 440 },
+              minHeight: { xs: "50vw", md: showInlinePopup ? 380 : 440 },
             }}
           >
             <Box
               sx={{
-                flex: popupOpen ? { xs: "1 1 auto", md: "1 1 58%" } : "1 1 auto",
+                flex: showInlinePopup ? { xs: "1 1 auto", md: "1 1 58%" } : "1 1 auto",
                 minWidth: 0,
                 position: "relative",
               }}
@@ -331,7 +370,7 @@ export function UsaChapterActivityMap({
                 style={{
                   width: "100%",
                   height: "auto",
-                  maxHeight: popupOpen ? "min(62vh, 480px)" : "min(74vh, 520px)",
+                  maxHeight: showInlinePopup ? "min(62vh, 480px)" : "min(74vh, 520px)",
                   display: "block",
                   touchAction: "none",
                 }}
@@ -388,7 +427,7 @@ export function UsaChapterActivityMap({
               </ComposableMap>
             </Box>
 
-            {popupOpen ? (
+            {showInlinePopup ? (
               <Paper
                 elevation={8}
                 role="dialog"
@@ -409,38 +448,41 @@ export function UsaChapterActivityMap({
                   overflow: "auto",
                 }}
               >
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1, gap: 1 }}>
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, gap: 0.75 }}>
-                    {selectedStateInfo ? (
-                      <MobilizeGroupStateFlag state={selectedStateInfo} size={64} />
-                    ) : null}
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.2, fontSize: "1.15rem" }}
-                      >
-                        {selectedStateName}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.9rem" }}>
-                        {selectedStateCode}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <IconButton
-                    size="small"
-                    onClick={onClosePopup}
-                    aria-label="Close"
-                    sx={{ color: "grey.400", mt: -0.5 }}
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </Box>
+                {popupHeader}
                 {children}
               </Paper>
             ) : null}
           </Box>
         )}
       </Box>
+
+      <Dialog
+        open={showMobilePopup}
+        onClose={onClosePopup}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            bgcolor: "rgba(18,18,20,0.98)",
+            border: "1px solid rgba(255, 215, 0, 0.35)",
+            borderRadius: 3,
+            color: "grey.100",
+            m: 2,
+            backgroundImage: "none",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
+          },
+        }}
+        slotProps={{
+          backdrop: {
+            sx: { bgcolor: "rgba(0,0,0,0.62)", backdropFilter: "blur(4px)" },
+          },
+        }}
+      >
+        <Box sx={{ p: 2.25 }}>
+          {popupHeader}
+          {children}
+        </Box>
+      </Dialog>
 
       <Box
         sx={{

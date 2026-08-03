@@ -10,6 +10,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * - dismissed/seen that welcome (`missions_welcome_seen_at`)
  * - has a first-mission row unlocked or further (`pending` | `in_progress` | `completed`)
  */
+export function isMissionsStartedForUser(args: {
+  missions_started_notified_at?: string | null;
+  missions_welcome_seen_at?: string | null;
+  firstMissionStatus?: string | null;
+}): boolean {
+  if (args.missions_started_notified_at || args.missions_welcome_seen_at) return true;
+  const s = args.firstMissionStatus;
+  return s === "pending" || s === "in_progress" || s === "completed";
+}
+
 export async function loadMissionsStartedUserIds(
   admin: SupabaseClient,
   userIds?: string[]
@@ -29,7 +39,12 @@ export async function loadMissionsStartedUserIds(
     const { data: milestones, error: mErr } = await milestonesQuery;
     if (mErr) throw new Error(mErr.message);
     for (const row of milestones ?? []) {
-      if (row.missions_started_notified_at || row.missions_welcome_seen_at) {
+      if (
+        isMissionsStartedForUser({
+          missions_started_notified_at: row.missions_started_notified_at as string | null,
+          missions_welcome_seen_at: row.missions_welcome_seen_at as string | null,
+        })
+      ) {
         out.add(row.user_id as string);
       }
     }

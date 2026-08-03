@@ -1,7 +1,19 @@
+import { chunkIdsForInQuery, listAllDashboardUsers } from "@/lib/admin/dashboard-user-queries";
+import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
+import type { CitiesDonorsJson } from "@/lib/donors/aggregate-donors-by-state";
+import {
+  aggregateReferenceLeaderMemberByState,
+  sumReferenceTotals,
+} from "@/lib/donors/aggregate-donors-by-state";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { readFile } from "fs/promises";
+import path from "path";
 
 export type PeopleOverviewStats = {
+  /** Role totals (same formula as National Overview members + leaders, plus admins). */
   totalUsers: number;
+  /** Real `dashboard_users` rows (demographics / profile completeness). */
+  dashboardUsersCount: number;
   byRole: {
     localLeaders: number;
     members: number;
@@ -59,35 +71,65 @@ function bucketLabel(age: number | null): string {
   return "Unknown";
 }
 
+/** Same exact `user_roles` counts National Overview uses for members / local leaders. */
+async function countUsersWithRole(admin: SupabaseClient, roleName: string): Promise<number> {
+  const { data: role } = await admin.from("roles").select("id").eq("name", roleName).maybeSingle();
+  if (!role?.id) return 0;
+  const { count, error } = await admin
+    .from("user_roles")
+    .select("user_id", { count: "exact", head: true })
+    .eq("role_id", role.id as string);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+async function loadReferenceLeaderMemberTotals(): Promise<{ leaders: number; members: number } | null> {
+  if (!includeReferenceInOverviewStatTotals()) return null;
+  try {
+    const raw = await readFile(
+      path.join(process.cwd(), "public/backgrounds/cities_donors.json"),
+      "utf8"
+    );
+    const json = JSON.parse(raw) as CitiesDonorsJson;
+    return sumReferenceTotals(aggregateReferenceLeaderMemberByState(json));
+  } catch {
+    return null;
+  }
+}
+
 export async function loadPeopleOverviewStats(admin: SupabaseClient): Promise<PeopleOverviewStats> {
-  const { data: users } = await admin
-    .from("dashboard_users")
-    .select("id, first_name, last_name, display_name, email, created_at")
-    .order("created_at", { ascending: false })
-    .limit(5000);
+  const [members, localLeaders, admins, subAdmins, superAdmins, users, reference] =
+    await Promise.all([
+      countUsersWithRole(admin, "member"),
+      countUsersWithRole(admin, "local_leader"),
+      countUsersWithRole(admin, "admin"),
+      countUsersWithRole(admin, "sub_admin"),
+      countUsersWithRole(admin, "super_admin"),
+      listAllDashboardUsers(admin),
+      loadReferenceLeaderMemberTotals(),
+    ]);
 
-  const list = users ?? [];
-  const ids = list.map((u) => u.id as string);
+  const byRole = {
+    localLeaders: localLeaders + (reference?.leaders ?? 0),
+    members: members + (reference?.members ?? 0),
+    admins,
+    subAdmins,
+    superAdmins,
+  };
 
-  const roleByUser = new Map<string, Set<string>>();
+  const list = [...users].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  const ids = list.map((u) => u.id);
+
   const profileByUser = new Map<
     string,
     { date_of_birth: string | null; gender: string | null; state: string | null }
   >();
 
-  for (let i = 0; i < ids.length; i += 200) {
-    const chunk = ids.slice(i, i + 200);
-    const [{ data: ur }, { data: profiles }] = await Promise.all([
-      admin.from("user_roles").select("user_id, roles ( name )").in("user_id", chunk),
-      admin.from("profiles").select("id, date_of_birth, gender, state").in("id", chunk),
-    ]);
-    for (const row of ur ?? []) {
-      const uid = row.user_id as string;
-      const name = (row.roles as { name?: string } | null)?.name;
-      if (!name) continue;
-      if (!roleByUser.has(uid)) roleByUser.set(uid, new Set());
-      roleByUser.get(uid)!.add(name);
-    }
+  for (const chunk of chunkIdsForInQuery(ids, 100)) {
+    const { data: profiles } = await admin
+      .from("profiles")
+      .select("id, date_of_birth, gender, state")
+      .in("id", chunk);
     for (const p of profiles ?? []) {
       profileByUser.set(p.id as string, {
         date_of_birth: (p.date_of_birth as string | null) ?? null,
@@ -97,13 +139,6 @@ export async function loadPeopleOverviewStats(admin: SupabaseClient): Promise<Pe
     }
   }
 
-  const byRole = {
-    localLeaders: 0,
-    members: 0,
-    admins: 0,
-    subAdmins: 0,
-    superAdmins: 0,
-  };
   const byGender = { male: 0, female: 0, unassigned: 0 };
   const ageMap = new Map<string, { male: number; female: number; unassigned: number }>();
   for (const b of AGE_BUCKETS) {
@@ -112,15 +147,7 @@ export async function loadPeopleOverviewStats(admin: SupabaseClient): Promise<Pe
   const stateCounts = new Map<string, number>();
 
   for (const u of list) {
-    const uid = u.id as string;
-    const roles = roleByUser.get(uid) ?? new Set();
-    if (roles.has("super_admin")) byRole.superAdmins += 1;
-    else if (roles.has("admin")) byRole.admins += 1;
-    else if (roles.has("sub_admin")) byRole.subAdmins += 1;
-    else if (roles.has("local_leader")) byRole.localLeaders += 1;
-    else if (roles.has("member")) byRole.members += 1;
-
-    const prof = profileByUser.get(uid);
+    const prof = profileByUser.get(u.id);
     const g = prof?.gender;
     if (g === "male") byGender.male += 1;
     else if (g === "female") byGender.female += 1;
@@ -133,7 +160,7 @@ export async function loadPeopleOverviewStats(admin: SupabaseClient): Promise<Pe
     else if (g === "female") bucket.female += 1;
     else bucket.unassigned += 1;
 
-    const st = (prof?.state ?? "").trim().toUpperCase().slice(0, 2);
+    const st = (prof?.state ?? u.state ?? "").trim().toUpperCase().slice(0, 2);
     if (st) stateCounts.set(st, (stateCounts.get(st) ?? 0) + 1);
   }
 
@@ -150,8 +177,8 @@ export async function loadPeopleOverviewStats(admin: SupabaseClient): Promise<Pe
   const recentlyCreated = list.slice(0, 8).map((u) => {
     const name =
       [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
-      (u.display_name as string | null)?.trim() ||
-      (u.email as string)?.split("@")[0] ||
+      u.display_name?.trim() ||
+      u.email?.split("@")[0] ||
       "User";
     const parts = name.split(/\s+/).filter(Boolean);
     const initials =
@@ -159,15 +186,19 @@ export async function loadPeopleOverviewStats(admin: SupabaseClient): Promise<Pe
         ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
         : name.slice(0, 2).toUpperCase();
     return {
-      id: u.id as string,
+      id: u.id,
       name,
-      created_at: u.created_at as string,
+      created_at: u.created_at,
       initials,
     };
   });
 
+  const totalUsers =
+    byRole.localLeaders + byRole.members + byRole.admins + byRole.subAdmins + byRole.superAdmins;
+
   return {
-    totalUsers: list.length,
+    totalUsers,
+    dashboardUsersCount: list.length,
     byRole,
     byGender,
     byAgeBucket,

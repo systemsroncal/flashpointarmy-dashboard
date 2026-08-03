@@ -4,6 +4,8 @@ import {
   loadTrainingLessonCounts,
   loadTrainingStepStatus,
 } from "@/lib/onboarding/onboarding-records";
+import { loadJourneyMilestones } from "@/lib/onboarding/journey-milestones";
+import { isMissionsStartedForUser } from "@/lib/onboarding/missions-started";
 import { resolveCurrentMissionRankLabel, type MissionRankProgress } from "@/lib/onboarding/mission-rank-info";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -68,12 +70,19 @@ export function resolveCoachMeetingStepStatus(
   return rowStatus ?? "pending";
 }
 
+/**
+ * Step 3 status for Your Journey / Training nav.
+ * When Journey Progress would show Mission Started = Yes, this step is `completed`
+ * (once Mission Briefing is done), so the sidebar matches admin Yes.
+ */
 export function resolveFirstMissionStepStatus(
   coachMeeting: CoachMeetingStepStatus,
   rowStatus: FirstMissionStepStatus | null,
-  hasPersistedRow: boolean
+  hasPersistedRow: boolean,
+  missionsStarted = false
 ): FirstMissionStepStatus {
   if (coachMeeting !== "completed") return "locked";
+  if (missionsStarted) return "completed";
   if (!hasPersistedRow) return "pending";
   if (rowStatus === "locked") return "pending";
   return rowStatus ?? "pending";
@@ -84,11 +93,12 @@ export async function loadMemberOnboardingSnapshot(
   userId: string,
   roleNames: string[]
 ): Promise<MemberOnboardingSnapshot> {
-  const [training, coachMeetingRow, firstMissionRow, lessonCounts] = await Promise.all([
+  const [training, coachMeetingRow, firstMissionRow, lessonCounts, milestones] = await Promise.all([
     loadTrainingStepStatus(supabase, userId),
     loadCoachMeetingForUser(supabase, userId),
     loadFirstMissionForUser(supabase, userId),
     loadTrainingLessonCounts(supabase, userId),
+    loadJourneyMilestones(supabase, userId),
   ]);
 
   const hasCoachRow = coachMeetingRow.updated_at !== new Date(0).toISOString();
@@ -99,10 +109,16 @@ export async function loadMemberOnboardingSnapshot(
   );
 
   const hasFirstMissionRow = firstMissionRow.updated_at !== new Date(0).toISOString();
+  const missionsStarted = isMissionsStartedForUser({
+    missions_started_notified_at: milestones?.missions_started_notified_at,
+    missions_welcome_seen_at: milestones?.missions_welcome_seen_at,
+    firstMissionStatus: hasFirstMissionRow ? firstMissionRow.status : null,
+  });
   const firstMission = resolveFirstMissionStepStatus(
     coachMeeting,
     firstMissionRow.status,
-    hasFirstMissionRow
+    hasFirstMissionRow,
+    missionsStarted
   );
 
   const rankAudience: MissionRankAudience = roleNames.includes("local_leader")

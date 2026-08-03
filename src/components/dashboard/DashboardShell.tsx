@@ -20,7 +20,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import PeopleIcon from "@mui/icons-material/People";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import PublicIcon from "@mui/icons-material/Public";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import NoteOutlinedIcon from "@mui/icons-material/NoteOutlined";
@@ -315,7 +315,7 @@ const NAV: NavItem[] = [
     label: "National overview",
     href: "/dashboard",
     module: MODULE_SLUGS.nationalOverview,
-    icon: <PublicIcon />,
+    icon: <HomeOutlinedIcon />,
   },
   {
     label: "Chapters & Groups",

@@ -144,6 +144,11 @@ export function MemberOnboardingProgressCard({ snapshot }: Props) {
     [snapshot]
   );
 
+  /** Hide when Choose Your First Mission is done (Mission Ready / completed). */
+  if (snapshot.firstMission === "completed") {
+    return null;
+  }
+
   return (
     <>
       <Paper

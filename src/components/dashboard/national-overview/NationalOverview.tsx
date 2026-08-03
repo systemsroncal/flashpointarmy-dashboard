@@ -438,8 +438,11 @@ export function NationalOverview({
 
   return (
     <Box>
+      <Box sx={{ display: { xs: "block", md: "none" }, mb: 2 }}>
+        <InviteFriendsBanner />
+      </Box>
       <Typography variant="h4" sx={{ fontWeight: 800, color: "primary.main", letterSpacing: "0.04em" }}>
-        Command Center - FlashPoint Army Chapters
+        Command Center
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         Real-time overview of community engagement across the nation.
@@ -667,7 +670,9 @@ export function NationalOverview({
             ...(feedPanelHeight != null ? { height: { xs: "auto", md: feedPanelHeight } } : {}),
           }}
         >
-          <InviteFriendsBanner />
+          <Box sx={{ display: { xs: "none", md: "block" } }}>
+            <InviteFriendsBanner />
+          </Box>
           <Paper
             sx={{
               p: 1.75,

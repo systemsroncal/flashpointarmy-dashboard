@@ -271,7 +271,7 @@ export function PeopleOverviewClient({ stats }: { stats: PeopleOverviewStats }) 
           <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.75 }}>
             <Typography variant="body2">Gender set</Typography>
             <Typography variant="body2" fontWeight={700}>
-              {stats.byGender.male + stats.byGender.female} / {stats.totalUsers}
+              {stats.byGender.male + stats.byGender.female} / {stats.dashboardUsersCount}
             </Typography>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.75 }}>
@@ -280,7 +280,7 @@ export function PeopleOverviewClient({ stats }: { stats: PeopleOverviewStats }) 
               {stats.byAgeBucket
                 .filter((b) => b.label !== "Unknown")
                 .reduce((n, b) => n + b.male + b.female + b.unassigned, 0)}{" "}
-              / {stats.totalUsers}
+              / {stats.dashboardUsersCount}
             </Typography>
           </Box>
         </Paper>
