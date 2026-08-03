@@ -19,16 +19,29 @@ const MIN_INTERVAL_MS: Record<AutoCategory, number> = {
 /** FlashPoint Army default schedule timezone for weekly milestone posts. */
 const MILESTONE_TZ = "America/New_York";
 
-function isThursdayNoonInTimeZone(now = new Date(), timeZone = MILESTONE_TZ): boolean {
+function getZonedParts(now = new Date(), timeZone = MILESTONE_TZ) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     weekday: "short",
     hour: "numeric",
     hour12: false,
   }).formatToParts(now);
-  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const weekday = parts.find((p) => p.type === "weekday")?.value ?? "";
   const hour = Number(parts.find((p) => p.type === "hour")?.value ?? -1);
+  return { weekday, hour };
+}
+
+function isThursdayNoonInTimeZone(now = new Date(), timeZone = MILESTONE_TZ): boolean {
+  const { weekday, hour } = getZonedParts(now, timeZone);
   return weekday === "Thu" && hour === 12;
+}
+
+/** Weekly new-members feed: Thu & Sun at 12:00 and 20:00 (America/New_York). */
+function isWeeklyMembersPostWindow(now = new Date(), timeZone = MILESTONE_TZ): boolean {
+  const { weekday, hour } = getZonedParts(now, timeZone);
+  const allowedDay = weekday === "Thu" || weekday === "Sun";
+  const allowedHour = hour === 12 || hour === 20;
+  return allowedDay && allowedHour;
 }
 
 async function lastAutoFeedAt(
@@ -76,15 +89,16 @@ async function maybeInsertAutoFeed(
   category: AutoCategory,
   title: string,
   subtitle: string,
-  iconKey: string
+  iconKey: string,
+  options?: { skipRandom?: boolean }
 ): Promise<boolean> {
   const now = Date.now();
   const lastAt = await lastAutoFeedAt(admin, category);
   const minGap = MIN_INTERVAL_MS[category];
   if (lastAt !== null && now - lastAt < minGap) return false;
 
-  // After the minimum gap, use a random gate so posts feel organic.
-  if (Math.random() > 0.35) return false;
+  // After the minimum gap, use a random gate so organic posts feel less mechanical.
+  if (!options?.skipRandom && Math.random() > 0.35) return false;
 
   const { error } = await admin.from("community_activity").insert({
     feed_category: category,
@@ -97,20 +111,22 @@ async function maybeInsertAutoFeed(
   return true;
 }
 
-/** Inserts milestone Community in Action rows when random timing thresholds are met. */
+/** Inserts milestone Community in Action rows when schedule/timing thresholds are met. */
 export async function tickCommunityAutoFeeds(): Promise<{ inserted: string[] }> {
   const admin = createAdminClient();
   const inserted: string[] = [];
 
   const weekly = await countWeeklyMembers(admin);
   if (
-    await maybeInsertAutoFeed(
+    isWeeklyMembersPostWindow() &&
+    (await maybeInsertAutoFeed(
       admin,
       AUTO_CATEGORIES.weeklyMembers,
       `👥 ${weekly.toLocaleString("en-US")} new members joined FlashPoint Army this week!`,
       "Welcome to our growing community",
-      "groups"
-    )
+      "groups",
+      { skipRandom: true }
+    ))
   ) {
     inserted.push(AUTO_CATEGORIES.weeklyMembers);
   }

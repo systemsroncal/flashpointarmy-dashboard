@@ -105,7 +105,7 @@ const MODULE_COPY: Record<string, { title: string; description: string }> = {
   [MODULE_SLUGS.gatherings]: {
     title: "FPA Events",
     description:
-      "Create and manage gatherings and events: schedules, locations, registration, and published event pages.",
+      "See FlashPoint Army Live events in your city and special events. Browse schedules and details so you stay informed — local leaders and members view events here rather than creating them.",
   },
   [MODULE_SLUGS.admins]: {
     title: "Administrators",
@@ -148,6 +148,29 @@ const MODULE_COPY: Record<string, { title: string; description: string }> = {
       "Configure which roles can read or change each module. Super administrators define what admins and other roles are allowed to do.",
   },
 };
+
+function moduleCopyForProfile(
+  module: string,
+  profile: ReturnType<typeof roleProfile>
+): { title: string; description: string } | null {
+  const base = MODULE_COPY[module];
+  if (!base) return null;
+  if (module === MODULE_SLUGS.gatherings) {
+    if (profile === "super_admin" || profile === "admin") {
+      return {
+        title: base.title,
+        description:
+          "Manage FlashPoint Army Live events and special events: schedules, locations, registration, and published event pages.",
+      };
+    }
+    return {
+      title: base.title,
+      description:
+        "See FlashPoint Army Live events in your city and special events. Stay informed about schedules and details — this section is for viewing events, not creating them.",
+    };
+  }
+  return base;
+}
 
 export type TourStepEntry = { id: string; step: DriveStep };
 
@@ -281,7 +304,7 @@ export function buildMainDashboardTourEntries(
 
   for (const item of input.visibleNav) {
     if (item.module === MODULE_SLUGS.movilization) continue;
-    const copy = MODULE_COPY[item.module];
+    const copy = moduleCopyForProfile(item.module, profile);
     if (!copy) continue;
     entries.push(
       stepForSelector(`nav-${item.module}`, NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook)
@@ -300,7 +323,7 @@ export function buildMainDashboardTourEntries(
       )
     );
     for (const item of input.settingsNav) {
-      const copy = MODULE_COPY[item.module];
+      const copy = moduleCopyForProfile(item.module, profile);
       if (!copy) continue;
       entries.push(
         stepForSelector(`nav-${item.module}`, NAV_SELECTOR(item.module), copy.title, copy.description, "right", sidebarHook)

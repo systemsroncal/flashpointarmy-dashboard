@@ -291,38 +291,6 @@ export function UsaChapterActivityMap({
         </IconButton>
       </Box>
 
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 1.5,
-          alignItems: "center",
-          px: 1.5,
-          py: 1,
-          borderBottom: "1px solid rgba(255,215,0,0.12)",
-        }}
-      >
-        <Typography variant="caption" sx={{ fontWeight: 700, color: "grey.400" }}>
-          Legend
-        </Typography>
-        {LEGEND_ITEMS.map((item) => (
-          <Box key={item.t} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box
-              sx={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                bgcolor: item.c,
-                border: `1px solid ${COLORS.stroke}`,
-              }}
-            />
-            <Typography variant="caption" color="text.secondary">
-              {item.t}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
-
       {geoError ? (
         <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
           <Typography variant="body2" color="error.main" sx={{ mb: 1 }}>
@@ -471,6 +439,38 @@ export function UsaChapterActivityMap({
           ) : null}
         </Box>
       )}
+
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 1.5,
+          alignItems: "center",
+          px: 1.5,
+          py: 1,
+          borderTop: "1px solid rgba(255,215,0,0.12)",
+        }}
+      >
+        <Typography variant="caption" sx={{ fontWeight: 700, color: "grey.400" }}>
+          Legend
+        </Typography>
+        {LEGEND_ITEMS.map((item) => (
+          <Box key={item.t} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                bgcolor: item.c,
+                border: `1px solid ${COLORS.stroke}`,
+              }}
+            />
+            <Typography variant="caption" color="text.secondary">
+              {item.t}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
     </Box>
   );
 }

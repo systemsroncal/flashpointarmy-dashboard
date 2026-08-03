@@ -1217,13 +1217,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {!desktop ? (
             <Box
               sx={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                transform: "translate(-50%, -50%)",
+                position: "relative",
                 width: 140,
                 height: 32,
-                pointerEvents: "none",
+                flexShrink: 0,
+                ml: -0.5,
               }}
             >
               <Image
@@ -1231,7 +1229,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 alt="FlashPoint"
                 fill
                 sizes="140px"
-                style={{ objectFit: "contain" }}
+                style={{ objectFit: "contain", objectPosition: "left center" }}
                 priority
                 unoptimized
               />

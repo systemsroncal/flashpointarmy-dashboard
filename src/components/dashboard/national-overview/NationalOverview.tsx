@@ -451,25 +451,48 @@ export function NationalOverview({
           : "—"}
       </Typography>
 
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2, minmax(0, 1fr))",
+            sm: "repeat(auto-fill, minmax(160px, 1fr))",
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
         {statCards.map((s) => {
           const StatIcon = s.icon;
           return (
-            <Box key={s.label} sx={{ flex: "1 1 160px", minWidth: 140, maxWidth: 220 }}>
+            <Box key={s.label} sx={{ minWidth: 0, width: "100%" }}>
               <Card
                 sx={{
                   bgcolor: "rgba(0,0,0,0.45)",
                   border: `1px solid ${s.color}44`,
                   position: "relative",
                   overflow: "visible",
+                  height: "100%",
                 }}
               >
-                <CardContent sx={{ pt: 2, pb: 1.5, "&:last-child": { pb: 1.5 } }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.25 }}>
+                <CardContent
+                  sx={{
+                    py: { xs: 1.25, sm: 1.5 },
+                    px: { xs: 1.25, sm: 2 },
+                    "&:last-child": { pb: { xs: 1.25, sm: 1.5 } },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: { xs: 1.25, sm: 1.5 },
+                    }}
+                  >
                     <Box
                       sx={{
-                        width: 44,
-                        height: 44,
+                        width: { xs: 40, sm: 44 },
+                        height: { xs: 40, sm: 44 },
                         borderRadius: 1.5,
                         display: "flex",
                         alignItems: "center",
@@ -477,34 +500,57 @@ export function NationalOverview({
                         bgcolor: s.color,
                         boxShadow: `0 0 27px ${s.color}`,
                         border: `1px solid ${s.color}`,
+                        flexShrink: 0,
+                        position: "relative",
                       }}
                     >
-                      <StatIcon sx={{ color: "#fff", fontSize: 24 }} />
+                      <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
+                      {"pulse" in s && s.pulse ? (
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: -3,
+                            right: -3,
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            bgcolor: "#ef4444",
+                            boxShadow: "0 0 8px #ef4444",
+                            animation: "fpPulse 1.5s ease-in-out infinite",
+                            "@keyframes fpPulse": {
+                              "0%, 100%": { opacity: 1 },
+                              "50%": { opacity: 0.35 },
+                            },
+                          }}
+                        />
+                      ) : null}
                     </Box>
-                    {"pulse" in s && s.pulse ? (
-                      <Box
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography
+                        variant="h4"
                         sx={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: "50%",
-                          bgcolor: "#ef4444",
-                          mt: 0.5,
-                          boxShadow: "0 0 8px #ef4444",
-                          animation: "fpPulse 1.5s ease-in-out infinite",
-                          "@keyframes fpPulse": {
-                            "0%, 100%": { opacity: 1 },
-                            "50%": { opacity: 0.35 },
-                          },
+                          color: "#fff",
+                          fontWeight: 800,
+                          lineHeight: 1.1,
+                          fontSize: { xs: "1.35rem", sm: "2.125rem" },
                         }}
-                      />
-                    ) : null}
+                      >
+                        {s.value}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          display: "block",
+                          mt: 0.25,
+                          lineHeight: 1.25,
+                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                        }}
+                      >
+                        {s.label}
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Typography variant="h4" sx={{ color: "#fff", fontWeight: 800, lineHeight: 1.1 }}>
-                    {s.value}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                    {s.label}
-                  </Typography>
                 </CardContent>
               </Card>
             </Box>
