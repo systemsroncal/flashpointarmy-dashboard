@@ -492,6 +492,26 @@ export function NationalOverview({
                   height: "100%",
                 }}
               >
+                {"pulse" in s && s.pulse ? (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: { xs: 10, sm: 14 },
+                      right: { xs: 10, sm: 14 },
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      bgcolor: "#ef4444",
+                      boxShadow: "0 0 8px #ef4444",
+                      animation: "fpPulse 1.5s ease-in-out infinite",
+                      "@keyframes fpPulse": {
+                        "0%, 100%": { opacity: 1 },
+                        "50%": { opacity: 0.35 },
+                      },
+                      zIndex: 1,
+                    }}
+                  />
+                ) : null}
                 <CardContent
                   sx={{
                     py: { xs: 1.25, sm: 2 },
@@ -511,7 +531,7 @@ export function NationalOverview({
                     <Box
                       sx={{
                         display: "flex",
-                        justifyContent: { xs: "flex-start", sm: "space-between" },
+                        justifyContent: { xs: "flex-start", sm: "flex-start" },
                         alignItems: { xs: "center", sm: "flex-start" },
                         mb: { xs: 0, sm: 1.25 },
                         flexShrink: 0,
@@ -529,32 +549,12 @@ export function NationalOverview({
                           boxShadow: `0 0 27px ${s.color}`,
                           border: `1px solid ${s.color}`,
                           flexShrink: 0,
-                          position: "relative",
                         }}
                       >
                         <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
                       </Box>
-                      {"pulse" in s && s.pulse ? (
-                        <Box
-                          sx={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: "50%",
-                            bgcolor: "#ef4444",
-                            mt: 0.5,
-                            boxShadow: "0 0 8px #ef4444",
-                            animation: "fpPulse 1.5s ease-in-out infinite",
-                            "@keyframes fpPulse": {
-                              "0%, 100%": { opacity: 1 },
-                              "50%": { opacity: 0.35 },
-                            },
-                            display: { xs: "none", sm: "block" },
-                            flexShrink: 0,
-                          }}
-                        />
-                      ) : null}
                     </Box>
-                    <Box sx={{ minWidth: 0, flex: { xs: 1, sm: "none" } }}>
+                    <Box sx={{ minWidth: 0, flex: { xs: 1, sm: "none" }, pr: { xs: 1.5, sm: 0 } }}>
                       <Typography
                         variant="h4"
                         sx={{
@@ -579,25 +579,6 @@ export function NationalOverview({
                         {s.label}
                       </Typography>
                     </Box>
-                    {"pulse" in s && s.pulse ? (
-                      <Box
-                        sx={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: "50%",
-                          bgcolor: "#ef4444",
-                          boxShadow: "0 0 8px #ef4444",
-                          animation: "fpPulse 1.5s ease-in-out infinite",
-                          "@keyframes fpPulse": {
-                            "0%, 100%": { opacity: 1 },
-                            "50%": { opacity: 0.35 },
-                          },
-                          display: { xs: "block", sm: "none" },
-                          flexShrink: 0,
-                          alignSelf: "center",
-                        }}
-                      />
-                    ) : null}
                   </Box>
                 </CardContent>
               </Card>
