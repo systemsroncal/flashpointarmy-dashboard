@@ -45,6 +45,11 @@ type Props = {
   helperText?: string;
   /** Adds a “Video” toolbar control that inserts a Plyr-ready embed block (YouTube, Vimeo, MP4, etc.). */
   videoEmbedButton?: boolean;
+  /**
+   * When set, enables TinyMCE Image (upload to this endpoint or paste an HTTPS URL).
+   * Endpoint must accept multipart `file` and return `{ location: string }`.
+   */
+  imageUploadEndpoint?: string;
   /** Dark chrome + white text in the editing surface (course editor). */
   darkSurface?: boolean;
 };
@@ -61,6 +66,7 @@ export function GatheringDescriptionEditor({
   onEditorInit,
   helperText,
   videoEmbedButton = false,
+  imageUploadEndpoint,
   darkSurface = false,
 }: Props) {
   const isSocial = variant === "social";
@@ -74,6 +80,7 @@ export function GatheringDescriptionEditor({
       ? { skin: "oxide-dark" as const, content_css: "dark" as const, content_style: darkBodyStyle }
       : {};
     const videoToolbar = videoEmbedButton ? " | fplyrvideo" : "";
+    const imageToolbar = imageUploadEndpoint ? " | image" : "";
     const videoSchema = videoEmbedButton
       ? {
           extended_valid_elements:
@@ -81,6 +88,23 @@ export function GatheringDescriptionEditor({
           verify_html: false,
           code_dialog_width: 900,
           code_dialog_height: 560,
+        }
+      : {};
+    const imageUploadConfig = imageUploadEndpoint
+      ? {
+          images_upload_handler: async (blobInfo: { blob: () => Blob; filename: () => string }) => {
+            const fd = new FormData();
+            fd.append("file", blobInfo.blob(), blobInfo.filename());
+            const res = await fetch(imageUploadEndpoint, { method: "POST", body: fd });
+            const data = (await res.json().catch(() => ({}))) as { location?: string; error?: string };
+            if (!res.ok || !data.location) {
+              throw new Error(data.error || "Image upload failed.");
+            }
+            return data.location;
+          },
+          automatic_uploads: true,
+          images_file_types: "jpeg,jpg,png,gif,webp",
+          file_picker_types: "image",
         }
       : {};
     const registerVideo = (ed: {
@@ -139,17 +163,18 @@ export function GatheringDescriptionEditor({
         branding: false,
         promotion: false,
         statusbar: false,
-        plugins: ["lists", "link", "autoresize"].join(" "),
-        toolbar: `undo redo | bold italic underline | bullist numlist | link | removeformat${videoToolbar}`,
+        plugins: ["lists", "link", "autoresize", ...(imageUploadEndpoint ? ["image"] : [])].join(" "),
+        toolbar: `undo redo | bold italic underline | bullist numlist | link${imageToolbar} | removeformat${videoToolbar}`,
         autoresize_bottom_margin: 8,
         autoresize_max_height: 280,
         min_height: 88,
-        paste_data_images: false,
+        paste_data_images: Boolean(imageUploadEndpoint),
         relative_urls: false,
         convert_urls: true,
         content_style: lightBodyStyle,
         setup: registerVideo,
         ...videoSchema,
+        ...imageUploadConfig,
         ...darkChrome,
       };
     }
@@ -176,12 +201,13 @@ export function GatheringDescriptionEditor({
         "help",
         "wordcount",
         "autoresize",
+        ...(imageUploadEndpoint ? ["image"] : []),
       ].join(" "),
       toolbar:
-        `undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright | bullist numlist outdent indent | link table | removeformat | code${videoToolbar}`,
+        `undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright | bullist numlist outdent indent | link table${imageToolbar} | removeformat | code${videoToolbar}`,
       autoresize_bottom_margin: 16,
       min_height: 320,
-      paste_data_images: false,
+      paste_data_images: Boolean(imageUploadEndpoint),
       relative_urls: false,
       convert_urls: true,
       content_style: darkSurface
@@ -189,12 +215,13 @@ export function GatheringDescriptionEditor({
         : 'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.5; }',
       setup: registerVideo,
       ...videoSchema,
+      ...imageUploadConfig,
       ...darkChrome,
     };
-  }, [compact, videoEmbedButton, darkSurface, isSocial, socialDark, onEditorInit]);
+  }, [compact, videoEmbedButton, imageUploadEndpoint, darkSurface, isSocial, socialDark, onEditorInit]);
 
   const defaultHelper =
-    "Self-hosted TinyMCE (GPL). HTML is saved to the database. For images, prefer HTTPS URLs.";
+    "Self-hosted TinyMCE (GPL). HTML is saved to the database. For images, use the Image button (upload or HTTPS URL).";
 
   return (
     <Box sx={{ mb: isSocial ? 0 : compact ? 1.25 : 2 }}>

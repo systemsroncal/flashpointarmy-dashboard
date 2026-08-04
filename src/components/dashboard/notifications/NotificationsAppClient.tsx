@@ -591,7 +591,8 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
               value={description}
               onChange={setDescription}
               videoEmbedButton
-              helperText='Rich text (TinyMCE, same as Courses). Video: toolbar “Video” inserts [fpa_video]URL[/fpa_video]; you may also type [fpa_video url="https://…"] or [video url=https://… ]. Source code: use Code — editing works inside this dialog. Plyr plays YouTube, Vimeo, and direct MP4. Images: HTTPS URLs.'
+              imageUploadEndpoint="/api/dashboard/announcements/image"
+              helperText='Rich text (TinyMCE). Use Image to upload a file or paste an HTTPS image URL. Video: toolbar “Video” inserts [fpa_video]URL[/fpa_video]. Plyr plays YouTube, Vimeo, and direct MP4. Source: Code button.'
             />
             {canManage ? (
               <FormControl fullWidth>

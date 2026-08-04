@@ -44,6 +44,10 @@ next-env.d.ts
 # TinyMCE self-hosted assets (copied from node_modules on npm install)
 /public/tinymce/
 
+# Mozilla PDF.js viewer (copied from GitHub release on npm install)
+/public/pdfjs/
+.tmp-pdfjs/
+
 # Supabase CLI local link/cache (machine-specific)
 /supabase/.temp/
 

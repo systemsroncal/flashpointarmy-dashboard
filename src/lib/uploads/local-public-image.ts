@@ -134,6 +134,19 @@ export async function writeAnnouncementPdf(userId: string, buffer: Buffer): Prom
   return toWebPath("announcement-pdfs", userId, fileName);
 }
 
+/** Dashboard announcement body images under `public/uploads/announcement-images/{userId}/{uuid}.{ext}`. */
+export async function writeAnnouncementImage(
+  userId: string,
+  buffer: Buffer,
+  ext: string
+): Promise<string> {
+  const absDir = path.join(uploadsRoot(), "announcement-images", userId);
+  await mkdir(absDir, { recursive: true });
+  const fileName = `${randomUUID()}.${ext}`;
+  await writeFile(path.join(absDir, fileName), buffer);
+  return toWebPath("announcement-images", userId, fileName);
+}
+
 /** Mobilize group resource documents under `public/uploads/mobilize-resources/{groupId}/{userId}/{uuid}.{ext}`. */
 export async function writeMobilizeGroupResourceFile(
   groupId: string,
