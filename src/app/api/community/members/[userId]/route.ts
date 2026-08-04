@@ -29,6 +29,8 @@ type PatchBody = {
   gender?: string | null;
   /** Admin/super_admin only (enforced server-side). Minimum 8 characters when sent. */
   newPassword?: string;
+  /** Staff only — marks a local leader as verified for Mobilize group creation. */
+  localLeaderVerified?: boolean;
 };
 
 async function getSessionAndPermissions() {
@@ -134,7 +136,11 @@ export async function PATCH(
     phoneRaw === null || phoneRaw === undefined
       ? undefined
       : String(phoneRaw).trim() || null;
-  const primaryChapterId = (body.primaryChapterId ?? "").trim();
+  const primaryChapterRaw =
+    body.primaryChapterId === null || body.primaryChapterId === undefined
+      ? ""
+      : String(body.primaryChapterId).trim();
+  const primaryChapterId = primaryChapterRaw || null;
 
   const address_line =
     body.addressLine !== undefined
@@ -168,7 +174,7 @@ export async function PATCH(
       { status: 400 }
     );
   }
-  if (!UUID_RE.test(primaryChapterId)) {
+  if (primaryChapterId && !UUID_RE.test(primaryChapterId)) {
     return NextResponse.json({ error: "Select a valid primary chapter." }, { status: 400 });
   }
 
@@ -210,6 +216,19 @@ export async function PATCH(
         }
         profileUpdate.gender = g;
       }
+    }
+
+    if ("localLeaderVerified" in body) {
+      if (!isChapterStaffRole(callerRoles)) {
+        return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+      }
+      if (!targetRoles.includes("local_leader")) {
+        return NextResponse.json(
+          { error: "Local Leader Verified applies only to local leaders." },
+          { status: 400 }
+        );
+      }
+      profileUpdate.local_leader_verified = body.localLeaderVerified === true;
     }
 
     const { error: profileErr } = await admin.from("profiles").update(profileUpdate).eq("id", userId);
@@ -284,7 +303,7 @@ export async function PATCH(
 
     const { data: profileRow } = await admin
       .from("profiles")
-      .select("date_of_birth, gender, avatar_url")
+      .select("date_of_birth, gender, avatar_url, local_leader_verified")
       .eq("id", userId)
       .maybeSingle();
 
@@ -304,6 +323,9 @@ export async function PATCH(
         date_of_birth: (profileRow?.date_of_birth as string | null) ?? null,
         gender: (profileRow?.gender as string | null) ?? null,
         avatar_url: (profileRow?.avatar_url as string | null) ?? null,
+        local_leader_verified: Boolean(
+          (profileRow as { local_leader_verified?: boolean } | null)?.local_leader_verified
+        ),
       },
     });
   } catch (e) {

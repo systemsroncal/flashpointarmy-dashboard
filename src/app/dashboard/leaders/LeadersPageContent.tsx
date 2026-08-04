@@ -174,6 +174,16 @@ export default async function LeadersPageContent() {
     }
 
     const roleByUser = await listRoleNamesByUserIds(admin, userIds);
+    const { data: verifiedRows } = await admin
+      .from("profiles")
+      .select("id, local_leader_verified")
+      .in("id", userIds);
+    const verifiedById = new Map(
+      ((verifiedRows ?? []) as { id: string; local_leader_verified?: boolean }[]).map((r) => [
+        r.id,
+        Boolean(r.local_leader_verified),
+      ])
+    );
     merged = merged.map((u) => {
       const m = mailById.get(u.id);
       const fromDb = [...(roleByUser.get(u.id) ?? [])].sort();
@@ -189,6 +199,7 @@ export default async function LeadersPageContent() {
         zip_code: preferNonEmptyAddr(m?.zip_code, u.zip_code),
         date_of_birth: m?.date_of_birth ?? null,
         gender: m?.gender ?? null,
+        local_leader_verified: verifiedById.get(u.id) ?? false,
       };
     });
   } else {

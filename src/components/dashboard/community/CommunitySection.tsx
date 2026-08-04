@@ -32,6 +32,7 @@ import {
   Paper,
   Select,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -79,6 +80,8 @@ export type CommunityUserRow = {
   gender?: string | null;
   /** Role slugs from `public.roles.name` (e.g. member, local_leader). */
   role_names: string[];
+  /** Staff-managed: verified local leader (Mobilize group creation). */
+  local_leader_verified?: boolean | null;
   /** Biblical Citizenship graduate badge, when applicable. */
   training_graduate_badge?: TrainingGraduateBadgeRole | null;
 };
@@ -350,7 +353,7 @@ export function CommunitySection({
   const [inviteDateOfBirth, setInviteDateOfBirth] = useState("");
   const [inviteGender, setInviteGender] = useState<"" | "male" | "female">("");
   const [chapterId, setChapterId] = useState<string>(
-    localChapterId ?? chapterOptions[0]?.id ?? ""
+    localChapterId ?? ""
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -414,6 +417,7 @@ export function CommunitySection({
   const [editAddrZip, setEditAddrZip] = useState("");
   const [editDateOfBirth, setEditDateOfBirth] = useState("");
   const [editGender, setEditGender] = useState<"" | "male" | "female">("");
+  const [editLocalLeaderVerified, setEditLocalLeaderVerified] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [editRoleDraft, setEditRoleDraft] = useState<EditableRole>("member");
@@ -935,7 +939,8 @@ export function CommunitySection({
     setEditAddrZip(u.zip_code?.trim() ?? "");
     setEditDateOfBirth(u.date_of_birth?.slice(0, 10) ?? "");
     setEditGender(u.gender === "male" || u.gender === "female" ? u.gender : "");
-    setEditChapterId(u.primary_chapter_id ?? chapterOptions[0]?.id ?? "");
+    setEditChapterId(u.primary_chapter_id ?? "");
+    setEditLocalLeaderVerified(Boolean(u.local_leader_verified));
     setEditError(null);
     setEditRoleError(null);
     setEditRoleDraft(
@@ -966,7 +971,7 @@ export function CommunitySection({
       setEditError("First name and last name are required.");
       return;
     }
-    if (!editChapterId) {
+    if (!isLeaders && !editChapterId) {
       setEditError("Select a primary chapter.");
       return;
     }
@@ -991,13 +996,16 @@ export function CommunitySection({
           firstName: fn,
           lastName: ln,
           phone: editPhone.trim() || null,
-          primaryChapterId: editChapterId,
+          primaryChapterId: editChapterId || null,
           addressLine: editAddrLine.trim() || null,
           city: editAddrCity.trim() || null,
           state: usStateByCode(editAddrState)?.code ?? null,
           zipCode: editAddrZip.trim() || null,
           dateOfBirth: editDateOfBirth.trim() || null,
           gender: editGender || null,
+          ...(isLeaders && elevated
+            ? { localLeaderVerified: editLocalLeaderVerified }
+            : {}),
           ...passwordPayload,
         }),
       });
@@ -1016,7 +1024,10 @@ export function CommunitySection({
                   first_name: row.first_name ?? fn,
                   last_name: row.last_name ?? ln,
                   display_name: row.display_name ?? `${fn} ${ln}`.trim(),
-                  primary_chapter_id: row.primary_chapter_id ?? editChapterId,
+                  primary_chapter_id:
+                    row.primary_chapter_id !== undefined
+                      ? row.primary_chapter_id
+                      : editChapterId || null,
                   phone: row.phone !== undefined ? row.phone : editPhone.trim() || null,
                   address_line:
                     row.address_line !== undefined ? row.address_line : editAddrLine.trim() || null,
@@ -1031,6 +1042,12 @@ export function CommunitySection({
                       ? row.date_of_birth
                       : editDateOfBirth.trim() || null,
                   gender: row.gender !== undefined ? row.gender : editGender || null,
+                  local_leader_verified:
+                    row.local_leader_verified !== undefined
+                      ? row.local_leader_verified
+                      : isLeaders
+                        ? editLocalLeaderVerified
+                        : x.local_leader_verified,
                 }
               : x
           )
@@ -1109,7 +1126,7 @@ export function CommunitySection({
     }
     const assignChapter =
       isLocalLeader && localChapterId ? localChapterId : chapterId;
-    if (!assignChapter) {
+    if (!isLeaders && !assignChapter) {
       setSubmitError("Select a primary chapter.");
       return;
     }
@@ -1126,7 +1143,7 @@ export function CommunitySection({
             firstName: fn,
             lastName: ln,
             phone: phone.trim() || undefined,
-            primaryChapterId: assignChapter,
+            primaryChapterId: assignChapter || null,
             roleName: inviteAdminRole,
             dateOfBirth: inviteDateOfBirth.trim() || null,
             gender: inviteGender || null,
@@ -1182,7 +1199,7 @@ export function CommunitySection({
             firstName: fn,
             lastName: ln,
             phone: phone.trim() || undefined,
-            primaryChapterId: assignChapter,
+            primaryChapterId: assignChapter || null,
             roleName: inviteRole,
             dateOfBirth: inviteDateOfBirth.trim() || null,
             gender: inviteGender || null,
@@ -1244,7 +1261,7 @@ export function CommunitySection({
           firstName: fn,
           lastName: ln,
           phone: phone.trim() || null,
-          primaryChapterId: assignChapter,
+          primaryChapterId: assignChapter || null,
           roleName: roleToAssign,
           context: isLeaders ? "leaders" : "community",
           dateOfBirth: inviteDateOfBirth.trim() || null,
@@ -2107,11 +2124,14 @@ export function CommunitySection({
                 onChangeId={setChapterId}
                 allowNameAndAddressSearch={allowChapterNameSearch}
                 disabled={Boolean(isLocalLeader && localChapterId)}
-                required
+                required={!isLeaders}
+                label={isLeaders ? "Primary chapter (optional)" : "Primary chapter"}
               />
             ) : (
               <Typography variant="body2" color="warning.main">
-                No chapters available. Create a chapter first.
+                {isLeaders
+                  ? "No churches available yet — you can create the leader without assigning a church."
+                  : "No chapters available. Create a chapter first."}
               </Typography>
             )}
           </Box>
@@ -2123,7 +2143,7 @@ export function CommunitySection({
           <Button
             variant="contained"
             onClick={() => void handleAddSubmit()}
-            disabled={submitting || chapterOptions.length === 0}
+            disabled={submitting || (!isLeaders && chapterOptions.length === 0)}
           >
             {submitting
               ? "Creating…"
@@ -2584,13 +2604,28 @@ export function CommunitySection({
                 valueId={editChapterId}
                 onChangeId={setEditChapterId}
                 allowNameAndAddressSearch={allowChapterNameSearch}
-                required
+                required={!isLeaders}
+                label={isLeaders ? "Primary chapter (optional)" : "Primary chapter"}
               />
             ) : (
               <Typography variant="body2" color="warning.main">
-                No chapters available.
+                {isLeaders
+                  ? "No churches available — save without a church assignment."
+                  : "No chapters available."}
               </Typography>
             )}
+            {isLeaders && elevated ? (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editLocalLeaderVerified}
+                    onChange={(e) => setEditLocalLeaderVerified(e.target.checked)}
+                    disabled={editSaving || editRoleSaving}
+                  />
+                }
+                label="Local Leader Verified"
+              />
+            ) : null}
           </Box>
         </DialogContent>
         <DialogActions>
@@ -2608,7 +2643,7 @@ export function CommunitySection({
           <Button
             variant="contained"
             onClick={() => void saveEditMember()}
-            disabled={editSaving || editRoleSaving || chapterOptions.length === 0}
+            disabled={editSaving || editRoleSaving || (!isLeaders && chapterOptions.length === 0)}
           >
             {editSaving ? "Saving…" : "Save changes"}
           </Button>

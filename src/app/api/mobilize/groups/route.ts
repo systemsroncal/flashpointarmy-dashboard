@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { applyMobilizeAutoCloseInactive } from "@/lib/mobilize/apply-auto-close";
 import { enrichMobilizeGroupsBrowse } from "@/lib/mobilize/enrich-groups-browse";
-import { canCreateMobilizeGroup, loadMobilizeGroupCreatorPolicy } from "@/lib/mobilize/mobilize-roles";
+import {
+  canCreateMobilizeGroup,
+  loadLocalLeaderVerified,
+  loadMobilizeGroupCreatorPolicy,
+} from "@/lib/mobilize/mobilize-roles";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { createClient } from "@/utils/supabase/server";
 
@@ -127,15 +131,6 @@ export async function POST(req: Request) {
   const supabase = await createClient();
   const roleNames = await loadUserRoleNames(supabase, auth.userId);
   const policy = await loadMobilizeGroupCreatorPolicy(auth.admin);
-  if (!canCreateMobilizeGroup(roleNames, policy)) {
-    return NextResponse.json(
-      {
-        error:
-          "You are not allowed to create a Mobilize group. Ask a super admin to enable your role in Mobilize settings.",
-      },
-      { status: 403 }
-    );
-  }
 
   const body = (await req.json()) as {
     name?: string;
@@ -166,6 +161,27 @@ export async function POST(req: Request) {
     body.parent_group_id != null && String(body.parent_group_id).trim()
       ? String(body.parent_group_id).trim()
       : null;
+
+  const creatingChapter = parent_group_id == null;
+  const localLeaderVerified = roleNames.includes("local_leader")
+    ? await loadLocalLeaderVerified(auth.admin, auth.userId)
+    : false;
+
+  if (
+    !canCreateMobilizeGroup(roleNames, policy, {
+      creatingChapter,
+      localLeaderVerified,
+    })
+  ) {
+    return NextResponse.json(
+      {
+        error: creatingChapter
+          ? "Only administrators can create Mobilize chapters."
+          : "You are not allowed to create a Mobilize group. Ask a super admin to enable Local leaders or Verified Local leaders in Mobilize settings.",
+      },
+      { status: 403 }
+    );
+  }
 
   if (parent_group_id) {
     const { data: parent } = await auth.admin

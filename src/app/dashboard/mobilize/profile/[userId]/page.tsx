@@ -1,6 +1,10 @@
 import { MobilizeMemberProfileClient } from "@/components/mobilize/social/MobilizeMemberProfileClient";
 import { requireServerUser } from "@/lib/auth/server-session";
 import { canAccessMobilizeModule, loadUserRoleNames } from "@/lib/auth/user-roles";
+import {
+  normalizeChaptersViewerRoles,
+  normalizeChaptersViewerUserIds,
+} from "@/lib/auth/dashboard-user";
 import { redirect } from "next/navigation";
 
 type Props = {
@@ -20,8 +24,24 @@ export default async function MobilizeMemberProfilePage({ params, searchParams }
   }
 
   const { supabase, user } = await requireServerUser();
-  const roleNames = await loadUserRoleNames(supabase, user.id);
-  if (!canAccessMobilizeModule(roleNames)) {
+  const [roleNames, settingsRes] = await Promise.all([
+    loadUserRoleNames(supabase, user.id),
+    supabase
+      .from("mobilize_policy_settings")
+      .select("chapters_viewer_roles, chapters_viewer_user_ids")
+      .eq("id", 1)
+      .maybeSingle(),
+  ]);
+  const row = settingsRes.data as {
+    chapters_viewer_roles?: unknown;
+    chapters_viewer_user_ids?: unknown;
+  } | null;
+  if (
+    !canAccessMobilizeModule(roleNames, normalizeChaptersViewerRoles(row?.chapters_viewer_roles), {
+      userId: user.id,
+      viewerUserIds: normalizeChaptersViewerUserIds(row?.chapters_viewer_user_ids),
+    })
+  ) {
     redirect("/dashboard");
   }
 

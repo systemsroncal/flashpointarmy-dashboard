@@ -798,46 +798,49 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             }}
           />
 
-          <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden", mt: 1 }}>
+          <Box sx={{ position: "relative", mt: 1 }}>
+            <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden" }}>
+              <Box
+                sx={{
+                  height: 140,
+                  backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%), url(${coverDisplaySrc})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              />
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={
+                  mediaUploading === "cover" ? (
+                    <CircularProgress size={14} color="inherit" />
+                  ) : (
+                    <PhotoCameraOutlinedIcon fontSize="small" />
+                  )
+                }
+                disabled={Boolean(mediaUploading) || savingSettings}
+                onClick={() => coverInputRef.current?.click()}
+                sx={{
+                  position: "absolute",
+                  top: 10,
+                  right: 10,
+                  textTransform: "none",
+                  bgcolor: "rgba(0,0,0,0.65)",
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
+                }}
+              >
+                Change cover
+              </Button>
+            </Box>
             <Box
               sx={{
-                height: 140,
-                backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%), url(${coverDisplaySrc})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={
-                mediaUploading === "cover" ? (
-                  <CircularProgress size={14} color="inherit" />
-                ) : (
-                  <PhotoCameraOutlinedIcon fontSize="small" />
-                )
-              }
-              disabled={Boolean(mediaUploading) || savingSettings}
-              onClick={() => coverInputRef.current?.click()}
-              sx={{
-                position: "absolute",
-                top: 10,
-                right: 10,
-                textTransform: "none",
-                bgcolor: "rgba(0,0,0,0.65)",
-                "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
-              }}
-            >
-              Change cover
-            </Button>
-            <Box
-              sx={{
-                position: "absolute",
-                left: 16,
-                bottom: -28,
                 display: "flex",
                 alignItems: "flex-end",
-                gap: 1,
+                gap: 1.25,
+                mt: -4,
+                ml: 2,
+                position: "relative",
+                zIndex: 1,
               }}
             >
               <Avatar
@@ -849,6 +852,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
                   border: "3px solid #fff",
                   bgcolor: "primary.dark",
                   fontWeight: 700,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
                 }}
               >
                 {p.display_name.slice(0, 2).toUpperCase()}
@@ -866,7 +870,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
                 disabled={Boolean(mediaUploading) || savingSettings}
                 onClick={() => avatarInputRef.current?.click()}
                 sx={{
-                  mb: 0.5,
+                  mb: 0.75,
                   textTransform: "none",
                   bgcolor: "#fff",
                   borderColor: "rgba(0,0,0,0.2)",
@@ -877,7 +881,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             </Box>
           </Box>
 
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 4 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
             JPEG, PNG, WebP or GIF · max {profileMaxMb} MB · square crop for photo, 21:9 for cover
           </Typography>
 

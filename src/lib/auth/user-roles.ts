@@ -25,21 +25,31 @@ export function isElevatedRole(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "super_admin" || n === "admin");
 }
 
-/** Mobilize pages, APIs, and navigation actions — super_admin, or roles listed in settings. */
+export type MobilizeAccessOptions = {
+  viewerUserIds?: readonly string[];
+  userId?: string | null;
+};
+
+/** Mobilize pages, APIs, and navigation — super_admin, settings roles, or whitelist users. */
 export function canAccessMobilizeModule(
   roleNames: string[],
-  chaptersViewerRoles: readonly string[] = []
+  chaptersViewerRoles: readonly string[] = [],
+  options: MobilizeAccessOptions = {}
 ): boolean {
   if (roleNames.includes("super_admin")) return true;
-  return chaptersViewerRoles.some((r) => roleNames.includes(r));
+  if (chaptersViewerRoles.some((r) => roleNames.includes(r))) return true;
+  const uid = options.userId?.trim();
+  if (uid && options.viewerUserIds?.some((id) => id === uid)) return true;
+  return false;
 }
 
 /** Chapters (Mobilize) sidebar label — visible when the user can open the module, or to platform admins. */
 export function canSeeMobilizeNavItem(
   roleNames: string[],
-  chaptersViewerRoles: readonly string[] = []
+  chaptersViewerRoles: readonly string[] = [],
+  options: MobilizeAccessOptions = {}
 ): boolean {
-  if (canAccessMobilizeModule(roleNames, chaptersViewerRoles)) return true;
+  if (canAccessMobilizeModule(roleNames, chaptersViewerRoles, options)) return true;
   return isAdminButNotSuper(roleNames);
 }
 

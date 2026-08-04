@@ -42,6 +42,7 @@ export function ChapterSearchAutocomplete({
       value={value}
       onChange={(_, v) => onChangeId(v?.id ?? "")}
       disabled={disabled}
+      disableClearable={required}
       getOptionLabel={(o) => chapterOptionLabel(o)}
       isOptionEqualToValue={(a, b) => a.id === b.id}
       filterOptions={(opts, state) =>
@@ -76,9 +77,11 @@ export function ChapterSearchAutocomplete({
           required={required}
           placeholder={searchPlaceholder}
           helperText={
-            allowNameAndAddressSearch
-              ? "Search by chapter name, city, state, or street address."
-              : "Search by city or state (chapter name is shown after you pick)."
+            required
+              ? allowNameAndAddressSearch
+                ? "Search by chapter name, city, state, or street address."
+                : "Search by city or state (chapter name is shown after you pick)."
+              : "Optional — leave empty if no church is assigned yet."
           }
         />
       )}

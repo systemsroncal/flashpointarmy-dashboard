@@ -60,7 +60,10 @@ export async function POST(req: Request) {
     if (!fn || !ln) {
       return NextResponse.json({ error: "First name and last name are required." }, { status: 400 });
     }
-    if (!UUID_RE.test(chapterRaw)) {
+    if (chapterRaw && !UUID_RE.test(chapterRaw)) {
+      return NextResponse.json({ error: "Select a valid primary chapter." }, { status: 400 });
+    }
+    if (context !== "leaders" && !UUID_RE.test(chapterRaw)) {
       return NextResponse.json({ error: "Select a valid primary chapter." }, { status: 400 });
     }
 
@@ -106,9 +109,17 @@ export async function POST(req: Request) {
 
     const localChapterId = profile?.primary_chapter_id ?? null;
     const assignChapter =
-      isLocalLeader && localChapterId && context !== "community" && !chapterStaff ? localChapterId : chapterRaw;
+      isLocalLeader && localChapterId && context !== "community" && !chapterStaff
+        ? localChapterId
+        : chapterRaw || null;
 
-    if (context !== "community" && isLocalLeader && !chapterStaff && chapterRaw !== localChapterId) {
+    if (
+      context === "leaders" &&
+      isLocalLeader &&
+      !chapterStaff &&
+      assignChapter &&
+      assignChapter !== localChapterId
+    ) {
       return NextResponse.json(
         { error: "You can only invite users to your primary chapter." },
         { status: 403 }

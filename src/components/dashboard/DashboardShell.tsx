@@ -607,9 +607,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   })();
 
   const mobilizeViewerRoles = user.mobilize_chapters_viewer_roles ?? [];
+  const mobilizeViewerUserIds = user.mobilize_chapters_viewer_user_ids ?? [];
+  const mobilizeAccessOpts = {
+    userId: user.id,
+    viewerUserIds: mobilizeViewerUserIds,
+  };
   const isMobilize =
     pathname.startsWith(MOBILIZE_PREFIX) &&
-    canAccessMobilizeModule(user.role_names, mobilizeViewerRoles);
+    canAccessMobilizeModule(user.role_names, mobilizeViewerRoles, mobilizeAccessOpts);
   const onMobilizeSocialHub =
     isMobilize &&
     (pathname === `${MOBILIZE_PREFIX}/home` ||
@@ -660,7 +665,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const allVisibleNav = NAV.filter((item) => {
     if (item.module === MODULE_SLUGS.movilization) {
-      return canSeeMobilizeNavItem(user.role_names, mobilizeViewerRoles);
+      return canSeeMobilizeNavItem(user.role_names, mobilizeViewerRoles, mobilizeAccessOpts);
     }
     /** Dashboard announcements: all signed-in users (not gated by communications module). */
     if (item.href === "/dashboard/notifications") {
@@ -942,7 +947,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               }
               if (
                 item.module === MODULE_SLUGS.movilization &&
-                !canAccessMobilizeModule(user.role_names, mobilizeViewerRoles)
+                !canAccessMobilizeModule(user.role_names, mobilizeViewerRoles, mobilizeAccessOpts)
               ) {
                 return (
                   <Box key={item.href} component="span" sx={{ display: "contents" }}>

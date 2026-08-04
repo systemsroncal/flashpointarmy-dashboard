@@ -747,7 +747,7 @@ export function ChaptersSection({
               </FormControl>
               {showLeadersColumn ? (
                 <LeadersMultiAutocomplete
-                  label="Leaders"
+                  label="Leaders (optional)"
                   options={leaderOptions}
                   value={editLeaders}
                   onChange={setEditLeaders}

@@ -24,6 +24,8 @@ export type DashboardUser = {
    * allowed to open Mobilize Chapters.
    */
   mobilize_chapters_viewer_roles?: string[];
+  /** From `mobilize_policy_settings.chapters_viewer_user_ids` — explicit user whitelist. */
+  mobilize_chapters_viewer_user_ids?: string[];
   /** Shown when user completed Biblical Citizenship and is a member or local leader. */
   training_graduate_badge?: TrainingGraduateBadgeRole | null;
   /** Onboarding progress for members and local leaders (sidebar + national overview). */
@@ -37,6 +39,14 @@ const ALLOWED_CHAPTERS_VIEWER_ROLES = new Set([
   "member",
 ]);
 
+const ALLOWED_GROUP_CREATOR_ROLES = new Set([
+  "local_leader",
+  "verified_local_leader",
+]);
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function normalizeChaptersViewerRoles(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return [
@@ -44,6 +54,28 @@ export function normalizeChaptersViewerRoles(raw: unknown): string[] {
       raw
         .map((x) => String(x || "").trim())
         .filter((r) => ALLOWED_CHAPTERS_VIEWER_ROLES.has(r))
+    ),
+  ];
+}
+
+export function normalizeChaptersViewerUserIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [
+    ...new Set(
+      raw
+        .map((x) => String(x || "").trim())
+        .filter((id) => UUID_RE.test(id))
+    ),
+  ];
+}
+
+export function normalizeGroupCreatorRoles(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [
+    ...new Set(
+      raw
+        .map((x) => String(x || "").trim())
+        .filter((r) => ALLOWED_GROUP_CREATOR_ROLES.has(r))
     ),
   ];
 }
@@ -67,7 +99,7 @@ export async function loadDashboardUser(
     loadUserRoleNames(supabase, userId),
     supabase
       .from("mobilize_policy_settings")
-      .select("chapters_viewer_roles")
+      .select("chapters_viewer_roles, chapters_viewer_user_ids")
       .eq("id", 1)
       .maybeSingle(),
   ]);
@@ -82,18 +114,31 @@ export async function loadDashboardUser(
     (prof && "phone" in prof && prof.phone != null ? String(prof.phone).trim() : "") ||
     null;
 
+  const settingsRow = viewerRolesRes.data as {
+    chapters_viewer_roles?: unknown;
+    chapters_viewer_user_ids?: unknown;
+  } | null;
+
   const mobilize_chapters_viewer_roles = normalizeChaptersViewerRoles(
-    (viewerRolesRes.data as { chapters_viewer_roles?: unknown } | null)?.chapters_viewer_roles
+    settingsRow?.chapters_viewer_roles
+  );
+  const mobilize_chapters_viewer_user_ids = normalizeChaptersViewerUserIds(
+    settingsRow?.chapters_viewer_user_ids
   );
 
   return {
     ...(du as Omit<
       DashboardUser,
-      "avatar_url" | "role_names" | "phone" | "mobilize_chapters_viewer_roles"
+      | "avatar_url"
+      | "role_names"
+      | "phone"
+      | "mobilize_chapters_viewer_roles"
+      | "mobilize_chapters_viewer_user_ids"
     >),
     phone: duPhone,
     avatar_url,
     role_names,
     mobilize_chapters_viewer_roles,
+    mobilize_chapters_viewer_user_ids,
   };
 }
