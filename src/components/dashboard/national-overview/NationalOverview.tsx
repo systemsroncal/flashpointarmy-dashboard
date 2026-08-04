@@ -18,6 +18,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import {
   isChapterStaffRole,
+  isElevatedRole,
   isMemberOrLeader,
   isSuperAdminUser,
 } from "@/lib/auth/user-roles";
@@ -368,6 +369,7 @@ export function NationalOverview({
     const chapterStaff = isChapterStaffRole(viewerRoles);
     const memberLeaderOnly = isMemberOrLeader(viewerRoles) && !chapterStaff;
     const superAdmin = isSuperAdminUser(viewerRoles);
+    const adminOrSuper = isElevatedRole(viewerRoles);
 
     type StatCard = {
       label: string;
@@ -425,13 +427,16 @@ export function NationalOverview({
       });
     }
 
-    cards.push(
-      {
+    if (adminOrSuper) {
+      cards.push({
         label: "People shared",
         value: stats.inviteSharers ?? 0,
         color: "#a855f7",
         icon: ShareOutlined,
-      },
+      });
+    }
+
+    cards.push(
       {
         label: "Started Missions",
         value: stats.peopleInMissions,
