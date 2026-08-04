@@ -5,6 +5,7 @@ import {
   fileExtensionForKind,
   validateAvatarFile,
 } from "@/lib/upload/validate-image";
+import { loadMobilizeImageUploadLimits, mbToBytes } from "@/lib/mobilize/image-upload-limits";
 import { writeMobilizeGroupCoverImage } from "@/lib/uploads/local-public-image";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
@@ -13,13 +14,16 @@ export async function POST(req: Request) {
   if (auth instanceof NextResponse) return auth;
 
   try {
+    const limits = await loadMobilizeImageUploadLimits(auth.admin);
+    const maxBytes = mbToBytes(limits.groups_image_max_mb);
+
     const formData = await req.formData();
     const file = formData.get("file");
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "Missing file." }, { status: 400 });
     }
 
-    const basicErr = validateAvatarFile(file);
+    const basicErr = validateAvatarFile(file, maxBytes);
     if (basicErr) {
       return NextResponse.json({ error: basicErr.error }, { status: 400 });
     }

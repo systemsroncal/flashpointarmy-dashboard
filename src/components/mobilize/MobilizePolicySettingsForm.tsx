@@ -4,7 +4,9 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   FormControlLabel,
+  FormGroup,
   Paper,
   Stack,
   Switch,
@@ -12,6 +14,13 @@ import {
   Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
+
+const VIEWER_ROLE_OPTIONS = [
+  { value: "admin", label: "Administrators" },
+  { value: "sub_admin", label: "Sub administrators" },
+  { value: "local_leader", label: "Local leaders" },
+  { value: "member", label: "Members" },
+] as const;
 
 export function MobilizePolicySettingsForm() {
   const [allowLocalLeader, setAllowLocalLeader] = useState(true);
@@ -21,6 +30,7 @@ export function MobilizePolicySettingsForm() {
   const [groupsImageMaxCount, setGroupsImageMaxCount] = useState(4);
   const [profileImageMaxMb, setProfileImageMaxMb] = useState(1);
   const [profileImageMaxCount, setProfileImageMaxCount] = useState(4);
+  const [chaptersViewerRoles, setChaptersViewerRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +50,7 @@ export function MobilizePolicySettingsForm() {
         groups_image_max_count?: number;
         profile_image_max_mb?: number;
         profile_image_max_count?: number;
+        chapters_viewer_roles?: string[];
       };
       if (!res.ok) throw new Error(j.error || "Failed to load settings.");
       setAllowMember(Boolean(j.allow_member_group_create));
@@ -59,6 +70,7 @@ export function MobilizePolicySettingsForm() {
       setProfileImageMaxCount(
         Number.isFinite(j.profile_image_max_count) ? Number(j.profile_image_max_count) : 4
       );
+      setChaptersViewerRoles(Array.isArray(j.chapters_viewer_roles) ? j.chapters_viewer_roles : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load failed.");
     } finally {
@@ -69,6 +81,13 @@ export function MobilizePolicySettingsForm() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  function toggleViewerRole(role: string, checked: boolean) {
+    setChaptersViewerRoles((prev) => {
+      if (checked) return [...new Set([...prev, role])];
+      return prev.filter((r) => r !== role);
+    });
+  }
 
   async function save() {
     setSaving(true);
@@ -87,6 +106,7 @@ export function MobilizePolicySettingsForm() {
           groups_image_max_count: groupsImageMaxCount,
           profile_image_max_mb: profileImageMaxMb,
           profile_image_max_count: profileImageMaxCount,
+          chapters_viewer_roles: chaptersViewerRoles,
         }),
       });
       const j = (await res.json()) as {
@@ -98,6 +118,7 @@ export function MobilizePolicySettingsForm() {
         groups_image_max_count?: number;
         profile_image_max_mb?: number;
         profile_image_max_count?: number;
+        chapters_viewer_roles?: string[];
       };
       if (!res.ok) throw new Error(j.error || "Save failed.");
       setAllowMember(Boolean(j.allow_member_group_create));
@@ -121,6 +142,7 @@ export function MobilizePolicySettingsForm() {
           ? Number(j.profile_image_max_count)
           : profileImageMaxCount
       );
+      setChaptersViewerRoles(Array.isArray(j.chapters_viewer_roles) ? j.chapters_viewer_roles : []);
       setSavedOk(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed.");
@@ -151,6 +173,31 @@ export function MobilizePolicySettingsForm() {
       ) : null}
 
       <Stack spacing={2}>
+        <Box>
+          <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+            Who can view Mobilize (Chapters)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Super administrators always have access. Select additional roles that may open the Mobilize
+            Chapters module.
+          </Typography>
+          <FormGroup>
+            {VIEWER_ROLE_OPTIONS.map((opt) => (
+              <FormControlLabel
+                key={opt.value}
+                control={
+                  <Checkbox
+                    checked={chaptersViewerRoles.includes(opt.value)}
+                    onChange={(e) => toggleViewerRole(opt.value, e.target.checked)}
+                    disabled={loading || saving}
+                  />
+                }
+                label={opt.label}
+              />
+            ))}
+          </FormGroup>
+        </Box>
+
         <FormControlLabel
           control={
             <Switch

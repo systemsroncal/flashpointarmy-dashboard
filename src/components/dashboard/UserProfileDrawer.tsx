@@ -3,9 +3,17 @@
 import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
 import { CourseGraduateBadge } from "@/components/dashboard/training/CourseGraduateBadge";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
-import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { validateAvatarFile } from "@/lib/upload/validate-image";
+import { cacheBustAssetUrl } from "@/lib/media/public-asset-url";
 import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
+import {
+  emitProfileMediaUpdated,
+  subscribeProfileMediaUpdated,
+} from "@/lib/user/profile-media-events";
+import { ImageCropDialog } from "@/components/media/ImageCropDialog";
+import {
+  DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS,
+  mbToBytes,
+} from "@/lib/mobilize/image-upload-limits";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { usStateByCode } from "@/data/usStates";
 import { flashpointYellow } from "@/theme/tokens";
@@ -122,8 +130,44 @@ export function UserProfileDrawer({
   const [error, setError] = useState<string | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [groupsCount, setGroupsCount] = useState(0);
+  const [cropKind, setCropKind] = useState<"profile" | "cover" | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [profileMaxMb, setProfileMaxMb] = useState(
+    DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.profile_image_max_mb
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/mobilize/upload-limits");
+        if (!res.ok) return;
+        const j = (await res.json()) as { profile_image_max_mb?: number };
+        const mb = Number(j.profile_image_max_mb);
+        if (!cancelled && Number.isFinite(mb) && mb > 0) setProfileMaxMb(mb);
+      } catch {
+        /* default */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    return subscribeProfileMediaUpdated((detail) => {
+      if (detail.avatar_url !== undefined) {
+        setAvatarUrl(detail.avatar_url?.trim() ?? "");
+        setAvatarNonce(Date.now());
+      }
+      if (detail.cover_url !== undefined) {
+        setCoverUrl(detail.cover_url?.trim() ?? "");
+        setCoverNonce(Date.now());
+      }
+    });
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -258,11 +302,6 @@ export function UserProfileDrawer({
   }
 
   async function uploadAvatarFile(file: File) {
-    const v = validateAvatarFile(file);
-    if (v) {
-      setError(v.error);
-      return;
-    }
     setError(null);
     setAvatarUploading(true);
     try {
@@ -276,6 +315,7 @@ export function UserProfileDrawer({
       }
       if (data.avatar_url) setAvatarUrl(data.avatar_url);
       setAvatarNonce(Date.now());
+      emitProfileMediaUpdated({ avatar_url: data.avatar_url ?? null });
       router.refresh();
     } finally {
       setAvatarUploading(false);
@@ -284,11 +324,6 @@ export function UserProfileDrawer({
   }
 
   async function uploadCoverFile(file: File) {
-    const v = validateAvatarFile(file);
-    if (v) {
-      setError(v.error);
-      return;
-    }
     setError(null);
     setCoverUploading(true);
     try {
@@ -302,11 +337,26 @@ export function UserProfileDrawer({
       }
       if (data.cover_url) setCoverUrl(data.cover_url);
       setCoverNonce(Date.now());
+      emitProfileMediaUpdated({ cover_url: data.cover_url ?? null });
       router.refresh();
     } finally {
       setCoverUploading(false);
       if (coverInputRef.current) coverInputRef.current.value = "";
     }
+  }
+
+  function pickAvatar(files: FileList | null) {
+    const f = files?.[0];
+    if (!f) return;
+    setCropKind("profile");
+    setCropFile(f);
+  }
+
+  function pickCover(files: FileList | null) {
+    const f = files?.[0];
+    if (!f) return;
+    setCropKind("cover");
+    setCropFile(f);
   }
 
   async function clearAvatar() {
@@ -334,6 +384,7 @@ export function UserProfileDrawer({
       }
       setAvatarUrl("");
       setAvatarNonce(Date.now());
+      emitProfileMediaUpdated({ avatar_url: null });
       router.refresh();
     } finally {
       setAvatarUploading(false);
@@ -348,13 +399,13 @@ export function UserProfileDrawer({
     du.email.split("@")[0];
 
   const avatarSrc = avatarUrl.trim()
-    ? `${publicAssetSrc(avatarUrl.trim())}${avatarUrl.includes("?") ? "&" : "?"}v=${avatarNonce || "1"}`
+    ? cacheBustAssetUrl(avatarUrl.trim(), avatarNonce || "1")
     : undefined;
 
   const coverSrc = (() => {
     const resolved = resolveProfileCoverUrl(coverUrl);
     if (!coverUrl.trim()) return resolved;
-    return `${publicAssetSrc(coverUrl.trim())}${coverUrl.includes("?") ? "&" : "?"}v=${coverNonce || "1"}`;
+    return cacheBustAssetUrl(coverUrl.trim(), coverNonce || "1");
   })();
 
   const addressLine = useMemo(() => {
@@ -370,6 +421,7 @@ export function UserProfileDrawer({
   const roleBadge = primaryRoleLabel(du.role_names);
 
   return (
+    <>
     <Drawer
       anchor="right"
       open={open}
@@ -434,8 +486,8 @@ export function UserProfileDrawer({
                   accept="image/jpeg,image/png,image/webp,image/gif"
                   hidden
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void uploadCoverFile(f);
+                    pickCover(e.target.files);
+                    e.target.value = "";
                   }}
                 />
                 <Tooltip title="Change cover photo">
@@ -463,8 +515,8 @@ export function UserProfileDrawer({
                   accept="image/jpeg,image/png,image/webp,image/gif"
                   hidden
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void uploadAvatarFile(f);
+                    pickAvatar(e.target.files);
+                    e.target.value = "";
                   }}
                 />
 
@@ -901,7 +953,8 @@ export function UserProfileDrawer({
                         ) : null}
                       </Box>
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
-                        JPEG, PNG, WebP, or GIF — max 1 MB
+                        JPEG, PNG, WebP or GIF · max {profileMaxMb} MB · square crop for avatar, 21:9 for
+                        cover
                       </Typography>
                     </Box>
                     <Box data-tour="profile-save-actions" sx={{ display: "flex", gap: 1, mt: 1 }}>
@@ -927,6 +980,25 @@ export function UserProfileDrawer({
         </Box>
       </Box>
       <ChangePasswordDialog open={passwordOpen} onClose={() => setPasswordOpen(false)} />
-    </Drawer>
+      </Drawer>
+
+      <ImageCropDialog
+        open={Boolean(cropFile)}
+        file={cropFile}
+        kind={cropKind ?? "profile"}
+        maxBytes={mbToBytes(profileMaxMb)}
+        onCancel={() => {
+          setCropFile(null);
+          setCropKind(null);
+        }}
+        onConfirm={(file) => {
+          const kind = cropKind;
+          setCropFile(null);
+          setCropKind(null);
+          if (kind === "profile") void uploadAvatarFile(file);
+          else if (kind === "cover") void uploadCoverFile(file);
+        }}
+      />
+    </>
   );
 }

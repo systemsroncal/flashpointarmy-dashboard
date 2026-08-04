@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { isAdminButNotSuper, isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
+import { isProtectedSuperAdminUserId } from "@/lib/auth/protected-super-admin";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -14,6 +15,13 @@ export async function POST(
   const { userId } = await context.params;
   if (!UUID_RE.test(userId)) {
     return NextResponse.json({ error: "Invalid user id." }, { status: 400 });
+  }
+
+  if (isProtectedSuperAdminUserId(userId)) {
+    return NextResponse.json(
+      { error: "This account is permanently locked as super administrator." },
+      { status: 403 }
+    );
   }
 
   const authResult = await requireApiAuth();

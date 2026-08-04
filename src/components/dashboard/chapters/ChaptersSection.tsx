@@ -107,6 +107,39 @@ function StateSearchAutocomplete({
   );
 }
 
+function leaderEmailsFromJoinedLabels(joined: string | undefined): string[] {
+  if (!joined?.trim()) return [];
+  return joined
+    .split(", ")
+    .map((part) => {
+      const m = part.match(/\(([^)]+@[^)]+)\)\s*$/);
+      return (m ? m[1] : part).trim();
+    })
+    .filter(Boolean);
+}
+
+function LeadersEmailsCell({ joined }: { joined: string | undefined }) {
+  const emails = leaderEmailsFromJoinedLabels(joined);
+  if (!emails.length) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        —
+      </Typography>
+    );
+  }
+  const extra = emails.length - 1;
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+      <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+        {emails[0]}
+      </Typography>
+      {extra > 0 ? (
+        <Chip size="small" label={`+${extra}`} sx={{ height: 22, fontWeight: 700 }} />
+      ) : null}
+    </Box>
+  );
+}
+
 type LeaderOption = { id: string; label: string };
 
 function LeadersMultiAutocomplete({
@@ -202,6 +235,7 @@ export function ChaptersSection({
   const [createLeaders, setCreateLeaders] = useState<string[]>([]);
   const [createForm, setCreateForm] = useState({
     name: "",
+    address_line: "",
     city: "",
     /** FIPS state id (value of the state select). */
     stateId: "",
@@ -317,7 +351,7 @@ export function ChaptersSection({
       .from("chapters")
       .update({
         name: editRow.name,
-        address_line: null,
+        address_line: editRow.address_line?.trim() || null,
         city: editRow.city,
         state: st,
         zip_code: editRow.zip_code,
@@ -376,6 +410,7 @@ export function ChaptersSection({
   function resetCreateForm() {
     setCreateForm({
       name: "",
+      address_line: "",
       city: "",
       stateId: "",
       zip_code: "",
@@ -395,7 +430,7 @@ export function ChaptersSection({
       .from("chapters")
       .insert({
         name,
-        address_line: null,
+        address_line: createForm.address_line.trim() || null,
         city: createForm.city.trim() || null,
         state,
         zip_code: createForm.zip_code.trim() || null,
@@ -570,9 +605,7 @@ export function ChaptersSection({
                 <TableCell>{row.name}</TableCell>
                 {showLeadersColumn ? (
                   <TableCell sx={{ maxWidth: 280 }}>
-                    <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                      {leadersByChapter[row.id]?.trim() || "—"}
-                    </Typography>
+                    <LeadersEmailsCell joined={leadersByChapter[row.id]} />
                   </TableCell>
                 ) : null}
                 <TableCell>
@@ -635,6 +668,7 @@ export function ChaptersSection({
           {viewRow ? (
             <Box sx={{ display: "grid", gap: 1, pt: 1 }}>
               <Typography><strong>Name:</strong> {viewRow.name}</Typography>
+              <Typography><strong>Address:</strong> {viewRow.address_line?.trim() || "—"}</Typography>
               <Typography><strong>City:</strong> {viewRow.city ?? "—"}</Typography>
               <Typography>
                 <strong>State:</strong>{" "}
@@ -646,9 +680,12 @@ export function ChaptersSection({
               <Typography><strong>ZIP:</strong> {viewRow.zip_code ?? "—"}</Typography>
               <Typography><strong>Status:</strong> {STATUS_LABEL[viewRow.status] ?? viewRow.status}</Typography>
               {showLeadersColumn ? (
-                <Typography>
-                  <strong>Leaders:</strong> {leadersByChapter[viewRow.id]?.trim() || "—"}
-                </Typography>
+                <Box>
+                  <Typography component="span" sx={{ fontWeight: 700, mr: 0.5 }}>
+                    Leaders:
+                  </Typography>
+                  <LeadersEmailsCell joined={leadersByChapter[viewRow.id]} />
+                </Box>
               ) : null}
             </Box>
           ) : null}
@@ -668,6 +705,12 @@ export function ChaptersSection({
                 fullWidth
                 value={editRow.name}
                 onChange={(e) => setEditRow({ ...editRow, name: e.target.value })}
+              />
+              <TextField
+                label="Address"
+                fullWidth
+                value={editRow.address_line ?? ""}
+                onChange={(e) => setEditRow({ ...editRow, address_line: e.target.value })}
               />
               <TextField
                 label="City"
@@ -737,6 +780,12 @@ export function ChaptersSection({
               required
               value={createForm.name}
               onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+            />
+            <TextField
+              label="Address"
+              fullWidth
+              value={createForm.address_line}
+              onChange={(e) => setCreateForm((f) => ({ ...f, address_line: e.target.value }))}
             />
             <TextField
               label="City"

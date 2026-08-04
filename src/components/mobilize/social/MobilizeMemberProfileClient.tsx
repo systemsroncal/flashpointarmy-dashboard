@@ -15,9 +15,17 @@ import {
 import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
-import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { validateAvatarFile } from "@/lib/upload/validate-image";
+import { publicAssetSrc, cacheBustAssetUrl } from "@/lib/media/public-asset-url";
 import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
+import {
+  emitProfileMediaUpdated,
+  subscribeProfileMediaUpdated,
+} from "@/lib/user/profile-media-events";
+import { ImageCropDialog, type ImageCropKind } from "@/components/media/ImageCropDialog";
+import {
+  DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS,
+  mbToBytes,
+} from "@/lib/mobilize/image-upload-limits";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
@@ -127,8 +135,47 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [unfollowConfirmOpen, setUnfollowConfirmOpen] = useState(false);
   const [mediaUploading, setMediaUploading] = useState<"avatar" | "cover" | null>(null);
+  const [cropKind, setCropKind] = useState<ImageCropKind | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [mediaNonce, setMediaNonce] = useState(() => Date.now());
+  const [profileMaxMb, setProfileMaxMb] = useState(
+    DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.profile_image_max_mb
+  );
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return subscribeProfileMediaUpdated((detail) => {
+      setProfile((prev) => {
+        if (!prev?.is_own_profile) return prev;
+        return {
+          ...prev,
+          avatar_url:
+            detail.avatar_url !== undefined ? detail.avatar_url : prev.avatar_url,
+          cover_url: detail.cover_url !== undefined ? detail.cover_url : prev.cover_url,
+        };
+      });
+      setMediaNonce(Date.now());
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/mobilize/upload-limits");
+        if (!res.ok) return;
+        const j = (await res.json()) as { profile_image_max_mb?: number };
+        const mb = Number(j.profile_image_max_mb);
+        if (!cancelled && Number.isFinite(mb) && mb > 0) setProfileMaxMb(mb);
+      } catch {
+        /* default */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
@@ -300,11 +347,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   }
 
   async function uploadProfileMedia(kind: "avatar" | "cover", file: File) {
-    const v = validateAvatarFile(file);
-    if (v) {
-      setError(v.error);
-      return;
-    }
     setMediaUploading(kind);
     setError(null);
     try {
@@ -320,15 +362,23 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         cover_url?: string;
       };
       if (!res.ok) throw new Error(json.error || "Upload failed.");
+      const nextAvatar =
+        kind === "avatar" ? json.avatar_url ?? null : undefined;
+      const nextCover = kind === "cover" ? json.cover_url ?? null : undefined;
       setProfile((prev) =>
         prev
           ? {
               ...prev,
-              avatar_url: kind === "avatar" ? json.avatar_url ?? prev.avatar_url : prev.avatar_url,
-              cover_url: kind === "cover" ? json.cover_url ?? prev.cover_url : prev.cover_url,
+              avatar_url: nextAvatar !== undefined ? nextAvatar : prev.avatar_url,
+              cover_url: nextCover !== undefined ? nextCover : prev.cover_url,
             }
           : prev
       );
+      setMediaNonce(Date.now());
+      emitProfileMediaUpdated({
+        ...(nextAvatar !== undefined ? { avatar_url: nextAvatar } : {}),
+        ...(nextCover !== undefined ? { cover_url: nextCover } : {}),
+      });
       router.refresh();
       await load({ silent: true });
     } catch (e) {
@@ -338,6 +388,13 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       if (kind === "avatar" && avatarInputRef.current) avatarInputRef.current.value = "";
       if (kind === "cover" && coverInputRef.current) coverInputRef.current.value = "";
     }
+  }
+
+  function pickProfileMedia(kind: ImageCropKind, files: FileList | null) {
+    const f = files?.[0];
+    if (!f) return;
+    setCropKind(kind);
+    setCropFile(f);
   }
 
   if (loading) {
@@ -367,10 +424,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const locked = Boolean(p.is_private_locked);
   const coverSrc = resolveProfileCoverUrl(p.cover_url);
   const coverDisplaySrc = p.cover_url?.trim()
-    ? publicAssetSrc(p.cover_url.trim())
+    ? cacheBustAssetUrl(p.cover_url.trim(), mediaNonce)
     : coverSrc;
   const avatarDisplaySrc = p.avatar_url?.trim()
-    ? publicAssetSrc(p.avatar_url.trim())
+    ? cacheBustAssetUrl(p.avatar_url.trim(), mediaNonce)
     : undefined;
 
   const headerActions = p.is_own_profile ? (
@@ -473,7 +530,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           onChange={setComposerHtml}
           disabled={posting}
           surface="light"
-          avatarUrl={p.avatar_url}
+          avatarUrl={avatarDisplaySrc ?? p.avatar_url}
           avatarFallback={p.display_name}
           imageUrls={composerImages}
           onImageUrlsChange={setComposerImages}
@@ -693,7 +750,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         title={p.display_name}
         subtitle={handleLabel}
         meta={profileMeta}
-        avatarSrc={p.avatar_url}
+        avatarSrc={avatarDisplaySrc ?? p.avatar_url}
         avatarFallback={p.display_name}
         headerActions={headerActions}
         tabs={profileTabs.map((t) => ({ id: t.id, label: t.label }))}
@@ -726,8 +783,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             accept="image/jpeg,image/png,image/webp,image/gif"
             hidden
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void uploadProfileMedia("cover", f);
+              pickProfileMedia("cover", e.target.files);
+              e.target.value = "";
             }}
           />
           <input
@@ -736,8 +793,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             accept="image/jpeg,image/png,image/webp,image/gif"
             hidden
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void uploadProfileMedia("avatar", f);
+              pickProfileMedia("profile", e.target.files);
+              e.target.value = "";
             }}
           />
 
@@ -784,6 +841,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               }}
             >
               <Avatar
+                key={avatarDisplaySrc || "edit-avatar"}
                 src={avatarDisplaySrc}
                 sx={{
                   width: 72,
@@ -819,7 +877,11 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             </Box>
           </Box>
 
-          <FormControl sx={{ mt: 5.5, width: "100%" }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 4 }}>
+            JPEG, PNG, WebP or GIF · max {profileMaxMb} MB · square crop for photo, 21:9 for cover
+          </Typography>
+
+          <FormControl sx={{ mt: 2, width: "100%" }}>
             <RadioGroup
               value={visibility}
               onChange={(_, v) => setVisibility(v as "public" | "private")}
@@ -904,6 +966,24 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           </Button>
         </DialogActions>
       </MobilizeDialog>
+
+      <ImageCropDialog
+        open={Boolean(cropFile)}
+        file={cropFile}
+        kind={cropKind ?? "profile"}
+        maxBytes={mbToBytes(profileMaxMb)}
+        onCancel={() => {
+          setCropFile(null);
+          setCropKind(null);
+        }}
+        onConfirm={(file) => {
+          const kind = cropKind;
+          setCropFile(null);
+          setCropKind(null);
+          if (kind === "profile") void uploadProfileMedia("avatar", file);
+          else if (kind === "cover") void uploadProfileMedia("cover", file);
+        }}
+      />
     </Box>
   );
 }

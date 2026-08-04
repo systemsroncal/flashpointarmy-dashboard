@@ -79,6 +79,7 @@ export function MobilizeProfilePageShell({
     >
       <Box
         component="img"
+        key={coverSrc}
         src={coverSrc}
         alt=""
         sx={{
@@ -129,6 +130,7 @@ export function MobilizeProfilePageShell({
               }}
             >
               <Avatar
+                key={avatarSrc || "no-avatar"}
                 src={avatarSrc ? publicAssetSrc(avatarSrc) : undefined}
                 alt=""
                 sx={{
@@ -263,6 +265,7 @@ export function MobilizeProfilePageShell({
           <Box sx={{ position: "relative", bgcolor: "#1a2744" }}>
             <Box
               component="img"
+              key={coverSrc}
               src={coverSrc}
               alt=""
               sx={{
@@ -301,6 +304,7 @@ export function MobilizeProfilePageShell({
               }}
             >
               <Avatar
+                key={avatarSrc || "no-avatar"}
                 src={avatarSrc ? publicAssetSrc(avatarSrc) : undefined}
                 alt=""
                 sx={{

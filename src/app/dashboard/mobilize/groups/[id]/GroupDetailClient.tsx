@@ -128,6 +128,7 @@ type Group = {
   schedule_meeting?: string | null;
   enrollment_mode?: string | null;
   public_slug?: string | null;
+  is_featured?: boolean | null;
 };
 
 type Membership = {
@@ -333,7 +334,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     resources_post_policy: "all_approved" as "all_approved" | "leaders_only",
     created_by: "",
     leader_user_ids: [] as string[],
+    parent_group_id: "" as string,
+    is_featured: false,
   });
+  const [chapterOptions, setChapterOptions] = useState<{ id: string; name: string }[]>([]);
   const [ownerCandidates, setOwnerCandidates] = useState<{ userId: string; label: string }[]>([]);
   const [ownerCandidatesLoading, setOwnerCandidatesLoading] = useState(false);
   const [msgEdit, setMsgEdit] = useState<{
@@ -831,7 +835,27 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         if (group.created_by && !ids.includes(group.created_by)) ids.push(group.created_by);
         return ids;
       })(),
+      parent_group_id: group.parent_group_id ?? "",
+      is_featured: Boolean(group.is_featured),
     });
+    if (isSuperAdmin && group.parent_group_id) {
+      void (async () => {
+        try {
+          const res = await fetch("/api/mobilize/groups?scope=chapters&visibility=all");
+          const json = await res.json();
+          if (res.ok && Array.isArray(json.groups)) {
+            setChapterOptions(
+              (json.groups as { id: string; name: string }[]).map((g) => ({
+                id: g.id,
+                name: g.name,
+              }))
+            );
+          }
+        } catch {
+          /* ignore */
+        }
+      })();
+    }
     if (isSuperAdmin && !ownerCandidates.length && !ownerCandidatesLoading) {
       void loadOwnerCandidates();
     }
@@ -910,10 +934,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           profile_image_url: profileImage,
           wall_post_policy: editForm.wall_post_policy,
           resources_post_policy: editForm.resources_post_policy,
+          is_featured: editForm.is_featured === true,
           ...(isSuperAdmin
             ? {
                 created_by: editForm.created_by,
                 leader_user_ids: leaderIds,
+                ...(editForm.parent_group_id
+                  ? { parent_group_id: editForm.parent_group_id }
+                  : {}),
               }
             : {}),
         }),
@@ -2061,6 +2089,28 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         <DialogTitle>Edit group</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+            {isSuperAdmin && group?.parent_group_id ? (
+              <FormControl fullWidth>
+                <InputLabel id="eg-chapter">Chapter</InputLabel>
+                <Select
+                  labelId="eg-chapter"
+                  label="Chapter"
+                  value={editForm.parent_group_id || group.parent_group_id}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, parent_group_id: String(e.target.value) }))
+                  }
+                >
+                  {(chapterOptions.length
+                    ? chapterOptions
+                    : [{ id: group.parent_group_id, name: "Current chapter" }]
+                  ).map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : null}
             <TextField
               label="Name"
               required
@@ -2092,7 +2142,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
             />
             <TextField
-              label="Schedule meeting"
+              label="Schedule"
               fullWidth
               multiline
               minRows={2}
@@ -2228,6 +2278,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 }))
               }
             />
+            {group?.parent_group_id ? (
+              <MobilizeGroupListedSwitch
+                listed={editForm.is_featured}
+                disabled={editSaving}
+                label="Featured"
+                listedHint="Shown under every chapter's Groups list (same group, not copied)."
+                unlistedHint="Only listed under its own chapter."
+                onListedChange={(featured) => setEditForm((f) => ({ ...f, is_featured: featured }))}
+              />
+            ) : null}
             <FormControl fullWidth>
               <InputLabel id="ecp">Who can create events</InputLabel>
               <Select

@@ -56,6 +56,7 @@ import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { parseUploadFile } from "@/lib/import/parse-upload";
 import { usStateByCode } from "@/data/usStates";
 import { isAdminButNotSuper } from "@/lib/auth/user-roles";
+import { isProtectedSuperAdminUserId } from "@/lib/auth/protected-super-admin";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -91,14 +92,15 @@ export type ChapterOption = {
   address_line?: string | null;
 };
 
-type EditableRole = "member" | "local_leader" | "admin" | "sub_admin";
-type StaffRole = "admin" | "sub_admin";
+type EditableRole = "member" | "local_leader" | "admin" | "sub_admin" | "super_admin";
+type StaffRole = "admin" | "sub_admin" | "super_admin";
 
 const EDITABLE_ROLE_LABELS: Record<EditableRole, string> = {
   member: "Member",
   local_leader: "Local leader",
   admin: "Administrator",
   sub_admin: "Sub administrator",
+  super_admin: "Super administrator",
 };
 
 /** Keep MUI Select menus above Dialog backdrops so options are clickable. */
@@ -136,6 +138,7 @@ function editableRoleFromUser(
 ): EditableRole {
   const names = u.role_names ?? [];
   if (variant === "admins") {
+    if (names.includes("super_admin")) return "super_admin";
     if (names.includes("sub_admin")) return "sub_admin";
     return "admin";
   }
@@ -157,7 +160,7 @@ function addRoleMenuOptions(
   isSuperAdmin: boolean,
   elevated: boolean
 ): EditableRole[] {
-  if (variant === "admins") return isSuperAdmin ? ["admin", "sub_admin"] : [];
+  if (variant === "admins") return isSuperAdmin ? ["admin", "sub_admin", "super_admin"] : [];
   if (variant === "leaders") {
     return isSuperAdmin ? ["member", "local_leader", "admin", "sub_admin"] : [];
   }
@@ -170,7 +173,7 @@ function editRoleMenuOptions(
   variant: "community" | "leaders" | "admins",
   isSuperAdmin: boolean
 ): EditableRole[] {
-  if (variant === "admins") return isSuperAdmin ? ["admin", "sub_admin"] : [];
+  if (variant === "admins") return isSuperAdmin ? ["admin", "sub_admin", "super_admin"] : [];
   if (isSuperAdmin) return ["member", "local_leader", "admin", "sub_admin"];
   return [];
 }
@@ -338,7 +341,9 @@ export function CommunitySection({
   const [inviteAdminRole, setInviteAdminRole] = useState<StaffRole>("admin");
 
   function staffRoleLabel(role: StaffRole): string {
-    return role === "sub_admin" ? "Sub administrator" : "Administrator";
+    if (role === "sub_admin") return "Sub administrator";
+    if (role === "super_admin") return "Super administrator";
+    return "Administrator";
   }
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
@@ -485,7 +490,8 @@ export function CommunitySection({
   }
 
   function canEditRoleInForm(u: CommunityUserRow): boolean {
-    if (isAdmins) return isSuperAdmin && !u.role_names?.includes("super_admin");
+    if (isProtectedSuperAdminUserId(u.id)) return false;
+    if (isAdmins) return isSuperAdmin;
     if (!isSuperAdmin) return false;
     if (u.role_names?.includes("super_admin")) return false;
     return true;
@@ -1041,7 +1047,10 @@ export function CommunitySection({
         editRoleCurrent !== editRoleNext
       ) {
         let roleSaved = true;
-        if (isAdmins && (editRoleNext === "admin" || editRoleNext === "sub_admin")) {
+        if (
+          isAdmins &&
+          (editRoleNext === "admin" || editRoleNext === "sub_admin" || editRoleNext === "super_admin")
+        ) {
           roleSaved = await applyStaffRoleSwitch(editUser, editRoleNext, "edit");
         } else if (editRoleNext === "admin") {
           roleSaved = await applyAdminRole(editUser, "edit");
@@ -1142,9 +1151,7 @@ export function CommunitySection({
           ]);
         }
         setInviteFlash(
-          inviteAdminRole === "sub_admin"
-            ? "Sub administrator created successfully. Email is already verified automatically."
-            : "Administrator created successfully. Email is already verified automatically."
+          `${staffRoleLabel(inviteAdminRole)} created successfully. Email is already verified automatically.`
         );
         window.setTimeout(() => setInviteFlash(null), 14000);
         setAddOpen(false);
@@ -2560,7 +2567,9 @@ export function CommunitySection({
                 ) : (
                   <Typography variant="body2" color="text.secondary">
                     <strong>{roleLabelsFromUser(editUser, variant)}</strong>
-                    {editUser.role_names?.includes("super_admin")
+                    {editUser.role_names?.includes("super_admin") && isProtectedSuperAdminUserId(editUser.id)
+                      ? " — this account is permanently locked as super administrator."
+                      : editUser.role_names?.includes("super_admin")
                       ? " — super administrator roles cannot be changed here."
                       : !isSuperAdmin
                         ? " — only a super administrator can change dashboard roles."

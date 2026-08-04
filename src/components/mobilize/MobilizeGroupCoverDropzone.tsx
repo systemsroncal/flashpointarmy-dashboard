@@ -1,13 +1,17 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ImageIcon from "@mui/icons-material/Image";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import {
   Box,
   Button,
   Collapse,
+  Dialog,
+  DialogContent,
+  IconButton,
   LinearProgress,
   Stack,
   TextField,
@@ -15,12 +19,22 @@ import {
 } from "@mui/material";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
+import { ImageCropDialog } from "@/components/media/ImageCropDialog";
+import {
+  DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS,
+  mbToBytes,
+} from "@/lib/mobilize/image-upload-limits";
 
 type Props = {
   value: string;
   onChange: (url: string) => void;
   disabled?: boolean;
   variant?: "cover" | "profile";
+  /**
+   * Which Mobilize settings bucket to use for max MB.
+   * Group cover/profile → groups; user avatar/cover → profile.
+   */
+  limitsSource?: "groups" | "profile";
 };
 
 export default function MobilizeGroupCoverDropzone({
@@ -28,20 +42,52 @@ export default function MobilizeGroupCoverDropzone({
   onChange,
   disabled = false,
   variant = "cover",
+  limitsSource = "groups",
 }: Props) {
   const isProfile = variant === "profile";
   const uploadEndpoint = isProfile
     ? "/api/mobilize/groups/profile-image"
     : "/api/mobilize/groups/cover-image";
-  const responseKey = isProfile ? "profile_image_url" : "cover_image_url";
   const toast = useMobilizeToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [urlOpen, setUrlOpen] = useState(false);
+  const [maxMb, setMaxMb] = useState(
+    limitsSource === "profile"
+      ? DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.profile_image_max_mb
+      : DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.groups_image_max_mb
+  );
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/mobilize/upload-limits");
+        if (!res.ok) return;
+        const j = (await res.json()) as {
+          groups_image_max_mb?: number;
+          profile_image_max_mb?: number;
+        };
+        const mb =
+          limitsSource === "profile"
+            ? Number(j.profile_image_max_mb)
+            : Number(j.groups_image_max_mb);
+        if (!cancelled && Number.isFinite(mb) && mb > 0) setMaxMb(mb);
+      } catch {
+        /* keep default */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [limitsSource]);
 
   const trimmed = value.trim();
   const previewSrc = trimmed ? publicAssetSrc(trimmed) : "";
+  const maxBytes = mbToBytes(maxMb);
 
   const uploadFile = useCallback(
     async (file: File) => {
@@ -50,7 +96,11 @@ export default function MobilizeGroupCoverDropzone({
         const fd = new FormData();
         fd.set("file", file);
         const res = await fetch(uploadEndpoint, { method: "POST", body: fd });
-        const json = (await res.json()) as { cover_image_url?: string; profile_image_url?: string; error?: string };
+        const json = (await res.json()) as {
+          cover_image_url?: string;
+          profile_image_url?: string;
+          error?: string;
+        };
         if (!res.ok) throw new Error(json.error || "Upload failed.");
         const url = isProfile ? json.profile_image_url : json.cover_image_url;
         if (!url) throw new Error("No image URL returned.");
@@ -67,7 +117,12 @@ export default function MobilizeGroupCoverDropzone({
 
   function onPickFiles(files: FileList | null) {
     const f = files?.[0];
-    if (f) void uploadFile(f);
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      toast("Only image files are allowed.", "error");
+      return;
+    }
+    setCropFile(f);
   }
 
   function openFilePicker() {
@@ -80,7 +135,6 @@ export default function MobilizeGroupCoverDropzone({
         {isProfile ? "Profile image" : "Cover image"}
       </Typography>
 
-      {/* Upload target: always visible so users can add or replace */}
       <Box
         onDragOver={(e) => {
           e.preventDefault();
@@ -118,11 +172,10 @@ export default function MobilizeGroupCoverDropzone({
               : "Drop an image here or click to upload"}
         </Typography>
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-          JPEG, PNG, WebP, or GIF · max 1 MB
+          JPEG, PNG, WebP, or GIF · max {maxMb} MB · crop & compress before upload
         </Typography>
       </Box>
 
-      {/* Assigned / current cover thumbnail (edit with existing URL, or after upload) */}
       {previewSrc ? (
         <Box
           sx={{
@@ -137,22 +190,42 @@ export default function MobilizeGroupCoverDropzone({
             {isProfile ? "Assigned profile preview" : "Assigned cover preview"}
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ sm: "flex-start" }}>
-            <Box
-              component="img"
-              src={previewSrc}
-              alt=""
-              sx={{
-                width: isProfile ? 96 : "100%",
-                height: isProfile ? 96 : "auto",
-                maxWidth: isProfile ? 96 : 220,
-                maxHeight: isProfile ? 96 : 140,
-                objectFit: "cover",
-                borderRadius: isProfile ? "50%" : 1,
-                display: "block",
-                bgcolor: "rgba(0,0,0,0.35)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            />
+            <Box sx={{ position: "relative" }}>
+              <Box
+                component="img"
+                src={previewSrc}
+                alt=""
+                onClick={() => setPreviewOpen(true)}
+                sx={{
+                  width: isProfile ? 96 : "100%",
+                  height: isProfile ? 96 : "auto",
+                  maxWidth: isProfile ? 96 : 220,
+                  maxHeight: isProfile ? 96 : 140,
+                  aspectRatio: isProfile ? "1 / 1" : "21 / 9",
+                  objectFit: "cover",
+                  borderRadius: isProfile ? "50%" : 1,
+                  display: "block",
+                  bgcolor: "rgba(0,0,0,0.35)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  cursor: "zoom-in",
+                }}
+              />
+              <IconButton
+                size="small"
+                aria-label="Preview"
+                onClick={() => setPreviewOpen(true)}
+                sx={{
+                  position: "absolute",
+                  right: 4,
+                  bottom: 4,
+                  bgcolor: "rgba(0,0,0,0.55)",
+                  color: "#fff",
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.75)" },
+                }}
+              >
+                <ZoomInIcon fontSize="small" />
+              </IconButton>
+            </Box>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               <Button
                 size="small"
@@ -213,6 +286,37 @@ export default function MobilizeGroupCoverDropzone({
           disabled={disabled}
         />
       </Collapse>
+
+      <ImageCropDialog
+        open={Boolean(cropFile)}
+        file={cropFile}
+        kind={isProfile ? "profile" : "cover"}
+        maxBytes={maxBytes}
+        onCancel={() => setCropFile(null)}
+        onConfirm={(optimized) => {
+          setCropFile(null);
+          void uploadFile(optimized);
+        }}
+      />
+
+      <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="md" fullWidth>
+        <DialogContent sx={{ p: 1.5, bgcolor: "#111" }}>
+          {previewSrc ? (
+            <Box
+              component="img"
+              src={previewSrc}
+              alt=""
+              sx={{
+                width: "100%",
+                maxHeight: "80vh",
+                objectFit: "contain",
+                display: "block",
+                borderRadius: 1,
+              }}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

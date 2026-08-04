@@ -17,7 +17,7 @@ type Body = {
   lastName?: string;
   phone?: string;
   primaryChapterId?: string;
-  roleName?: "admin" | "sub_admin";
+  roleName?: "admin" | "sub_admin" | "super_admin";
   dateOfBirth?: string | null;
   gender?: string | null;
 };
@@ -64,7 +64,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Select a valid primary chapter." }, { status: 400 });
     }
 
-    const staffRoleName = body.roleName === "sub_admin" ? "sub_admin" : "admin";
+    const staffRoleName =
+      body.roleName === "sub_admin"
+        ? "sub_admin"
+        : body.roleName === "super_admin"
+          ? "super_admin"
+          : "admin";
 
     const admin = createAdminClient();
 

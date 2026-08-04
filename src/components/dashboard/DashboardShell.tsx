@@ -67,7 +67,10 @@ import {
 } from "@/lib/auth/people-section-access";
 import { canAccessMobilizeModule, canSeeMobilizeNavItem, isChapterStaffRole, isElevatedRole } from "@/lib/auth/user-roles";
 import { shouldShowSidebarYourJourney } from "@/lib/onboarding/member-onboarding-status";
-import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import { cacheBustAssetUrl } from "@/lib/media/public-asset-url";
+import {
+  subscribeProfileMediaUpdated,
+} from "@/lib/user/profile-media-events";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { DashboardPresenceProvider } from "@/contexts/DashboardPresenceContext";
@@ -577,11 +580,36 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [missionPipelineOpen, setMissionPipelineOpen] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
+  const [liveAvatarUrl, setLiveAvatarUrl] = useState<string | null>(null);
+  const [liveAvatarNonce, setLiveAvatarNonce] = useState(0);
   const pathname = usePathname();
   const permissions = usePermissions();
   const user = useDashboardUser();
+
+  useEffect(() => {
+    return subscribeProfileMediaUpdated((detail) => {
+      if (detail.avatar_url !== undefined) {
+        setLiveAvatarUrl(detail.avatar_url);
+        setLiveAvatarNonce(Date.now());
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    setLiveAvatarUrl(null);
+    setLiveAvatarNonce(0);
+  }, [user.avatar_url]);
+
+  const shellAvatarSrc = (() => {
+    const url = liveAvatarUrl !== null ? liveAvatarUrl : user.avatar_url;
+    if (!url?.trim()) return undefined;
+    return cacheBustAssetUrl(url.trim(), liveAvatarNonce || undefined);
+  })();
+
+  const mobilizeViewerRoles = user.mobilize_chapters_viewer_roles ?? [];
   const isMobilize =
-    pathname.startsWith(MOBILIZE_PREFIX) && canAccessMobilizeModule(user.role_names);
+    pathname.startsWith(MOBILIZE_PREFIX) &&
+    canAccessMobilizeModule(user.role_names, mobilizeViewerRoles);
   const onMobilizeSocialHub =
     isMobilize &&
     (pathname === `${MOBILIZE_PREFIX}/home` ||
@@ -632,7 +660,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const allVisibleNav = NAV.filter((item) => {
     if (item.module === MODULE_SLUGS.movilization) {
-      return canSeeMobilizeNavItem(user.role_names);
+      return canSeeMobilizeNavItem(user.role_names, mobilizeViewerRoles);
     }
     /** Dashboard announcements: all signed-in users (not gated by communications module). */
     if (item.href === "/dashboard/notifications") {
@@ -914,7 +942,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               }
               if (
                 item.module === MODULE_SLUGS.movilization &&
-                !canAccessMobilizeModule(user.role_names)
+                !canAccessMobilizeModule(user.role_names, mobilizeViewerRoles)
               ) {
                 return (
                   <Box key={item.href} component="span" sx={{ display: "contents" }}>
@@ -1130,7 +1158,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             overlayStyle="sidebar"
             graduateRole={user.training_graduate_badge}
             showAdminCrown={isElevatedRole(user.role_names)}
-            src={user.avatar_url ? publicAssetSrc(user.avatar_url) : undefined}
+            src={shellAvatarSrc}
             alt={displayInitial}
             avatarSx={{ bgcolor: "primary.dark" }}
             onGraduateClick={

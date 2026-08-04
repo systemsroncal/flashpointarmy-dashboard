@@ -73,6 +73,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     "schedule_meeting",
     "enrollment_mode",
     "public_slug",
+    "is_featured",
   ] as const;
   for (const k of allowed) {
     if (k in body) patch[k] = body[k];
@@ -138,10 +139,50 @@ export async function PATCH(req: Request, ctx: Ctx) {
     }
     patch.enrollment_mode = mode;
   }
+
+  if (isSuperAdmin && "parent_group_id" in body) {
+    const rawParent = body.parent_group_id;
+    const parentId =
+      rawParent == null || String(rawParent).trim() === ""
+        ? null
+        : String(rawParent).trim();
+    if (!parentId) {
+      return NextResponse.json(
+        { error: "A group must belong to a chapter (parent_group_id required)." },
+        { status: 400 }
+      );
+    }
+    if (parentId === id) {
+      return NextResponse.json({ error: "A group cannot be its own parent." }, { status: 400 });
+    }
+    const { data: parent } = await auth.admin
+      .from("mobilize_groups")
+      .select("id, parent_group_id")
+      .eq("id", parentId)
+      .maybeSingle();
+    if (!parent || parent.parent_group_id != null) {
+      return NextResponse.json(
+        { error: "parent_group_id must reference a Mobilize chapter (top-level group)." },
+        { status: 400 }
+      );
+    }
+    patch.parent_group_id = parentId;
+  }
+
   if ("schedule_meeting" in patch) {
     const s = patch.schedule_meeting;
     patch.schedule_meeting =
       s == null || String(s).trim() === "" ? null : String(s).trim();
+  }
+  if ("is_featured" in patch) {
+    const { data: current } = await auth.admin
+      .from("mobilize_groups")
+      .select("parent_group_id")
+      .eq("id", id)
+      .maybeSingle();
+    // Only subgroups can be featured; chapters cannot.
+    patch.is_featured =
+      current?.parent_group_id != null ? patch.is_featured === true : false;
   }
   if (Object.keys(patch).length === 0) {
     if (!ownershipSynced) {

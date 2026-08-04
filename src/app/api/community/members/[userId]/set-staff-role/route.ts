@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { loadUserRoleNames, isSuperAdminUser } from "@/lib/auth/user-roles";
+import { isProtectedSuperAdminUserId } from "@/lib/auth/protected-super-admin";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-type Body = { roleName?: "admin" | "sub_admin" };
+type StaffAssignableRole = "admin" | "sub_admin" | "super_admin";
+type Body = { roleName?: StaffAssignableRole };
+
+const STAFF_ROLES: StaffAssignableRole[] = ["admin", "sub_admin", "super_admin"];
 
 export async function POST(
   req: Request,
@@ -15,6 +19,13 @@ export async function POST(
   const { userId } = await context.params;
   if (!UUID_RE.test(userId)) {
     return NextResponse.json({ error: "Invalid user id." }, { status: 400 });
+  }
+
+  if (isProtectedSuperAdminUserId(userId)) {
+    return NextResponse.json(
+      { error: "This account is permanently locked as super administrator." },
+      { status: 403 }
+    );
   }
 
   const authResult = await requireApiAuth();
@@ -36,7 +47,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (body.roleName !== "admin" && body.roleName !== "sub_admin") {
+  if (!body.roleName || !STAFF_ROLES.includes(body.roleName)) {
     return NextResponse.json({ error: "Invalid roleName." }, { status: 400 });
   }
 
@@ -44,29 +55,25 @@ export async function POST(
     const admin = createAdminClient();
     const targetRoles = await loadUserRoleNames(admin, userId);
 
-    if (targetRoles.includes("super_admin")) {
-      return NextResponse.json(
-        { error: "Cannot change the role of a super administrator." },
-        { status: 400 }
-      );
-    }
-
-    const hasStaffRole = targetRoles.includes("admin") || targetRoles.includes("sub_admin");
+    const hasStaffRole =
+      targetRoles.includes("admin") ||
+      targetRoles.includes("sub_admin") ||
+      targetRoles.includes("super_admin");
     if (!hasStaffRole) {
       return NextResponse.json(
-        { error: "User must already be an administrator or sub administrator." },
+        { error: "User must already be an administrator, sub administrator, or super administrator." },
         { status: 400 }
       );
     }
 
-    if (targetRoles.includes(body.roleName)) {
+    if (targetRoles.includes(body.roleName) && STAFF_ROLES.filter((r) => targetRoles.includes(r)).length === 1) {
       return NextResponse.json({ ok: true, role_names: [...targetRoles].sort() });
     }
 
     const { data: roleRows, error: rolesErr } = await admin
       .from("roles")
       .select("id, name")
-      .in("name", ["admin", "sub_admin"]);
+      .in("name", STAFF_ROLES);
 
     if (rolesErr || !roleRows?.length) {
       return NextResponse.json(
@@ -81,12 +88,11 @@ export async function POST(
       return NextResponse.json({ error: `Role ${body.roleName} not found.` }, { status: 500 });
     }
 
-    const stripIds = ["admin", "sub_admin"]
-      .map((n) => byName.get(n))
-      .filter((id): id is string => Boolean(id));
-
-    for (const roleId of stripIds) {
-      await admin.from("user_roles").delete().eq("user_id", userId).eq("role_id", roleId);
+    for (const name of STAFF_ROLES) {
+      const roleId = byName.get(name);
+      if (roleId) {
+        await admin.from("user_roles").delete().eq("user_id", userId).eq("role_id", roleId);
+      }
     }
 
     const { error: insErr } = await admin
@@ -101,7 +107,7 @@ export async function POST(
     }
 
     const nextRoles = targetRoles
-      .filter((n) => n !== "admin" && n !== "sub_admin")
+      .filter((n) => !STAFF_ROLES.includes(n as StaffAssignableRole))
       .concat(body.roleName);
     const unique = [...new Set(nextRoles)].sort();
 

@@ -5,6 +5,8 @@ import {
   validateAvatarFile,
 } from "@/lib/upload/validate-image";
 import { writeUserAvatarImage } from "@/lib/uploads/local-public-image";
+import { loadMobilizeImageUploadLimits, mbToBytes } from "@/lib/mobilize/image-upload-limits";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
@@ -12,8 +14,12 @@ import { requireApiAuth } from "@/lib/auth/server-session";
 export async function POST(req: Request) {
   try {
     const authResult = await requireApiAuth();
-  if ("response" in authResult) return authResult.response;
-  const { supabase, user } = authResult;
+    if ("response" in authResult) return authResult.response;
+    const { supabase, user } = authResult;
+
+    const admin = createAdminClient();
+    const limits = await loadMobilizeImageUploadLimits(admin);
+    const maxBytes = mbToBytes(limits.profile_image_max_mb);
 
     const formData = await req.formData();
     const file = formData.get("file");
@@ -21,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing file." }, { status: 400 });
     }
 
-    const basicErr = validateAvatarFile(file);
+    const basicErr = validateAvatarFile(file, maxBytes);
     if (basicErr) {
       return NextResponse.json({ error: basicErr.error }, { status: 400 });
     }

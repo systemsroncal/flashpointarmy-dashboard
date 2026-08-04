@@ -88,6 +88,7 @@ type GroupRow = {
   leaders?: MobilizeGroupLeaderBrief[];
   my_membership_status?: string | null;
   created_by?: string;
+  is_featured?: boolean | null;
 };
 
 export default function ChapterGroupsClient({ chapterId }: { chapterId: string }) {
@@ -112,12 +113,16 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
     latitude: null as number | null,
     longitude: null as number | null,
     cover_image_url: "",
+    profile_image_url: "",
     enrollment_mode: "request_to_join" as MobilizeEnrollmentMode,
     visibility: "private",
     event_create_policy: "any_member" as "any_member" | "leader_only",
     wall_post_policy: "all_approved" as "all_approved" | "leaders_only",
     resources_post_policy: "all_approved" as "all_approved" | "leaders_only",
+    parent_group_id: chapterId,
+    is_featured: false,
   });
+  const [chapterOptions, setChapterOptions] = useState<{ id: string; name: string }[]>([]);
   const [editForm, setEditForm] = useState({
     name: "",
     group_type: "other",
@@ -171,6 +176,29 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
   const isSuperAdmin = me.role_names.includes("super_admin");
   const canEditChapter =
     Boolean(chapter) && (isSuperAdmin || chapter?.created_by === me.id);
+
+  function openCreateGroup() {
+    setForm((f) => ({ ...f, parent_group_id: chapterId }));
+    if (isSuperAdmin && chapterOptions.length === 0) {
+      void (async () => {
+        try {
+          const res = await fetch("/api/mobilize/groups?scope=chapters&visibility=all");
+          const json = await res.json();
+          if (res.ok && Array.isArray(json.groups)) {
+            setChapterOptions(
+              (json.groups as { id: string; name: string }[]).map((g) => ({
+                id: g.id,
+                name: g.name,
+              }))
+            );
+          }
+        } catch {
+          /* ignore */
+        }
+      })();
+    }
+    setCreateOpen(true);
+  }
 
   function openEditChapter() {
     if (!chapter) return;
@@ -315,12 +343,14 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
           latitude: form.latitude,
           longitude: form.longitude,
           cover_image_url: form.cover_image_url.trim() || null,
-          parent_group_id: chapterId,
+          profile_image_url: form.profile_image_url.trim() || null,
+          parent_group_id: form.parent_group_id || chapterId,
           enrollment_mode: form.enrollment_mode === "auto_closed" ? "closed" : form.enrollment_mode,
           visibility: form.visibility,
           event_create_policy: form.event_create_policy,
           wall_post_policy: form.wall_post_policy,
           resources_post_policy: form.resources_post_policy,
+          is_featured: form.is_featured === true,
         }),
       });
       const json = await res.json();
@@ -336,11 +366,14 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
         latitude: null,
         longitude: null,
         cover_image_url: "",
+        profile_image_url: "",
         enrollment_mode: "request_to_join",
         visibility: "private",
         event_create_policy: "any_member",
         wall_post_policy: "all_approved",
         resources_post_policy: "all_approved",
+        parent_group_id: chapterId,
+        is_featured: false,
       });
       await load();
     } catch (e) {
@@ -478,6 +511,9 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                   </Typography>
                   <Chip size="small" label={status.label} color={status.color} variant="outlined" sx={{ flexShrink: 0 }} />
                 </Stack>
+                {g.is_featured ? (
+                  <Chip size="small" label="Featured" color="primary" variant="outlined" sx={{ alignSelf: "flex-start" }} />
+                ) : null}
                 {g.schedule_meeting ? (
                   <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
                     {g.schedule_meeting}
@@ -564,6 +600,15 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                         >
                           {g.name}
                         </Typography>
+                        {g.is_featured ? (
+                          <Chip
+                            size="small"
+                            label="Featured"
+                            color="primary"
+                            variant="outlined"
+                            sx={{ mt: 0.5 }}
+                          />
+                        ) : null}
                         {g.schedule_meeting ? (
                           <Typography
                             variant="caption"
@@ -657,7 +702,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }} flexWrap="wrap" gap={1}>
         <Button
           component={Link}
           href="/dashboard/mobilize/map"
@@ -668,17 +713,30 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
         >
           Back to chapters
         </Button>
-        {canEditChapter ? (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => openEditChapter()}
-            sx={{ fontWeight: 600 }}
-          >
-            Edit chapter
-          </Button>
-        ) : null}
+        <Stack direction="row" spacing={1} alignItems="center">
+          {canCreate ? (
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => openCreateGroup()}
+              sx={{ fontWeight: 700, textTransform: "none" }}
+            >
+              Add group
+            </Button>
+          ) : null}
+          {canEditChapter ? (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => openEditChapter()}
+              sx={{ fontWeight: 600 }}
+            >
+              Edit chapter
+            </Button>
+          ) : null}
+        </Stack>
       </Stack>
 
       <Box sx={{ mb: 2 }}>
@@ -742,7 +800,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                 variant="contained"
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={() => setCreateOpen(true)}
+                onClick={() => openCreateGroup()}
                 sx={{ fontWeight: 700, textTransform: "none", whiteSpace: "nowrap" }}
               >
                 New group
@@ -828,6 +886,29 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
         <DialogTitle>New group</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel id="parent-chapter-new">Chapter</InputLabel>
+              <Select
+                labelId="parent-chapter-new"
+                label="Chapter"
+                value={form.parent_group_id || chapterId}
+                disabled={!isSuperAdmin}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, parent_group_id: String(e.target.value) }))
+                }
+              >
+                {(chapterOptions.length
+                  ? chapterOptions
+                  : chapter
+                    ? [{ id: chapter.id, name: chapter.name }]
+                    : [{ id: chapterId, name: "Current chapter" }]
+                ).map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
               label="Name"
               required
@@ -859,7 +940,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
             <TextField
-              label="Schedule meeting"
+              label="Schedule"
               fullWidth
               multiline
               minRows={2}
@@ -886,6 +967,12 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
               </Select>
             </FormControl>
             <MobilizeGroupCoverDropzone
+              variant="profile"
+              value={form.profile_image_url}
+              onChange={(url) => setForm((f) => ({ ...f, profile_image_url: url }))}
+              disabled={saving}
+            />
+            <MobilizeGroupCoverDropzone
               value={form.cover_image_url}
               onChange={(url) => setForm((f) => ({ ...f, cover_image_url: url }))}
               disabled={saving}
@@ -908,6 +995,14 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                   visibility: mobilizeGroupListingVisibilityFromListed(listed),
                 }))
               }
+            />
+            <MobilizeGroupListedSwitch
+              listed={form.is_featured}
+              disabled={saving}
+              label="Featured"
+              listedHint="Shown under every chapter's Groups list (same group, not copied)."
+              unlistedHint="Only listed under its own chapter."
+              onListedChange={(featured) => setForm((f) => ({ ...f, is_featured: featured }))}
             />
             <FormControl fullWidth>
               <InputLabel id="ecp-new">Who can create events</InputLabel>

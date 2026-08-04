@@ -19,11 +19,34 @@ export type DashboardUser = {
   updated_at: string;
   /** Role slugs from `user_roles` + `roles` (e.g. member, local_leader, admin). */
   role_names: string[];
+  /**
+   * From `mobilize_policy_settings.chapters_viewer_roles` — roles (besides super_admin)
+   * allowed to open Mobilize Chapters.
+   */
+  mobilize_chapters_viewer_roles?: string[];
   /** Shown when user completed Biblical Citizenship and is a member or local leader. */
   training_graduate_badge?: TrainingGraduateBadgeRole | null;
   /** Onboarding progress for members and local leaders (sidebar + national overview). */
   member_onboarding?: MemberOnboardingSnapshot | null;
 };
+
+const ALLOWED_CHAPTERS_VIEWER_ROLES = new Set([
+  "admin",
+  "sub_admin",
+  "local_leader",
+  "member",
+]);
+
+export function normalizeChaptersViewerRoles(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [
+    ...new Set(
+      raw
+        .map((x) => String(x || "").trim())
+        .filter((r) => ALLOWED_CHAPTERS_VIEWER_ROLES.has(r))
+    ),
+  ];
+}
 
 export async function loadDashboardUser(
   supabase: SupabaseClient,
@@ -39,9 +62,14 @@ export async function loadDashboardUser(
 
   if (error || !du) return null;
 
-  const [{ data: prof, error: profErr }, role_names] = await Promise.all([
+  const [{ data: prof, error: profErr }, role_names, viewerRolesRes] = await Promise.all([
     supabase.from("profiles").select("avatar_url, phone").eq("id", userId).maybeSingle(),
     loadUserRoleNames(supabase, userId),
+    supabase
+      .from("mobilize_policy_settings")
+      .select("chapters_viewer_roles")
+      .eq("id", 1)
+      .maybeSingle(),
   ]);
 
   let avatar_url: string | null = null;
@@ -54,10 +82,18 @@ export async function loadDashboardUser(
     (prof && "phone" in prof && prof.phone != null ? String(prof.phone).trim() : "") ||
     null;
 
+  const mobilize_chapters_viewer_roles = normalizeChaptersViewerRoles(
+    (viewerRolesRes.data as { chapters_viewer_roles?: unknown } | null)?.chapters_viewer_roles
+  );
+
   return {
-    ...(du as Omit<DashboardUser, "avatar_url" | "role_names" | "phone">),
+    ...(du as Omit<
+      DashboardUser,
+      "avatar_url" | "role_names" | "phone" | "mobilize_chapters_viewer_roles"
+    >),
     phone: duPhone,
     avatar_url,
     role_names,
+    mobilize_chapters_viewer_roles,
   };
 }

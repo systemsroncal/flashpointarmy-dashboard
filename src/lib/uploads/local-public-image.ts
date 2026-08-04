@@ -10,8 +10,9 @@ function toWebPath(...segments: string[]): string {
 }
 
 /**
- * Saves the user's avatar under `public/uploads/avatars/{userId}/avatar.{ext}`.
- * Removes previous `avatar.*` files in that folder so extension changes do not leave orphans.
+ * Saves the user's avatar under `public/uploads/avatars/{userId}/avatar-{ts}.{ext}`.
+ * Removes previous avatar files in that folder so overwrites do not leave orphans
+ * and browsers do not keep showing a cached `avatar.jpg`.
  */
 export async function writeUserAvatarImage(userId: string, buffer: Buffer, ext: string): Promise<string> {
   const absDir = path.join(uploadsRoot(), "avatars", userId);
@@ -19,17 +20,18 @@ export async function writeUserAvatarImage(userId: string, buffer: Buffer, ext: 
   const entries = await readdir(absDir).catch(() => [] as string[]);
   await Promise.all(
     entries
-      .filter((f) => f.startsWith("avatar."))
+      .filter((f) => f.startsWith("avatar.") || f.startsWith("avatar-"))
       .map((f) => unlink(path.join(absDir, f)).catch(() => undefined))
   );
-  const fileName = `avatar.${ext}`;
+  const fileName = `avatar-${Date.now()}.${ext}`;
   await writeFile(path.join(absDir, fileName), buffer);
   return toWebPath("avatars", userId, fileName);
 }
 
 /**
- * Saves the user's profile cover under `public/uploads/avatars/{userId}/cover.{ext}`.
- * Removes previous `cover.*` files in that folder so extension changes do not leave orphans.
+ * Saves the user's profile cover under `public/uploads/avatars/{userId}/cover-{ts}.{ext}`.
+ * Removes previous `cover.*` / `cover-*` files so extension/path changes do not leave orphans
+ * and browsers refetch instead of showing a cached cover.
  */
 export async function writeUserCoverImage(userId: string, buffer: Buffer, ext: string): Promise<string> {
   const absDir = path.join(uploadsRoot(), "avatars", userId);
@@ -37,10 +39,10 @@ export async function writeUserCoverImage(userId: string, buffer: Buffer, ext: s
   const entries = await readdir(absDir).catch(() => [] as string[]);
   await Promise.all(
     entries
-      .filter((f) => f.startsWith("cover."))
+      .filter((f) => f.startsWith("cover.") || f.startsWith("cover-"))
       .map((f) => unlink(path.join(absDir, f)).catch(() => undefined))
   );
-  const fileName = `cover.${ext}`;
+  const fileName = `cover-${Date.now()}.${ext}`;
   await writeFile(path.join(absDir, fileName), buffer);
   return toWebPath("avatars", userId, fileName);
 }

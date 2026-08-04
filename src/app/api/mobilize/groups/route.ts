@@ -26,12 +26,15 @@ export async function GET(req: Request) {
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, profile_image_url, created_by, created_at, parent_group_id, schedule_meeting, enrollment_mode, last_activity_at, public_slug"
+      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, profile_image_url, created_by, created_at, parent_group_id, schedule_meeting, enrollment_mode, last_activity_at, public_slug, is_featured"
     )
     .order("created_at", { ascending: false });
 
   if (parentId) {
-    query = query.eq("parent_group_id", parentId);
+    // Own subgroups + featured groups (same row shown under every chapter).
+    query = query.or(
+      `parent_group_id.eq.${parentId},and(is_featured.eq.true,parent_group_id.not.is.null)`
+    );
   } else if (scope === "subgroups") {
     query = query.not("parent_group_id", "is", null);
   } else {
@@ -149,6 +152,8 @@ export async function POST(req: Request) {
     parent_group_id?: string | null;
     schedule_meeting?: string | null;
     enrollment_mode?: string;
+    is_featured?: boolean;
+    profile_image_url?: string | null;
   };
 
   const name = String(body.name ?? "").trim();
@@ -188,6 +193,10 @@ export async function POST(req: Request) {
     body.cover_image_url != null && String(body.cover_image_url).trim()
       ? String(body.cover_image_url).trim()
       : null;
+  const profileImage =
+    body.profile_image_url != null && String(body.profile_image_url).trim()
+      ? String(body.profile_image_url).trim()
+      : null;
 
   const enrollmentRaw = String(body.enrollment_mode ?? "").trim();
   const enrollment_mode =
@@ -204,6 +213,8 @@ export async function POST(req: Request) {
       ? String(body.schedule_meeting).trim()
       : null;
 
+  const is_featured = parent_group_id ? body.is_featured === true : false;
+
   const row = {
     name,
     group_type,
@@ -216,10 +227,12 @@ export async function POST(req: Request) {
     wall_post_policy,
     resources_post_policy,
     cover_image_url: cover,
+    profile_image_url: profileImage,
     created_by: auth.userId,
     parent_group_id,
     schedule_meeting: parent_group_id ? schedule_meeting : null,
     enrollment_mode: parent_group_id ? enrollment_mode : "request_to_join",
+    is_featured,
     last_activity_at: new Date().toISOString(),
   };
 
