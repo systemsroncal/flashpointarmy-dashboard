@@ -433,12 +433,6 @@ export function NationalOverview({
         icon: ShareOutlined,
       },
       {
-        label: "Invite shares",
-        value: stats.inviteShares ?? 0,
-        color: "#c026d3",
-        icon: ShareOutlined,
-      },
-      {
         label: "Started Missions",
         value: stats.peopleInMissions,
         color: "#06b6d4",
