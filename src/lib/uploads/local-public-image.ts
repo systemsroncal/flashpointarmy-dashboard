@@ -125,6 +125,15 @@ export async function writeMobilizeFeedAdImage(userId: string, buffer: Buffer, e
   return toWebPath("mobilize-feed-ads", userId, fileName);
 }
 
+/** Dashboard announcement PDFs under `public/uploads/announcement-pdfs/{userId}/{uuid}.pdf`. */
+export async function writeAnnouncementPdf(userId: string, buffer: Buffer): Promise<string> {
+  const absDir = path.join(uploadsRoot(), "announcement-pdfs", userId);
+  await mkdir(absDir, { recursive: true });
+  const fileName = `${randomUUID()}.pdf`;
+  await writeFile(path.join(absDir, fileName), buffer);
+  return toWebPath("announcement-pdfs", userId, fileName);
+}
+
 /** Mobilize group resource documents under `public/uploads/mobilize-resources/{groupId}/{userId}/{uuid}.{ext}`. */
 export async function writeMobilizeGroupResourceFile(
   groupId: string,

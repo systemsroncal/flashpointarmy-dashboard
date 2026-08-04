@@ -7,6 +7,10 @@ import {
   type AnnouncementTargetUser,
 } from "@/lib/dashboard/announcement-recipients";
 import { normalizeAnnouncementAudience, normalizeCtas } from "@/lib/dashboard/announcements-types";
+import {
+  normalizeAnnouncementPdfFileName,
+  normalizeAnnouncementPdfUrl,
+} from "@/lib/dashboard/announcement-pdf";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -51,6 +55,25 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     patch.expires_at =
       v === null || v === "" ? null : typeof v === "string" ? v : null;
   }
+  if (body.pdf_url !== undefined) {
+    if (body.pdf_url === null || body.pdf_url === "") {
+      patch.pdf_url = null;
+      patch.pdf_file_name = null;
+    } else {
+      const pdf_url = normalizeAnnouncementPdfUrl(body.pdf_url);
+      if (!pdf_url) {
+        return NextResponse.json(
+          { error: "PDF must be an https URL or an uploaded announcement PDF." },
+          { status: 400 }
+        );
+      }
+      patch.pdf_url = pdf_url;
+      patch.pdf_file_name =
+        normalizeAnnouncementPdfFileName(body.pdf_file_name) || "document.pdf";
+    }
+  } else if (body.pdf_file_name !== undefined && body.pdf_url === undefined) {
+    // ignore orphan name updates without url
+  }
 
   if (String(patch.title ?? "").length === 0 && body.title !== undefined) {
     return NextResponse.json({ error: "Title cannot be empty." }, { status: 400 });
@@ -73,7 +96,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     .update(patch)
     .eq("id", id)
     .select(
-      "id, title, description, expires_at, read_more_collapsed, audience, ctas, created_at, updated_at, created_by"
+      "id, title, description, expires_at, read_more_collapsed, audience, ctas, pdf_url, pdf_file_name, created_at, updated_at, created_by"
     )
     .maybeSingle();
 

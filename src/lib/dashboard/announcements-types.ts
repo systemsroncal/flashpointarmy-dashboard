@@ -49,6 +49,9 @@ export type DashboardAnnouncementRow = {
   read_more_collapsed: boolean;
   audience: AnnouncementAudience;
   ctas: AnnouncementCta[];
+  /** HTTPS or /uploads/announcement-pdfs/... */
+  pdf_url: string | null;
+  pdf_file_name: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;

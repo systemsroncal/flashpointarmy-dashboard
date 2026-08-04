@@ -10,6 +10,10 @@ import {
   normalizeAnnouncementAudience,
   normalizeCtas,
 } from "@/lib/dashboard/announcements-types";
+import {
+  normalizeAnnouncementPdfFileName,
+  normalizeAnnouncementPdfUrl,
+} from "@/lib/dashboard/announcement-pdf";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -32,7 +36,7 @@ export async function GET() {
   const { data: rows, error } = await supabase
     .from("dashboard_announcements")
     .select(
-      "id, title, description, expires_at, read_more_collapsed, audience, ctas, created_at, updated_at, created_by"
+      "id, title, description, expires_at, read_more_collapsed, audience, ctas, pdf_url, pdf_file_name, created_at, updated_at, created_by"
     )
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order("created_at", { ascending: false });
@@ -43,6 +47,8 @@ export async function GET() {
     ...r,
     audience: normalizeAnnouncementAudience((r as { audience?: unknown }).audience),
     ctas: normalizeCtas((r as { ctas?: unknown }).ctas),
+    pdf_url: ((r as { pdf_url?: string | null }).pdf_url ?? null) as string | null,
+    pdf_file_name: ((r as { pdf_file_name?: string | null }).pdf_file_name ?? null) as string | null,
   }));
 
   const ids = announcements.map((a) => a.id);
@@ -138,6 +144,19 @@ export async function POST(req: Request) {
   const ctas = normalizeCtas(body.ctas);
   const audience = normalizeAnnouncementAudience(body.audience);
   const targetUserIds = normalizeTargetUserIds(body.target_user_ids);
+  const pdf_url =
+    body.pdf_url === null || body.pdf_url === ""
+      ? null
+      : normalizeAnnouncementPdfUrl(body.pdf_url);
+  if (body.pdf_url !== undefined && body.pdf_url !== null && body.pdf_url !== "" && !pdf_url) {
+    return NextResponse.json(
+      { error: "PDF must be an https URL or an uploaded announcement PDF." },
+      { status: 400 }
+    );
+  }
+  const pdf_file_name = pdf_url
+    ? normalizeAnnouncementPdfFileName(body.pdf_file_name) || "document.pdf"
+    : null;
 
   if (audience === "specific_users" && targetUserIds.length === 0) {
     return NextResponse.json(
@@ -155,12 +174,14 @@ export async function POST(req: Request) {
       read_more_collapsed,
       audience,
       ctas,
+      pdf_url,
+      pdf_file_name,
       target_user_id: null,
       created_by: user.id,
       updated_at: new Date().toISOString(),
     })
     .select(
-      "id, title, description, expires_at, read_more_collapsed, audience, ctas, created_at, updated_at, created_by"
+      "id, title, description, expires_at, read_more_collapsed, audience, ctas, pdf_url, pdf_file_name, created_at, updated_at, created_by"
     )
     .single();
 

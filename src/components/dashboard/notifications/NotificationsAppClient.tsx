@@ -9,6 +9,11 @@ import {
   type AnnouncementListItem,
 } from "@/lib/dashboard/announcements-types";
 import { AnnouncementTargetUsersField } from "@/components/dashboard/notifications/AnnouncementTargetUsersField";
+import { InlinePdfPreview } from "@/components/dashboard/notifications/InlinePdfPreview";
+import {
+  ANNOUNCEMENT_PDF_MAX_BYTES,
+  normalizeAnnouncementPdfUrl,
+} from "@/lib/dashboard/announcement-pdf";
 import {
   getMissionUpdateSoundEnabled,
   setMissionUpdateSoundEnabled as persistMissionUpdateSoundEnabled,
@@ -26,12 +31,15 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import {
   Alert,
   Box,
   Button,
   Checkbox,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -51,7 +59,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const PREVIEW_CHARS = 240;
 
@@ -99,6 +107,10 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   const [useExpiry, setUseExpiry] = useState(false);
   const [expiresLocal, setExpiresLocal] = useState("");
   const [ctas, setCtas] = useState<AnnouncementCta[]>([]);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfFileName, setPdfFileName] = useState("");
+  const [pdfUploading, setPdfUploading] = useState(false);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const [confirmSaveEdit, setConfirmSaveEdit] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -136,6 +148,8 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setUseExpiry(false);
     setExpiresLocal("");
     setCtas([]);
+    setPdfUrl("");
+    setPdfFileName("");
     setDialogOpen(true);
   };
 
@@ -155,6 +169,8 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
       setExpiresLocal("");
     }
     setCtas(row.ctas?.length ? row.ctas.map((c) => ({ ...c })) : []);
+    setPdfUrl(row.pdf_url?.trim() ?? "");
+    setPdfFileName(row.pdf_file_name?.trim() ?? "");
     setDialogOpen(true);
   };
 
@@ -171,6 +187,10 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
       audience,
       target_user_ids: audience === "specific_users" ? targetUsers.map((u) => u.id) : [],
       expires_at: useExpiry ? fromLocalDatetimeValue(expiresLocal) : null,
+      pdf_url: pdfUrl.trim() ? normalizeAnnouncementPdfUrl(pdfUrl) : null,
+      pdf_file_name: pdfUrl.trim()
+        ? pdfFileName.trim() || "document.pdf"
+        : null,
       ctas: ctas
         .filter((c) => c.label.trim() && c.url.trim())
         .slice(0, 3)
@@ -182,8 +202,46 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
           text_color: c.text_color || "#ffffff",
         })),
     }),
-    [title, description, readMoreCollapsed, audience, targetUsers, useExpiry, expiresLocal, ctas]
+    [
+      title,
+      description,
+      readMoreCollapsed,
+      audience,
+      targetUsers,
+      useExpiry,
+      expiresLocal,
+      ctas,
+      pdfUrl,
+      pdfFileName,
+    ]
   );
+
+  async function uploadPdfFile(file: File) {
+    if (file.size > ANNOUNCEMENT_PDF_MAX_BYTES) {
+      setSnack({ message: "PDF must be 7 MB or smaller.", severity: "error" });
+      return;
+    }
+    setPdfUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/dashboard/announcements/pdf", { method: "POST", body: fd });
+      const data = (await res.json()) as {
+        error?: string;
+        pdf_url?: string;
+        pdf_file_name?: string;
+      };
+      if (!res.ok) throw new Error(data.error || "PDF upload failed.");
+      setPdfUrl(data.pdf_url ?? "");
+      setPdfFileName(data.pdf_file_name ?? file.name);
+      setSnack({ message: "PDF uploaded.", severity: "success" });
+    } catch (e) {
+      setSnack({ message: e instanceof Error ? e.message : "Upload failed.", severity: "error" });
+    } finally {
+      setPdfUploading(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+    }
+  }
 
   const performSave = async () => {
     if (!submitPayload.title) {
@@ -192,6 +250,13 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     }
     if (audience === "specific_users" && targetUsers.length === 0) {
       setSnack({ message: "Select at least one user.", severity: "error" });
+      return;
+    }
+    if (pdfUrl.trim() && !submitPayload.pdf_url) {
+      setSnack({
+        message: "PDF must be an https link or an uploaded file.",
+        severity: "error",
+      });
       return;
     }
     try {
@@ -455,6 +520,13 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                         ))}
                       </Stack>
                     ) : null}
+
+                    {row.pdf_url?.trim() ? (
+                      <InlinePdfPreview
+                        pdfUrl={row.pdf_url.trim()}
+                        fileName={row.pdf_file_name}
+                      />
+                    ) : null}
                   </Box>
                 </Stack>
 
@@ -567,6 +639,81 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
+            ) : null}
+
+            <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
+            <Typography variant="subtitle2" color="text.secondary">
+              PDF attachment (optional, max 7 MB)
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Paste an https PDF link or upload a file. Recipients preview it inside Notifications
+              (no new tab).
+            </Typography>
+            <TextField
+              size="small"
+              label="PDF link (https)"
+              value={pdfUrl}
+              onChange={(e) => {
+                setPdfUrl(e.target.value);
+                if (!pdfFileName.trim()) {
+                  const name = e.target.value.split("/").pop()?.split("?")[0] ?? "";
+                  if (name.toLowerCase().endsWith(".pdf")) setPdfFileName(decodeURIComponent(name));
+                }
+              }}
+              fullWidth
+              placeholder="https://example.com/file.pdf"
+            />
+            <TextField
+              size="small"
+              label="PDF display name"
+              value={pdfFileName}
+              onChange={(e) => setPdfFileName(e.target.value)}
+              fullWidth
+              disabled={!pdfUrl.trim()}
+            />
+            <input
+              ref={pdfInputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void uploadPdfFile(f);
+              }}
+            />
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Button
+                variant="outlined"
+                startIcon={
+                  pdfUploading ? <CircularProgress size={16} /> : <UploadFileOutlinedIcon />
+                }
+                disabled={pdfUploading}
+                onClick={() => pdfInputRef.current?.click()}
+                sx={{ textTransform: "none" }}
+              >
+                {pdfUploading ? "Uploading…" : "Upload PDF"}
+              </Button>
+              {pdfUrl.trim() ? (
+                <Button
+                  color="inherit"
+                  startIcon={<DeleteOutlineIcon />}
+                  onClick={() => {
+                    setPdfUrl("");
+                    setPdfFileName("");
+                  }}
+                  sx={{ textTransform: "none" }}
+                >
+                  Remove PDF
+                </Button>
+              ) : null}
+            </Stack>
+            {pdfUrl.trim() && normalizeAnnouncementPdfUrl(pdfUrl) ? (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <PictureAsPdfOutlinedIcon fontSize="small" color="primary" />
+                <Typography variant="caption" color="primary.light">
+                  {pdfFileName.trim() || "PDF ready"}
+                </Typography>
+              </Stack>
             ) : null}
 
             <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
