@@ -4,6 +4,7 @@ import {
   fileExtensionForKind,
   validateAvatarFile,
 } from "@/lib/upload/validate-image";
+import { fetchRemoteImageForUpload } from "@/lib/upload/fetch-remote-image";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { writeAnnouncementImage } from "@/lib/uploads/local-public-image";
 import { requireApiAuth } from "@/lib/auth/server-session";
@@ -24,6 +25,20 @@ export async function POST(req: Request) {
   }
 
   try {
+    const contentType = (req.headers.get("content-type") || "").toLowerCase();
+
+    // Paste / Image dialog: remote HTTPS URL → re-host on this server (VPS).
+    if (contentType.includes("application/json")) {
+      const body = (await req.json().catch(() => null)) as { url?: string } | null;
+      const url = typeof body?.url === "string" ? body.url.trim() : "";
+      if (!url) {
+        return NextResponse.json({ error: "Missing url." }, { status: 400 });
+      }
+      const { buffer, kind } = await fetchRemoteImageForUpload(url);
+      const location = await writeAnnouncementImage(user.id, buffer, fileExtensionForKind(kind));
+      return NextResponse.json({ ok: true, location });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file");
     if (!(file instanceof File)) {

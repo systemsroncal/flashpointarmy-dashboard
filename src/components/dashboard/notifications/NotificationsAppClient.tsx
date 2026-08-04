@@ -592,7 +592,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
               onChange={setDescription}
               videoEmbedButton
               imageUploadEndpoint="/api/dashboard/announcements/image"
-              helperText='Rich text (TinyMCE). Use Image to upload a file or paste an HTTPS image URL. Video: toolbar “Video” inserts [fpa_video]URL[/fpa_video]. Plyr plays YouTube, Vimeo, and direct MP4. Source: Code button.'
+              helperText='Rich text (TinyMCE). Images: upload, paste from desktop, or paste from another site — remote images are saved to this server. Video: “Video” inserts [fpa_video]URL[/fpa_video]. Source: Code button.'
             />
             {canManage ? (
               <FormControl fullWidth>

@@ -107,23 +107,107 @@ export function GatheringDescriptionEditor({
           file_picker_types: "image",
         }
       : {};
-    const registerVideo = (ed: {
+
+    type TinyEditor = {
       insertContent: (html: string) => void;
       ui: { registry: { addButton: (id: string, spec: { text: string; tooltip: string; onAction: () => void }) => void } };
       execCommand: (cmd: string) => void;
-    }) => {
-      onEditorInit?.(ed);
-      if (!videoEmbedButton) return;
-      ed.ui.registry.addButton("fplyrvideo", {
-        text: "Video",
-        tooltip: "Insert [fpa_video]…[/fpa_video] shortcode (Plyr: YouTube, Vimeo, MP4…)",
-        onAction: () => {
-          const raw = typeof window !== "undefined" ? window.prompt("Paste video URL (YouTube, Vimeo, or direct MP4):") : null;
-          if (!raw?.trim()) return;
-          const safe = raw.trim().replace(/\]/g, "%5D");
-          ed.insertContent(`<p>[fpa_video]${safe}[/fpa_video]</p><p><br></p>`);
-        },
+      getBody: () => HTMLElement;
+      dom: { select: (selector: string, scope?: HTMLElement) => HTMLElement[] };
+      on: (event: string, cb: (...args: unknown[]) => void) => void;
+      notificationManager?: { open: (spec: { text: string; type: string; timeout: number }) => void };
+    };
+
+    function needsRemoteImport(src: string): boolean {
+      const s = (src || "").trim();
+      if (!s || s.startsWith("data:") || s.startsWith("blob:")) return false;
+      if (s.startsWith("/uploads/")) return false;
+      try {
+        const u = new URL(s, typeof window !== "undefined" ? window.location.origin : "https://local.invalid");
+        if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+        if (typeof window !== "undefined" && u.origin === window.location.origin && u.pathname.startsWith("/uploads/")) {
+          return false;
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    async function importRemoteImageSrc(src: string): Promise<string | null> {
+      if (!imageUploadEndpoint) return null;
+      const res = await fetch(imageUploadEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: src }),
       });
+      const data = (await res.json().catch(() => ({}))) as { location?: string; error?: string };
+      if (!res.ok || !data.location) {
+        throw new Error(data.error || "Could not import image.");
+      }
+      return data.location;
+    }
+
+    function scheduleImportExternalImages(ed: TinyEditor) {
+      if (!imageUploadEndpoint) return;
+      window.setTimeout(() => {
+        void (async () => {
+          const imgs = ed.dom.select("img", ed.getBody()) as HTMLImageElement[];
+          for (const img of imgs) {
+            const src = img.getAttribute("src") || "";
+            if (!needsRemoteImport(src)) continue;
+            if (img.getAttribute("data-fpa-importing") === "1") continue;
+            img.setAttribute("data-fpa-importing", "1");
+            try {
+              const location = await importRemoteImageSrc(src);
+              if (location) {
+                img.setAttribute("src", location);
+                img.removeAttribute("data-mce-src");
+              }
+            } catch (err) {
+              ed.notificationManager?.open({
+                text: err instanceof Error ? err.message : "Could not import pasted image.",
+                type: "warning",
+                timeout: 5000,
+              });
+            } finally {
+              img.removeAttribute("data-fpa-importing");
+            }
+          }
+        })();
+      }, 0);
+    }
+
+    const registerEditorExtras = (ed: TinyEditor) => {
+      onEditorInit?.(ed);
+      if (videoEmbedButton) {
+        ed.ui.registry.addButton("fplyrvideo", {
+          text: "Video",
+          tooltip: "Insert [fpa_video]…[/fpa_video] shortcode (Plyr: YouTube, Vimeo, MP4…)",
+          onAction: () => {
+            const raw = typeof window !== "undefined" ? window.prompt("Paste video URL (YouTube, Vimeo, or direct MP4):") : null;
+            if (!raw?.trim()) return;
+            const safe = raw.trim().replace(/\]/g, "%5D");
+            ed.insertContent(`<p>[fpa_video]${safe}[/fpa_video]</p><p><br></p>`);
+          },
+        });
+      }
+      if (imageUploadEndpoint) {
+        ed.on("init", () => scheduleImportExternalImages(ed));
+        ed.on("PastePostProcess", () => scheduleImportExternalImages(ed));
+        ed.on("ExecCommand", (...args: unknown[]) => {
+          const e = args[0] as { command?: string } | undefined;
+          const cmd = e?.command || "";
+          if (cmd === "mceUpdateImage" || cmd === "mceInsertContent" || cmd === "InsertImage") {
+            scheduleImportExternalImages(ed);
+          }
+        });
+        ed.on("SetContent", (...args: unknown[]) => {
+          const e = args[0] as { initial?: boolean; paste?: boolean } | undefined;
+          if (e?.initial) return;
+          scheduleImportExternalImages(ed);
+        });
+      }
     };
     if (isSocial) {
       const socialBodyStyle = socialDark
@@ -150,7 +234,7 @@ export function GatheringDescriptionEditor({
         relative_urls: false,
         convert_urls: true,
         content_style: socialBodyStyle,
-        setup: registerVideo,
+        setup: registerEditorExtras,
         ...socialChrome,
       };
     }
@@ -172,7 +256,7 @@ export function GatheringDescriptionEditor({
         relative_urls: false,
         convert_urls: true,
         content_style: lightBodyStyle,
-        setup: registerVideo,
+        setup: registerEditorExtras,
         ...videoSchema,
         ...imageUploadConfig,
         ...darkChrome,
@@ -213,7 +297,7 @@ export function GatheringDescriptionEditor({
       content_style: darkSurface
         ? 'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.5; background-color: #121212; color: #f5f5f5; } p { color: #f5f5f5; }'
         : 'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.5; }',
-      setup: registerVideo,
+      setup: registerEditorExtras,
       ...videoSchema,
       ...imageUploadConfig,
       ...darkChrome,
