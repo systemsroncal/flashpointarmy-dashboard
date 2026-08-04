@@ -10,6 +10,7 @@ import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import GroupWorkOutlined from "@mui/icons-material/GroupWorkOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
+import ShareOutlined from "@mui/icons-material/ShareOutlined";
 import { Box, Card, CardContent, Paper, Typography } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -60,18 +61,26 @@ const UsaChapterActivityMap = dynamic(
 
 type ChapterRow = { id: string; name: string; state: string; status?: string | null };
 
+const US_NATIONAL_FLAG_SRC =
+  "https://upload.wikimedia.org/wikipedia/commons/a/a4/Flag_of_the_United_States.svg";
+
 const drawerLikeScrollbarSx = {
   scrollbarWidth: "thin" as const,
-  scrollbarColor: "rgba(255,215,0,0.22) rgba(0,0,0,0.35)",
-  "&::-webkit-scrollbar": { width: 6 },
+  scrollbarColor: "rgba(255,215,0,0.18) transparent",
+  "&::-webkit-scrollbar": { width: 5 },
   "&::-webkit-scrollbar-thumb": {
-    backgroundColor: "rgba(255,215,0,0.16)",
-    borderRadius: 3,
-    border: "1px solid rgba(0,0,0,0.2)",
+    backgroundColor: "rgba(255,215,0,0.14)",
+    borderRadius: 8,
+    border: "1px solid transparent",
+    backgroundClip: "padding-box",
+  },
+  "&::-webkit-scrollbar-thumb:hover": {
+    backgroundColor: "rgba(255,215,0,0.28)",
   },
   "&::-webkit-scrollbar-track": {
-    backgroundColor: "rgba(0,0,0,0.28)",
+    backgroundColor: "transparent",
   },
+  "&::-webkit-scrollbar-corner": { background: "transparent" },
 } as const;
 
 export function NationalOverview({
@@ -418,6 +427,18 @@ export function NationalOverview({
 
     cards.push(
       {
+        label: "People shared",
+        value: stats.inviteSharers ?? 0,
+        color: "#a855f7",
+        icon: ShareOutlined,
+      },
+      {
+        label: "Invite shares",
+        value: stats.inviteShares ?? 0,
+        color: "#c026d3",
+        icon: ShareOutlined,
+      },
+      {
         label: "Started Missions",
         value: stats.peopleInMissions,
         color: "#06b6d4",
@@ -518,26 +539,6 @@ export function NationalOverview({
                         }}
                       >
                         <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
-                        {"pulse" in s && s.pulse ? (
-                          <Box
-                            sx={{
-                              position: "absolute",
-                              top: -3,
-                              right: -3,
-                              width: 10,
-                              height: 10,
-                              borderRadius: "50%",
-                              bgcolor: "#ef4444",
-                              boxShadow: "0 0 8px #ef4444",
-                              animation: "fpPulse 1.5s ease-in-out infinite",
-                              "@keyframes fpPulse": {
-                                "0%, 100%": { opacity: 1 },
-                                "50%": { opacity: 0.35 },
-                              },
-                              display: { xs: "block", sm: "none" },
-                            }}
-                          />
-                        ) : null}
                       </Box>
                       {"pulse" in s && s.pulse ? (
                         <Box
@@ -554,6 +555,7 @@ export function NationalOverview({
                               "50%": { opacity: 0.35 },
                             },
                             display: { xs: "none", sm: "block" },
+                            flexShrink: 0,
                           }}
                         />
                       ) : null}
@@ -583,6 +585,25 @@ export function NationalOverview({
                         {s.label}
                       </Typography>
                     </Box>
+                    {"pulse" in s && s.pulse ? (
+                      <Box
+                        sx={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          bgcolor: "#ef4444",
+                          boxShadow: "0 0 8px #ef4444",
+                          animation: "fpPulse 1.5s ease-in-out infinite",
+                          "@keyframes fpPulse": {
+                            "0%, 100%": { opacity: 1 },
+                            "50%": { opacity: 0.35 },
+                          },
+                          display: { xs: "block", sm: "none" },
+                          flexShrink: 0,
+                          alignSelf: "center",
+                        }}
+                      />
+                    ) : null}
                   </Box>
                 </CardContent>
               </Card>
@@ -595,9 +616,32 @@ export function NationalOverview({
         <Box ref={mapColumnRef} sx={{ flex: "1 1 380px", minWidth: 280 }}>
           {memberOnboarding ? <MemberOnboardingProgressCard snapshot={memberOnboarding} /> : null}
           <Paper ref={mapSectionRef} sx={{ p: 2, bgcolor: "rgba(0,0,0,0.4)", scrollMarginTop: 72 }}>
-            <Typography variant="h6" sx={{ mb: 1, color: "primary.main" }}>
-              Live chapter activity map
-            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                mb: 1,
+              }}
+            >
+              <Box
+                component="img"
+                src={US_NATIONAL_FLAG_SRC}
+                alt=""
+                aria-hidden
+                sx={{
+                  width: 28,
+                  height: 18,
+                  objectFit: "cover",
+                  borderRadius: 0.5,
+                  flexShrink: 0,
+                  boxShadow: "0 0 0 1px rgba(255,255,255,0.12)",
+                }}
+              />
+              <Typography variant="h6" sx={{ color: "primary.main", lineHeight: 1.25 }}>
+                FlashPoint Army Across America
+              </Typography>
+            </Box>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
               Click a state for statistics. Drag to pan, scroll or use +/− to zoom.
             </Typography>
@@ -678,7 +722,9 @@ export function NationalOverview({
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              minHeight: { xs: 360, md: 0 },
+              height: { xs: 480, md: "auto" },
+              minHeight: { xs: 480, md: 0 },
+              maxHeight: { xs: 480, md: "none" },
               overflow: "hidden",
             }}
           >

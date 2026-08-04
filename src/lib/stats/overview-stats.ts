@@ -13,6 +13,10 @@ export type OverviewStatBlock = {
   mobilizeGroups: number;
   /** Users with Missions started = Yes (same as Journey Progress). */
   peopleInMissions: number;
+  /** Distinct people who shared the invite (social or copy). */
+  inviteSharers: number;
+  /** Total invite share button/copy presses. */
+  inviteShares: number;
 };
 
 export function normalizeStateCode(state: string | null | undefined): string | null {
@@ -73,6 +77,38 @@ async function countMobilizeChapterGroups(supabase: SupabaseClient): Promise<num
 /** Same “Missions started = Yes” set as /dashboard/onboarding/journey-progress. */
 async function countStartedMissions(supabase: SupabaseClient): Promise<number> {
   return countDashboardUsersMissionsStarted(supabase);
+}
+
+async function countInviteShareMetrics(
+  supabase: SupabaseClient
+): Promise<{ inviteSharers: number; inviteShares: number }> {
+  const { count: inviteShares, error: shareErr } = await supabase
+    .from("invite_share_events")
+    .select("id", { count: "exact", head: true });
+  if (shareErr) {
+    // Fallback while migration 079 is pending: community_activity member_invite rows.
+    const { data: rows } = await supabase
+      .from("community_activity")
+      .select("actor_user_id")
+      .eq("feed_category", "member_invite");
+    const actors = new Set(
+      (rows ?? [])
+        .map((r) => (r as { actor_user_id?: string | null }).actor_user_id)
+        .filter((id): id is string => Boolean(id))
+    );
+    return { inviteSharers: actors.size, inviteShares: rows?.length ?? 0 };
+  }
+
+  const { data: userRows, error: usersErr } = await supabase
+    .from("invite_share_events")
+    .select("user_id");
+  if (usersErr) {
+    return { inviteSharers: 0, inviteShares: inviteShares ?? 0 };
+  }
+  const inviteSharers = new Set(
+    (userRows ?? []).map((r) => (r as { user_id: string }).user_id)
+  ).size;
+  return { inviteSharers, inviteShares: inviteShares ?? 0 };
 }
 
 export async function loadOverviewStats(
@@ -176,9 +212,14 @@ export async function loadOverviewStats(
 
   let mobilizeGroups = 0;
   let peopleInMissions = 0;
+  let inviteSharers = 0;
+  let inviteShares = 0;
   if (!stateFilter) {
     mobilizeGroups = await countMobilizeChapterGroups(agg);
     peopleInMissions = await countStartedMissions(agg);
+    const inviteMetrics = await countInviteShareMetrics(agg);
+    inviteSharers = inviteMetrics.inviteSharers;
+    inviteShares = inviteMetrics.inviteShares;
   }
 
   const ref = opts.referenceAddition;
@@ -196,6 +237,8 @@ export async function loadOverviewStats(
     happeningNow: happeningNow ?? 0,
     mobilizeGroups,
     peopleInMissions,
+    inviteSharers,
+    inviteShares,
   };
 }
 

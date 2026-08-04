@@ -27,6 +27,24 @@ export async function writeUserAvatarImage(userId: string, buffer: Buffer, ext: 
   return toWebPath("avatars", userId, fileName);
 }
 
+/**
+ * Saves the user's profile cover under `public/uploads/avatars/{userId}/cover.{ext}`.
+ * Removes previous `cover.*` files in that folder so extension changes do not leave orphans.
+ */
+export async function writeUserCoverImage(userId: string, buffer: Buffer, ext: string): Promise<string> {
+  const absDir = path.join(uploadsRoot(), "avatars", userId);
+  await mkdir(absDir, { recursive: true });
+  const entries = await readdir(absDir).catch(() => [] as string[]);
+  await Promise.all(
+    entries
+      .filter((f) => f.startsWith("cover."))
+      .map((f) => unlink(path.join(absDir, f)).catch(() => undefined))
+  );
+  const fileName = `cover.${ext}`;
+  await writeFile(path.join(absDir, fileName), buffer);
+  return toWebPath("avatars", userId, fileName);
+}
+
 /** Saves a gathering image under `public/uploads/gatherings/{userId}/{uuid}.{ext}`. */
 export async function writeGatheringImage(userId: string, buffer: Buffer, ext: string): Promise<string> {
   const absDir = path.join(uploadsRoot(), "gatherings", userId);

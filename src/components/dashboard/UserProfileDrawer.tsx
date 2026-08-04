@@ -5,6 +5,7 @@ import { CourseGraduateBadge } from "@/components/dashboard/training/CourseGradu
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { validateAvatarFile } from "@/lib/upload/validate-image";
+import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { usStateByCode } from "@/data/usStates";
 import { flashpointYellow } from "@/theme/tokens";
@@ -36,14 +37,12 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
-const PROFILE_COVER_URL =
-  "https://fparmychapters.com/wp-content/uploads/2026/07/image-cover-profile-right-scaled.jpg";
-
 type ProfileRow = {
   first_name: string | null;
   last_name: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  cover_url: string | null;
   phone: string | null;
   address_line: string | null;
   city: string | null;
@@ -117,10 +116,14 @@ export function UserProfileDrawer({
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarNonce, setAvatarNonce] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [coverUrl, setCoverUrl] = useState("");
+  const [coverNonce, setCoverNonce] = useState(0);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [groupsCount, setGroupsCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -130,7 +133,7 @@ export function UserProfileDrawer({
       supabase
         .from("profiles")
         .select(
-          "first_name, last_name, display_name, avatar_url, phone, address_line, city, state, zip_code, date_of_birth, gender"
+          "first_name, last_name, display_name, avatar_url, cover_url, phone, address_line, city, state, zip_code, date_of_birth, gender"
         )
         .eq("id", du.id)
         .maybeSingle(),
@@ -158,6 +161,7 @@ export function UserProfileDrawer({
     setDateOfBirth(row?.date_of_birth?.slice(0, 10) ?? "");
     setGender(row?.gender === "male" || row?.gender === "female" ? row.gender : "");
     setAvatarUrl(row?.avatar_url ?? "");
+    setCoverUrl(row?.cover_url ?? "");
     setGroupsCount(groupsRes.count ?? 0);
   }, [du.display_name, du.first_name, du.id, du.last_name, du.phone]);
 
@@ -279,6 +283,32 @@ export function UserProfileDrawer({
     }
   }
 
+  async function uploadCoverFile(file: File) {
+    const v = validateAvatarFile(file);
+    if (v) {
+      setError(v.error);
+      return;
+    }
+    setError(null);
+    setCoverUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/profile/cover", { method: "POST", body: fd });
+      const data = (await res.json()) as { error?: string; cover_url?: string };
+      if (!res.ok) {
+        setError(data.error || "Cover upload failed.");
+        return;
+      }
+      if (data.cover_url) setCoverUrl(data.cover_url);
+      setCoverNonce(Date.now());
+      router.refresh();
+    } finally {
+      setCoverUploading(false);
+      if (coverInputRef.current) coverInputRef.current.value = "";
+    }
+  }
+
   async function clearAvatar() {
     setError(null);
     setAvatarUploading(true);
@@ -320,6 +350,12 @@ export function UserProfileDrawer({
   const avatarSrc = avatarUrl.trim()
     ? `${publicAssetSrc(avatarUrl.trim())}${avatarUrl.includes("?") ? "&" : "?"}v=${avatarNonce || "1"}`
     : undefined;
+
+  const coverSrc = (() => {
+    const resolved = resolveProfileCoverUrl(coverUrl);
+    if (!coverUrl.trim()) return resolved;
+    return `${publicAssetSrc(coverUrl.trim())}${coverUrl.includes("?") ? "&" : "?"}v=${coverNonce || "1"}`;
+  })();
 
   const addressLine = useMemo(() => {
     const parts = [
@@ -387,11 +423,39 @@ export function UserProfileDrawer({
                 <Box
                   sx={{
                     height: { xs: 168, sm: 188 },
-                    backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(20,20,22,0.55) 100%), url(${PROFILE_COVER_URL})`,
+                    backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(20,20,22,0.55) 100%), url(${coverSrc})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }}
                 />
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadCoverFile(f);
+                  }}
+                />
+                <Tooltip title="Change cover photo">
+                  <IconButton
+                    aria-label="Change cover photo"
+                    disabled={coverUploading || saving}
+                    onClick={() => coverInputRef.current?.click()}
+                    sx={{
+                      position: "absolute",
+                      top: 10,
+                      right: 10,
+                      bgcolor: "rgba(0,0,0,0.55)",
+                      color: "#fff",
+                      "&:hover": { bgcolor: "rgba(0,0,0,0.72)" },
+                    }}
+                    size="small"
+                  >
+                    {coverUploading ? <CircularProgress size={16} color="inherit" /> : <EditOutlinedIcon fontSize="small" />}
+                  </IconButton>
+                </Tooltip>
 
                 <input
                   ref={fileInputRef}

@@ -16,7 +16,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     await Promise.all([
     auth.admin
       .from("profiles")
-      .select("id, display_name, first_name, last_name, avatar_url, bio, profile_visibility, created_at, city, state")
+      .select("id, display_name, first_name, last_name, avatar_url, cover_url, bio, profile_visibility, created_at, city, state")
       .eq("id", userId)
       .maybeSingle(),
     resolveMobilizeAuthors(auth.admin, [userId]),
@@ -43,6 +43,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({
       profile: {
         ...author,
+        cover_url: (profile.cover_url as string | null) ?? null,
         bio: null,
         profile_visibility: visibility,
         city: null,
@@ -63,6 +64,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   return NextResponse.json({
     profile: {
       ...author,
+      cover_url: (profile.cover_url as string | null) ?? null,
       bio: (profile.bio as string | null) ?? null,
       profile_visibility: visibility,
       city: (profile.city as string | null) ?? null,

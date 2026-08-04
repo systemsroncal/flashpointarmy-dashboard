@@ -85,6 +85,15 @@ export async function insertInviteShareActivity(args: {
   userId: string;
   channel: InviteShareChannel;
 }): Promise<void> {
+  const { error: trackErr } = await args.supabase.from("invite_share_events").insert({
+    user_id: args.userId,
+    channel: args.channel,
+  });
+  // If migration 079 is not applied yet, still write the feed event.
+  if (trackErr && !/relation .*invite_share_events.* does not exist|Could not find the table/i.test(trackErr.message)) {
+    throw new Error(trackErr.message);
+  }
+
   const { first, last, email } = await loadUserDisplay(args.supabase, args.userId);
   const who = displayHandle(first, last, email);
   const state = await chapterStateFromProfile(args.supabase, args.userId);

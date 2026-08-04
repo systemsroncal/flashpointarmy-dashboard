@@ -16,12 +16,16 @@ import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface"
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import { validateAvatarFile } from "@/lib/upload/validate-image";
+import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   CircularProgress,
@@ -38,10 +42,8 @@ import {
   Typography,
 } from "@mui/material";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-
-const PROFILE_COVER =
-  "https://fparmychapters.com/wp-content/uploads/2026/07/image-cover-profile-right-scaled.jpg";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const VISITOR_PROFILE_TABS = [
   { id: "posts", label: "Posts" },
@@ -58,6 +60,7 @@ type ProfilePayload = {
   display_name: string;
   handle: string;
   avatar_url: string | null;
+  cover_url: string | null;
   bio: string | null;
   profile_visibility: "public" | "private";
   city: string | null;
@@ -106,6 +109,7 @@ function formatHandle(handle: string) {
 }
 
 export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
+  const router = useRouter();
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
   const [posts, setPosts] = useState<ProfilePost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +126,9 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [savingSettings, setSavingSettings] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [unfollowConfirmOpen, setUnfollowConfirmOpen] = useState(false);
+  const [mediaUploading, setMediaUploading] = useState<"avatar" | "cover" | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
@@ -292,6 +299,47 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     }
   }
 
+  async function uploadProfileMedia(kind: "avatar" | "cover", file: File) {
+    const v = validateAvatarFile(file);
+    if (v) {
+      setError(v.error);
+      return;
+    }
+    setMediaUploading(kind);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(kind === "avatar" ? "/api/profile/avatar" : "/api/profile/cover", {
+        method: "POST",
+        body: fd,
+      });
+      const json = (await res.json()) as {
+        error?: string;
+        avatar_url?: string;
+        cover_url?: string;
+      };
+      if (!res.ok) throw new Error(json.error || "Upload failed.");
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              avatar_url: kind === "avatar" ? json.avatar_url ?? prev.avatar_url : prev.avatar_url,
+              cover_url: kind === "cover" ? json.cover_url ?? prev.cover_url : prev.cover_url,
+            }
+          : prev
+      );
+      router.refresh();
+      await load({ silent: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setMediaUploading(null);
+      if (kind === "avatar" && avatarInputRef.current) avatarInputRef.current.value = "";
+      if (kind === "cover" && coverInputRef.current) coverInputRef.current.value = "";
+    }
+  }
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -317,6 +365,13 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const handleLabel = formatHandle(p.handle);
   const locationLabel = [p.city, p.state].filter(Boolean).join(", ");
   const locked = Boolean(p.is_private_locked);
+  const coverSrc = resolveProfileCoverUrl(p.cover_url);
+  const coverDisplaySrc = p.cover_url?.trim()
+    ? publicAssetSrc(p.cover_url.trim())
+    : coverSrc;
+  const avatarDisplaySrc = p.avatar_url?.trim()
+    ? publicAssetSrc(p.avatar_url.trim())
+    : undefined;
 
   const headerActions = p.is_own_profile ? (
     <Button
@@ -634,7 +689,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         <MobilizeSocialHubContent tone="light">
           <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", p: { xs: 1, sm: 1.5 } }}>
           <MobilizeProfilePageShell
-        coverSrc={PROFILE_COVER}
+        coverSrc={coverDisplaySrc}
         title={p.display_name}
         subtitle={handleLabel}
         meta={profileMeta}
@@ -657,10 +712,114 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         </MobilizeSocialHubContent>
       </MobilizeSocialHubLayout>
 
-      <MobilizeDialog open={editOpen} onClose={() => !savingSettings && setEditOpen(false)} fullWidth maxWidth="sm">
+      <MobilizeDialog
+        open={editOpen}
+        onClose={() => !savingSettings && !mediaUploading && setEditOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Edit profile</DialogTitle>
         <DialogContent>
-          <FormControl sx={{ mt: 1, width: "100%" }}>
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void uploadProfileMedia("cover", f);
+            }}
+          />
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void uploadProfileMedia("avatar", f);
+            }}
+          />
+
+          <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden", mt: 1 }}>
+            <Box
+              sx={{
+                height: 140,
+                backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%), url(${coverDisplaySrc})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={
+                mediaUploading === "cover" ? (
+                  <CircularProgress size={14} color="inherit" />
+                ) : (
+                  <PhotoCameraOutlinedIcon fontSize="small" />
+                )
+              }
+              disabled={Boolean(mediaUploading) || savingSettings}
+              onClick={() => coverInputRef.current?.click()}
+              sx={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                textTransform: "none",
+                bgcolor: "rgba(0,0,0,0.65)",
+                "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
+              }}
+            >
+              Change cover
+            </Button>
+            <Box
+              sx={{
+                position: "absolute",
+                left: 16,
+                bottom: -28,
+                display: "flex",
+                alignItems: "flex-end",
+                gap: 1,
+              }}
+            >
+              <Avatar
+                src={avatarDisplaySrc}
+                sx={{
+                  width: 72,
+                  height: 72,
+                  border: "3px solid #fff",
+                  bgcolor: "primary.dark",
+                  fontWeight: 700,
+                }}
+              >
+                {p.display_name.slice(0, 2).toUpperCase()}
+              </Avatar>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={
+                  mediaUploading === "avatar" ? (
+                    <CircularProgress size={14} />
+                  ) : (
+                    <PhotoCameraOutlinedIcon fontSize="small" />
+                  )
+                }
+                disabled={Boolean(mediaUploading) || savingSettings}
+                onClick={() => avatarInputRef.current?.click()}
+                sx={{
+                  mb: 0.5,
+                  textTransform: "none",
+                  bgcolor: "#fff",
+                  borderColor: "rgba(0,0,0,0.2)",
+                }}
+              >
+                Change photo
+              </Button>
+            </Box>
+          </Box>
+
+          <FormControl sx={{ mt: 5.5, width: "100%" }}>
             <RadioGroup
               value={visibility}
               onChange={(_, v) => setVisibility(v as "public" | "private")}
@@ -699,12 +858,15 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditOpen(false)} disabled={savingSettings}>
+          <Button
+            onClick={() => setEditOpen(false)}
+            disabled={savingSettings || Boolean(mediaUploading)}
+          >
             Cancel
           </Button>
           <Button
             variant="contained"
-            disabled={savingSettings}
+            disabled={savingSettings || Boolean(mediaUploading)}
             onClick={() => {
               void saveSettings().then((ok) => {
                 if (ok) setEditOpen(false);

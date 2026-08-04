@@ -71,6 +71,8 @@ export default async function DashboardHomeContent() {
       happeningNow: 0,
       mobilizeGroups: 0,
       peopleInMissions: 0,
+      inviteSharers: 0,
+      inviteShares: 0,
     };
   }
 
