@@ -150,7 +150,12 @@ export function MobilizeOwnerHomeClient() {
                 <CircularProgress size={28} sx={{ color: TRUTH_HUB_TEXT_MUTED }} />
               </Box>
             ) : (
-              <StackFeed posts={posts} empty={empty} />
+              <StackFeed
+                posts={posts}
+                empty={empty}
+                viewerAvatarUrl={me.avatar_url}
+                viewerDisplayName={me.display_name ?? me.email}
+              />
             )}
           </Box>
         </MobilizeSocialHubContent>
@@ -162,9 +167,13 @@ export function MobilizeOwnerHomeClient() {
 function StackFeed({
   posts,
   empty,
+  viewerAvatarUrl,
+  viewerDisplayName,
 }: {
   posts: UnifiedFeedPost[];
   empty: { title: string; description: string };
+  viewerAvatarUrl?: string | null;
+  viewerDisplayName?: string | null;
 }) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column" }}>
@@ -190,6 +199,8 @@ function StackFeed({
             reactionUrl={reactionUrl}
             showGroupBadge
             surface="dark"
+            viewerAvatarUrl={viewerAvatarUrl}
+            viewerDisplayName={viewerDisplayName}
           />
         );
       })}

@@ -260,6 +260,12 @@ export async function loadStatePopupStats(supabase: SupabaseClient, stateCode: s
     .eq("name", "member")
     .maybeSingle();
 
+  const { data: localLeaderRole } = await supabase
+    .from("roles")
+    .select("id")
+    .eq("name", "local_leader")
+    .maybeSingle();
+
   let members = 0;
   let localLeaders = 0;
 
@@ -279,11 +285,25 @@ export async function loadStatePopupStats(supabase: SupabaseClient, stateCode: s
       members = new Set((ur ?? []).map((r: { user_id: string }) => r.user_id)).size;
     }
 
+    const leaderIds = new Set<string>();
     const { data: cl } = await supabase
       .from("chapter_leaders")
       .select("user_id")
       .in("chapter_id", chapterIds);
-    localLeaders = new Set((cl ?? []).map((r: { user_id: string }) => r.user_id)).size;
+    for (const r of cl ?? []) {
+      if (r.user_id) leaderIds.add(r.user_id as string);
+    }
+    if (userIds.length > 0 && localLeaderRole) {
+      const { data: ll } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role_id", localLeaderRole.id as string)
+        .in("user_id", userIds);
+      for (const r of ll ?? []) {
+        if (r.user_id) leaderIds.add(r.user_id as string);
+      }
+    }
+    localLeaders = leaderIds.size;
   }
 
   // National upcoming FPA events (not filtered by state).

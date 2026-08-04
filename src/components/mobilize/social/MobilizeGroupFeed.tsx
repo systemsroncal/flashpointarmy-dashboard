@@ -162,6 +162,8 @@ export function MobilizeGroupFeed({
                 showGroupBadge={false}
                 layout={embedded ? "groupFeedCard" : "card"}
                 authorRoleLabel={authorRoleLabels?.[m.author.id]}
+                viewerAvatarUrl={me.avatar_url}
+                viewerDisplayName={me.display_name ?? me.email}
                 manageActions={
                   canManage || canPinPost ? (
                     <Stack direction="row" spacing={0.25}>

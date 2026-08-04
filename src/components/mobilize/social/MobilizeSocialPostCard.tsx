@@ -38,6 +38,8 @@ type Props = {
   /** Inline row inside a shared group feed card (divider between posts). */
   layout?: "card" | "groupFeedList" | "groupFeedCard";
   authorRoleLabel?: string;
+  viewerAvatarUrl?: string | null;
+  viewerDisplayName?: string | null;
 };
 
 export function MobilizeSocialPostCard({
@@ -51,6 +53,8 @@ export function MobilizeSocialPostCard({
   surface = "light",
   layout = "card",
   authorRoleLabel,
+  viewerAvatarUrl,
+  viewerDisplayName,
 }: Props) {
   const isDark = surface === "dark";
   const isGroupFeedList = layout === "groupFeedList";
@@ -216,6 +220,8 @@ export function MobilizeSocialPostCard({
           commentReactionUrl={commentConfig.commentReactionUrl}
           onCountChange={setCommentCount}
           tone={surface}
+          viewerAvatarUrl={viewerAvatarUrl}
+          viewerDisplayName={viewerDisplayName}
         />
       </CardContent>
     </Card>

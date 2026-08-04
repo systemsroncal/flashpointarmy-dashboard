@@ -11,6 +11,7 @@ import {
   feedPostReactionUrl,
 } from "@/lib/mobilize/social/feed-post-urls";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { Avatar, Box, Button, CircularProgress, Typography } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -103,6 +104,7 @@ function RecommendedUserRow({
 }
 
 export function MobilizeHomeFeedClient() {
+  const me = useDashboardUser();
   const [posts, setPosts] = useState<UnifiedFeedPost[]>([]);
   const [recommendations, setRecommendations] = useState<RecommendedUser[]>([]);
   const [mode, setMode] = useState<"following" | "recommended">("following");
@@ -191,6 +193,8 @@ export function MobilizeHomeFeedClient() {
                 commentConfig={commentConfig}
                 reactionUrl={reactionUrl}
                 showGroupBadge
+                viewerAvatarUrl={me.avatar_url}
+                viewerDisplayName={me.display_name ?? me.email}
               />
             );
           })}

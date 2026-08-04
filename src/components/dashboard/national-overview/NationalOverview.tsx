@@ -5,7 +5,6 @@ import { loadStatePopupStats } from "@/lib/stats/overview-stats";
 import { createClient } from "@/utils/supabase/client";
 import AssignmentIndOutlined from "@mui/icons-material/AssignmentIndOutlined";
 import BoltOutlined from "@mui/icons-material/BoltOutlined";
-import CheckCircleOutline from "@mui/icons-material/CheckCircleOutline";
 import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import GroupWorkOutlined from "@mui/icons-material/GroupWorkOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
@@ -386,12 +385,6 @@ export function NationalOverview({
         color: "#3b82f6",
         icon: PlaceOutlined,
       },
-      {
-        label: "FPA Live Events",
-        value: stats.communityGatherings,
-        color: "#22c55e",
-        icon: CheckCircleOutline,
-      },
     ];
 
     if (memberLeaderOnly) {
@@ -431,7 +424,7 @@ export function NationalOverview({
       cards.push({
         label: "People shared",
         value: stats.inviteSharers ?? 0,
-        color: "#a855f7",
+        color: "#22c55e",
         icon: ShareOutlined,
       });
     }

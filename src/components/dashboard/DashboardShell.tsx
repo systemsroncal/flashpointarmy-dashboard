@@ -31,6 +31,7 @@ import EmailIcon from "@mui/icons-material/Email";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import SettingsIcon from "@mui/icons-material/Settings";
 import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
   AppBar,
   Box,
@@ -45,6 +46,7 @@ import {
   ListItemIcon,
   ListItemText,
   Toolbar,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -90,6 +92,7 @@ import { SidebarNestedNavList } from "./SidebarNestedNavList";
 import { TrainingNavSubmenu } from "@/components/dashboard/training/TrainingNavSubmenu";
 import {
   AvatarWithGraduateIcon,
+  CourseGraduateBadge,
   CourseGraduateCongratulationsDialog,
 } from "@/components/dashboard/training/CourseGraduateBadge";
 import { UserProfileDrawer } from "./UserProfileDrawer";
@@ -1195,6 +1198,40 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <Typography variant="caption" color="text.secondary" display="block" noWrap>
               {user.email}
             </Typography>
+            {user.training_graduate_badge ? (
+              <Box
+                sx={{ mt: 0.65, display: "flex", alignItems: "center", gap: 0.35 }}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <Box
+                  component="button"
+                  type="button"
+                  onClick={() => setGraduateCongratsOpen(true)}
+                  sx={{
+                    p: 0,
+                    border: "none",
+                    bgcolor: "transparent",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    lineHeight: 0,
+                  }}
+                  aria-label="View course completion"
+                >
+                  <CourseGraduateBadge role={user.training_graduate_badge} size="compact" />
+                </Box>
+                <Tooltip title="About this badge">
+                  <IconButton
+                    size="small"
+                    onClick={() => setGraduateCongratsOpen(true)}
+                    aria-label="Badge information"
+                    sx={{ color: "rgba(255,255,255,0.7)", p: 0.2 }}
+                  >
+                    <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            ) : null}
           </Box>
         </Box>
         </Box>

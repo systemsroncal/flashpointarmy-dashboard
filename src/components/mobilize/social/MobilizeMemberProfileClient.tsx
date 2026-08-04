@@ -7,6 +7,7 @@ import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeP
 import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
+import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import {
   PRIVATE_PROFILE_TAB_MESSAGE,
@@ -118,6 +119,7 @@ function formatHandle(handle: string) {
 
 export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const router = useRouter();
+  const me = useDashboardUser();
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
   const [posts, setPosts] = useState<ProfilePost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -318,7 +320,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       if (!res.ok) throw new Error(json.error || "Post failed.");
       setComposerHtml("");
       setComposerImages([]);
-      await load();
+      await load({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Post failed.");
     } finally {
@@ -482,14 +484,31 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     </Stack>
   );
 
-  const profileMeta = [
-    `Joined ${formatJoinedDate(p.joined_at)}`,
-    locationLabel || null,
-    `${p.followers_count.toLocaleString()} Followers`,
-    `${p.following_count.toLocaleString()} Following`,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const profileMeta = (
+    <Box>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1.5, sm: 2 }, mt: 0.15 }}>
+        <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
+          <Box component="span" sx={{ fontWeight: 800 }}>
+            {p.followers_count.toLocaleString()}
+          </Box>{" "}
+          Followers
+        </Typography>
+        <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
+          <Box component="span" sx={{ fontWeight: 800 }}>
+            {p.following_count.toLocaleString()}
+          </Box>{" "}
+          Following
+        </Typography>
+      </Box>
+      {(locationLabel || p.joined_at) && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {[locationLabel ? `Lives in ${locationLabel}` : null, `Joined ${formatJoinedDate(p.joined_at)}`]
+            .filter(Boolean)
+            .join(" · ")}
+        </Typography>
+      )}
+    </Box>
+  );
 
   const profileTabs = p.is_own_profile
     ? [...VISITOR_PROFILE_TABS, ...OWN_PROFILE_EXTRA_TABS]
@@ -549,6 +568,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           commentConfig={feedPostCommentConfig(post)}
           reactionUrl={feedPostReactionUrl(post)}
           showGroupBadge={false}
+          viewerAvatarUrl={me.avatar_url}
+          viewerDisplayName={me.display_name ?? me.email}
         />
       ))}
 
@@ -618,6 +639,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             commentConfig={feedPostCommentConfig(post)}
             reactionUrl={feedPostReactionUrl(post)}
             showGroupBadge={post.kind === "group_message"}
+            viewerAvatarUrl={me.avatar_url}
+            viewerDisplayName={me.display_name ?? me.email}
           />
         ))}
         {!items.length && !tabLoading ? (
@@ -744,7 +767,18 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
 
       <MobilizeSocialHubLayout showInternalNav={false}>
         <MobilizeSocialHubContent tone="light">
-          <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", p: { xs: 1, sm: 1.5 } }}>
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              maxWidth: 1400,
+              mx: "auto",
+              p: { xs: 1, sm: 1.5, md: 2 },
+            }}
+          >
           <MobilizeProfilePageShell
         coverSrc={coverDisplaySrc}
         title={p.display_name}

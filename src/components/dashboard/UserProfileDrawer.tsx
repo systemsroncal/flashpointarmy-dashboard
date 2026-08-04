@@ -1,7 +1,10 @@
 "use client";
 
 import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
-import { CourseGraduateBadge } from "@/components/dashboard/training/CourseGraduateBadge";
+import {
+  CourseGraduateBadge,
+  CourseGraduateCongratulationsDialog,
+} from "@/components/dashboard/training/CourseGraduateBadge";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { cacheBustAssetUrl } from "@/lib/media/public-asset-url";
 import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
@@ -20,6 +23,7 @@ import { flashpointYellow } from "@/theme/tokens";
 import { createClient } from "@/utils/supabase/client";
 import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
@@ -127,6 +131,7 @@ export function UserProfileDrawer({
   const [coverUrl, setCoverUrl] = useState("");
   const [coverNonce, setCoverNonce] = useState(0);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [graduateCongratsOpen, setGraduateCongratsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [groupsCount, setGroupsCount] = useState(0);
@@ -655,8 +660,41 @@ export function UserProfileDrawer({
                     </Box>
 
                     {du.training_graduate_badge ? (
-                      <Box sx={{ mt: 1.25, display: "flex", justifyContent: "center" }}>
-                        <CourseGraduateBadge role={du.training_graduate_badge} />
+                      <Box
+                        sx={{
+                          mt: 1.25,
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          gap: 0.5,
+                        }}
+                      >
+                        <Box
+                          component="button"
+                          type="button"
+                          onClick={() => setGraduateCongratsOpen(true)}
+                          sx={{
+                            p: 0,
+                            border: "none",
+                            bgcolor: "transparent",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            lineHeight: 0,
+                          }}
+                          aria-label="View course completion"
+                        >
+                          <CourseGraduateBadge role={du.training_graduate_badge} />
+                        </Box>
+                        <Tooltip title="About this badge">
+                          <IconButton
+                            size="small"
+                            onClick={() => setGraduateCongratsOpen(true)}
+                            aria-label="Badge information"
+                            sx={{ color: "rgba(255,255,255,0.75)", p: 0.35 }}
+                          >
+                            <InfoOutlinedIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                     ) : null}
 
@@ -998,6 +1036,15 @@ export function UserProfileDrawer({
           if (kind === "profile") void uploadAvatarFile(file);
           else if (kind === "cover") void uploadCoverFile(file);
         }}
+      />
+
+      <CourseGraduateCongratulationsDialog
+        open={graduateCongratsOpen}
+        onClose={() => setGraduateCongratsOpen(false)}
+        firstName={du.first_name}
+        lastName={du.last_name}
+        displayName={du.display_name}
+        email={du.email}
       />
     </>
   );
