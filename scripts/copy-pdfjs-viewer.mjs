@@ -31,18 +31,31 @@ async function downloadZip(url, outFile) {
 
 function unzip(zipPath, outDir) {
   fs.mkdirSync(outDir, { recursive: true });
-  // Prefer tar (Windows 10+ / Unix); fall back to PowerShell Expand-Archive.
-  try {
-    execFileSync("tar", ["-xf", zipPath, "-C", outDir], { stdio: "ignore" });
-    return;
-  } catch {
-    /* try PowerShell */
+  // Linux: `unzip`. Windows 10+/macOS: `tar` can read zip. Last resort: PowerShell.
+  const attempts = [
+    () => execFileSync("unzip", ["-qo", zipPath, "-d", outDir], { stdio: "ignore" }),
+    () => execFileSync("tar", ["-xf", zipPath, "-C", outDir], { stdio: "ignore" }),
+    () =>
+      execFileSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-Command",
+          `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${outDir.replace(/'/g, "''")}' -Force`,
+        ],
+        { stdio: "ignore" }
+      ),
+  ];
+  const errors = [];
+  for (const run of attempts) {
+    try {
+      run();
+      return;
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : String(e));
+    }
   }
-  execFileSync(
-    "powershell.exe",
-    ["-NoProfile", "-Command", `Expand-Archive -LiteralPath '${zipPath}' -DestinationPath '${outDir}' -Force`],
-    { stdio: "ignore" }
-  );
+  throw new Error(`Unzip failed (${errors.join(" | ")})`);
 }
 
 async function main() {

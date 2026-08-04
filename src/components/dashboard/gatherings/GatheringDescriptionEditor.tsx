@@ -115,7 +115,13 @@ export function GatheringDescriptionEditor({
       getBody: () => HTMLElement;
       dom: { select: (selector: string, scope?: HTMLElement) => HTMLElement[] };
       on: (event: string, cb: (...args: unknown[]) => void) => void;
-      notificationManager?: { open: (spec: { text: string; type: string; timeout: number }) => void };
+      notificationManager?: {
+        open: (spec: {
+          text: string;
+          type?: "error" | "info" | "success" | "warning";
+          timeout?: number;
+        }) => unknown;
+      };
     };
 
     function needsRemoteImport(src: string): boolean {
@@ -178,16 +184,18 @@ export function GatheringDescriptionEditor({
       }, 0);
     }
 
-    const registerEditorExtras = (ed: TinyEditor) => {
+    const registerEditorExtras = (raw: unknown) => {
+      const ed = raw as TinyEditor;
       onEditorInit?.(ed);
       if (videoEmbedButton) {
         ed.ui.registry.addButton("fplyrvideo", {
           text: "Video",
           tooltip: "Insert [fpa_video]…[/fpa_video] shortcode (Plyr: YouTube, Vimeo, MP4…)",
           onAction: () => {
-            const raw = typeof window !== "undefined" ? window.prompt("Paste video URL (YouTube, Vimeo, or direct MP4):") : null;
-            if (!raw?.trim()) return;
-            const safe = raw.trim().replace(/\]/g, "%5D");
+            const promptRaw =
+              typeof window !== "undefined" ? window.prompt("Paste video URL (YouTube, Vimeo, or direct MP4):") : null;
+            if (!promptRaw?.trim()) return;
+            const safe = promptRaw.trim().replace(/\]/g, "%5D");
             ed.insertContent(`<p>[fpa_video]${safe}[/fpa_video]</p><p><br></p>`);
           },
         });
