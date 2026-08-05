@@ -99,6 +99,7 @@ function CommentComposer({
   const composerBg = light ? "#f0f2f5" : "rgba(255,255,255,0.06)";
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
   const avatarSize = compact ? 28 : 36;
+  const hasDraft = Boolean(draft.trim());
 
   return (
     <Box sx={{ mt: compact ? 1 : 1.5, overflow: "visible" }}>
@@ -106,11 +107,11 @@ function CommentComposer({
       <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", overflow: "visible" }}>
         <Avatar
           src={viewerAvatarUrl ? publicAssetSrc(viewerAvatarUrl) : undefined}
-          sx={{ width: avatarSize, height: avatarSize, mt: 0.5, bgcolor: "#263238", flexShrink: 0 }}
+          sx={{ width: avatarSize, height: avatarSize, mt: 0.25, bgcolor: "#263238", flexShrink: 0 }}
         >
           {asName[0]?.toUpperCase()}
         </Avatar>
-        <Box sx={{ flex: 1, minWidth: 0, overflow: "visible", py: 0.25 }}>
+        <Box sx={{ flex: 1, minWidth: 0, overflow: "visible" }}>
           <TextField
             inputRef={inputRef}
             fullWidth
@@ -130,48 +131,55 @@ function CommentComposer({
             sx={{
               "& .MuiOutlinedInput-root": {
                 bgcolor: composerBg,
-                borderRadius: "20px",
+                borderRadius: "999px",
                 fontSize: "0.9375rem",
                 overflow: "hidden",
                 "& fieldset": {
                   border: "1px solid transparent",
-                  borderRadius: "20px",
+                  borderRadius: "999px",
                 },
                 "&:hover fieldset": {
-                  borderColor: light ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.16)",
+                  borderColor: "transparent",
                 },
                 "&.Mui-focused": {
-                  bgcolor: light ? "#fff" : "rgba(255,255,255,0.08)",
+                  bgcolor: composerBg,
                   boxShadow: "none",
                 },
                 "&.Mui-focused fieldset": {
-                  borderColor: "#0866ff",
-                  borderWidth: "2px",
+                  borderColor: light ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.16)",
+                  borderWidth: "1px",
                 },
-                "& .MuiInputBase-input": { px: 1.5, py: 1 },
+                "& .MuiInputBase-input": { px: 1.75, py: 1.1 },
               },
             }}
           />
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 0.75, px: 0.5 }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mt: 0.65, px: 0.75, minHeight: 28 }}
+          >
             <Typography variant="caption" sx={{ color: nameMuted }}>
               {helperText ?? `You're commenting as ${asName}.`}
             </Typography>
-            <Button
-              size="small"
-              variant="contained"
-              disabled={posting || !draft.trim()}
-              onClick={onSubmit}
-              sx={{
-                textTransform: "none",
-                fontWeight: 700,
-                borderRadius: 5,
-                bgcolor: light ? "#0866ff" : undefined,
-                boxShadow: "none",
-                "&:hover": { boxShadow: "none", bgcolor: light ? "#0654d0" : undefined },
-              }}
-            >
-              {posting ? "…" : "Post"}
-            </Button>
+            {hasDraft || posting ? (
+              <Button
+                size="small"
+                variant="contained"
+                disabled={posting || !hasDraft}
+                onClick={onSubmit}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 700,
+                  borderRadius: 5,
+                  bgcolor: light ? "#0866ff" : undefined,
+                  boxShadow: "none",
+                  "&:hover": { boxShadow: "none", bgcolor: light ? "#0654d0" : undefined },
+                }}
+              >
+                {posting ? "…" : "Post"}
+              </Button>
+            ) : null}
           </Stack>
         </Box>
       </Box>

@@ -112,7 +112,15 @@ export function MobilizeGroupFeed({
       }
     >
       {canPost ? (
-        <Paper elevation={0} sx={{ ...(embedded ? embeddedPaperSx : standalonePaperSx), flexShrink: 0 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            ...(embedded ? embeddedPaperSx : standalonePaperSx),
+            flexShrink: 0,
+            border: "1px solid rgba(0,0,0,0.08)",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+          }}
+        >
           <MobilizeSocialPostEditor
             value={wallHtml}
             onChange={onWallHtmlChange}

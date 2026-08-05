@@ -334,7 +334,7 @@ export function GatheringDescriptionEditor({
         sx={
           isSocial
             ? {
-                border: "2px solid transparent",
+                border: "2px solid rgba(0, 108, 231, 0.22)",
                 borderRadius: "10px",
                 pl: "10px",
                 overflow: "hidden",

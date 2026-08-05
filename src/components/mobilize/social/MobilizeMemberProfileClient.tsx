@@ -13,7 +13,11 @@ import {
   PRIVATE_PROFILE_TAB_MESSAGE,
   PROFILE_TAB_EMPTY,
 } from "@/lib/mobilize/social/social-empty-copy";
-import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
+import {
+  mobilizeChapterDetailRootSx,
+  mobilizeGroupFeedCardSx,
+  mobilizeGroupFeedPaperSx,
+} from "@/lib/mobilize/mobilize-ui-surface";
 import { flashpointYellow } from "@/theme/tokens";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
@@ -434,17 +438,15 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     : undefined;
 
   const heroBtnSx = {
-    borderRadius: 1.5,
+    borderRadius: 99,
     textTransform: "none" as const,
     fontWeight: 700,
-    color: "#fff",
-    borderColor: flashpointYellow,
-    bgcolor: "rgba(0,0,0,0.55)",
-    backdropFilter: "blur(8px)",
-    boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+    color: "#0d0d0d",
+    borderColor: "rgba(0,0,0,0.18)",
+    bgcolor: "#fff",
     "&:hover": {
-      borderColor: flashpointYellow,
-      bgcolor: "rgba(0,0,0,0.72)",
+      borderColor: "rgba(0,0,0,0.28)",
+      bgcolor: "rgba(0,0,0,0.03)",
     },
   };
 
@@ -478,7 +480,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           component={Link}
           href={`/dashboard/mobilize/messages?with=${userId}`}
           variant="outlined"
-          startIcon={<MailOutlineIcon sx={{ color: flashpointYellow }} />}
+          startIcon={<MailOutlineIcon />}
           sx={heroBtnSx}
         >
           Message
@@ -490,21 +492,21 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const profileMeta = (
     <Box>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1.5, sm: 2 }, mt: 0.15 }}>
-        <Typography variant="body2" sx={{ fontWeight: 500, color: "rgba(255,255,255,0.82)" }}>
-          <Box component="span" sx={{ fontWeight: 800, color: "#fff" }}>
+        <Typography variant="body2" sx={{ fontWeight: 500, color: "text.secondary" }}>
+          <Box component="span" sx={{ fontWeight: 800, color: "text.primary" }}>
             {p.followers_count.toLocaleString()}
           </Box>{" "}
           Followers
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 500, color: "rgba(255,255,255,0.82)" }}>
-          <Box component="span" sx={{ fontWeight: 800, color: "#fff" }}>
+        <Typography variant="body2" sx={{ fontWeight: 500, color: "text.secondary" }}>
+          <Box component="span" sx={{ fontWeight: 800, color: "text.primary" }}>
             {p.following_count.toLocaleString()}
           </Box>{" "}
           Following
         </Typography>
       </Box>
       {(locationLabel || p.joined_at) && (
-        <Typography variant="body2" sx={{ mt: 0.5, color: "rgba(255,255,255,0.72)" }}>
+        <Typography variant="body2" sx={{ mt: 0.5, color: "text.secondary" }}>
           {[locationLabel ? `Lives in ${locationLabel}` : null, `Joined ${formatJoinedDate(p.joined_at)}`]
             .filter(Boolean)
             .join(" · ")}
@@ -518,7 +520,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     : [...VISITOR_PROFILE_TABS];
 
   const introCard = (
-    <MobilizeProfileSidebarCard title="Intro">
+    <MobilizeProfileSidebarCard title="Intro" variant="groupFeed">
       {p.bio ? (
         <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
           {p.bio}
@@ -550,10 +552,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         <Paper
           elevation={0}
           sx={{
-            bgcolor: "#fff",
-            borderRadius: "1rem",
+            ...mobilizeGroupFeedPaperSx,
             overflow: "hidden",
             border: "1px solid rgba(0,0,0,0.08)",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
           }}
         >
           <MobilizeSocialPostEditor
@@ -582,21 +584,14 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           commentConfig={feedPostCommentConfig(post)}
           reactionUrl={feedPostReactionUrl(post)}
           showGroupBadge={false}
+          layout="groupFeedCard"
           viewerAvatarUrl={me.avatar_url}
           viewerDisplayName={me.display_name ?? me.email}
         />
       ))}
 
       {!posts.length ? (
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 2,
-            border: "1px solid rgba(0,0,0,0.08)",
-            bgcolor: "#fff",
-            overflow: "hidden",
-          }}
-        >
+        <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden" }}>
           <MobilizeSectionEmptyState
             fill
             layout="stacked"
@@ -654,22 +649,13 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             commentConfig={feedPostCommentConfig(post)}
             reactionUrl={feedPostReactionUrl(post)}
             showGroupBadge={post.kind === "group_message"}
+            layout="groupFeedCard"
             viewerAvatarUrl={me.avatar_url}
             viewerDisplayName={me.display_name ?? me.email}
           />
         ))}
         {!items.length && !tabLoading ? (
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: 2,
-              border: "1px solid rgba(0,0,0,0.08)",
-              bgcolor: "#fff",
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
+          <Paper elevation={0} sx={{ ...mobilizeGroupFeedCardSx, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
             <MobilizeSectionEmptyState fill layout="stacked" title={emptyCopy.title} description={emptyCopy.description} />
           </Paper>
         ) : null}
@@ -810,7 +796,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         tabsInContent
         fillContent
         unifiedContent
-        contentVariant="groupFeed"
       >
         <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "auto" }}>
           {renderTabContent()}
