@@ -334,11 +334,14 @@ export function GatheringDescriptionEditor({
         sx={
           isSocial
             ? {
-                border: "2px solid #006ce7",
+                border: "2px solid transparent",
                 borderRadius: "10px",
                 pl: "10px",
                 overflow: "hidden",
                 bgcolor: socialDark ? "transparent" : "#fff",
+                "&:focus-within": {
+                  borderColor: "#006ce7",
+                },
                 "& .tox-tinymce": {
                   border: "none !important",
                   boxShadow: "none !important",

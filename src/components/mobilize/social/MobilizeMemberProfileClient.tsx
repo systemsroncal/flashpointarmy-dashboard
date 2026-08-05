@@ -547,20 +547,31 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const postsFeed = (
     <Stack spacing={1.5}>
       {p.is_own_profile ? (
-        <MobilizeSocialPostEditor
-          value={composerHtml}
-          onChange={setComposerHtml}
-          disabled={posting}
-          surface="light"
-          avatarUrl={avatarDisplaySrc ?? p.avatar_url}
-          avatarFallback={p.display_name}
-          imageUrls={composerImages}
-          onImageUrlsChange={setComposerImages}
-          postLabel="Post"
-          onPost={() => void publishPost()}
-          posting={posting}
-          canPost={Boolean(composerHtml.replace(/<[^>]+>/g, "").trim()) || composerImages.length > 0}
-        />
+        <Paper
+          elevation={0}
+          sx={{
+            bgcolor: "#fff",
+            borderRadius: "1rem",
+            overflow: "hidden",
+            border: "1px solid rgba(0,0,0,0.08)",
+          }}
+        >
+          <MobilizeSocialPostEditor
+            value={composerHtml}
+            onChange={setComposerHtml}
+            disabled={posting}
+            surface="light"
+            brandAccent
+            avatarUrl={avatarDisplaySrc ?? p.avatar_url}
+            avatarFallback={p.display_name}
+            imageUrls={composerImages}
+            onImageUrlsChange={setComposerImages}
+            postLabel="Post"
+            onPost={() => void publishPost()}
+            posting={posting}
+            canPost={Boolean(composerHtml.replace(/<[^>]+>/g, "").trim()) || composerImages.length > 0}
+          />
+        </Paper>
       ) : null}
 
       {posts.map((post) => (
