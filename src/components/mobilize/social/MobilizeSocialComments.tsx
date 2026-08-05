@@ -22,7 +22,7 @@ import {
   Typography,
 } from "@mui/material";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 export type SocialCommentNode = {
   id: string;
@@ -69,18 +69,132 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
+function CommentComposer({
+  viewerAvatarUrl,
+  asName,
+  draft,
+  onDraftChange,
+  posting,
+  onSubmit,
+  light,
+  placeholder,
+  helperText,
+  header,
+  inputRef,
+  compact,
+}: {
+  viewerAvatarUrl?: string | null;
+  asName: string;
+  draft: string;
+  onDraftChange: (value: string) => void;
+  posting: boolean;
+  onSubmit: () => void;
+  light: boolean;
+  placeholder: string;
+  helperText?: string;
+  header?: ReactNode;
+  inputRef?: RefObject<HTMLInputElement | null>;
+  compact?: boolean;
+}) {
+  const composerBg = light ? "#f0f2f5" : "rgba(255,255,255,0.06)";
+  const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
+  const avatarSize = compact ? 28 : 36;
+
+  return (
+    <Box sx={{ mt: compact ? 1 : 1.5, overflow: "visible" }}>
+      {header}
+      <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", overflow: "visible" }}>
+        <Avatar
+          src={viewerAvatarUrl ? publicAssetSrc(viewerAvatarUrl) : undefined}
+          sx={{ width: avatarSize, height: avatarSize, mt: 0.5, bgcolor: "#263238", flexShrink: 0 }}
+        >
+          {asName[0]?.toUpperCase()}
+        </Avatar>
+        <Box sx={{ flex: 1, minWidth: 0, overflow: "visible", py: 0.25 }}>
+          <TextField
+            inputRef={inputRef}
+            fullWidth
+            size="small"
+            multiline
+            maxRows={4}
+            placeholder={placeholder}
+            value={draft}
+            onChange={(e) => onDraftChange(e.target.value)}
+            disabled={posting}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                onSubmit();
+              }
+            }}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                bgcolor: composerBg,
+                borderRadius: "20px",
+                fontSize: "0.9375rem",
+                overflow: "hidden",
+                "& fieldset": {
+                  border: "1px solid transparent",
+                  borderRadius: "20px",
+                },
+                "&:hover fieldset": {
+                  borderColor: light ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.16)",
+                },
+                "&.Mui-focused": {
+                  bgcolor: light ? "#fff" : "rgba(255,255,255,0.08)",
+                  boxShadow: "none",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#0866ff",
+                  borderWidth: "2px",
+                },
+                "& .MuiInputBase-input": { px: 1.5, py: 1 },
+              },
+            }}
+          />
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 0.75, px: 0.5 }}>
+            <Typography variant="caption" sx={{ color: nameMuted }}>
+              {helperText ?? `You're commenting as ${asName}.`}
+            </Typography>
+            <Button
+              size="small"
+              variant="contained"
+              disabled={posting || !draft.trim()}
+              onClick={onSubmit}
+              sx={{
+                textTransform: "none",
+                fontWeight: 700,
+                borderRadius: 5,
+                bgcolor: light ? "#0866ff" : undefined,
+                boxShadow: "none",
+                "&:hover": { boxShadow: "none", bgcolor: light ? "#0654d0" : undefined },
+              }}
+            >
+              {posting ? "…" : "Post"}
+            </Button>
+          </Stack>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
 function CommentItem({
   node,
   commentReactionUrl,
   canComment,
   onReply,
+  replyParentId,
+  replyComposer,
   depth,
   light,
 }: {
   node: SocialCommentNode;
   commentReactionUrl: (commentId: string) => string;
   canComment: boolean;
-  onReply: (parentId: string) => void;
+  onReply: (parentId: string, authorName: string) => void;
+  replyParentId: string | null;
+  replyComposer: ReactNode;
   depth: number;
   light: boolean;
 }) {
@@ -185,7 +299,7 @@ function CommentItem({
             {canComment && node.depth < 3 ? (
               <Button
                 size="small"
-                onClick={() => onReply(node.id)}
+                onClick={() => onReply(node.id, node.author.display_name)}
                 sx={{
                   minWidth: 0,
                   px: 0.75,
@@ -193,7 +307,7 @@ function CommentItem({
                   textTransform: "none",
                   fontWeight: 700,
                   fontSize: "0.75rem",
-                  color: actionMuted,
+                  color: replyParentId === node.id ? likeBlue : actionMuted,
                   "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
                 }}
               >
@@ -208,10 +322,13 @@ function CommentItem({
               commentReactionUrl={commentReactionUrl}
               canComment={canComment}
               onReply={onReply}
+              replyParentId={replyParentId}
+              replyComposer={replyComposer}
               depth={depth + 1}
               light={light}
             />
           ))}
+          {replyParentId === node.id ? replyComposer : null}
         </Box>
       </Box>
     </Box>
@@ -235,7 +352,9 @@ export function MobilizeSocialComments({
   const [posting, setPosting] = useState(false);
   const [draft, setDraft] = useState("");
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
+  const [replyToName, setReplyToName] = useState<string | null>(null);
   const [commentsExpanded, setCommentsExpanded] = useState(false);
+  const replyInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -257,9 +376,20 @@ export function MobilizeSocialComments({
   useEffect(() => {
     if (open) {
       setCommentsExpanded(false);
+      setReplyParentId(null);
+      setReplyToName(null);
       void load();
     }
   }, [open, load]);
+
+  useEffect(() => {
+    if (!replyParentId) return;
+    const id = window.requestAnimationFrame(() => {
+      replyInputRef.current?.focus();
+      replyInputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [replyParentId]);
 
   async function submitComment() {
     const content = draft.trim();
@@ -275,6 +405,8 @@ export function MobilizeSocialComments({
       if (!res.ok) throw new Error(json.error || "Comment failed.");
       setDraft("");
       setReplyParentId(null);
+      setReplyToName(null);
+      setCommentsExpanded(true);
       await load();
     } finally {
       setPosting(false);
@@ -285,10 +417,40 @@ export function MobilizeSocialComments({
 
   const asName = viewerDisplayName?.trim() || "you";
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
-  const composerBg = light ? "#f0f2f5" : "rgba(255,255,255,0.06)";
   const visibleComments =
     commentsExpanded || comments.length <= 1 ? comments : comments.slice(0, 1);
   const hiddenCount = Math.max(0, comments.length - 1);
+
+  const replyComposer = (
+    <CommentComposer
+      viewerAvatarUrl={viewerAvatarUrl}
+      asName={asName}
+      draft={draft}
+      onDraftChange={setDraft}
+      posting={posting}
+      onSubmit={() => void submitComment()}
+      light={light}
+      compact
+      inputRef={replyInputRef}
+      placeholder={`Reply to ${replyToName || "comment"} as ${asName}`}
+      helperText={`You're replying to ${replyToName || "this comment"}.`}
+      header={
+        <Typography variant="caption" display="block" sx={{ mb: 0.5, color: nameMuted }}>
+          Replying to {replyToName || "comment"}…{" "}
+          <Button
+            size="small"
+            sx={{ minWidth: 0, p: 0, textTransform: "none", fontWeight: 700 }}
+            onClick={() => {
+              setReplyParentId(null);
+              setReplyToName(null);
+            }}
+          >
+            Cancel
+          </Button>
+        </Typography>
+      }
+    />
+  );
 
   const body = (
     <Box
@@ -316,7 +478,13 @@ export function MobilizeSocialComments({
           node={c}
           commentReactionUrl={commentReactionUrl}
           canComment={canComment}
-          onReply={(id) => setReplyParentId(id)}
+          onReply={(id, name) => {
+            setReplyParentId(id);
+            setReplyToName(name);
+            setCommentsExpanded(true);
+          }}
+          replyParentId={replyParentId}
+          replyComposer={replyComposer}
           depth={0}
           light={light}
         />
@@ -341,88 +509,17 @@ export function MobilizeSocialComments({
           {commentsExpanded ? "Read less" : "Read more"}
         </Button>
       ) : null}
-      {canComment ? (
-        <Box sx={{ mt: 1.5, overflow: "visible" }}>
-          {replyParentId ? (
-            <Typography variant="caption" display="block" sx={{ mb: 0.5, ml: 5.5, color: nameMuted }}>
-              Replying…{" "}
-              <Button size="small" sx={{ minWidth: 0, p: 0, textTransform: "none" }} onClick={() => setReplyParentId(null)}>
-                Cancel
-              </Button>
-            </Typography>
-          ) : null}
-          <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", overflow: "visible" }}>
-            <Avatar
-              src={viewerAvatarUrl ? publicAssetSrc(viewerAvatarUrl) : undefined}
-              sx={{ width: 36, height: 36, mt: 0.5, bgcolor: "#263238", flexShrink: 0 }}
-            >
-              {asName[0]?.toUpperCase()}
-            </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0, overflow: "visible", py: 0.25 }}>
-              <TextField
-                fullWidth
-                size="small"
-                multiline
-                maxRows={4}
-                placeholder={`Comment as ${asName}`}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                disabled={posting}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void submitComment();
-                  }
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    bgcolor: composerBg,
-                    borderRadius: "20px",
-                    fontSize: "0.9375rem",
-                    overflow: "hidden",
-                    "& fieldset": {
-                      border: "1px solid transparent",
-                      borderRadius: "20px",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: light ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.16)",
-                    },
-                    "&.Mui-focused": {
-                      bgcolor: light ? "#fff" : "rgba(255,255,255,0.08)",
-                      boxShadow: "none",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "#0866ff",
-                      borderWidth: "2px",
-                    },
-                    "& .MuiInputBase-input": { px: 1.5, py: 1 },
-                  },
-                }}
-              />
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 0.75, px: 0.5 }}>
-                <Typography variant="caption" sx={{ color: nameMuted }}>
-                  You&apos;re commenting as {asName}.
-                </Typography>
-                <Button
-                  size="small"
-                  variant="contained"
-                  disabled={posting || !draft.trim()}
-                  onClick={() => void submitComment()}
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 700,
-                    borderRadius: 5,
-                    bgcolor: light ? "#0866ff" : undefined,
-                    boxShadow: "none",
-                    "&:hover": { boxShadow: "none", bgcolor: light ? "#0654d0" : undefined },
-                  }}
-                >
-                  {posting ? "…" : "Post"}
-                </Button>
-              </Stack>
-            </Box>
-          </Box>
-        </Box>
+      {canComment && !replyParentId ? (
+        <CommentComposer
+          viewerAvatarUrl={viewerAvatarUrl}
+          asName={asName}
+          draft={draft}
+          onDraftChange={setDraft}
+          posting={posting}
+          onSubmit={() => void submitComment()}
+          light={light}
+          placeholder={`Comment as ${asName}`}
+        />
       ) : null}
     </Box>
   );

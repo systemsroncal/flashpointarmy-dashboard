@@ -54,7 +54,10 @@ import {
   isMobilizeGroupListed,
   mobilizeGroupListingVisibilityFromListed,
 } from "@/lib/mobilize/group-ui-labels";
-import { mobilizeTableContainerSx } from "@/lib/mobilize/mobilize-ui-surface";
+import {
+  mobilizeChapterDetailRootSx,
+  mobilizeTableContainerSx,
+} from "@/lib/mobilize/mobilize-ui-surface";
 import { flashpointYellow } from "@/theme/tokens";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 
@@ -385,11 +388,11 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
 
   if (loading) {
     return (
-      <Box>
-        <Skeleton variant="text" width={160} height={36} sx={{ mb: 1 }} />
-        <Skeleton variant="text" width={280} height={44} sx={{ mb: 0.5 }} />
-        <Skeleton variant="text" width={80} height={24} sx={{ mb: 2 }} />
-        <Skeleton variant="rectangular" height={360} sx={{ borderRadius: 2 }} />
+      <Box sx={mobilizeChapterDetailRootSx}>
+        <Skeleton variant="text" width={160} height={36} sx={{ mb: 1, flexShrink: 0 }} />
+        <Skeleton variant="text" width={280} height={44} sx={{ mb: 0.5, flexShrink: 0 }} />
+        <Skeleton variant="text" width={80} height={24} sx={{ mb: 2, flexShrink: 0 }} />
+        <Skeleton variant="rectangular" sx={{ borderRadius: 2, flex: 1, minHeight: 240 }} />
       </Box>
     );
   }
@@ -701,8 +704,15 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
   }
 
   return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }} flexWrap="wrap" gap={1}>
+    <Box sx={mobilizeChapterDetailRootSx}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 1.5, flexShrink: 0 }}
+        flexWrap="wrap"
+        gap={1}
+      >
         <Button
           component={Link}
           href="/dashboard/mobilize/map"
@@ -739,7 +749,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
         </Stack>
       </Stack>
 
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 2, flexShrink: 0 }}>
         <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: "-0.02em", lineHeight: 1.15 }}>
           {chapter.name}
         </Typography>
@@ -748,11 +758,11 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
         </Typography>
       </Box>
 
-      <MobilizeContentPanel sx={{ p: { xs: 1.5, sm: 2 } }}>
+      <MobilizeContentPanel fill sx={{ p: { xs: 1.5, sm: 2 }, display: "flex", flexDirection: "column", minHeight: 0 }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={2}
-          sx={{ mb: 2 }}
+          sx={{ mb: 2, flexShrink: 0 }}
           alignItems={{ sm: "center" }}
           justifyContent="space-between"
         >
@@ -809,7 +819,9 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
           </Stack>
         </Stack>
 
-        {viewMode === "grid" ? renderGroupGrid() : renderGroupList()}
+        <Box sx={{ flex: 1, minHeight: 0, overflow: { xs: "visible", lg: "auto" } }}>
+          {viewMode === "grid" ? renderGroupGrid() : renderGroupList()}
+        </Box>
       </MobilizeContentPanel>
 
       <MobilizeDialog open={editOpen} onClose={() => !editSaving && setEditOpen(false)} fullWidth maxWidth="sm">

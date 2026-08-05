@@ -2,13 +2,6 @@
 
 import { MobilizeBottomNavBar, type MobilizeBottomNavBarItem } from "@/components/mobilize/MobilizeBottomNavBar";
 import {
-  MOBILIZE_GROUP_TAB_LABELS,
-  canViewMobilizeGroupReports,
-  mobilizeGroupDetailHref,
-  mobilizeGroupTabsForNav,
-  type MobilizeGroupTabSlug,
-} from "@/lib/mobilize/group-detail-tabs";
-import {
   isMobilizeChaptersNavActive,
   mobilizeChaptersNavItems,
 } from "@/lib/mobilize/mobilize-chapters-nav-config";
@@ -20,9 +13,7 @@ import {
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
-import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
@@ -33,7 +24,6 @@ import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNone
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import {
   Dialog,
   DialogContent,
@@ -69,33 +59,7 @@ const CHAPTERS_ICONS = {
   groupsSettings: <SettingsOutlinedIcon sx={{ fontSize: 22 }} />,
 } as const;
 
-const GROUP_TAB_ICONS: Record<MobilizeGroupTabSlug, ReactNode> = {
-  announcements: <CampaignOutlinedIcon sx={{ fontSize: 22 }} />,
-  events: <EventAvailableOutlinedIcon sx={{ fontSize: 22 }} />,
-  members: <GroupsOutlinedIcon sx={{ fontSize: 22 }} />,
-  resources: <FolderOpenOutlinedIcon sx={{ fontSize: 22 }} />,
-  updates: <NotificationsActiveOutlinedIcon sx={{ fontSize: 22 }} />,
-  reports: <AssessmentOutlinedIcon sx={{ fontSize: 22 }} />,
-};
-
-const GROUP_TAB_SHORT_LABELS: Record<MobilizeGroupTabSlug, string> = {
-  announcements: "Feed",
-  events: "Events",
-  members: "Members",
-  resources: "Resources",
-  updates: "Group updates",
-  reports: "Reports",
-};
-
-type SocialProps = { variant: "social" };
-type ChaptersProps = { variant: "chapters" };
-type GroupProps = {
-  variant: "group";
-  groupId: string;
-  activeTab: MobilizeGroupTabSlug;
-};
-
-type Props = SocialProps | ChaptersProps | GroupProps;
+type Props = { variant: "social" } | { variant: "chapters" };
 
 function MobilizeBottomNavSearchDialog({
   open,
@@ -251,64 +215,7 @@ function MobilizeChaptersBottomNav() {
   return <MobilizeBottomNavBar items={items} ariaLabel="Mobilize chapters navigation" borderAccent="gold" />;
 }
 
-function MobilizeGroupBottomNav({
-  groupId,
-  activeTab,
-}: {
-  groupId: string;
-  activeTab: MobilizeGroupTabSlug;
-}) {
-  const me = useDashboardUser();
-  const [canViewReports, setCanViewReports] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch(`/api/mobilize/groups/${groupId}`);
-        const json = (await res.json()) as {
-          group?: { created_by?: string };
-          membership?: { member_role: string; membership_status: string } | null;
-        };
-        if (cancelled || !res.ok) return;
-        setCanViewReports(
-          canViewMobilizeGroupReports({
-            isSuperAdmin: me.role_names.includes("super_admin"),
-            isAdmin: me.role_names.includes("admin"),
-            groupCreatedBy: json.group?.created_by,
-            currentUserId: me.id,
-            membership: json.membership ?? null,
-          })
-        );
-      } catch {
-        if (!cancelled) setCanViewReports(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [groupId, me.id, me.role_names]);
-
-  const items = useMemo<MobilizeBottomNavBarItem[]>(() => {
-    return mobilizeGroupTabsForNav(canViewReports).map((slug) => ({
-      key: slug,
-      label: MOBILIZE_GROUP_TAB_LABELS[slug],
-      shortLabel: GROUP_TAB_SHORT_LABELS[slug],
-      href: mobilizeGroupDetailHref(groupId, slug),
-      icon: GROUP_TAB_ICONS[slug],
-      active: activeTab === slug,
-    }));
-  }, [activeTab, canViewReports, groupId]);
-
-  return (
-    <MobilizeBottomNavBar items={items} ariaLabel="Group navigation" borderAccent="gold" />
-  );
-}
-
 export function MobilizeBottomNav(props: Props) {
-  if (props.variant === "group") {
-    return <MobilizeGroupBottomNav groupId={props.groupId} activeTab={props.activeTab} />;
-  }
   if (props.variant === "chapters") {
     return <MobilizeChaptersBottomNav />;
   }

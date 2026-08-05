@@ -225,13 +225,13 @@ export function MobilizeProfilePageShell({
           >
             {groupHeroHeader}
             {tabs?.length && activeTab && onTabChange ? (
-              <Box sx={{ mb: 0 }}>
+              <Box sx={{ mb: 0, borderRadius: socialTabStyle ? 2 : 0, overflow: "hidden" }}>
                 <MobilizeContentTabBar
                   tabs={tabs}
                   activeTab={activeTab}
                   onTabChange={onTabChange}
-                  variant="truth"
-                  surface="dark"
+                  variant={socialTabStyle ? "facebook" : "truth"}
+                  surface={socialTabStyle ? "light" : "dark"}
                 />
               </Box>
             ) : null}

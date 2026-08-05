@@ -1,11 +1,9 @@
 "use client";
 
 import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
-import {
-  CourseGraduateBadge,
-  CourseGraduateCongratulationsDialog,
-} from "@/components/dashboard/training/CourseGraduateBadge";
+import { MissionRankInfoDialog } from "@/components/dashboard/national-overview/MissionRankInfoDialog";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
+import { missionRankDialogTitle } from "@/lib/onboarding/mission-rank-info";
 import { cacheBustAssetUrl } from "@/lib/media/public-asset-url";
 import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
 import {
@@ -131,7 +129,7 @@ export function UserProfileDrawer({
   const [coverUrl, setCoverUrl] = useState("");
   const [coverNonce, setCoverNonce] = useState(0);
   const [coverUploading, setCoverUploading] = useState(false);
-  const [graduateCongratsOpen, setGraduateCongratsOpen] = useState(false);
+  const [missionRankInfoOpen, setMissionRankInfoOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [groupsCount, setGroupsCount] = useState(0);
@@ -659,7 +657,7 @@ export function UserProfileDrawer({
                       </Typography>
                     </Box>
 
-                    {du.training_graduate_badge ? (
+                    {du.member_onboarding?.rankLabel ? (
                       <Box
                         sx={{
                           mt: 1.25,
@@ -672,24 +670,43 @@ export function UserProfileDrawer({
                         <Box
                           component="button"
                           type="button"
-                          onClick={() => setGraduateCongratsOpen(true)}
+                          onClick={() => setMissionRankInfoOpen(true)}
                           sx={{
-                            p: 0,
-                            border: "none",
-                            bgcolor: "transparent",
-                            cursor: "pointer",
                             display: "inline-flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            px: 1.1,
+                            py: 0.35,
+                            border: "none",
+                            borderRadius: "26.9253px",
+                            background:
+                              "linear-gradient(90deg, #ca8a04 0%, #fbbf24 50%, #ca8a04 100%)",
+                            color: "#000",
+                            cursor: "pointer",
                             lineHeight: 0,
                           }}
-                          aria-label="View course completion"
+                          aria-label={`Mission rank: ${du.member_onboarding.rankLabel}`}
                         >
-                          <CourseGraduateBadge role={du.training_graduate_badge} />
+                          <WorkspacePremiumOutlinedIcon sx={{ fontSize: 14 }} />
+                          <Typography
+                            component="span"
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.62rem",
+                              letterSpacing: "0.08em",
+                              lineHeight: 1.2,
+                              color: "inherit",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {du.member_onboarding.rankLabel}
+                          </Typography>
                         </Box>
-                        <Tooltip title="About this badge">
+                        <Tooltip title={missionRankDialogTitle(du.member_onboarding.rankAudience)}>
                           <IconButton
                             size="small"
-                            onClick={() => setGraduateCongratsOpen(true)}
-                            aria-label="Badge information"
+                            onClick={() => setMissionRankInfoOpen(true)}
+                            aria-label="Mission rank information"
                             sx={{ color: "rgba(255,255,255,0.75)", p: 0.35 }}
                           >
                             <InfoOutlinedIcon sx={{ fontSize: 18 }} />
@@ -1038,14 +1055,13 @@ export function UserProfileDrawer({
         }}
       />
 
-      <CourseGraduateCongratulationsDialog
-        open={graduateCongratsOpen}
-        onClose={() => setGraduateCongratsOpen(false)}
-        firstName={du.first_name}
-        lastName={du.last_name}
-        displayName={du.display_name}
-        email={du.email}
-      />
+      {du.member_onboarding ? (
+        <MissionRankInfoDialog
+          open={missionRankInfoOpen}
+          audience={du.member_onboarding.rankAudience}
+          onClose={() => setMissionRankInfoOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

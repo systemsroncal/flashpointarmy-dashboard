@@ -219,8 +219,8 @@ export function GatheringDescriptionEditor({
     };
     if (isSocial) {
       const socialBodyStyle = socialDark
-        ? "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 12px 16px; background: transparent; color: #e7e9ea; } p { margin: 0 0 0.5em 0; color: #e7e9ea; } body.mce-content-readonly { padding: 12px 16px; }"
-        : "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 12px 16px; background: transparent; color: #0d0d0d; } p { margin: 0 0 0.5em 0; }";
+        ? "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px 10px 0; background: transparent; color: #e7e9ea; } p { margin: 0 0 0.5em 0; color: #e7e9ea; }"
+        : "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px 10px 0; background: transparent; color: #0d0d0d; } p { margin: 0 0 0.5em 0; }";
       const socialChrome = socialDark
         ? { skin: "oxide-dark" as const, content_css: "dark" as const }
         : {};
@@ -334,48 +334,32 @@ export function GatheringDescriptionEditor({
         sx={
           isSocial
             ? {
-                borderRadius: "4px",
-                overflow: "visible",
-                border: "none",
-                bgcolor: "transparent",
+                border: "2px solid #006ce7",
+                borderRadius: "10px",
+                pl: "10px",
+                overflow: "hidden",
+                bgcolor: socialDark ? "transparent" : "#fff",
                 "& .tox-tinymce": {
                   border: "none !important",
                   boxShadow: "none !important",
+                  outline: "none !important",
                   bgcolor: "transparent !important",
                 },
                 "& .tox .tox-editor-container": { bgcolor: "transparent !important" },
                 "& .tox .tox-edit-area": {
-                  position: "relative",
                   bgcolor: "transparent !important",
-                  borderRadius: "4px",
-                  overflow: "hidden",
+                  outline: "none !important",
                 },
-                "& .tox .tox-edit-area::before": {
-                  border: "2px solid #006ce7",
-                  borderRadius: "4px",
-                  content: '""',
-                  inset: 0,
-                  opacity: 0,
-                  pointerEvents: "none",
-                  position: "absolute",
-                  transition: "opacity .15s",
-                  zIndex: 1,
+                "& .tox .tox-edit-area::before, & .tox.tox-edit-focus .tox-edit-area::before": {
+                  display: "none !important",
+                  border: "none !important",
+                  opacity: "0 !important",
                 },
-                "& .tox.tox-edit-focus .tox-edit-area::before": {
-                  opacity: 1,
-                },
-                "& .tox .tox-edit-area iframe": {
-                  borderRadius: "4px",
+                "& .tox .tox-edit-area iframe, & .tox .tox-edit-area__iframe": {
                   outline: "none",
+                  border: "none",
                 },
-                "& .tox .tox-edit-area__iframe": {
-                  outline: "none",
-                },
-                // Suppress TinyMCE default thin focus chrome when our ::before ring is used
-                "& .tox-tinymce:focus-within": {
-                  outline: "none",
-                },
-                "& .tox .tox-edit-area:focus-within": {
+                "& .tox-tinymce:focus-within, & .tox .tox-edit-area:focus-within": {
                   outline: "none",
                 },
                 "& .tox .tox-editor-header": { display: "none !important" },

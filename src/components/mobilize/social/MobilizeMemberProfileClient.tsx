@@ -14,6 +14,7 @@ import {
   PROFILE_TAB_EMPTY,
 } from "@/lib/mobilize/social/social-empty-copy";
 import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
+import { flashpointYellow } from "@/theme/tokens";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
 import { publicAssetSrc, cacheBustAssetUrl } from "@/lib/media/public-asset-url";
@@ -432,18 +433,23 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     ? cacheBustAssetUrl(p.avatar_url.trim(), mediaNonce)
     : undefined;
 
+  const heroBtnSx = {
+    borderRadius: 1.5,
+    textTransform: "none" as const,
+    fontWeight: 700,
+    color: "#fff",
+    borderColor: flashpointYellow,
+    bgcolor: "rgba(0,0,0,0.55)",
+    backdropFilter: "blur(8px)",
+    boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+    "&:hover": {
+      borderColor: flashpointYellow,
+      bgcolor: "rgba(0,0,0,0.72)",
+    },
+  };
+
   const headerActions = p.is_own_profile ? (
-    <Button
-      variant="outlined"
-      onClick={() => setEditOpen(true)}
-      sx={{
-        borderRadius: 99,
-        textTransform: "none",
-        fontWeight: 700,
-        color: "text.primary",
-        borderColor: "rgba(0,0,0,0.2)",
-      }}
-    >
+    <Button variant="outlined" onClick={() => setEditOpen(true)} sx={heroBtnSx}>
       Edit profile
     </Button>
   ) : (
@@ -453,13 +459,16 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         onClick={() => handleFollowClick()}
         disabled={followBusy}
         sx={{
-          borderRadius: 99,
-          textTransform: "none",
-          fontWeight: 700,
+          ...heroBtnSx,
           minWidth: 110,
           ...(p.is_following
-            ? { color: "text.primary", borderColor: "rgba(0,0,0,0.2)" }
-            : { bgcolor: "#1877f2", "&:hover": { bgcolor: "#166fe5" } }),
+            ? {}
+            : {
+                bgcolor: flashpointYellow,
+                color: "#0d0d0d",
+                borderColor: flashpointYellow,
+                "&:hover": { bgcolor: "#ffe44d", borderColor: flashpointYellow },
+              }),
         }}
       >
         {followBusy ? "…" : p.is_following ? "Following" : "Follow"}
@@ -469,14 +478,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           component={Link}
           href={`/dashboard/mobilize/messages?with=${userId}`}
           variant="outlined"
-          startIcon={<MailOutlineIcon />}
-          sx={{
-            borderRadius: 99,
-            textTransform: "none",
-            fontWeight: 700,
-            color: "text.primary",
-            borderColor: "rgba(0,0,0,0.2)",
-          }}
+          startIcon={<MailOutlineIcon sx={{ color: flashpointYellow }} />}
+          sx={heroBtnSx}
         >
           Message
         </Button>
@@ -487,21 +490,21 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const profileMeta = (
     <Box>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1.5, sm: 2 }, mt: 0.15 }}>
-        <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-          <Box component="span" sx={{ fontWeight: 800 }}>
+        <Typography variant="body2" sx={{ fontWeight: 500, color: "rgba(255,255,255,0.82)" }}>
+          <Box component="span" sx={{ fontWeight: 800, color: "#fff" }}>
             {p.followers_count.toLocaleString()}
           </Box>{" "}
           Followers
         </Typography>
-        <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-          <Box component="span" sx={{ fontWeight: 800 }}>
+        <Typography variant="body2" sx={{ fontWeight: 500, color: "rgba(255,255,255,0.82)" }}>
+          <Box component="span" sx={{ fontWeight: 800, color: "#fff" }}>
             {p.following_count.toLocaleString()}
           </Box>{" "}
           Following
         </Typography>
       </Box>
       {(locationLabel || p.joined_at) && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        <Typography variant="body2" sx={{ mt: 0.5, color: "rgba(255,255,255,0.72)" }}>
           {[locationLabel ? `Lives in ${locationLabel}` : null, `Joined ${formatJoinedDate(p.joined_at)}`]
             .filter(Boolean)
             .join(" · ")}
@@ -776,7 +779,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              maxWidth: 1400,
+              maxWidth: 1200,
               mx: "auto",
               p: { xs: 1, sm: 1.5, md: 2 },
             }}
@@ -796,6 +799,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         tabsInContent
         fillContent
         unifiedContent
+        contentVariant="groupFeed"
       >
         <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "auto" }}>
           {renderTabContent()}

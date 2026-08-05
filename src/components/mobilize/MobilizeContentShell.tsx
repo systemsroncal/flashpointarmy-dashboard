@@ -2,32 +2,23 @@
 
 import { MobilizeBottomNav } from "@/components/mobilize/MobilizeBottomNav";
 import { MOBILIZE_BOTTOM_NAV_HEIGHT_PX } from "@/lib/mobilize/mobilize-ui-surface";
-import {
-  parseMobilizeGroupDetailId,
-  parseMobilizeGroupTab,
-} from "@/lib/mobilize/group-detail-tabs";
+import { parseMobilizeGroupDetailId } from "@/lib/mobilize/group-detail-tabs";
 import { isMobilizeSocialHubPath } from "@/lib/mobilize/mobilize-chapters-nav-config";
 import { MOBILIZE_PREFIX } from "@/lib/mobilize/mobilize-nav-config";
 import { mobilizePageTheme } from "@/theme/mobilize-content-theme";
 import { Box } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 const MOBILIZE_PROFILE_PATH_RE = /^\/dashboard\/mobilize\/profile\/[^/]+\/?$/;
 
 function MobilizeBottomNavHost() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const groupId = parseMobilizeGroupDetailId(pathname);
   const isMobilizeRoute = pathname.startsWith(MOBILIZE_PREFIX);
 
-  if (!isMobilizeRoute) return null;
-
-  if (groupId) {
-    const activeTab = parseMobilizeGroupTab(searchParams.get("tab"));
-    return <MobilizeBottomNav variant="group" groupId={groupId} activeTab={activeTab} />;
-  }
+  if (!isMobilizeRoute || groupId) return null;
 
   if (isMobilizeSocialHubPath(pathname) || MOBILIZE_PROFILE_PATH_RE.test(pathname)) {
     return <MobilizeBottomNav variant="social" />;
@@ -37,6 +28,10 @@ function MobilizeBottomNavHost() {
 }
 
 export function MobilizeContentShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const groupId = parseMobilizeGroupDetailId(pathname);
+  const showBottomNav = pathname.startsWith(MOBILIZE_PREFIX) && !groupId;
+
   return (
     <ThemeProvider theme={mobilizePageTheme}>
       <Box
@@ -47,10 +42,12 @@ export function MobilizeContentShell({ children }: { children: ReactNode }) {
           alignSelf: "stretch",
           minHeight: "100%",
           width: "100%",
-          pb: {
-            xs: `calc(${MOBILIZE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`,
-            lg: 0,
-          },
+          pb: showBottomNav
+            ? {
+                xs: `calc(${MOBILIZE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`,
+                lg: 0,
+              }
+            : 0,
         }}
       >
         {children}
