@@ -53,7 +53,7 @@ export function MobilizeGroupAboutText({ text }: Props) {
             whiteSpace: "pre-wrap",
             lineHeight: 1.65,
             color: "rgba(0,0,0,0.78)",
-            fontSize: "calc(0.875rem - 2pt)",
+            fontSize: "calc(0.875rem - 2pt + 2px)",
           }}
         >
           {text}

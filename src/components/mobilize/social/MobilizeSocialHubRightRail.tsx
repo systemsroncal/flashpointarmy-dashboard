@@ -2,7 +2,7 @@
 
 import { MobilizeRecommendationsCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import type { HubSidebarPayload } from "@/lib/mobilize/social/load-hub-sidebar";
-import { SOCIAL_HUB_LIGHT_BG, TRUTH_HUB_BORDER } from "@/lib/mobilize/social/social-hub-surface";
+import { SOCIAL_HUB_LIGHT_BG } from "@/lib/mobilize/social/social-hub-surface";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import CloseIcon from "@mui/icons-material/Close";
@@ -47,7 +47,7 @@ export function MobilizeSocialHubRightRail({ initial = null }: Props) {
           width: 300,
           flexShrink: 0,
           bgcolor: SOCIAL_HUB_LIGHT_BG,
-          borderLeft: `1px solid ${TRUTH_HUB_BORDER}`,
+          borderLeft: "1px solid rgba(0,0,0,0.08)",
           px: 1.5,
           py: 2,
           color: "#0d0d0d",

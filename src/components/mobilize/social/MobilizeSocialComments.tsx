@@ -4,6 +4,7 @@ import type { MobilizeSocialAuthor } from "@/components/mobilize/social/Mobilize
 import type { ReactionType } from "@/lib/mobilize/social/reaction-summary";
 import { TRUTH_HUB_BORDER, TRUTH_HUB_TEXT_MUTED } from "@/lib/mobilize/social/social-hub-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
@@ -14,11 +15,13 @@ import {
   Button,
   CircularProgress,
   IconButton,
+  Link as MuiLink,
   Stack,
   TextField,
   ThemeProvider,
   Typography,
 } from "@mui/material";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 export type SocialCommentNode = {
@@ -83,6 +86,7 @@ function CommentItem({
 }) {
   const [reactions, setReactions] = useState(node.reactions);
   const [busy, setBusy] = useState(false);
+  const profileHref = mobilizeMemberProfileHref(node.author.id);
 
   async function setReaction(next: ReactionType | null) {
     setBusy(true);
@@ -110,12 +114,14 @@ function CommentItem({
   return (
     <Box sx={{ mt: depth > 0 ? 1 : 1.25, ml: depth > 0 ? 1 : 0 }}>
       <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
-        <Avatar
-          src={node.author.avatar_url ? publicAssetSrc(node.author.avatar_url) : undefined}
-          sx={{ width: avatarSize, height: avatarSize, mt: 0.25, bgcolor: "#263238" }}
-        >
-          {node.author.display_name?.[0]}
-        </Avatar>
+        <MuiLink component={Link} href={profileHref} underline="none" sx={{ flexShrink: 0, mt: 0.25 }}>
+          <Avatar
+            src={node.author.avatar_url ? publicAssetSrc(node.author.avatar_url) : undefined}
+            sx={{ width: avatarSize, height: avatarSize, bgcolor: "#263238" }}
+          >
+            {node.author.display_name?.[0]}
+          </Avatar>
+        </MuiLink>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box
             sx={{
@@ -128,9 +134,19 @@ function CommentItem({
             }}
           >
             <Stack direction="row" spacing={0.75} alignItems="baseline" flexWrap="wrap" useFlexGap>
-              <Typography sx={{ fontWeight: 700, fontSize: depth > 0 ? "0.75rem" : "0.8125rem", lineHeight: 1.3 }}>
+              <MuiLink
+                component={Link}
+                href={profileHref}
+                underline="hover"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: depth > 0 ? "0.75rem" : "0.8125rem",
+                  lineHeight: 1.3,
+                  color: light ? "#050505" : "#e7e9ea",
+                }}
+              >
                 {node.author.display_name}
-              </Typography>
+              </MuiLink>
               <Typography component="span" sx={{ fontSize: depth > 0 ? "0.7rem" : "0.75rem", color: nameMuted }}>
                 {timeAgo(node.created_at)}
               </Typography>
@@ -219,6 +235,7 @@ export function MobilizeSocialComments({
   const [posting, setPosting] = useState(false);
   const [draft, setDraft] = useState("");
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
+  const [commentsExpanded, setCommentsExpanded] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -238,7 +255,10 @@ export function MobilizeSocialComments({
   }, [commentsUrl, onCountChange]);
 
   useEffect(() => {
-    if (open) void load();
+    if (open) {
+      setCommentsExpanded(false);
+      void load();
+    }
   }, [open, load]);
 
   async function submitComment() {
@@ -266,6 +286,9 @@ export function MobilizeSocialComments({
   const asName = viewerDisplayName?.trim() || "you";
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
   const composerBg = light ? "#f0f2f5" : "rgba(255,255,255,0.06)";
+  const visibleComments =
+    commentsExpanded || comments.length <= 1 ? comments : comments.slice(0, 1);
+  const hiddenCount = Math.max(0, comments.length - 1);
 
   const body = (
     <Box
@@ -274,6 +297,7 @@ export function MobilizeSocialComments({
         pt: 1.25,
         borderTop: isDark ? `1px dashed ${TRUTH_HUB_BORDER}` : "1px solid rgba(0,0,0,0.08)",
         px: 0.25,
+        overflow: "visible",
       }}
     >
       {loading ? (
@@ -286,7 +310,7 @@ export function MobilizeSocialComments({
           No comments yet. Start the conversation.
         </Typography>
       ) : null}
-      {comments.map((c) => (
+      {visibleComments.map((c) => (
         <CommentItem
           key={c.id}
           node={c}
@@ -297,8 +321,27 @@ export function MobilizeSocialComments({
           light={light}
         />
       ))}
+      {!loading && hiddenCount > 0 ? (
+        <Button
+          size="small"
+          onClick={() => setCommentsExpanded((v) => !v)}
+          sx={{
+            mt: 0.75,
+            ml: 5.5,
+            px: 0,
+            minWidth: 0,
+            textTransform: "none",
+            fontWeight: 700,
+            fontSize: "0.8125rem",
+            color: light ? "#0866ff" : "#6eb5ff",
+            "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+          }}
+        >
+          {commentsExpanded ? "Read less" : "Read more"}
+        </Button>
+      ) : null}
       {canComment ? (
-        <Box sx={{ mt: 1.5 }}>
+        <Box sx={{ mt: 1.5, overflow: "visible" }}>
           {replyParentId ? (
             <Typography variant="caption" display="block" sx={{ mb: 0.5, ml: 5.5, color: nameMuted }}>
               Replying…{" "}
@@ -307,14 +350,14 @@ export function MobilizeSocialComments({
               </Button>
             </Typography>
           ) : null}
-          <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", overflow: "visible" }}>
             <Avatar
               src={viewerAvatarUrl ? publicAssetSrc(viewerAvatarUrl) : undefined}
-              sx={{ width: 36, height: 36, mt: 0.25, bgcolor: "#263238" }}
+              sx={{ width: 36, height: 36, mt: 0.5, bgcolor: "#263238", flexShrink: 0 }}
             >
               {asName[0]?.toUpperCase()}
             </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ flex: 1, minWidth: 0, overflow: "visible", py: 0.25 }}>
               <TextField
                 fullWidth
                 size="small"
@@ -330,12 +373,27 @@ export function MobilizeSocialComments({
                     void submitComment();
                   }
                 }}
-                InputProps={{
-                  sx: {
+                sx={{
+                  "& .MuiOutlinedInput-root": {
                     bgcolor: composerBg,
                     borderRadius: "20px",
                     fontSize: "0.9375rem",
-                    "& fieldset": { border: "none" },
+                    overflow: "hidden",
+                    "& fieldset": {
+                      border: "1px solid transparent",
+                      borderRadius: "20px",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: light ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.16)",
+                    },
+                    "&.Mui-focused": {
+                      bgcolor: light ? "#fff" : "rgba(255,255,255,0.08)",
+                      boxShadow: "none",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#0866ff",
+                      borderWidth: "2px",
+                    },
                     "& .MuiInputBase-input": { px: 1.5, py: 1 },
                   },
                 }}

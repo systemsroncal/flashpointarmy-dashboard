@@ -1,23 +1,24 @@
 "use client";
 
 import { MobilizeSocialHubRightRail } from "@/components/mobilize/social/MobilizeSocialHubRightRail";
-import { MobilizeSocialInternalNav } from "@/components/mobilize/social/MobilizeSocialInternalNav";
 import type { HubSidebarPayload } from "@/lib/mobilize/social/load-hub-sidebar";
-import { TRUTH_HUB_BORDER } from "@/lib/mobilize/social/social-hub-surface";
+import { SOCIAL_HUB_LIGHT_BG } from "@/lib/mobilize/social/social-hub-surface";
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
 
 type Props = {
   children: ReactNode;
   sidebar?: HubSidebarPayload | null;
-  /** When false, hides the Truth-style left social nav (e.g. member profile pages). */
+  /** @deprecated Internal social nav removed; left dashboard sidebar is the primary nav. */
   showInternalNav?: boolean;
+  /** Hide right recommendations rail (e.g. dense tools). */
+  showRightRail?: boolean;
 };
 
 export function MobilizeSocialHubLayout({
   children,
   sidebar = null,
-  showInternalNav = true,
+  showRightRail = true,
 }: Props) {
   return (
     <Box
@@ -26,15 +27,14 @@ export function MobilizeSocialHubLayout({
         alignItems: "stretch",
         flex: { xs: "0 0 auto", lg: 1 },
         minHeight: { xs: "auto", lg: 0 },
-        bgcolor: "#000",
+        bgcolor: SOCIAL_HUB_LIGHT_BG,
         borderRadius: 2,
         overflow: { xs: "visible", lg: "hidden" },
-        border: `1px solid ${TRUTH_HUB_BORDER}`,
+        border: "1px solid rgba(0,0,0,0.06)",
       }}
     >
-      {showInternalNav ? <MobilizeSocialInternalNav /> : null}
       <Box sx={{ flex: 1, minWidth: 0, display: "flex", minHeight: 0 }}>{children}</Box>
-      <MobilizeSocialHubRightRail initial={sidebar} />
+      {showRightRail ? <MobilizeSocialHubRightRail initial={sidebar} /> : null}
     </Box>
   );
 }

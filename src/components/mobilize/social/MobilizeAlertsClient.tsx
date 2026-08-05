@@ -50,7 +50,7 @@ export function MobilizeAlertsClient() {
               <CircularProgress size={28} />
             </Box>
           ) : !alerts.length ? (
-            <MobilizeSectionEmptyState fill title={ALERTS_EMPTY.title} description={ALERTS_EMPTY.description} />
+            <MobilizeSectionEmptyState fill layout="stacked" title={ALERTS_EMPTY.title} description={ALERTS_EMPTY.description} />
           ) : (
             <Stack spacing={1}>
               {alerts.map((a) => (

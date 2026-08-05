@@ -55,20 +55,22 @@ export function MobilizeSocialFeedShell({
         display: "grid",
         gridTemplateColumns: gridColumns,
         gap: { xs: 2, lg: isGroupProfile ? 3 : 2.5 },
-        alignItems: isGroupProfile ? "stretch" : "start",
+        alignItems: "start",
         ...(isGroupProfile
-          ? { flex: 1, minHeight: 0, height: "100%", width: "100%" }
+          ? { flex: 1, minHeight: 0, width: "100%" }
           : { minHeight: { lg: "calc(100dvh - 5.5rem - 380px)" } }),
         ...(!isGroupProfile && fill ? { flex: 1, minHeight: 0 } : {}),
       }}
     >
       {leftRail ? (
-        <Box sx={{ display: { xs: "contents", lg: "block" }, order: { xs: 2, lg: 0 } }}>
+        <Box sx={{ display: { xs: "contents", lg: "block" }, order: { xs: 2, lg: 0 }, alignSelf: "start" }}>
           <Box
             sx={{
               display: { xs: "block", lg: "block" },
               position: { lg: "sticky" },
-              top: { lg: 16 },
+              top: { lg: 72 },
+              maxHeight: { lg: "calc(100dvh - 88px)" },
+              overflowY: { lg: "auto" },
             }}
           >
             {leftRail}
@@ -89,8 +91,11 @@ export function MobilizeSocialFeedShell({
         <Box
           sx={{
             display: { xs: "none", lg: "block" },
+            alignSelf: "start",
             position: "sticky",
-            top: 16,
+            top: 72,
+            maxHeight: "calc(100dvh - 88px)",
+            overflowY: "auto",
           }}
         >
           {rightRail}

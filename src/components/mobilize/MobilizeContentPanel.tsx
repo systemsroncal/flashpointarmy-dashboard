@@ -13,11 +13,24 @@ type Props = {
   fill?: boolean;
 };
 
-/** White padded content area on the dark Mobilize page background. */
+/** Light content panel for Mobilize groups / public-profile modules on gray page chrome. */
 export function MobilizeContentPanel({ children, sx, fill }: Props) {
   return (
     <ThemeProvider theme={mobilizePanelTheme}>
-      <Box sx={[mobilizePanelSx, fill ? mobilizeChapterDetailPanelFillSx : null, sx] as SxProps<Theme>}>
+      <Box
+        sx={
+          [
+            {
+              ...mobilizePanelSx,
+              bgcolor: "#f0f2f5",
+              border: "1px solid rgba(0,0,0,0.06)",
+              boxShadow: "none",
+            },
+            fill ? mobilizeChapterDetailPanelFillSx : null,
+            sx,
+          ] as SxProps<Theme>
+        }
+      >
         {children}
       </Box>
     </ThemeProvider>

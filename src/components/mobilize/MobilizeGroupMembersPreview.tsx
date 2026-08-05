@@ -39,22 +39,28 @@ export function MobilizeGroupMembersPreview({ members, totalCount, groupId }: Pr
           const name = m.display_name ?? m.email ?? m.user_id.slice(0, 8);
           return (
             <Stack key={m.user_id} direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
-              <AvatarWithGraduateIcon
-                graduateRole={m.training_graduate_badge}
-                overlayStyle="directory"
-                size={36}
-                src={m.avatar_url ? publicAssetSrc(m.avatar_url) : undefined}
-                alt={name}
-                avatarSx={{
-                  bgcolor: "rgba(0,0,0,0.08)",
-                  color: "rgba(0,0,0,0.55)",
-                  width: 36,
-                  height: 36,
-                  fontSize: "0.85rem",
-                }}
+              <Box
+                component={Link}
+                href={`${mobilizeMemberProfileHref(m.user_id)}?from=group&groupId=${groupId}`}
+                sx={{ flexShrink: 0, lineHeight: 0, textDecoration: "none" }}
               >
-                {name.slice(0, 1).toUpperCase()}
-              </AvatarWithGraduateIcon>
+                <AvatarWithGraduateIcon
+                  graduateRole={m.training_graduate_badge}
+                  overlayStyle="directory"
+                  size={36}
+                  src={m.avatar_url ? publicAssetSrc(m.avatar_url) : undefined}
+                  alt={name}
+                  avatarSx={{
+                    bgcolor: "rgba(0,0,0,0.08)",
+                    color: "rgba(0,0,0,0.55)",
+                    width: 36,
+                    height: 36,
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  {name.slice(0, 1).toUpperCase()}
+                </AvatarWithGraduateIcon>
+              </Box>
               <Typography
                 variant="body2"
                 component={Link}

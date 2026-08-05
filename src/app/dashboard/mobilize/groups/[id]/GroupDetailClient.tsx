@@ -49,7 +49,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
-import { canViewMobilizeGroupReports, parseMobilizeGroupTab } from "@/lib/mobilize/group-detail-tabs";
+import {
+  canViewMobilizeGroupReports,
+  MOBILIZE_GROUP_TAB_LABELS,
+  mobilizeGroupDetailHref,
+  mobilizeGroupTabsForNav,
+  parseMobilizeGroupTab,
+  type MobilizeGroupTabSlug,
+} from "@/lib/mobilize/group-detail-tabs";
 import {
   canManageMobilizeGroupContent,
   canPinMobilizeGroupMessage,
@@ -64,6 +71,7 @@ import {
   type MobilizeEnrollmentMode,
 } from "@/lib/mobilize/chapter-subgroup";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
+import { SOCIAL_HUB_LIGHT_BG } from "@/lib/mobilize/social/social-hub-surface";
 import {
   mobilizeCalendarDaySx,
   mobilizeCardSx,
@@ -90,9 +98,6 @@ import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeP
 import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import { MobilizeSocialFeedShell } from "@/components/mobilize/social/MobilizeSocialFeedShell";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
-import {
-  mobilizeGroupDetailHref,
-} from "@/lib/mobilize/group-detail-tabs";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import { MobilizeGroupReportsPanel } from "@/components/mobilize/MobilizeGroupReportsPanel";
 import MobilizeGroupResourcesPanel from "@/components/mobilize/MobilizeGroupResourcesPanel";
@@ -252,13 +257,6 @@ function JoinToViewGate({
   );
 }
 
-type GroupFeedSubTab = "feed" | "about";
-
-const GROUP_FEED_SUB_TABS: { id: GroupFeedSubTab; label: string }[] = [
-  { id: "feed", label: "Feed" },
-  { id: "about", label: "About" },
-];
-
 export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const toast = useMobilizeToast();
   const me = useDashboardUser();
@@ -268,7 +266,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const isMobileGroupFeed = useMediaQuery(theme.breakpoints.down("lg"));
   const isMobileMembersTable = useMediaQuery(theme.breakpoints.down("md"));
   const activeTab = parseMobilizeGroupTab(searchParams.get("tab"));
-  const [feedSubTab, setFeedSubTab] = useState<GroupFeedSubTab>("feed");
   const [group, setGroup] = useState<Group | null>(null);
   const [membership, setMembership] = useState<Membership>(null);
   const [loading, setLoading] = useState(true);
@@ -456,10 +453,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   useEffect(() => {
     if (isSuperAdmin) void loadOwnerCandidates();
   }, [isSuperAdmin, loadOwnerCandidates]);
-
-  useEffect(() => {
-    if (activeTab !== "announcements") setFeedSubTab("feed");
-  }, [activeTab]);
 
   const selectedOwnerCandidate = useMemo(
     () => ownerCandidates.find((c) => c.userId === editForm.created_by) ?? null,
@@ -1291,9 +1284,22 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   const feedTabPanelSx = mobilizeGroupTabPanelScrollSx;
   const secondaryTabPanelSx = mobilizeGroupSecondaryTabPanelScrollSx;
+  const profileTabs = mobilizeGroupTabsForNav(canViewReports).map((slug) => ({
+    id: slug,
+    label: MOBILIZE_GROUP_TAB_LABELS[slug],
+  }));
 
   return (
-    <Box sx={mobilizeGroupDetailPageRootSx}>
+    <Box
+      sx={{
+        ...mobilizeGroupDetailPageRootSx,
+        bgcolor: SOCIAL_HUB_LIGHT_BG,
+        borderRadius: 2,
+        border: "1px solid rgba(0,0,0,0.06)",
+        p: { xs: 1, sm: 1.5, md: 2 },
+        boxSizing: "border-box",
+      }}
+    >
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -1305,7 +1311,17 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Button>
       </Stack>
 
-      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, width: "100%" }}>
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          width: "100%",
+          maxWidth: 1400,
+          mx: "auto",
+        }}
+      >
       <MobilizeProfilePageShell
         coverSrc={groupCoverSrc}
         title={group.name}
@@ -1313,14 +1329,17 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         avatarSrc={group.profile_image_url ?? group.cover_image_url}
         avatarFallback={group.name}
         headerActions={profileHeaderActions}
+        tabs={profileTabs}
+        activeTab={activeTab}
+        onTabChange={(id) => {
+          router.push(mobilizeGroupDetailHref(groupId, id as MobilizeGroupTabSlug));
+        }}
+        socialTabStyle
+        tabsInContent
+        fillContent
         unifiedContent
-        scrollWithHeader
-        contentVariant="groupFeed"
-        tabs={activeTab === "announcements" && isMobileGroupFeed ? GROUP_FEED_SUB_TABS : undefined}
-        activeTab={feedSubTab}
-        onTabChange={(id) => setFeedSubTab(id as GroupFeedSubTab)}
       >
-      <Box sx={{ ...mobilizeGroupFeedContentScrollSx, width: "100%" }}>
+      <Box sx={{ ...mobilizeGroupFeedContentScrollSx, width: "100%", bgcolor: "transparent" }}>
       {activeTab === "announcements" && !canViewContent ? (
         <Box sx={secondaryTabPanelSx}>
         <JoinToViewGate
@@ -1334,58 +1353,55 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
       {activeTab === "announcements" && canViewContent ? (
         <Box sx={feedTabPanelSx}>
-          {isMobileGroupFeed && feedSubTab === "about" ? (
-            groupAboutPanel
-          ) : (
-            <>
-              <MobilizeSocialFeedShell
-                leftRail={isMobileGroupFeed ? null : groupFeedAboutRail}
-                rightRail={isMobileGroupFeed ? null : groupFeedAdsRail}
-                variant="groupProfile"
-                fill
-              >
-                <MobilizeGroupFeed
-                  embedded
-                  groupId={groupId}
-                  authorRoleLabels={groupAuthorRoleLabels}
-                  messages={messages}
-                  canPost={canPostWall}
-                  canCommentOnPost={canCommentOnPost}
-                  isLeader={isLeader}
-                  isSuperAdmin={isSuperAdmin}
-                  canManageMessage={canManageMessage}
-                  posting={wallPosting}
-                  wallHtml={wallHtml}
-                  onWallHtmlChange={setWallHtml}
-                  wallImages={wallImages}
-                  onWallImagesChange={setWallImages}
-                  leaderCommentsPolicy={leaderCommentsPolicy}
-                  onLeaderCommentsPolicyChange={setLeaderCommentsPolicy}
-                  onPost={postWall}
-                  onEdit={(m) =>
-                    setMsgEdit({
-                      id: m.id,
-                      content: m.content,
-                      content_html: m.content_html ?? m.content,
-                      image_urls: m.image_urls ?? [],
-                      comments_policy: m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
-                    })
-                  }
-                  onDelete={(m) =>
-                    setDeleteMessageDialog({
-                      id: m.id,
-                      preview: m.content.trim() || "this post",
-                    })
-                  }
-                  onPin={(m, pin) => void pinMessage(m, pin)}
-                  canPinPost={canPinPosts}
-                />
-              </MobilizeSocialFeedShell>
-              {isMobileGroupFeed && feedSubTab === "feed" && groupFeedAdsRail ? (
-                <Box sx={{ mt: 2 }}>{groupFeedAdsRail}</Box>
-              ) : null}
-            </>
-          )}
+          <MobilizeSocialFeedShell
+            leftRail={isMobileGroupFeed ? null : groupFeedAboutRail}
+            rightRail={isMobileGroupFeed ? null : groupFeedAdsRail}
+            variant="groupProfile"
+            fill
+          >
+            <MobilizeGroupFeed
+              embedded
+              groupId={groupId}
+              authorRoleLabels={groupAuthorRoleLabels}
+              messages={messages}
+              canPost={canPostWall}
+              canCommentOnPost={canCommentOnPost}
+              isLeader={isLeader}
+              isSuperAdmin={isSuperAdmin}
+              canManageMessage={canManageMessage}
+              posting={wallPosting}
+              wallHtml={wallHtml}
+              onWallHtmlChange={setWallHtml}
+              wallImages={wallImages}
+              onWallImagesChange={setWallImages}
+              leaderCommentsPolicy={leaderCommentsPolicy}
+              onLeaderCommentsPolicyChange={setLeaderCommentsPolicy}
+              onPost={postWall}
+              onEdit={(m) =>
+                setMsgEdit({
+                  id: m.id,
+                  content: m.content,
+                  content_html: m.content_html ?? m.content,
+                  image_urls: m.image_urls ?? [],
+                  comments_policy: m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
+                })
+              }
+              onDelete={(m) =>
+                setDeleteMessageDialog({
+                  id: m.id,
+                  preview: m.content.trim() || "this post",
+                })
+              }
+              onPin={(m, pin) => void pinMessage(m, pin)}
+              canPinPost={canPinPosts}
+            />
+          </MobilizeSocialFeedShell>
+          {isMobileGroupFeed ? (
+            <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+              {groupAboutPanel}
+              {groupFeedAdsRail}
+            </Box>
+          ) : null}
         </Box>
       ) : null}
 

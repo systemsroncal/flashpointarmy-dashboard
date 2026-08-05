@@ -1,5 +1,6 @@
 "use client";
 
+import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import { Box, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 
@@ -16,7 +17,7 @@ type Props = {
   fill?: boolean;
   /** Truth-style dark feed vs light panels */
   surface?: "light" | "dark";
-  /** Icon above title (default on md+ is side-by-side). */
+  /** Icon above title (default). Use sideBySide for wide layouts. */
   layout?: "stacked" | "sideBySide";
 };
 
@@ -28,14 +29,21 @@ export function MobilizeSectionEmptyState({
   icon,
   fill = false,
   surface = "light",
-  layout = "sideBySide",
+  layout = "stacked",
 }: Props) {
-  const heading = title || message || "Nothing to see here";
+  const heading = title || message || "Nothing to see here yet";
   const body = description ?? (title && message ? message : undefined);
   const isDark = surface === "dark";
   const titleColor = isDark ? "#e7e9ea" : "#0d0d0d";
-  const bodyColor = isDark ? "#8b98a5" : "rgba(0,0,0,0.65)";
-  const circleBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
+  const bodyColor = isDark ? "#8b98a5" : "rgba(0,0,0,0.62)";
+  const circleBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(24,119,242,0.08)";
+  const accentRing = isDark ? "rgba(255,255,255,0.08)" : "rgba(24,119,242,0.16)";
+
+  const resolvedIcon =
+    icon ??
+    (!imageSrc ? (
+      <InboxOutlinedIcon sx={{ fontSize: "inherit", color: isDark ? "rgba(255,255,255,0.45)" : "#1877f2" }} />
+    ) : null);
 
   const visual = imageSrc ? (
     <Box
@@ -43,30 +51,24 @@ export function MobilizeSectionEmptyState({
       src={imageSrc}
       alt=""
       sx={{
-        width: { xs: 72, sm: 88, md: 110 },
-        height: { xs: 72, sm: 88, md: 110 },
-        "@media (min-width: 1000px)": {
-          width: 160,
-          height: 160,
-        },
+        width: { xs: 72, sm: 88, md: 104 },
+        height: { xs: 72, sm: 88, md: 104 },
         objectFit: "contain",
         display: "block",
       }}
     />
-  ) : icon ? (
+  ) : resolvedIcon ? (
     <Box
       sx={{
         fontSize: { xs: 40, sm: 48, md: 56 },
-        "@media (min-width: 1000px)": {
-          fontSize: 72,
-        },
         lineHeight: 1,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        color: isDark ? "rgba(255,255,255,0.5)" : "#1877f2",
       }}
     >
-      {icon}
+      {resolvedIcon}
     </Box>
   ) : null;
 
@@ -75,13 +77,13 @@ export function MobilizeSectionEmptyState({
   const content = (
     <Stack
       direction={stacked ? "column" : { xs: "column", md: "row" }}
-      alignItems={stacked ? "center" : { xs: "center", md: "center" }}
-      spacing={stacked ? 1.5 : { xs: 2, md: 3 }}
+      alignItems="center"
+      spacing={stacked ? 1.75 : { xs: 2, md: 3 }}
       useFlexGap
       sx={{
         textAlign: "center",
-        maxWidth: fill ? 720 : undefined,
-        mx: fill ? "auto" : undefined,
+        maxWidth: fill ? 560 : 480,
+        mx: "auto",
       }}
     >
       {visual ? (
@@ -91,34 +93,55 @@ export function MobilizeSectionEmptyState({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: { xs: 96, sm: 112, md: 140 },
-            height: { xs: 96, sm: 112, md: 140 },
-            "@media (min-width: 1000px)": {
-              width: 200,
-              height: 200,
-            },
+            width: { xs: 88, sm: 104, md: 120 },
+            height: { xs: 88, sm: 104, md: 120 },
             borderRadius: "50%",
             bgcolor: circleBg,
+            boxShadow: `inset 0 0 0 1px ${accentRing}`,
           }}
         >
           {visual}
         </Box>
       ) : null}
-      <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ minWidth: 0, px: 1 }}>
         <Typography
           variant="h6"
           fontWeight={800}
-          sx={{ mb: body ? 1 : 0, letterSpacing: "-0.02em", color: titleColor }}
+          sx={{
+            mb: body ? 1 : 0,
+            letterSpacing: "-0.02em",
+            color: titleColor,
+            textWrap: "balance",
+          }}
         >
           {heading}
         </Typography>
         {body ? (
           <Typography
             variant="body1"
-            sx={{ lineHeight: 1.6, maxWidth: 480, color: bodyColor }}
+            sx={{
+              lineHeight: 1.55,
+              maxWidth: 420,
+              mx: "auto",
+              color: bodyColor,
+              textWrap: "pretty",
+            }}
           >
             {body}
           </Typography>
+        ) : null}
+        {stacked && visual ? (
+          <Box
+            sx={{
+              mt: 2,
+              mx: "auto",
+              width: 36,
+              height: 4,
+              borderRadius: 99,
+              bgcolor: isDark ? "rgba(255,255,255,0.12)" : "rgba(24,119,242,0.25)",
+            }}
+            aria-hidden
+          />
         ) : null}
       </Box>
     </Stack>
@@ -145,11 +168,12 @@ export function MobilizeSectionEmptyState({
   return (
     <Box
       sx={{
-        py: 3,
+        py: 3.5,
         px: { xs: 2, md: 2.5 },
-        borderRadius: 2,
-        bgcolor: isDark ? "transparent" : "rgba(0,0,0,0.02)",
-        border: isDark ? "none" : "1px dashed rgba(0,0,0,0.1)",
+        borderRadius: 2.5,
+        bgcolor: isDark ? "transparent" : "#fff",
+        border: isDark ? "none" : "1px solid rgba(0,0,0,0.08)",
+        boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)",
       }}
     >
       {content}

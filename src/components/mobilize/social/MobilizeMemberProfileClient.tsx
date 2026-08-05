@@ -585,6 +585,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         >
           <MobilizeSectionEmptyState
             fill
+            layout="stacked"
             imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
             title={PROFILE_TAB_EMPTY.posts.title}
             description={
@@ -623,7 +624,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               flexDirection: "column",
             }}
           >
-            <MobilizeSectionEmptyState fill title="Nothing to see here" description={PRIVATE_PROFILE_TAB_MESSAGE} />
+            <MobilizeSectionEmptyState fill layout="stacked" title="Private profile" description={PRIVATE_PROFILE_TAB_MESSAGE} />
           </Paper>
         </Box>
       );
@@ -655,7 +656,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               flexDirection: "column",
             }}
           >
-            <MobilizeSectionEmptyState fill title={emptyCopy.title} description={emptyCopy.description} />
+            <MobilizeSectionEmptyState fill layout="stacked" title={emptyCopy.title} description={emptyCopy.description} />
           </Paper>
         ) : null}
         {tabLoading ? (
@@ -740,6 +741,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               >
                 <MobilizeSectionEmptyState
                   fill
+                  layout="stacked"
                   title={PROFILE_TAB_EMPTY.media.title}
                   description={
                     p.is_own_profile

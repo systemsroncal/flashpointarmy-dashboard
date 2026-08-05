@@ -460,7 +460,8 @@ export function MobilizeProfilePageShell({
                   tabs={tabs}
                   activeTab={activeTab ?? tabs[0].id}
                   onTabChange={(id) => onTabChange?.(id)}
-                  variant="truth"
+                  variant={socialTabStyle ? "facebook" : "truth"}
+                  surface="light"
                 />
               ) : null}
               {children}

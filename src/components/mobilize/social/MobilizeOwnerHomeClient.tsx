@@ -6,7 +6,7 @@ import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSo
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { MobilizeSocialPostEditor } from "@/components/mobilize/social/MobilizeSocialPostEditor";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
-import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
+import DynamicFeedOutlinedIcon from "@mui/icons-material/DynamicFeedOutlined";
 import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import {
@@ -15,15 +15,8 @@ import {
   feedPostReactionUrl,
 } from "@/lib/mobilize/social/feed-post-urls";
 import { HOME_FEED_EMPTY } from "@/lib/mobilize/social/social-empty-copy";
-import {
-  TRUTH_HUB_BORDER,
-  TRUTH_HUB_CENTER_BG,
-  TRUTH_HUB_TEXT,
-  TRUTH_HUB_TEXT_MUTED,
-} from "@/lib/mobilize/social/social-hub-surface";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import { Box, CircularProgress, IconButton, Typography } from "@mui/material";
+import { Box, CircularProgress, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 
 const HOME_TABS = [
@@ -92,71 +85,75 @@ export function MobilizeOwnerHomeClient() {
   return (
     <Box sx={{ ...mobilizeChapterDetailRootSx, display: "flex", flexDirection: "column", minHeight: 0 }}>
       <MobilizeSocialHubLayout>
-        <MobilizeSocialHubContent tone="truth-dark">
+        <MobilizeSocialHubContent tone="light">
           <Box
             sx={{
-              position: "sticky",
-              top: 0,
-              zIndex: 3,
-              bgcolor: TRUTH_HUB_CENTER_BG,
-              borderBottom: `1px solid ${TRUTH_HUB_BORDER}`,
-              px: { xs: 1.5, sm: 2 },
-              py: 1.35,
+              flex: 1,
+              minWidth: 0,
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              flexDirection: "column",
+              width: "100%",
+              maxWidth: 1400,
+              mx: "auto",
+              p: { xs: 1, sm: 1.5, md: 2 },
             }}
           >
-            <Typography variant="h6" fontWeight={800} sx={{ color: TRUTH_HUB_TEXT, fontSize: "1.15rem" }}>
+            <Typography variant="h5" fontWeight={800} sx={{ mb: 1.5, color: "#0d0d0d" }}>
               Home
             </Typography>
-            <IconButton size="small" aria-label="Feed options" sx={{ color: TRUTH_HUB_TEXT_MUTED }}>
-              <AutoAwesomeOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Box>
 
-          {error ? (
-            <Typography color="error" sx={{ px: 2, py: 1 }}>
-              {error}
-            </Typography>
-          ) : null}
+            {error ? (
+              <Typography color="error" sx={{ mb: 1 }}>
+                {error}
+              </Typography>
+            ) : null}
 
-          <MobilizeSocialPostEditor
-            value={composerHtml}
-            onChange={setComposerHtml}
-            disabled={posting}
-            surface="dark"
-            avatarUrl={me.avatar_url}
-            avatarFallback={me.display_name ?? me.email ?? "?"}
-            imageUrls={composerImages}
-            onImageUrlsChange={setComposerImages}
-            postLabel="Post"
-            onPost={() => void publishPost()}
-            posting={posting}
-            canPost={canPost}
-          />
-
-          <MobilizeContentTabBar
-            tabs={HOME_TABS.map((t) => ({ id: t.id, label: t.label }))}
-            activeTab={activeTab}
-            onTabChange={(id) => setActiveTab(id as HomeTabId)}
-            variant="truth"
-            surface="dark"
-          />
-
-          <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-            {loading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-                <CircularProgress size={28} sx={{ color: TRUTH_HUB_TEXT_MUTED }} />
-              </Box>
-            ) : (
-              <StackFeed
-                posts={posts}
-                empty={empty}
-                viewerAvatarUrl={me.avatar_url}
-                viewerDisplayName={me.display_name ?? me.email}
+            <Box
+              sx={{
+                bgcolor: "#fff",
+                borderRadius: 2,
+                border: "1px solid rgba(0,0,0,0.08)",
+                overflow: "hidden",
+                mb: 1.5,
+              }}
+            >
+              <MobilizeSocialPostEditor
+                value={composerHtml}
+                onChange={setComposerHtml}
+                disabled={posting}
+                surface="light"
+                avatarUrl={me.avatar_url}
+                avatarFallback={me.display_name ?? me.email ?? "?"}
+                imageUrls={composerImages}
+                onImageUrlsChange={setComposerImages}
+                postLabel="Post"
+                onPost={() => void publishPost()}
+                posting={posting}
+                canPost={canPost}
               />
-            )}
+              <MobilizeContentTabBar
+                tabs={HOME_TABS.map((t) => ({ id: t.id, label: t.label }))}
+                activeTab={activeTab}
+                onTabChange={(id) => setActiveTab(id as HomeTabId)}
+                variant="facebook"
+                surface="light"
+              />
+            </Box>
+
+            <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+              {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+                  <CircularProgress size={28} />
+                </Box>
+              ) : (
+                <StackFeed
+                  posts={posts}
+                  empty={empty}
+                  viewerAvatarUrl={me.avatar_url}
+                  viewerDisplayName={me.display_name ?? me.email}
+                />
+              )}
+            </Box>
           </Box>
         </MobilizeSocialHubContent>
       </MobilizeSocialHubLayout>
@@ -176,12 +173,12 @@ function StackFeed({
   viewerDisplayName?: string | null;
 }) {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
       {!posts.length ? (
         <MobilizeSectionEmptyState
           fill
-          surface="dark"
-          imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
+          layout="stacked"
+          icon={<DynamicFeedOutlinedIcon sx={{ fontSize: "inherit", color: "rgba(0,0,0,0.35)" }} />}
           title={empty.title}
           description={empty.description}
         />
@@ -198,7 +195,7 @@ function StackFeed({
             commentConfig={commentConfig}
             reactionUrl={reactionUrl}
             showGroupBadge
-            surface="dark"
+            surface="light"
             viewerAvatarUrl={viewerAvatarUrl}
             viewerDisplayName={viewerDisplayName}
           />

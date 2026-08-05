@@ -51,7 +51,7 @@ export function MobilizeBookmarksClient() {
               <CircularProgress size={28} />
             </Box>
           ) : !posts.length ? (
-            <MobilizeSectionEmptyState fill title={BOOKMARKS_EMPTY.title} description={BOOKMARKS_EMPTY.description} />
+            <MobilizeSectionEmptyState fill layout="stacked" title={BOOKMARKS_EMPTY.title} description={BOOKMARKS_EMPTY.description} />
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {posts.map((post) => {

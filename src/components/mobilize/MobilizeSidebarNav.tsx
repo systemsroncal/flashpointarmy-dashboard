@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  MOBILIZE_GROUP_TAB_LABELS,
-  canViewMobilizeGroupReports,
-  mobilizeGroupDetailHref,
-  mobilizeGroupTabsForNav,
-  parseMobilizeGroupTab,
-  type MobilizeGroupTabSlug,
-} from "@/lib/mobilize/group-detail-tabs";
+import { canViewMobilizeGroupReports, mobilizeGroupDetailHref } from "@/lib/mobilize/group-detail-tabs";
 import { isMobilizeChapterMine } from "@/lib/mobilize/mobilize-chapter-membership";
 import {
   MOBILIZE_CHAPTERS_HREF,
@@ -28,10 +21,6 @@ import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import MapIcon from "@mui/icons-material/Map";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
-import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import {
   Box,
   Collapse,
@@ -43,8 +32,8 @@ import {
   Typography,
 } from "@mui/material";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MobilizeNavNotificationsBadge } from "@/components/mobilize/MobilizeNavNotificationsBadge";
 
 const NAV_ITEM_TOUCH_SX = {
@@ -68,15 +57,6 @@ const MOBILIZE_DASHBOARD_NAV_ITEM_SX = {
   pt: 0.5,
 } as const;
 
-const TAB_ICONS: Record<MobilizeGroupTabSlug, ReactNode> = {
-  announcements: <CampaignOutlinedIcon sx={{ fontSize: 18 }} />,
-  events: <EventAvailableOutlinedIcon sx={{ fontSize: 18 }} />,
-  members: <GroupsOutlinedIcon sx={{ fontSize: 18 }} />,
-  resources: <FolderOpenOutlinedIcon sx={{ fontSize: 18 }} />,
-  updates: <NotificationsActiveOutlinedIcon sx={{ fontSize: 18 }} />,
-  reports: <AssessmentOutlinedIcon sx={{ fontSize: 18 }} />,
-};
-
 const GROUP_NAME_ACTIVE_SX = {
   bgcolor: flashpointYellow,
   "&:hover": { bgcolor: flashpointYellow },
@@ -85,12 +65,6 @@ const GROUP_NAME_ACTIVE_SX = {
     fontWeight: 700,
     lineHeight: 1.15,
   },
-} as const;
-
-const GROUP_TAB_SELECTED_SX = {
-  bgcolor: "rgb(255 255 255 / 14%)",
-  "& .MuiListItemIcon-root": { color: "#fff" },
-  "& .MuiListItemText-primary": { color: "#fff", fontWeight: 700 },
 } as const;
 
 function SidebarGroupNameLink({
@@ -161,64 +135,9 @@ type Props = {
   showSettings: boolean;
 };
 
-function ChapterTabLinks({
-  groupId,
-  activeTab,
-  canViewReports,
-  onNavigate,
-  indent = 3,
-}: {
-  groupId: string;
-  activeTab: MobilizeGroupTabSlug;
-  canViewReports: boolean;
-  onNavigate?: () => void;
-  indent?: number;
-}) {
-  const slugs = mobilizeGroupTabsForNav(canViewReports);
-  return (
-    <List dense disablePadding sx={{ pl: indent }}>
-      {slugs.map((slug) => {
-        const selected = activeTab === slug;
-        return (
-          <ListItem key={slug} disablePadding>
-            <ListItemButton
-              component={Link}
-              href={mobilizeGroupDetailHref(groupId, slug)}
-              selected={selected}
-              onClick={onNavigate}
-              sx={{
-                ...NAV_ITEM_TOUCH_SX,
-                py: 0.45,
-                minHeight: 40,
-                borderRadius: 1,
-                mx: 0.5,
-                "&.Mui-selected": GROUP_TAB_SELECTED_SX,
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 30, color: selected ? "#fff" : "rgba(255,255,255,0.65)" }}>
-                {TAB_ICONS[slug]}
-              </ListItemIcon>
-              <ListItemText
-                primary={MOBILIZE_GROUP_TAB_LABELS[slug]}
-                primaryTypographyProps={{
-                  variant: "body2",
-                  fontSize: "0.78rem",
-                  fontWeight: selected ? 700 : 500,
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
-    </List>
-  );
-}
-
 export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const me = useDashboardUser();
-  const activeTab = parseMobilizeGroupTab(searchParams.get("tab"));
 
   const activeGroupId = useMemo(() => {
     const match = pathname.match(/^\/dashboard\/mobilize\/groups\/([^/]+)/);
@@ -490,7 +409,6 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
         <List dense disablePadding sx={{ pl: 1.5, pb: 0.5 }}>
           {sidebarMyGroups.map((group) => {
             const isActiveGroup = activeGroupId === group.id && Boolean(activeGroup?.isSubgroup);
-            const groupReports = isActiveGroup && activeGroup ? activeGroup.canViewReports : false;
             return (
               <Box key={group.id}>
                 <SidebarGroupNameLink
@@ -499,14 +417,6 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
                   isActive={isActiveGroup}
                   onNavigate={onNavigate}
                 />
-                {isActiveGroup && activeGroup ? (
-                  <ChapterTabLinks
-                    groupId={group.id}
-                    activeTab={activeTab}
-                    canViewReports={groupReports}
-                    onNavigate={onNavigate}
-                  />
-                ) : null}
               </Box>
             );
           })}

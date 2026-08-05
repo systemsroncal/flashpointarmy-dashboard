@@ -1,6 +1,7 @@
 "use client";
 
 import { MobilizeAnnouncementMediaGrid } from "@/components/mobilize/MobilizeAnnouncementMediaGrid";
+import { MobilizeCollapsiblePostBody } from "@/components/mobilize/social/MobilizeCollapsiblePostBody";
 import { MobilizeFeedHtml } from "@/components/mobilize/social/MobilizeFeedHtml";
 import { MobilizeSocialComments } from "@/components/mobilize/social/MobilizeSocialComments";
 import { MobilizeSocialPostHeader } from "@/components/mobilize/social/MobilizeSocialPostHeader";
@@ -61,7 +62,7 @@ export function MobilizeSocialPostCard({
   const isGroupFeedCard = layout === "groupFeedCard";
   const [reactions, setReactions] = useState(post.reactions);
   const [commentCount, setCommentCount] = useState(post.comment_count);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(post.comment_count > 0);
   const [reacting, setReacting] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkBusy, setBookmarkBusy] = useState(false);
@@ -126,6 +127,7 @@ export function MobilizeSocialPostCard({
         bgcolor: isGroupFeedList || isGroupFeedCard || isDark ? "transparent" : "#fff",
         boxShadow: isGroupFeedList || isGroupFeedCard || isDark ? "none" : "0 1px 2px rgba(0,0,0,0.06)",
         color: isDark ? TRUTH_HUB_TEXT : undefined,
+        overflow: "visible",
         "&:last-child": isGroupFeedList ? { borderBottom: "none" } : undefined,
       }}
     >
@@ -161,13 +163,15 @@ export function MobilizeSocialPostCard({
           <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
         ) : null}
         <Box sx={{ mt: 1.25 }}>
-          <MobilizeFeedHtml
-            html={post.content_html}
-            plain={post.content}
-            sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
-          />
+          <MobilizeCollapsiblePostBody surface={surface}>
+            <MobilizeFeedHtml
+              html={post.content_html}
+              plain={post.content}
+              sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
+            />
+            <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />
+          </MobilizeCollapsiblePostBody>
         </Box>
-        <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />
         <Stack
           direction="row"
           alignItems="center"
