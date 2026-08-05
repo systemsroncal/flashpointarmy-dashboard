@@ -111,7 +111,6 @@ import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupState
 import { resolveMobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
-import { flashpointYellow } from "@/theme/tokens";
 
 type Group = {
   id: string;
@@ -1037,17 +1036,15 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     const canEdit = Boolean(group && (isLeader || group.created_by === me.id || isSuperAdmin));
     const actions: ReactNode[] = [];
     const heroBtnSx = {
-      borderRadius: 1.5,
+      borderRadius: 99,
       textTransform: "none" as const,
-      fontWeight: 600,
-      color: "#fff",
-      borderColor: flashpointYellow,
-      bgcolor: "rgba(0,0,0,0.55)",
-      backdropFilter: "blur(8px)",
-      boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+      fontWeight: 700,
+      color: "#0d0d0d",
+      borderColor: "rgba(0,0,0,0.18)",
+      bgcolor: "#fff",
       "&:hover": {
-        borderColor: flashpointYellow,
-        bgcolor: "rgba(0,0,0,0.72)",
+        borderColor: "rgba(0,0,0,0.28)",
+        bgcolor: "rgba(0,0,0,0.03)",
       },
     };
     if (showJoin) {
@@ -1056,7 +1053,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           key="join"
           size="small"
           variant="outlined"
-          startIcon={<PersonAddIcon sx={{ color: flashpointYellow }} />}
+          startIcon={<PersonAddIcon />}
           onClick={() => void joinRequest()}
           sx={{ ...heroBtnSx, fontWeight: 700 }}
         >
@@ -1068,7 +1065,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         <Typography
           key="pending"
           variant="body2"
-          sx={{ color: flashpointYellow, maxWidth: 220, fontWeight: 600 }}
+          sx={{ color: "warning.main", maxWidth: 220, fontWeight: 600 }}
         >
           Membership pending approval.
         </Typography>
@@ -1080,7 +1077,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           key="edit"
           size="small"
           variant="outlined"
-          startIcon={<EditIcon sx={{ color: flashpointYellow }} />}
+          startIcon={<EditIcon />}
           onClick={() => openEditGroup()}
           sx={heroBtnSx}
         >
@@ -1103,14 +1100,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     return (
       <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap alignItems="center">
         <Stack direction="row" spacing={0.75} alignItems="center">
-          <GroupsOutlinedIcon sx={{ fontSize: 17, color: "rgba(255,255,255,0.72)" }} />
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.82)", fontWeight: 500 }}>
+          <GroupsOutlinedIcon sx={{ fontSize: 17, color: "text.secondary" }} />
+          <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 500 }}>
             {memberLabel}
           </Typography>
         </Stack>
         <Stack direction="row" spacing={0.75} alignItems="center">
-          <PublicOutlinedIcon sx={{ fontSize: 17, color: "rgba(255,255,255,0.72)" }} />
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.82)", fontWeight: 500 }}>
+          <PublicOutlinedIcon sx={{ fontSize: 17, color: "text.secondary" }} />
+          <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 500 }}>
             {visibilityLabel}
           </Typography>
         </Stack>
@@ -1356,7 +1353,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         tabsInContent
         fillContent
         unifiedContent
-        contentVariant="groupFeed"
       >
       <Box sx={{ ...mobilizeGroupFeedContentScrollSx, width: "100%", bgcolor: "transparent" }}>
       {activeTab === "announcements" && !canViewContent ? (

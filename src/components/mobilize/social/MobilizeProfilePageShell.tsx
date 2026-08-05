@@ -270,7 +270,7 @@ export function MobilizeProfilePageShell({
               alt=""
               sx={{
                 width: "100%",
-                height: { xs: 180, sm: 240, md: 300 },
+                height: { xs: 200, sm: 260, md: 320 },
                 objectFit: "cover",
                 display: "block",
               }}
@@ -339,7 +339,7 @@ export function MobilizeProfilePageShell({
                   lineHeight={1.2}
                   sx={{
                     letterSpacing: "-0.02em",
-                    fontSize: { xs: "1.25rem", sm: "1.4rem", md: "1.6rem" },
+                    fontSize: { xs: "1.35rem", sm: "1.55rem", md: "1.75rem" },
                     display: "-webkit-box",
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: "vertical",
