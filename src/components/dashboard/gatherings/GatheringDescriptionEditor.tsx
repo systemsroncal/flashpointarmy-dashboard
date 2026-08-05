@@ -219,8 +219,8 @@ export function GatheringDescriptionEditor({
     };
     if (isSocial) {
       const socialBodyStyle = socialDark
-        ? "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 14px; background: transparent; color: #e7e9ea; } p { margin: 0 0 0.5em 0; color: #e7e9ea; }"
-        : "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 14px; background: transparent; color: #0d0d0d; } p { margin: 0 0 0.5em 0; }";
+        ? "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 12px 16px; background: transparent; color: #e7e9ea; } p { margin: 0 0 0.5em 0; color: #e7e9ea; } body.mce-content-readonly { padding: 12px 16px; }"
+        : "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 12px 16px; background: transparent; color: #0d0d0d; } p { margin: 0 0 0.5em 0; }";
       const socialChrome = socialDark
         ? { skin: "oxide-dark" as const, content_css: "dark" as const }
         : {};
@@ -332,27 +332,56 @@ export function GatheringDescriptionEditor({
       ) : null}
       <Box
         sx={
-          isSocial && socialDark
+          isSocial
             ? {
-                borderRadius: 0,
-                overflow: "hidden",
+                borderRadius: "4px",
+                overflow: "visible",
                 border: "none",
                 bgcolor: "transparent",
-                "& .tox-tinymce": { border: "none !important", bgcolor: "transparent !important" },
+                "& .tox-tinymce": {
+                  border: "none !important",
+                  boxShadow: "none !important",
+                  bgcolor: "transparent !important",
+                },
                 "& .tox .tox-editor-container": { bgcolor: "transparent !important" },
-                "& .tox .tox-edit-area": { bgcolor: "transparent !important" },
+                "& .tox .tox-edit-area": {
+                  position: "relative",
+                  bgcolor: "transparent !important",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                },
+                "& .tox .tox-edit-area::before": {
+                  border: "2px solid #006ce7",
+                  borderRadius: "4px",
+                  content: '""',
+                  inset: 0,
+                  opacity: 0,
+                  pointerEvents: "none",
+                  position: "absolute",
+                  transition: "opacity .15s",
+                  zIndex: 1,
+                },
+                "& .tox.tox-edit-focus .tox-edit-area::before": {
+                  opacity: 1,
+                },
+                "& .tox .tox-edit-area iframe": {
+                  borderRadius: "4px",
+                  outline: "none",
+                },
+                "& .tox .tox-edit-area__iframe": {
+                  outline: "none",
+                },
+                // Suppress TinyMCE default thin focus chrome when our ::before ring is used
+                "& .tox-tinymce:focus-within": {
+                  outline: "none",
+                },
+                "& .tox .tox-edit-area:focus-within": {
+                  outline: "none",
+                },
                 "& .tox .tox-editor-header": { display: "none !important" },
                 "& .tox .tox-statusbar": { display: "none !important" },
               }
-            : isSocial
-              ? {
-                  borderRadius: 0,
-                  overflow: "hidden",
-                  "& .tox-tinymce": { border: "none !important", boxShadow: "none !important" },
-                  "& .tox .tox-editor-header": { display: "none !important" },
-                  "& .tox .tox-statusbar": { display: "none !important" },
-                }
-              : darkSurface
+            : darkSurface
                 ? {
                     borderRadius: 1,
                     overflow: "hidden",

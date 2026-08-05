@@ -334,6 +334,7 @@ export function MobilizeSocialComments({
             fontWeight: 700,
             fontSize: "0.8125rem",
             color: light ? "#0866ff" : "#6eb5ff",
+            textDecoration: "underline",
             "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
           }}
         >

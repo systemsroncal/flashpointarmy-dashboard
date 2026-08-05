@@ -68,6 +68,7 @@ export function MobilizeCollapsiblePostBody({ children, surface = "light" }: Pro
             fontWeight: 700,
             fontSize: "0.875rem",
             color: "#0866ff",
+            textDecoration: "underline",
             "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
           }}
         >

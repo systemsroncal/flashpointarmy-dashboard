@@ -1300,17 +1300,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         boxSizing: "border-box",
       }}
     >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ mb: 1, flexShrink: 0 }}
-      >
-        <Button component={Link} href={`/dashboard/mobilize/groups/${group.parent_group_id}/groups`} size="small">
-          Back to chapter groups
-        </Button>
-      </Stack>
-
       <Box
         sx={{
           flex: 1,
