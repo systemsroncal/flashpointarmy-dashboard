@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { countDashboardUsersMissionsStarted } from "@/lib/onboarding/missions-started";
+import { usStateByCode } from "@/data/usStates";
 
 export type OverviewScope = "national" | "state";
 
@@ -266,26 +267,92 @@ export async function loadStatePopupStats(supabase: SupabaseClient, stateCode: s
     .eq("name", "local_leader")
     .maybeSingle();
 
-  let members = 0;
-  let localLeaders = 0;
+  // Registered members are users whose self-declared state matches the selected
+  // state (dashboard_users.state OR profiles.state). We match against both the
+  // 2-letter USPS code (e.g. "CA") and the full state name (e.g. "California")
+  // case-insensitively, because the free-text `state` column is not normalized.
+  // We also include members whose primary_chapter_id belongs to a chapter in this
+  // state, so OTP members who never set their profile state are still counted.
+  // Local leaders are additionally captured via chapter_leaders rows for chapters
+  // in this state, so we do not miss leaders who have not set their profile state.
+  const memberIds = new Set<string>();
+  const leaderIds = new Set<string>();
 
-  if (chapterIds.length > 0) {
-    const { data: profs } = await supabase
-      .from("profiles")
+  const stateName = usStateByCode(st)?.name ?? null;
+  const stateMatchers: string[] = [st, stateName].filter(
+    (v): v is string => typeof v === "string" && v.length > 0
+  );
+
+  async function collectUserIdsByState(
+    table: "dashboard_users" | "profiles"
+  ): Promise<string[]> {
+    if (stateMatchers.length === 0) return [];
+    // PostgREST `or` filter splits on commas; any value with spaces or commas
+    // must be wrapped in double quotes so the parser treats it as one token.
+    const orClauses = stateMatchers.map((v) => {
+      const escaped = v.replace(/"/g, '\\"');
+      const quoted = /[\s,]/.test(v) ? `"${escaped}"` : escaped;
+      return `state.ilike.${quoted}`;
+    });
+    const { data } = await supabase
+      .from(table)
       .select("id")
-      .in("primary_chapter_id", chapterIds);
-    const userIds = (profs ?? []).map((p: { id: string }) => p.id);
+      .or(orClauses.join(","));
+    return (data ?? []).map((r: { id: string }) => r.id);
+  }
 
-    if (userIds.length > 0 && memberRole) {
+  const idsFromDashboardUsers = await collectUserIdsByState("dashboard_users");
+  const idsFromProfiles = await collectUserIdsByState("profiles");
+  const idsByState = Array.from(
+    new Set([...idsFromDashboardUsers, ...idsFromProfiles])
+  );
+
+  if (idsByState.length > 0) {
+    if (memberRole) {
       const { data: ur } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role_id", memberRole.id as string)
-        .in("user_id", userIds);
-      members = new Set((ur ?? []).map((r: { user_id: string }) => r.user_id)).size;
+        .in("user_id", idsByState);
+      for (const r of ur ?? []) {
+        if (r.user_id) memberIds.add(r.user_id as string);
+      }
     }
+    if (localLeaderRole) {
+      const { data: ll } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role_id", localLeaderRole.id as string)
+        .in("user_id", idsByState);
+      for (const r of ll ?? []) {
+        if (r.user_id) leaderIds.add(r.user_id as string);
+      }
+    }
+  }
 
-    const leaderIds = new Set<string>();
+  // Members who never set a profile state but did pick a primary chapter in this
+  // state. These would be missed by the state-based lookup above.
+  if (chapterIds.length > 0 && memberRole) {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("primary_chapter_id", chapterIds);
+    const chapterUserIds = (profs ?? []).map((p: { id: string }) => p.id);
+    if (chapterUserIds.length > 0) {
+      const { data: ur } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role_id", memberRole.id as string)
+        .in("user_id", chapterUserIds);
+      for (const r of ur ?? []) {
+        if (r.user_id) memberIds.add(r.user_id as string);
+      }
+    }
+  }
+
+  // Also include leaders explicitly assigned to chapters in this state, even if
+  // their profile.state is not set.
+  if (chapterIds.length > 0) {
     const { data: cl } = await supabase
       .from("chapter_leaders")
       .select("user_id")
@@ -293,18 +360,10 @@ export async function loadStatePopupStats(supabase: SupabaseClient, stateCode: s
     for (const r of cl ?? []) {
       if (r.user_id) leaderIds.add(r.user_id as string);
     }
-    if (userIds.length > 0 && localLeaderRole) {
-      const { data: ll } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role_id", localLeaderRole.id as string)
-        .in("user_id", userIds);
-      for (const r of ll ?? []) {
-        if (r.user_id) leaderIds.add(r.user_id as string);
-      }
-    }
-    localLeaders = leaderIds.size;
   }
+
+  const members = memberIds.size;
+  const localLeaders = leaderIds.size;
 
   // National upcoming FPA events (not filtered by state).
   const nowIso = new Date().toISOString();

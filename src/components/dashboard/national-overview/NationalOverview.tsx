@@ -99,7 +99,7 @@ export function NationalOverview({
   const [stats, setStats] = useState(initialStats);
   const [feed, setFeed] = useState(initialFeed);
   const [chapterRows, setChapterRows] = useState(chapters);
-  /** Reference leaders/members by state (from city JSON); map fill only */
+  /** Reference members by state (from city JSON); map fill only */
   const [referenceSplitByState, setReferenceSplitByState] = useState<
     Map<string, { leaders: number; members: number }>
   >(() => new Map());
