@@ -1,0 +1,28 @@
+---
+description: Framer Motion defaults for React UI — performant, accessible animations
+globs: **/*.{tsx,jsx}
+alwaysApply: false
+---
+
+# Framer Motion (React UI)
+
+Use Framer Motion for interactive UI animations (not raw CSS transitions for buttons, modals, menus).
+
+## Defaults
+
+- Prefer `LazyMotion` + `m` over full `motion` import when bundle size matters
+- Animate only `transform` and `opacity` (GPU-friendly); avoid layout-thrashing props (`width`, `height`, `top`, `left`) at scale
+- UI transitions ≤ 300ms; use springs for natural feel; set correct `transform-origin`
+- Define `variants` outside the component; use `useMotionValue` / `useTransform` instead of `useState` for animated values
+- Use `whileHover` / `whileTap` for press feedback; `AnimatePresence` for mount/unmount
+- Always respect `prefers-reduced-motion` (disable or simplify motion)
+- Button press: subtle scale (e.g. `whileTap={{ scale: 0.97 }}`); popovers tooltips: origin-aware, short delay
+
+## Avoid
+
+- Animating every element; motion must have purpose
+- `useState` driving every frame of an animation
+- Heavy layout animations without `layoutDependency` or scoped `layout="position"`
+- Importing the full motion bundle when `domAnimation` suffices
+
+Pair with skills `emil-design-eng` and `framer-motion` (auto-loaded via skill-auto-routing when animating).

@@ -1,0 +1,69 @@
+---
+description: Auto-activa skills según la intención del prompt (SEO, animaciones, diseño, tests, etc.)
+alwaysApply: true
+---
+
+# Skill Auto-Routing (obligatorio)
+
+Antes de implementar, **clasifica la petición del usuario**. Para cada categoría que aplique, **lee el SKILL.md completo** con la herramienta Read desde `~/.cursor/skills/<nombre>/SKILL.md` y sigue esas instrucciones. Puedes cargar varias skills si el prompt lo requiere.
+
+No esperes a que el usuario escriba `/skill`. Actúa como si la hubiera invocado.
+
+## Siempre activo (sin depender del prompt)
+
+- **Seguridad**: regla `security-hardening` + skill `web-security-hardening` en auth, API, DB, deploy o datos sensibles.
+- Aplica RLS, CORS, headers, JWT seguro, rate limiting y sin source maps en producción.
+
+## SEO / marketing / landing
+
+**Disparadores:** seo, posicionamiento, meta tags, schema, sitemap, ranking, google, landing, conversión, cro, copy, keywords, E-E-A-T, Core Web Vitals, AI search, GEO, hreflang, backlinks, analytics de marketing.
+
+**Skills (elige las relevantes):**
+- `seo` — orquestador principal
+- `seo-audit`, `seo-technical`, `seo-schema`, `seo-content`, `seo-page`, `seo-sitemap`, `seo-images`, `seo-geo`
+- `ai-seo`, `programmatic-seo`, `copywriting`, `cro`, `content-strategy`
+
+## Animaciones / motion / micro-interacciones
+
+**Disparadores:** anima, animación, motion, framer, transición, hover, entrance, reveal, scroll, stagger, spring, micro-interacción, "hazlo más fluido", "añade vida", sección/div/componente animado.
+
+**Skills (en orden habitual):**
+1. `framer-motion` — implementación React (default)
+2. `emil-design-eng` — criterio de craft y decisiones de motion
+3. `stagecraft` — tokens de motion y reveals cinematográficos
+4. `review-animations` — al revisar o auditar motion existente
+5. `impeccable` (comando animate) — pulir motion en UI ya hecha
+6. `gpt-taste` — solo si el stack usa GSAP/ScrollTrigger explícitamente
+
+Usa **Framer Motion** por defecto en React. Respeta `prefers-reduced-motion`.
+
+## Diseño / UI / UX
+
+**Disparadores:** diseño, ui, ux, landing, dashboard, rediseña, polish, tipografía, layout, hero, componente visual, "se ve genérico", huashu, taste.
+
+**Skills:** `impeccable`, `design-taste-frontend`, `huashu-design`, `ui-ux-pro-max`, `frontend-design`, `high-end-visual-design`
+
+## Seguridad explícita (además del baseline)
+
+**Disparadores:** seguridad, auth, jwt, rls, cors, rate limit, vulnerabilidad, hardening, pentest, headers.
+
+**Skills:** `web-security-hardening`, `security-review`, `better-auth-security-best-practices`
+
+## Tests E2E / Playwright
+
+**Disparadores:** playwright, e2e, test de UI, flaky test, browser automation.
+
+**Skills:** `playwright-best-practices`, `playwright-cli`
+
+## Video / Remotion
+
+**Disparadores:** remotion, video programático, composición en React.
+
+**Skill:** `remotion-best-practices`
+
+## Flujo
+
+1. Detectar categorías del prompt (español o inglés).
+2. Leer SKILL.md de cada skill aplicable **antes** de escribir código.
+3. Si hay conflicto: seguridad > accesibilidad > skill específica del dominio.
+4. Si ninguna categoría aplica, trabaja sin skills extra.

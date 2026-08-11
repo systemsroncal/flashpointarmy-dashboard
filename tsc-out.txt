@@ -1,0 +1,1 @@
+﻿src/lib/stats/overview-stats.ts(283,39): error TS18047: 'v' is possibly 'null'.

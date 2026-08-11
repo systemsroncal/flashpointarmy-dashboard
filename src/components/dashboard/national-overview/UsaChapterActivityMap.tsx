@@ -31,8 +31,8 @@ const COLORS = {
 
 const LEGEND_ITEMS = [
   { c: COLORS.noActivity, t: "No activity" },
-  { c: COLORS.low, t: "Low (chapters 1–4 or ref. leaders/members)" },
-  { c: COLORS.moderate, t: "Moderate (chapters 5–20 or ref. leaders/members)" },
+  { c: COLORS.low, t: "Low (chapters 1–4 or ref. members)" },
+  { c: COLORS.moderate, t: "Moderate (chapters 5–20 or ref. members)" },
   { c: COLORS.high, t: "High (21+ chapters or strong ref. reach)" },
 ] as const;
 
@@ -82,7 +82,7 @@ type RsmGeo = {
 
 type ActivityTier = "none" | "low" | "moderate" | "high";
 
-/** Chapters and reference leaders+members share the same tier thresholds. */
+/** Chapters and reference members share the same tier thresholds. */
 function activityTier(count: number): ActivityTier {
   if (count >= 21) return "high";
   if (count >= 5) return "moderate";
@@ -113,7 +113,7 @@ export function UsaChapterActivityMap({
   children,
 }: {
   chapterCountByState: Map<string, number>;
-  /** Per state: leaders + members from city file (1 leader + rest members per city), map fill only. */
+  /** Per state: members (incl. leaders) from city file; map fill only. */
   referenceSplitByState?: Map<string, { leaders: number; members: number }>;
   selectedStateCode: string | null;
   popupOpen: boolean;

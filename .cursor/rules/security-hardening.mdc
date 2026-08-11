@@ -1,0 +1,36 @@
+---
+description: Production security defaults — RLS, CORS, headers, JWT, rate limiting, no source maps
+alwaysApply: true
+---
+
+# Security Hardening (always apply)
+
+Apply on every auth, API, database, or deployment change.
+
+## Checklist before shipping
+
+- RLS enabled on all user/tenant tables (Supabase/Postgres); default deny + explicit policies per operation
+- CORS: allowlist exact origins in production; never `*` with credentials
+- Security headers: HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options`, `Referrer-Policy`, CSP where feasible
+- JWT: short-lived access tokens; refresh in httpOnly/secure/sameSite cookies; validate `iss`, `aud`, `exp`; secrets in env only
+- Rate limit auth and public APIs (5–10/min auth, 60–120/min API); return 429 + `Retry-After`
+- Disable source maps in production (`productionBrowserSourceMaps: false`, Vite `sourcemap: false`)
+- Never commit secrets; never trust client-side filters for authorization
+
+## Postgres/Supabase RLS pattern
+
+```sql
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "own_row" ON public.profiles FOR ALL USING (auth.uid() = user_id);
+```
+
+## Next.js headers (minimum)
+
+```js
+{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+{ key: 'X-Content-Type-Options', value: 'nosniff' },
+{ key: 'X-Frame-Options', value: 'DENY' },
+{ key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+```
+
+Flag missing controls as **Critical** (RLS/auth) or **High** (CORS, rate limits, JWT).
