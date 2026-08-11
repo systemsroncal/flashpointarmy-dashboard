@@ -629,33 +629,38 @@ export function NationalOverview({
               <Box>
                 {popupData ? (
                   <>
-                    {(
-                      [
+                    {(() => {
+                      const ref = popupState ? referenceSplitByState.get(popupState) : undefined;
+                      const rl = ref?.leaders ?? 0;
+                      const rm = ref?.members ?? 0;
+                      const totalLeadersMembers = rl + rm; // Suma de leaders + members
+                      
+                      return ([
                         ["Churches", popupData.churches, "#0ea5e9"],
-                        ["Registered Members", popupData.registeredMembers, "#15803d"],
+                        ["Registered Members", totalLeadersMembers, "#15803d"],
                         ["Upcoming Events", popupData.upcomingEvents, "#ca8a04"],
-                      ] as const
-                    ).map(([label, val, col]) => (
-                      <Box key={label} sx={{ display: "flex", justifyContent: "space-between", py: 0.85 }}>
-                        <Typography variant="body2" sx={{ fontSize: "0.95rem", fontWeight: 600 }}>
-                          {label}
-                        </Typography>
-                        <Box
-                          component="span"
-                          sx={{
-                            bgcolor: col,
-                            color: "#fff",
-                            px: 1.25,
-                            py: 0.25,
-                            borderRadius: 10,
-                            fontSize: "0.8rem",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {val}
+                      ] as const).map(([label, val, col]) => (
+                        <Box key={label} sx={{ display: "flex", justifyContent: "space-between", py: 0.85 }}>
+                          <Typography variant="body2" sx={{ fontSize: "0.95rem", fontWeight: 600 }}>
+                            {label}
+                          </Typography>
+                          <Box
+                            component="span"
+                            sx={{
+                              bgcolor: col,
+                              color: "#fff",
+                              px: 1.25,
+                              py: 0.25,
+                              borderRadius: 10,
+                              fontSize: "0.8rem",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {val}
+                          </Box>
                         </Box>
-                      </Box>
-                    ))}
+                      ));
+                    })()}
                     <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
                       <Typography variant="body2" display="block" sx={{ fontSize: "0.9rem", mb: 0.35 }}>
                         Newest Church: {popupData.newestChurchName}
