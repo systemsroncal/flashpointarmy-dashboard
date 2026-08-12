@@ -59,7 +59,14 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type TransitionEvent,
+} from "react";
 
 const PREVIEW_CHARS = 240;
 
@@ -89,6 +96,118 @@ function fromLocalDatetimeValue(s: string): string | null {
 }
 
 type Snack = { message: string; severity: "success" | "error" };
+
+/**
+ * Accordion-style Read more / Read less for announcement descriptions.
+ * The body height animates between the plain-text preview height and the full
+ * HTML body height; the content swap happens only at the end of each direction.
+ */
+function AnnouncementCollapsibleBody({
+  html,
+  preview,
+  useCollapse,
+  expanded,
+  onToggle,
+  mb = 0,
+}: {
+  html: string;
+  preview: string | null;
+  useCollapse: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  mb?: number;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const previewHRef = useRef<number | null>(null);
+  const [renderBody, setRenderBody] = useState(!useCollapse || expanded);
+  const [maxH, setMaxH] = useState<number | "none">("none");
+  const [animating, setAnimating] = useState(false);
+
+  // While the preview is rendered, remember its height and clamp the box to it.
+  useEffect(() => {
+    if (renderBody || !ref.current) return;
+    const h = ref.current.scrollHeight;
+    previewHRef.current = h;
+    setMaxH(h);
+  }, [renderBody, preview]);
+
+  if (!useCollapse) {
+    return (
+      <Box sx={{ mb }}>
+        <AnnouncementDescriptionBody html={html} />
+      </Box>
+    );
+  }
+
+  function swap() {
+    const el = ref.current;
+    if (!el || animating) return;
+    onToggle();
+    if (!expanded) {
+      // Expand: swap to the full body while clipped at the preview height, then grow.
+      setAnimating(true);
+      setRenderBody(true);
+      setMaxH(el.scrollHeight);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const el2 = ref.current;
+          if (el2) setMaxH(el2.scrollHeight);
+        });
+      });
+    } else {
+      // Collapse: shrink to the preview height, then swap back to the preview text.
+      setAnimating(true);
+      setMaxH(el.scrollHeight);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setMaxH(previewHRef.current ?? el.scrollHeight);
+        });
+      });
+    }
+  }
+
+  function onTransitionEnd(e: TransitionEvent<HTMLDivElement>) {
+    if (e.propertyName !== "max-height") return;
+    if (!expanded && previewHRef.current !== null) {
+      setRenderBody(false);
+      setMaxH(previewHRef.current);
+    }
+    setAnimating(false);
+  }
+
+  return (
+    <Box sx={{ mb }}>
+      <Box
+        ref={ref}
+        onTransitionEnd={onTransitionEnd}
+        sx={{
+          overflow: "hidden",
+          maxHeight: maxH,
+          transition: "max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        {renderBody ? (
+          <AnnouncementDescriptionBody html={html} />
+        ) : (
+          <Typography
+            variant="body2"
+            sx={{ color: "grey.300", whiteSpace: "pre-wrap", lineHeight: 1.65 }}
+          >
+            {preview}
+          </Typography>
+        )}
+      </Box>
+      <Button
+        size="small"
+        onClick={swap}
+        endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        sx={{ mt: 0.5, color: "primary.light", textTransform: "none" }}
+      >
+        {expanded ? "Read less" : "Read more"}
+      </Button>
+    </Box>
+  );
+}
 
 export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   const [items, setItems] = useState<AnnouncementListItem[]>([]);
@@ -473,28 +592,14 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                         />
                       )}
                     </Stack>
-                    {previewSnippet ? (
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "grey.300", whiteSpace: "pre-wrap", lineHeight: 1.65, mb: row.ctas?.length ? 2 : 0 }}
-                      >
-                        {previewSnippet}
-                      </Typography>
-                    ) : (
-                      <Box sx={{ mb: row.ctas?.length ? 2 : 0 }}>
-                        <AnnouncementDescriptionBody html={row.description} />
-                      </Box>
-                    )}
-                    {useCollapse ? (
-                      <Button
-                        size="small"
-                        onClick={() => setExpandedDesc((m) => ({ ...m, [row.id]: !expanded }))}
-                        endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                        sx={{ mt: 0.5, color: "primary.light", textTransform: "none" }}
-                      >
-                        {expanded ? "Read less" : "Read more"}
-                      </Button>
-                    ) : null}
+                    <AnnouncementCollapsibleBody
+                      html={row.description}
+                      preview={previewSnippet}
+                      useCollapse={useCollapse}
+                      expanded={expanded}
+                      onToggle={() => setExpandedDesc((m) => ({ ...m, [row.id]: !expanded }))}
+                      mb={row.ctas?.length ? 2 : 0}
+                    />
 
                     {row.ctas?.length ? (
                       <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 2 }}>

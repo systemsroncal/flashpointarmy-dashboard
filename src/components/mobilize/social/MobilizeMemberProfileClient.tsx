@@ -7,6 +7,7 @@ import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeP
 import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { MobilizeConnectionsDialog, type ConnectionKind } from "@/components/mobilize/social/MobilizeConnectionsDialog";
+import { MobilizeImageLightbox } from "@/components/mobilize/MobilizeImageLightbox";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
@@ -103,7 +104,7 @@ type Props = {
 
 const profileContentGridSx = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", lg: "minmax(280px, 360px) minmax(0, 1fr)" },
+  gridTemplateColumns: { xs: "1fr", lg: "minmax(260px, 335px) minmax(0, 1fr)" },
   gap: { xs: 2, lg: 2.5 },
   alignItems: "start",
 } as const;
@@ -152,6 +153,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [cropKind, setCropKind] = useState<ImageCropKind | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [mediaNonce, setMediaNonce] = useState(() => Date.now());
+  const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
+  const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
   const [profileMaxMb, setProfileMaxMb] = useState(
     DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.profile_image_max_mb
   );
@@ -787,18 +790,35 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
                 {photoUrls.map((url, i) => (
                   <Box
                     key={`${url}-${i}`}
-                    component="img"
-                    src={publicAssetSrc(url)}
-                    alt=""
+                    component="button"
+                    type="button"
+                    onClick={() => {
+                      setMediaLightboxIndex(i);
+                      setMediaLightboxOpen(true);
+                    }}
+                    aria-label="Open image"
                     sx={{
-                      width: "100%",
-                      aspectRatio: "1",
-                      objectFit: "cover",
+                      p: 0,
+                      border: "none",
+                      cursor: "pointer",
                       borderRadius: 1.5,
+                      overflow: "hidden",
                       bgcolor: "#e4e6eb",
                       display: "block",
                     }}
-                  />
+                  >
+                    <Box
+                      component="img"
+                      src={publicAssetSrc(url)}
+                      alt=""
+                      sx={{
+                        width: "100%",
+                        aspectRatio: "1",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  </Box>
                 ))}
               </Box>
             ) : (
@@ -825,6 +845,12 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
                 />
               </Paper>
             )}
+          <MobilizeImageLightbox
+            urls={photoUrls}
+            open={mediaLightboxOpen}
+            initialIndex={mediaLightboxIndex}
+            onClose={() => setMediaLightboxOpen(false)}
+          />
           </Box>
         );
 
@@ -850,7 +876,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              maxWidth: 950,
+              maxWidth: 1150,
               mx: "auto",
               p: { xs: 1, sm: 1.5, md: 2 },
             }}

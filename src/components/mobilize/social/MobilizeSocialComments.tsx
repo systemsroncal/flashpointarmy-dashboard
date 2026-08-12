@@ -5,6 +5,10 @@ import type { ReactionType } from "@/lib/mobilize/social/reaction-summary";
 import { TRUTH_HUB_BORDER, TRUTH_HUB_TEXT_MUTED } from "@/lib/mobilize/social/social-hub-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
+import {
+  CLAMP_ACCORDION_TRANSITION,
+  useClampAccordion,
+} from "@/lib/mobilize/social/use-clamp-accordion";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
@@ -196,49 +200,27 @@ function CommentComposer({
 }
 
 function CommentContent({ content, light }: { content: string; light: boolean }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [overflows, setOverflows] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const measure = () => {
-      const prev = {
-        display: el.style.display,
-        lineClamp: el.style.webkitLineClamp,
-        boxOrient: el.style.webkitBoxOrient,
-        overflow: el.style.overflow,
-      };
-      el.style.display = "-webkit-box";
-      el.style.webkitLineClamp = String(COMMENT_CLAMP_LINES);
-      el.style.webkitBoxOrient = "vertical";
-      el.style.overflow = "hidden";
-      const overflow = el.scrollHeight > el.clientHeight + 4;
-      el.style.display = prev.display;
-      el.style.webkitLineClamp = prev.lineClamp;
-      el.style.webkitBoxOrient = prev.boxOrient;
-      el.style.overflow = prev.overflow;
-      setOverflows(overflow);
-    };
-    measure();
-
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
-    ro?.observe(el);
-    return () => ro?.disconnect();
-  }, [content]);
+  const accordion = useClampAccordion(COMMENT_CLAMP_LINES);
 
   const clampSx = {
     display: "-webkit-box",
     WebkitLineClamp: COMMENT_CLAMP_LINES,
     WebkitBoxOrient: "vertical",
-    overflow: "hidden",
   } as const;
 
   return (
     <>
-      <Box ref={ref} sx={overflows && !expanded ? clampSx : undefined}>
+      <Box
+        ref={accordion.ref}
+        onTransitionEnd={accordion.onTransitionEnd}
+        sx={{
+          overflow: "hidden",
+          maxHeight: accordion.maxHeight ?? "none",
+          transition:
+            accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
+          ...(accordion.showClamp ? clampSx : {}),
+        }}
+      >
         <Typography
           sx={{
             fontSize: "0.9375rem",
@@ -252,10 +234,10 @@ function CommentContent({ content, light }: { content: string; light: boolean })
           {content}
         </Typography>
       </Box>
-      {overflows ? (
+      {accordion.needsCollapse ? (
         <Button
           size="small"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={accordion.toggle}
           sx={{
             minWidth: 0,
             px: 0,
@@ -267,7 +249,7 @@ function CommentContent({ content, light }: { content: string; light: boolean })
             "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
           }}
         >
-          {expanded ? "See less" : "See more"}
+          {accordion.expanded ? "See less" : "See more"}
         </Button>
       ) : null}
     </>
@@ -593,11 +575,10 @@ export function MobilizeSocialComments({
 
   const asName = viewerDisplayName?.trim() || "you";
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
-  const visibleComments =
-    commentsExpanded || comments.length <= DEFAULT_VISIBLE_COMMENTS
-      ? comments
-      : comments.slice(0, DEFAULT_VISIBLE_COMMENTS);
-  const hiddenCount = Math.max(0, comments.length - DEFAULT_VISIBLE_COMMENTS);
+  const topComments = comments.slice(0, DEFAULT_VISIBLE_COMMENTS);
+  const restComments =
+    comments.length > DEFAULT_VISIBLE_COMMENTS ? comments.slice(DEFAULT_VISIBLE_COMMENTS) : [];
+  const hiddenCount = restComments.length;
 
   const replyComposer = (
     <CommentComposer
@@ -650,7 +631,7 @@ export function MobilizeSocialComments({
           No comments yet. Start the conversation.
         </Typography>
       ) : null}
-      {visibleComments.map((c) => (
+      {topComments.map((c) => (
         <CommentItem
           key={c.id}
           node={c}
@@ -671,6 +652,39 @@ export function MobilizeSocialComments({
           onDelete={(id) => void deleteComment(id)}
         />
       ))}
+      {restComments.length > 0 ? (
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateRows: commentsExpanded ? "1fr" : "0fr",
+            transition: "grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        >
+          <Box sx={{ overflow: "hidden", minHeight: 0 }}>
+            {restComments.map((c) => (
+              <CommentItem
+                key={c.id}
+                node={c}
+                commentReactionUrl={commentReactionUrl}
+                canComment={canComment}
+                onReply={(id, name) => {
+                  setReplyParentId(id);
+                  setReplyToName(name);
+                  setCommentsExpanded(true);
+                }}
+                replyParentId={replyParentId}
+                replyComposer={replyComposer}
+                depth={0}
+                light={light}
+                viewerUserId={viewerUserId}
+                viewerIsSuperAdmin={viewerIsSuperAdmin}
+                deleting={deletingId === c.id}
+                onDelete={(id) => void deleteComment(id)}
+              />
+            ))}
+          </Box>
+        </Box>
+      ) : null}
       {!loading && hiddenCount > 0 ? (
         <Button
           size="small"

@@ -18,6 +18,21 @@ export function MobilizeImageLightbox({ urls, open, initialIndex = 0, onClose }:
   const images = urls.map((u) => publicAssetSrc(u.trim())).filter(Boolean);
   const [index, setIndex] = useState(initialIndex);
 
+  // Left edge of the dashboard's <main> container (the area right of the
+  // sidebar). The lightbox is centered over it instead of the full viewport.
+  const [mainLeft, setMainLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const main = document.querySelector("main");
+      setMainLeft(main ? main.getBoundingClientRect().left : null);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [open]);
+
   useEffect(() => {
     if (open) setIndex(Math.min(Math.max(0, initialIndex), Math.max(0, images.length - 1)));
   }, [open, initialIndex, images.length]);
@@ -49,11 +64,14 @@ export function MobilizeImageLightbox({ urls, open, initialIndex = 0, onClose }:
       onClose={onClose}
       maxWidth={false}
       fullWidth
+      sx={mainLeft ? { pl: `${mainLeft}px` } : undefined}
       PaperProps={{
         sx: {
           bgcolor: "#0a0a0a",
           m: { xs: 1, sm: 2 },
-          maxWidth: "min(1100px, 96vw)",
+          maxWidth: mainLeft
+            ? `min(1100px, calc(100vw - ${mainLeft}px - 40px))`
+            : "min(1100px, 96vw)",
           width: "100%",
           borderRadius: 2,
           overflow: "hidden",

@@ -1,7 +1,11 @@
 "use client";
 
+import {
+  CLAMP_ACCORDION_TRANSITION,
+  useClampAccordion,
+} from "@/lib/mobilize/social/use-clamp-accordion";
 import { Box, Button } from "@mui/material";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 const MAX_TEXT_LINES = 5;
 
@@ -14,61 +18,33 @@ type Props = {
   surface?: "light" | "dark";
 };
 
-/** Collapses post TEXT only (max 5 lines); photos are always fully visible. */
+/** Collapses post TEXT only (max 5 lines, accordion animation); photos are always fully visible. */
 export function MobilizeCollapsiblePostBody({ text, media, surface = "light" }: Props) {
-  const measureRef = useRef<HTMLDivElement | null>(null);
-  const [needsCollapse, setNeedsCollapse] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const accordion = useClampAccordion(MAX_TEXT_LINES);
   const fadeTo = surface === "dark" ? "#0b0c16" : "#fff";
-
-  useEffect(() => {
-    const el = measureRef.current;
-    if (!el) return;
-
-    const measure = () => {
-      // Temporarily force the 5-line clamp to detect overflow, then restore.
-      const prev = {
-        display: el.style.display,
-        lineClamp: el.style.webkitLineClamp,
-        boxOrient: el.style.webkitBoxOrient,
-        overflow: el.style.overflow,
-      };
-      el.style.display = "-webkit-box";
-      el.style.webkitLineClamp = String(MAX_TEXT_LINES);
-      el.style.webkitBoxOrient = "vertical";
-      el.style.overflow = "hidden";
-      const overflows = el.scrollHeight > el.clientHeight + 4;
-      el.style.display = prev.display;
-      el.style.webkitLineClamp = prev.lineClamp;
-      el.style.webkitBoxOrient = prev.boxOrient;
-      el.style.overflow = prev.overflow;
-      setNeedsCollapse(overflows);
-    };
-    measure();
-
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
-    ro?.observe(el);
-    return () => ro?.disconnect();
-  }, [text]);
 
   const clampSx = {
     display: "-webkit-box",
     WebkitLineClamp: MAX_TEXT_LINES,
     WebkitBoxOrient: "vertical",
-    overflow: "hidden",
   } as const;
 
   return (
     <Box>
       <Box
-        ref={measureRef}
+        ref={accordion.ref}
+        onTransitionEnd={accordion.onTransitionEnd}
         sx={{
           position: "relative",
-          ...(needsCollapse && !expanded ? clampSx : {}),
+          overflow: "hidden",
+          maxHeight: accordion.maxHeight ?? "none",
+          transition:
+            accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
+          ...(accordion.showClamp ? clampSx : {}),
         }}
       >
         {text}
-        {needsCollapse && !expanded ? (
+        {accordion.showClamp ? (
           <Box
             sx={{
               pointerEvents: "none",
@@ -82,10 +58,10 @@ export function MobilizeCollapsiblePostBody({ text, media, surface = "light" }: 
           />
         ) : null}
       </Box>
-      {needsCollapse ? (
+      {accordion.needsCollapse ? (
         <Button
           size="small"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={accordion.toggle}
           sx={{
             mt: 0.5,
             px: 0,
@@ -98,7 +74,7 @@ export function MobilizeCollapsiblePostBody({ text, media, surface = "light" }: 
             "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
           }}
         >
-          {expanded ? "Less" : "More"}
+          {accordion.expanded ? "Less" : "More"}
         </Button>
       ) : null}
       {media ? <Box sx={{ mt: 1.25 }}>{media}</Box> : null}
