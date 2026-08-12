@@ -1,0 +1,475 @@
+"use client";
+
+import type { AutoFollowTarget } from "@/app/api/mobilize/settings/auto-follow-targets/route";
+import {
+  type AddMemberSearchableUser,
+  parseCommaSeparatedEmails,
+} from "@/components/mobilize/MobilizeAddMemberDialog";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
+import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
+import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
+import SearchIcon from "@mui/icons-material/Search";
+import {
+  Avatar,
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+function userInitials(label: string): string {
+  const parts = label.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.slice(0, 1) ?? "?";
+  const last = parts.length > 1 ? parts[parts.length - 1].slice(0, 1) : "";
+  return (first + last).toUpperCase();
+}
+
+function primaryRoleLabel(roleNames: string[]): string {
+  if (roleNames.includes("super_admin")) return "Super admin";
+  if (roleNames.includes("admin")) return "Administrator";
+  if (roleNames.includes("sub_admin")) return "Sub administrator";
+  if (roleNames.includes("local_leader")) return "Local leader";
+  return roleNames.length ? roleNames[0] : "Member";
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+/**
+ * Super-admin tab in Mobilize settings: manages the auto-follow whitelist.
+ * New dashboard users automatically follow every user on this list.
+ */
+export function MobilizeAutoFollowSettings() {
+  const toast = useMobilizeToast();
+  const [targets, setTargets] = useState<AutoFollowTarget[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/mobilize/settings/auto-follow-targets");
+      const json = (await res.json()) as { targets?: AutoFollowTarget[]; error?: string };
+      if (!res.ok) throw new Error(json.error || "Failed to load targets.");
+      setTargets(json.targets ?? []);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to load targets.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function removeTarget(userId: string) {
+    if (deletingId) return;
+    setDeletingId(userId);
+    try {
+      const res = await fetch(
+        `/api/mobilize/settings/auto-follow-targets/${userId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(json.error || "Failed to remove target.");
+      }
+      toast("Target removed. New users will no longer auto-follow this user.", "success");
+      setTargets((prev) => prev.filter((t) => t.user_id !== userId));
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to remove target.", "error");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  return (
+    <Box>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        alignItems={{ xs: "flex-start", sm: "center" }}
+        justifyContent="space-between"
+        spacing={1.5}
+        sx={{ mb: 1 }}
+      >
+        <Box>
+          <Typography variant="h6" fontWeight={700}>
+            Auto-follow whitelist
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            New users will automatically follow every user on this list when they
+            join. Existing users are not affected.
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<PersonAddAlt1Icon />}
+          onClick={() => setAddOpen(true)}
+        >
+          Add users
+        </Button>
+      </Stack>
+
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
+          <CircularProgress size={30} />
+        </Box>
+      ) : targets.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ py: 5, textAlign: "center" }}>
+          No auto-follow targets yet. Click “Add users” to whitelist the users new
+          members should follow automatically.
+        </Typography>
+      ) : (
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>User</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Added</TableCell>
+                <TableCell align="right" sx={{ width: 64 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {targets.map((t) => (
+                <TableRow key={t.user_id} hover>
+                  <TableCell>
+                    <Stack direction="row" spacing={1.25} alignItems="center">
+                      <Avatar
+                        src={t.user.avatar_url ? publicAssetSrc(t.user.avatar_url) : undefined}
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          bgcolor: "rgba(233,196,106,0.18)",
+                          color: "primary.main",
+                          fontSize: "0.75rem",
+                        }}
+                      >
+                        {userInitials(t.user.label)}
+                      </Avatar>
+                      <Typography variant="body2" fontWeight={600}>
+                        {t.user.label}
+                      </Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {t.user.email || "—"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip size="small" label={primaryRoleLabel(t.user.roleNames)} variant="outlined" />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatDate(t.created_at)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="Remove from whitelist">
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => void removeTarget(t.user_id)}
+                          disabled={deletingId === t.user_id || deletingId !== null}
+                          color="error"
+                          aria-label={`Remove ${t.user.label}`}
+                        >
+                          {deletingId === t.user_id ? (
+                            <CircularProgress size={16} color="inherit" />
+                          ) : (
+                            <DeleteIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      <MobilizeAutoFollowAddDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAdded={() => {
+          setAddOpen(false);
+          void load();
+        }}
+      />
+    </Box>
+  );
+}
+
+function MobilizeAutoFollowAddDialog({
+  open,
+  onClose,
+  onAdded,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onAdded: () => void;
+}) {
+  const toast = useMobilizeToast();
+  const [query, setQuery] = useState("");
+  const [users, setUsers] = useState<AddMemberSearchableUser[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [emailsText, setEmailsText] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const search = useCallback(
+    async (q: string) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({ limit: "200" });
+        if (q.trim()) params.set("q", q.trim());
+        const res = await fetch(`/api/mobilize/users-search?${params.toString()}`);
+        const json = (await res.json()) as {
+          users?: AddMemberSearchableUser[];
+          error?: string;
+        };
+        if (!res.ok) throw new Error(json.error || "Failed to load users.");
+        const list = json.users ?? [];
+        setUsers(list);
+        setSelectedIds((prev) => {
+          const ids = new Set([...prev].filter((id) => list.some((u) => u.id === id)));
+          return ids;
+        });
+      } catch (e) {
+        toast(e instanceof Error ? e.message : "Failed to load users.", "error");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setQuery("");
+    setUsers([]);
+    setSelectedIds(new Set());
+    setEmailsText("");
+    setAdding(false);
+    void search("");
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [open, search]);
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => void search(value), 300);
+  }
+
+  function toggleUser(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const parsedEmails = useMemo(() => parseCommaSeparatedEmails(emailsText), [emailsText]);
+  const canAdd = selectedIds.size > 0 || parsedEmails.length > 0;
+
+  async function addSelected() {
+    if (!canAdd || adding) return;
+    setAdding(true);
+    try {
+      const res = await fetch("/api/mobilize/settings/auto-follow-targets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIds: [...selectedIds],
+          emails: parsedEmails,
+        }),
+      });
+      const json = (await res.json()) as {
+        error?: string;
+        added?: number;
+        notFound?: string[];
+      };
+      if (!res.ok) throw new Error(json.error || "Failed to add targets.");
+      const added = json.added ?? 0;
+      const notFound = json.notFound?.length ?? 0;
+      const notes: string[] = [];
+      if (notFound > 0) notes.push(`${notFound} email(s) not found`);
+      const suffix = notes.length ? ` (${notes.join(", ")})` : "";
+      toast(`${added} target${added === 1 ? "" : "s"} added${suffix}.`, "success");
+      onAdded();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to add targets.", "error");
+      setAdding(false);
+    }
+  }
+
+  return (
+    <MobilizeDialog open={open} onClose={() => !adding && onClose()} fullWidth maxWidth="sm">
+      <DialogTitle>Add auto-follow targets</DialogTitle>
+      <DialogContent>
+        <Stack spacing={1.5} sx={{ mt: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Users on this list are automatically followed by every new user. Select
+            users in the table and/or paste a comma-separated email list.
+          </Typography>
+          <TextField
+            size="small"
+            label="Search by name or email"
+            fullWidth
+            value={query}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            InputProps={{
+              startAdornment: <SearchIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />,
+            }}
+            autoFocus
+          />
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : users.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+              No matching users.
+            </Typography>
+          ) : (
+            <TableContainer sx={{ maxHeight: 280 }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell padding="checkbox" sx={{ width: 44 }} />
+                    <TableCell sx={{ fontWeight: 700 }}>User</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {users.map((u) => {
+                    const checked = selectedIds.has(u.id);
+                    return (
+                      <TableRow
+                        key={u.id}
+                        hover
+                        selected={checked}
+                        onClick={() => toggleUser(u.id)}
+                        sx={{ cursor: "pointer" }}
+                      >
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            size="small"
+                            checked={checked}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={() => toggleUser(u.id)}
+                            inputProps={{ "aria-label": `Select ${u.label}` }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Avatar
+                              src={u.avatar_url ? publicAssetSrc(u.avatar_url) : undefined}
+                              sx={{
+                                width: 30,
+                                height: 30,
+                                bgcolor: "rgba(233,196,106,0.18)",
+                                color: "primary.main",
+                                fontSize: "0.7rem",
+                              }}
+                            >
+                              {userInitials(u.label)}
+                            </Avatar>
+                            <Typography variant="body2" fontWeight={600}>
+                              {u.label}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {u.email || "—"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip size="small" label={primaryRoleLabel(u.roleNames)} variant="outlined" />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+          <Box>
+            <Typography variant="overline" sx={{ display: "block", color: "text.secondary", mb: 0.5 }}>
+              or add by email
+            </Typography>
+            <TextField
+              size="small"
+              label="Emails separated by commas"
+              fullWidth
+              multiline
+              minRows={2}
+              placeholder="email1@example.com, email2@example.com, email3@example.com"
+              value={emailsText}
+              onChange={(e) => setEmailsText(e.target.value)}
+              helperText={
+                parsedEmails.length
+                  ? `${parsedEmails.length} email${parsedEmails.length === 1 ? "" : "s"} will be added.`
+                  : "Paste one or more emails to whitelist."
+              }
+            />
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={adding}>
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          disabled={!canAdd || adding}
+          onClick={() => void addSelected()}
+          startIcon={adding ? <CircularProgress size={14} color="inherit" /> : undefined}
+        >
+          {adding
+            ? "Adding…"
+            : `Add ${selectedIds.size + parsedEmails.length} user${selectedIds.size + parsedEmails.length === 1 ? "" : "s"}`}
+        </Button>
+      </DialogActions>
+    </MobilizeDialog>
+  );
+}

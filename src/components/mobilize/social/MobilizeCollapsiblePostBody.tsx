@@ -82,7 +82,6 @@ export function MobilizeCollapsiblePostBody({ text, media, surface = "light" }: 
           />
         ) : null}
       </Box>
-      {media ? <Box sx={{ mt: 1.25 }}>{media}</Box> : null}
       {needsCollapse ? (
         <Button
           size="small"
@@ -102,6 +101,7 @@ export function MobilizeCollapsiblePostBody({ text, media, surface = "light" }: 
           {expanded ? "Less" : "More"}
         </Button>
       ) : null}
+      {media ? <Box sx={{ mt: 1.25 }}>{media}</Box> : null}
     </Box>
   );
 }
