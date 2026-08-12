@@ -72,6 +72,8 @@ export function MobilizeAutoFollowSettings() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<AutoFollowTarget | null>(null);
+  const [deleteTyped, setDeleteTyped] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -200,7 +202,10 @@ export function MobilizeAutoFollowSettings() {
                       <span>
                         <IconButton
                           size="small"
-                          onClick={() => void removeTarget(t.user_id)}
+                          onClick={() => {
+                            setDeleteTyped("");
+                            setConfirmTarget(t);
+                          }}
                           disabled={deletingId === t.user_id || deletingId !== null}
                           color="error"
                           aria-label={`Remove ${t.user.label}`}
@@ -229,6 +234,56 @@ export function MobilizeAutoFollowSettings() {
           void load();
         }}
       />
+
+      <MobilizeDialog
+        open={confirmTarget !== null}
+        onClose={() => {
+          setConfirmTarget(null);
+          setDeleteTyped("");
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Remove auto-follow target</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            You are about to remove <strong>{confirmTarget?.user.label}</strong> from the
+            auto-follow whitelist. New users will no longer automatically follow this user.
+            Existing follows are kept.
+          </Typography>
+          <TextField
+            size="small"
+            label='Type “DELETE” to confirm'
+            fullWidth
+            value={deleteTyped}
+            onChange={(e) => setDeleteTyped(e.target.value)}
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setConfirmTarget(null);
+              setDeleteTyped("");
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={deleteTyped.trim() !== "DELETE"}
+            onClick={() => {
+              const target = confirmTarget;
+              setConfirmTarget(null);
+              setDeleteTyped("");
+              if (target) void removeTarget(target.user_id);
+            }}
+          >
+            Remove
+          </Button>
+        </DialogActions>
+      </MobilizeDialog>
     </Box>
   );
 }

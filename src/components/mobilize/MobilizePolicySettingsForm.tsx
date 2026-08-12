@@ -1,5 +1,6 @@
 "use client";
 
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Alert,
   Autocomplete,
@@ -7,6 +8,9 @@ import {
   Button,
   Checkbox,
   Chip,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   FormGroup,
   Paper,
@@ -47,6 +51,11 @@ export function MobilizePolicySettingsForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedOk, setSavedOk] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState<{
+    ids: string[];
+    label: string;
+  } | null>(null);
+  const [deleteTyped, setDeleteTyped] = useState("");
 
   const selectedViewerUsers = useMemo(() => {
     const byId = new Map(userOptions.map((u) => [u.id, u] as const));
@@ -123,6 +132,31 @@ export function MobilizePolicySettingsForm() {
   function toggleRole(list: string[], role: string, checked: boolean): string[] {
     if (checked) return [...new Set([...list, role])];
     return list.filter((r) => r !== role);
+  }
+
+  function handleViewerUsersChange(next: UserOption[]) {
+    const removed = selectedViewerUsers.filter((u) => !next.some((n) => n.id === u.id));
+    if (removed.length > 0) {
+      setPendingRemoval({
+        ids: removed.map((r) => r.id),
+        label: removed.length === 1 ? removed[0].label : `${removed.length} selected users`,
+      });
+      setDeleteTyped("");
+      return;
+    }
+    setChaptersViewerUserIds(next.map((u) => u.id));
+  }
+
+  function closeConfirm() {
+    setPendingRemoval(null);
+    setDeleteTyped("");
+  }
+
+  function confirmRemoval() {
+    if (!pendingRemoval) return;
+    const ids = new Set(pendingRemoval.ids);
+    setChaptersViewerUserIds((prev) => prev.filter((id) => !ids.has(id)));
+    closeConfirm();
   }
 
   async function save() {
@@ -271,7 +305,7 @@ export function MobilizePolicySettingsForm() {
             sx={{ mt: 1.5 }}
             options={userOptions}
             value={selectedViewerUsers}
-            onChange={(_, v) => setChaptersViewerUserIds(v.map((u) => u.id))}
+            onChange={(_, v) => handleViewerUsersChange(v)}
             getOptionLabel={(o) => o.label}
             isOptionEqualToValue={(a, b) => a.id === b.id}
             disabled={loading || saving}
@@ -373,6 +407,36 @@ export function MobilizePolicySettingsForm() {
           </Button>
         </Box>
       </Stack>
+
+      <MobilizeDialog open={pendingRemoval !== null} onClose={closeConfirm} fullWidth maxWidth="xs">
+        <DialogTitle>Remove from whitelist</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            You are about to remove <strong>{pendingRemoval?.label}</strong> from “Who can view
+            Mobilize (Chapters)”. They will lose access to Mobilize Chapters unless their role
+            grants it.
+          </Typography>
+          <TextField
+            size="small"
+            label='Type “DELETE” to confirm'
+            fullWidth
+            value={deleteTyped}
+            onChange={(e) => setDeleteTyped(e.target.value)}
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeConfirm}>Cancel</Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={deleteTyped.trim() !== "DELETE"}
+            onClick={confirmRemoval}
+          >
+            Remove
+          </Button>
+        </DialogActions>
+      </MobilizeDialog>
     </Paper>
   );
 }
