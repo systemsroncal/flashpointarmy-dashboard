@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Avatar,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   DialogActions,
@@ -52,10 +53,23 @@ function primaryRoleLabel(roleNames: string[]): string {
   return roleNames.length ? roleNames[0] : "Member";
 }
 
+/** Splits a comma-separated list of emails into trimmed, unique, non-empty entries. */
+export function parseCommaSeparatedEmails(raw: string): string[] {
+  return [
+    ...new Set(
+      raw
+        .split(",")
+        .map((e) => e.trim())
+        .filter((e) => e.length > 0)
+    ),
+  ];
+}
+
 /**
- * Popup to add an existing dashboard user directly to a mobilize group.
- * Lists users (name/email search) excluding current members; the chosen user is
- * inserted as an approved Member via POST /api/mobilize/groups/[id]/members.
+ * Popup to add existing dashboard users directly to a mobilize group. Supports
+ * multi-select from the searchable table and bulk add by comma-separated emails;
+ * the chosen users are inserted as approved Members via
+ * POST /api/mobilize/groups/[id]/members.
  */
 export function MobilizeAddMemberDialog({
   open,
@@ -75,7 +89,8 @@ export function MobilizeAddMemberDialog({
   const [users, setUsers] = useState<AddMemberSearchableUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [emailsText, setEmailsText] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const search = useCallback(
@@ -95,7 +110,10 @@ export function MobilizeAddMemberDialog({
         if (!res.ok) throw new Error(json.error || "Failed to load users.");
         const list = json.users ?? [];
         setUsers(list);
-        setSelectedId((prev) => (prev && list.some((u) => u.id === prev) ? prev : null));
+        setSelectedIds((prev) => {
+          const ids = new Set([...prev].filter((id) => list.some((u) => u.id === id)));
+          return ids;
+        });
       } catch (e) {
         toast(e instanceof Error ? e.message : "Failed to load users.", "error");
       } finally {
@@ -109,7 +127,8 @@ export function MobilizeAddMemberDialog({
     if (!open) return;
     setQuery("");
     setUsers([]);
-    setSelectedId(null);
+    setSelectedIds(new Set());
+    setEmailsText("");
     setAdding(false);
     void search("");
     return () => {
@@ -123,21 +142,68 @@ export function MobilizeAddMemberDialog({
     debounceRef.current = setTimeout(() => void search(value), 300);
   }
 
+  function toggleUser(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const parsedEmails = useMemo(() => parseCommaSeparatedEmails(emailsText), [emailsText]);
+
+  const canAdd = selectedIds.size > 0 || parsedEmails.length > 0;
+
   async function addSelected() {
-    if (!selectedId || adding) return;
+    if (!canAdd || adding) return;
     setAdding(true);
     try {
       const res = await fetch(`/api/mobilize/groups/${groupId}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: selectedId }),
+        body: JSON.stringify({
+          userIds: [...selectedIds],
+          emails: parsedEmails,
+        }),
       });
-      const json = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(json.error || "Failed to add member.");
-      toast("Member added to the group.", "success");
-      onAdded();
+      const json = (await res.json()) as {
+        error?: string;
+        added?: number;
+        alreadyMember?: string[];
+        notFound?: string[];
+        failed?: { id: string; error: string }[];
+      };
+      if (!res.ok) throw new Error(json.error || "Failed to add members.");
+
+      const added = json.added ?? 0;
+      const already = json.alreadyMember?.length ?? 0;
+      const notFound = json.notFound?.length ?? 0;
+      const failed = json.failed?.length ?? 0;
+
+      if (added > 0) {
+        const notes: string[] = [];
+        if (already > 0) notes.push(`${already} already member(s)`);
+        if (notFound > 0) notes.push(`${notFound} email(s) not found`);
+        if (failed > 0) notes.push(`${failed} failed`);
+        const suffix = notes.length ? ` (${notes.join(", ")})` : "";
+        toast(`${added} member${added === 1 ? "" : "s"} added${suffix}.`, "success");
+        onAdded();
+      } else {
+        const reasons: string[] = [];
+        if (already > 0) reasons.push(`${already} already member(s)`);
+        if (notFound > 0) reasons.push(`${notFound} email(s) not found`);
+        if (failed > 0) reasons.push(`${failed} failed`);
+        toast(
+          reasons.length
+            ? `No members added: ${reasons.join(", ")}.`
+            : "No members added.",
+          "info"
+        );
+        setAdding(false);
+      }
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Failed to add member.", "error");
+      toast(e instanceof Error ? e.message : "Failed to add members.", "error");
       setAdding(false);
     }
   }
@@ -149,13 +215,14 @@ export function MobilizeAddMemberDialog({
       fullWidth
       maxWidth="sm"
     >
-      <DialogTitle>Add member</DialogTitle>
+      <DialogTitle>Add members</DialogTitle>
       <DialogContent>
         <Stack spacing={1.5} sx={{ mt: 1 }}>
           {groupName ? (
             <Typography variant="body2" color="text.secondary">
-              Add an existing user to <strong>{groupName}</strong>. The user is added as an
-              approved Member and can be promoted to Leader later.
+              Add existing users to <strong>{groupName}</strong> by selecting them in the
+              table and/or pasting a comma-separated email list. Users are added as approved
+              Members and can be promoted to Leader later.
             </Typography>
           ) : null}
           <TextField
@@ -178,10 +245,11 @@ export function MobilizeAddMemberDialog({
               No matching users. Existing members are already excluded from this list.
             </Typography>
           ) : (
-            <TableContainer sx={{ maxHeight: 360 }}>
+            <TableContainer sx={{ maxHeight: 300 }}>
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
+                    <TableCell padding="checkbox" sx={{ width: 44 }} />
                     <TableCell sx={{ fontWeight: 700 }}>User</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
@@ -189,15 +257,24 @@ export function MobilizeAddMemberDialog({
                 </TableHead>
                 <TableBody>
                   {users.map((u) => {
-                    const selected = u.id === selectedId;
+                    const checked = selectedIds.has(u.id);
                     return (
                       <TableRow
                         key={u.id}
                         hover
-                        selected={selected}
-                        onClick={() => setSelectedId(u.id)}
+                        selected={checked}
+                        onClick={() => toggleUser(u.id)}
                         sx={{ cursor: "pointer" }}
                       >
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            size="small"
+                            checked={checked}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={() => toggleUser(u.id)}
+                            inputProps={{ "aria-label": `Select ${u.label}` }}
+                          />
+                        </TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Avatar
@@ -232,6 +309,26 @@ export function MobilizeAddMemberDialog({
               </Table>
             </TableContainer>
           )}
+          <Box>
+            <Typography variant="overline" sx={{ display: "block", color: "text.secondary", mb: 0.5 }}>
+              or add by email
+            </Typography>
+            <TextField
+              size="small"
+              label="Emails separated by commas"
+              fullWidth
+              multiline
+              minRows={2}
+              placeholder="email1@example.com, email2@example.com, email3@example.com"
+              value={emailsText}
+              onChange={(e) => setEmailsText(e.target.value)}
+              helperText={
+                parsedEmails.length
+                  ? `${parsedEmails.length} email${parsedEmails.length === 1 ? "" : "s"} will be added.`
+                  : "Paste one or more emails; existing members are skipped."
+              }
+            />
+          </Box>
         </Stack>
       </DialogContent>
       <DialogActions>
@@ -240,11 +337,13 @@ export function MobilizeAddMemberDialog({
         </Button>
         <Button
           variant="contained"
-          disabled={!selectedId || adding}
+          disabled={!canAdd || adding}
           onClick={() => void addSelected()}
           startIcon={adding ? <CircularProgress size={14} color="inherit" /> : undefined}
         >
-          {adding ? "Adding…" : "Add member"}
+          {adding
+            ? "Adding…"
+            : `Add ${selectedIds.size + parsedEmails.length} member${selectedIds.size + parsedEmails.length === 1 ? "" : "s"}`}
         </Button>
       </DialogActions>
     </MobilizeDialog>

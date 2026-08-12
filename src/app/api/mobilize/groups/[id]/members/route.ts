@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { loadTrainingGraduateBadgesForUsers } from "@/lib/courses/course-completion";
 import { canManageMobilizeGroupMembers, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
@@ -123,12 +124,14 @@ export async function GET(_req: Request, ctx: Ctx) {
 
 /**
  * POST /api/mobilize/groups/[id]/members
- * Body: { userId: string, member_role?: "member" | "leader" }
+ * Body: { userIds?: string[], emails?: string[], userId?: string, member_role?: "member" | "leader" }
  *
  * Group leaders, the group owner, the parent chapter owner, and site staff
- * (admin / super_admin) may add a dashboard user directly. The added row is
- * inserted (or upgraded) with membership_status = "approved", avoiding the
- * self-join RLS path which only allows pending self-inserts.
+ * (admin / super_admin) may add dashboard users directly — one at a time or in
+ * bulk, by user id and/or comma-separated emails. Added rows are inserted (or
+ * upgraded) with membership_status = "approved", avoiding the self-join RLS
+ * path which only allows pending self-inserts. Users who are already approved
+ * members and emails that match no dashboard user are skipped and reported.
  */
 export async function POST(req: Request, ctx: Ctx) {
   const auth = await requireMobilizeRead();
@@ -136,18 +139,47 @@ export async function POST(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
 
   const body = (await req.json().catch(() => null)) as
-    | { userId?: unknown; member_role?: unknown }
+    | {
+        userId?: unknown;
+        userIds?: unknown;
+        emails?: unknown;
+        member_role?: unknown;
+      }
     | null;
-  const userId = typeof body?.userId === "string" ? body.userId.trim() : "";
-  if (!userId) {
-    return NextResponse.json({ error: "userId is required." }, { status: 400 });
+
+  const requestedRole = body?.member_role === "leader" ? "leader" : "member";
+
+  const userIds = [
+    ...(typeof body?.userId === "string" && body.userId.trim()
+      ? [body.userId.trim()]
+      : []),
+    ...(Array.isArray(body?.userIds)
+      ? body.userIds
+          .filter((x): x is string => typeof x === "string")
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : []),
+  ];
+
+  const emails = [
+    ...new Set(
+      (Array.isArray(body?.emails)
+        ? body.emails
+        : typeof body?.emails === "string"
+          ? body.emails.split(",")
+          : []
+      )
+        .map((e) => String(e).trim().toLowerCase())
+        .filter((e) => e.length > 0)
+    ),
+  ];
+
+  if (!userIds.length && !emails.length) {
+    return NextResponse.json(
+      { error: "Provide at least one userId or email." },
+      { status: 400 }
+    );
   }
-  const requestedRole =
-    body?.member_role === "leader"
-      ? "leader"
-      : body?.member_role === "member"
-        ? "member"
-        : "member";
 
   const { data: group, error: gErr } = await auth.admin
     .from("mobilize_groups")
@@ -188,66 +220,111 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const targetRole = requestedRole === "leader" ? "leader" : "member";
+  // Resolve emails to dashboard user ids (case-insensitive, trimmed).
+  const emailToId = new Map<string, string>();
+  if (emails.length) {
+    const { data: duRows } = await auth.admin
+      .from("dashboard_users")
+      .select("id, email")
+      .in("email", emails);
+    for (const row of duRows ?? []) {
+      const em = String((row as { email: string }).email ?? "").trim().toLowerCase();
+      if (em) emailToId.set(em, (row as { id: string }).id);
+    }
+  }
+  const notFoundEmails = emails.filter((e) => !emailToId.has(e));
+  const resolvedUserIds = [
+    ...new Set([
+      ...userIds,
+      ...emails
+        .map((e) => emailToId.get(e))
+        .filter((x): x is string => typeof x === "string"),
+    ]),
+  ];
 
-  const { data: existing } = await auth.admin
+  const addedRows: Record<string, unknown>[] = [];
+  const alreadyMember: string[] = [];
+  const failed: { id: string; error: string }[] = [];
+
+  for (const uid of resolvedUserIds) {
+    const result = await upsertApprovedGroupMember(
+      auth.admin,
+      id,
+      group.created_by,
+      uid,
+      requestedRole
+    );
+    if (result.status === "added" && result.row) {
+      addedRows.push(result.row);
+    } else if (result.status === "already_member") {
+      alreadyMember.push(uid);
+    } else if (result.status === "error") {
+      failed.push({ id: uid, error: result.error });
+    }
+  }
+
+  if (addedRows.length) {
+    await auth.admin
+      .from("mobilize_groups")
+      .update({ last_activity_at: new Date().toISOString() })
+      .eq("id", id);
+  }
+
+  return NextResponse.json({
+    added: addedRows.length,
+    members: addedRows,
+    alreadyMember,
+    notFound: notFoundEmails,
+    failed,
+  });
+}
+
+/** Insert (or upgrade to approved) one member row. */
+async function upsertApprovedGroupMember(
+  admin: SupabaseClient,
+  groupId: string,
+  groupOwnerId: string,
+  userId: string,
+  requestedRole: "member" | "leader"
+): Promise<
+  | { status: "added"; row: Record<string, unknown> | null }
+  | { status: "already_member" }
+  | { status: "error"; error: string }
+> {
+  // The primary owner always stays a leader.
+  const targetRole = userId === groupOwnerId ? "leader" : requestedRole;
+
+  const { data: existing } = await admin
     .from("mobilize_group_members")
     .select("id, membership_status, member_role")
-    .eq("group_id", id)
+    .eq("group_id", groupId)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (existing) {
     if (existing.membership_status === "approved" && existing.member_role === targetRole) {
-      return NextResponse.json(
-        { error: "User is already a member of this group." },
-        { status: 400 }
-      );
+      return { status: "already_member" };
     }
-    const { data, error } = await auth.admin
+    const { data, error } = await admin
       .from("mobilize_group_members")
       .update({ membership_status: "approved", member_role: targetRole })
       .eq("id", existing.id)
       .select("*")
       .maybeSingle();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    if (!data) return NextResponse.json({ error: "Member row not found." }, { status: 404 });
-
-    // Avoid downgrading an approved leader to member if they're the primary group owner.
-    if (targetRole === "member" && userId === group.created_by) {
-      return NextResponse.json(
-        {
-          membership: data,
-          warning: "Primary owner role kept as leader.",
-        },
-        { status: 200 }
-      );
-    }
-
-    await auth.admin
-      .from("mobilize_groups")
-      .update({ last_activity_at: new Date().toISOString() })
-      .eq("id", id);
-    return NextResponse.json({ membership: data });
+    if (error) return { status: "error", error: error.message };
+    return { status: "added", row: data };
   }
 
-  const { data: inserted, error: insErr } = await auth.admin
+  const { data: inserted, error: insErr } = await admin
     .from("mobilize_group_members")
     .insert({
-      group_id: id,
+      group_id: groupId,
       user_id: userId,
-      member_role: userId === group.created_by ? "leader" : targetRole,
+      member_role: targetRole,
       membership_status: "approved",
     })
     .select("*")
     .maybeSingle();
-  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
-  if (!inserted) return NextResponse.json({ error: "Insert failed." }, { status: 500 });
-
-  await auth.admin
-    .from("mobilize_groups")
-    .update({ last_activity_at: new Date().toISOString() })
-    .eq("id", id);
-
-  return NextResponse.json({ membership: inserted });
+  if (insErr) return { status: "error", error: insErr.message };
+  return { status: "added", row: inserted };
 }
