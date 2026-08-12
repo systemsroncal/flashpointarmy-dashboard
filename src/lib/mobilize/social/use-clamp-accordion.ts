@@ -30,10 +30,16 @@ export function useClampAccordion(lineCount: number) {
   const [fullH, setFullH] = useState<number | null>(null);
   const [animating, setAnimating] = useState<null | "expanding" | "collapsing">(null);
   const [ready, setReady] = useState(false);
+  // Mirrors `animating` so the ResizeObserver callback (which runs during the
+  // max-height transition as the box shrinks/grows) never re-measures and
+  // cancels the running transition by touching inline styles.
+  const animatingRef = useRef(false);
 
   const measure = useCallback(() => {
     const el = ref.current;
-    if (!el) return;
+    // Never re-measure while a transition is running: toggling inline styles
+    // mid-animation cancels the transition and `transitionend` never fires.
+    if (!el || animatingRef.current) return;
 
     const prev = {
       display: el.style.display,
@@ -82,14 +88,30 @@ export function useClampAccordion(lineCount: number) {
     return () => cancelAnimationFrame(id);
   }, [needsCollapse]);
 
+  // Safety net: if the browser cancels the transition for any reason, release
+  // the animating lock so the toggle button keeps working.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onCancel = (e: TransitionEvent) => {
+      if (e.target !== el || e.propertyName !== "max-height") return;
+      animatingRef.current = false;
+      setAnimating(null);
+    };
+    el.addEventListener("transitioncancel", onCancel);
+    return () => el.removeEventListener("transitioncancel", onCancel);
+  }, []);
+
   const toggle = useCallback(() => {
-    if (!needsCollapse || animating) return;
+    if (!needsCollapse || animatingRef.current) return;
+    animatingRef.current = true;
     setExpanded((v) => !v);
     setAnimating(expanded ? "collapsing" : "expanding");
-  }, [needsCollapse, animating, expanded]);
+  }, [needsCollapse, expanded]);
 
   const onTransitionEnd = useCallback((e: React.TransitionEvent<HTMLDivElement>) => {
     if (e.target !== ref.current || e.propertyName !== "max-height") return;
+    animatingRef.current = false;
     setAnimating(null);
   }, []);
 
