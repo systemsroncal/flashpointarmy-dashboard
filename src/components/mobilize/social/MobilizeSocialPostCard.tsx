@@ -41,6 +41,10 @@ type Props = {
   authorRoleLabel?: string;
   viewerAvatarUrl?: string | null;
   viewerDisplayName?: string | null;
+  /** Viewer id — enables comment deletion for comment authors / super admins. */
+  viewerUserId?: string;
+  /** Viewer is a super admin — may delete any post/comment. */
+  viewerIsSuperAdmin?: boolean;
 };
 
 export function MobilizeSocialPostCard({
@@ -56,6 +60,8 @@ export function MobilizeSocialPostCard({
   authorRoleLabel,
   viewerAvatarUrl,
   viewerDisplayName,
+  viewerUserId,
+  viewerIsSuperAdmin = false,
 }: Props) {
   const isDark = surface === "dark";
   const isGroupFeedList = layout === "groupFeedList";
@@ -163,14 +169,17 @@ export function MobilizeSocialPostCard({
           <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
         ) : null}
         <Box sx={{ mt: 1.25 }}>
-          <MobilizeCollapsiblePostBody surface={surface}>
-            <MobilizeFeedHtml
-              html={post.content_html}
-              plain={post.content}
-              sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
-            />
-            <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />
-          </MobilizeCollapsiblePostBody>
+          <MobilizeCollapsiblePostBody
+            surface={surface}
+            text={
+              <MobilizeFeedHtml
+                html={post.content_html}
+                plain={post.content}
+                sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
+              />
+            }
+            media={<MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />}
+          />
         </Box>
         <Stack
           direction="row"
@@ -226,6 +235,8 @@ export function MobilizeSocialPostCard({
           tone={surface}
           viewerAvatarUrl={viewerAvatarUrl}
           viewerDisplayName={viewerDisplayName}
+          viewerUserId={viewerUserId}
+          viewerIsSuperAdmin={viewerIsSuperAdmin}
         />
       </CardContent>
     </Card>

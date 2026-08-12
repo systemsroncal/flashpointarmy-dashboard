@@ -102,7 +102,16 @@ export function MobilizeSocialHubRightRail({ initial = null }: Props) {
                     variant="body2"
                     fontWeight={700}
                     noWrap
-                    sx={{ color: "inherit", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                    title={g.name}
+                    sx={{
+                      color: "inherit",
+                      textDecoration: "none",
+                      display: "block",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      "&:hover": { textDecoration: "underline" },
+                    }}
                   >
                     {g.name}
                   </Typography>

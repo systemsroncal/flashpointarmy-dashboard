@@ -133,6 +133,8 @@ export function UserProfileDrawer({
   const [error, setError] = useState<string | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [groupsCount, setGroupsCount] = useState(0);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const [cropKind, setCropKind] = useState<"profile" | "cover" | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [profileMaxMb, setProfileMaxMb] = useState(
@@ -176,7 +178,7 @@ export function UserProfileDrawer({
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const [{ data, error: qErr }, groupsRes] = await Promise.all([
+    const [{ data, error: qErr }, groupsRes, followersRes, followingRes] = await Promise.all([
       supabase
         .from("profiles")
         .select(
@@ -189,6 +191,14 @@ export function UserProfileDrawer({
         .select("id", { count: "exact", head: true })
         .eq("user_id", du.id)
         .eq("membership_status", "approved"),
+      supabase
+        .from("mobilize_user_follows")
+        .select("follower_id", { count: "exact", head: true })
+        .eq("following_id", du.id),
+      supabase
+        .from("mobilize_user_follows")
+        .select("following_id", { count: "exact", head: true })
+        .eq("follower_id", du.id),
     ]);
     setLoading(false);
     if (qErr) {
@@ -210,6 +220,8 @@ export function UserProfileDrawer({
     setAvatarUrl(row?.avatar_url ?? "");
     setCoverUrl(row?.cover_url ?? "");
     setGroupsCount(groupsRes.count ?? 0);
+    setFollowersCount(followersRes.count ?? 0);
+    setFollowingCount(followingRes.count ?? 0);
   }, [du.display_name, du.first_name, du.id, du.last_name, du.phone]);
 
   useEffect(() => {
@@ -739,7 +751,7 @@ export function UserProfileDrawer({
                         mt: 2.5,
                         display: "flex",
                         justifyContent: "center",
-                        gap: { xs: 4, sm: 5 },
+                        gap: { xs: 3.5, sm: 4.5 },
                       }}
                     >
                       <Box>
@@ -751,10 +763,25 @@ export function UserProfileDrawer({
                             lineHeight: 1.1,
                           }}
                         >
-                          {formatCompactCount(0)}
+                          {formatCompactCount(followersCount)}
                         </Typography>
                         <Typography sx={{ color: "rgba(255,255,255,0.78)", fontSize: "0.85rem" }}>
                           Followers
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography
+                          sx={{
+                            color: flashpointYellow,
+                            fontWeight: 800,
+                            fontSize: "1.2rem",
+                            lineHeight: 1.1,
+                          }}
+                        >
+                          {formatCompactCount(followingCount)}
+                        </Typography>
+                        <Typography sx={{ color: "rgba(255,255,255,0.78)", fontSize: "0.85rem" }}>
+                          Following
                         </Typography>
                       </Box>
                       <Box>

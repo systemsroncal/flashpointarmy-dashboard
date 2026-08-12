@@ -3,16 +3,19 @@
 import { Box, Button } from "@mui/material";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-const COLLAPSE_HEIGHT_PX = 150;
+const MAX_TEXT_LINES = 5;
 
 type Props = {
-  children: ReactNode;
+  /** Post text block (always clamped to 5 lines when collapsed). */
+  text: ReactNode;
+  /** Post media (images) — never collapsed, always fully visible. */
+  media?: ReactNode;
   /** Match post card surface for the fade overlay. */
   surface?: "light" | "dark";
 };
 
-/** Collapses tall post bodies (text + images) behind Read more / Read less. */
-export function MobilizeCollapsiblePostBody({ children, surface = "light" }: Props) {
+/** Collapses post TEXT only (max 5 lines); photos are always fully visible. */
+export function MobilizeCollapsiblePostBody({ text, media, surface = "light" }: Props) {
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [needsCollapse, setNeedsCollapse] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -23,25 +26,48 @@ export function MobilizeCollapsiblePostBody({ children, surface = "light" }: Pro
     if (!el) return;
 
     const measure = () => {
-      setNeedsCollapse(el.scrollHeight > COLLAPSE_HEIGHT_PX + 8);
+      // Temporarily force the 5-line clamp to detect overflow, then restore.
+      const prev = {
+        display: el.style.display,
+        lineClamp: el.style.webkitLineClamp,
+        boxOrient: el.style.webkitBoxOrient,
+        overflow: el.style.overflow,
+      };
+      el.style.display = "-webkit-box";
+      el.style.webkitLineClamp = String(MAX_TEXT_LINES);
+      el.style.webkitBoxOrient = "vertical";
+      el.style.overflow = "hidden";
+      const overflows = el.scrollHeight > el.clientHeight + 4;
+      el.style.display = prev.display;
+      el.style.webkitLineClamp = prev.lineClamp;
+      el.style.webkitBoxOrient = prev.boxOrient;
+      el.style.overflow = prev.overflow;
+      setNeedsCollapse(overflows);
     };
     measure();
 
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
     ro?.observe(el);
     return () => ro?.disconnect();
-  }, [children]);
+  }, [text]);
+
+  const clampSx = {
+    display: "-webkit-box",
+    WebkitLineClamp: MAX_TEXT_LINES,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  } as const;
 
   return (
     <Box>
       <Box
+        ref={measureRef}
         sx={{
           position: "relative",
-          maxHeight: needsCollapse && !expanded ? COLLAPSE_HEIGHT_PX : "none",
-          overflow: needsCollapse && !expanded ? "hidden" : "visible",
+          ...(needsCollapse && !expanded ? clampSx : {}),
         }}
       >
-        <Box ref={measureRef}>{children}</Box>
+        {text}
         {needsCollapse && !expanded ? (
           <Box
             sx={{
@@ -50,12 +76,13 @@ export function MobilizeCollapsiblePostBody({ children, surface = "light" }: Pro
               left: 0,
               right: 0,
               bottom: 0,
-              height: 56,
-              background: `linear-gradient(180deg, rgba(255,255,255,0) 0%, ${fadeTo} 85%)`,
+              height: 28,
+              background: `linear-gradient(180deg, rgba(255,255,255,0) 0%, ${fadeTo} 90%)`,
             }}
           />
         ) : null}
       </Box>
+      {media ? <Box sx={{ mt: 1.25 }}>{media}</Box> : null}
       {needsCollapse ? (
         <Button
           size="small"
@@ -72,7 +99,7 @@ export function MobilizeCollapsiblePostBody({ children, surface = "light" }: Pro
             "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
           }}
         >
-          {expanded ? "Read less" : "Read more"}
+          {expanded ? "Less" : "More"}
         </Button>
       ) : null}
     </Box>

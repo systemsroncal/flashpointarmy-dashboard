@@ -52,6 +52,7 @@ import {
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { mobilizeGroupInitials } from "@/lib/mobilize/group-initials";
+import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
 import {
   isMobilizeGroupListed,
   mobilizeGroupListingVisibilityFromListed,
@@ -60,7 +61,6 @@ import {
   mobilizeChapterDetailRootSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
-import { flashpointYellow } from "@/theme/tokens";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 
 type ViewMode = "grid" | "list";
@@ -448,7 +448,9 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
         }}
       >
         {filtered.map((g) => {
-          const cover = g.cover_image_url ? publicAssetSrc(g.cover_image_url) : undefined;
+          // Groups usually have no banner yet, so fall back to the default chapter
+          // cover (same fallback as the group detail hero), matching its look.
+          const cover = publicAssetSrc(mobilizeChapterCoverSrc(g.cover_image_url));
           const enrollment = enrollmentModeLabel(g.enrollment_mode);
           const listed = isMobilizeGroupListed(g.visibility);
           const status = groupStatusChip(g);
@@ -468,30 +470,12 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
               }}
             >
               <Box sx={{ position: "relative", aspectRatio: "16 / 10", bgcolor: "#1a2744" }}>
-                {cover ? (
-                  <Box
-                    component="img"
-                    src={cover}
-                    alt=""
-                    sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                  />
-                ) : (
-                  <Box
-                    sx={{
-                      width: "100%",
-                      height: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      bgcolor: "#0d0d0d",
-                      color: flashpointYellow,
-                      fontSize: "2rem",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {mobilizeGroupInitials(g.name)}
-                  </Box>
-                )}
+                <Box
+                  component="img"
+                  src={cover}
+                  alt=""
+                  sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
                 <Tooltip title="Open group">
                   <IconButton
                     component={Link}

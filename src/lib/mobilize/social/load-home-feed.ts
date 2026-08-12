@@ -86,7 +86,7 @@ async function loadGroupMessages(
 ): Promise<UnifiedFeedPost[]> {
   if (!groupIds.length) return [];
 
-  let q = admin
+  const q = admin
     .from("mobilize_group_messages")
     .select("id, group_id, author_id, content, content_html, comments_policy, image_urls, created_at")
     .in("group_id", groupIds)
@@ -269,11 +269,15 @@ async function loadRecommendations(
       .from("mobilize_user_follows")
       .select("follower_id", { count: "exact", head: true })
       .eq("following_id", id);
-    const isFollowing = await isFollowingUser(admin, viewerId, id);
+    const [isFollowing, isFollowedBy] = await Promise.all([
+      isFollowingUser(admin, viewerId, id),
+      isFollowingUser(admin, id, viewerId),
+    ]);
     results.push({
       ...author,
       followers_count: count ?? 0,
       is_following: isFollowing,
+      is_followed_by: isFollowedBy,
     });
   }
   return results;

@@ -31,4 +31,6 @@ export type UnifiedFeedPost = {
 export type RecommendedUser = MobilizeAuthorSummary & {
   followers_count: number;
   is_following: boolean;
+  /** True when this user already follows the viewer (button label “Follow back”). */
+  is_followed_by?: boolean;
 };

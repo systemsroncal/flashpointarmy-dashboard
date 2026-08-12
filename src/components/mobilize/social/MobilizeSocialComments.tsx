@@ -6,6 +6,7 @@ import { TRUTH_HUB_BORDER, TRUTH_HUB_TEXT_MUTED } from "@/lib/mobilize/social/so
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
@@ -23,6 +24,9 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+
+const DEFAULT_VISIBLE_COMMENTS = 2;
+const COMMENT_CLAMP_LINES = 3;
 
 export type SocialCommentNode = {
   id: string;
@@ -50,6 +54,10 @@ type Props = {
   tone?: "light" | "dark";
   viewerAvatarUrl?: string | null;
   viewerDisplayName?: string | null;
+  /** Viewer id — enables comment deletion for comment authors / super admins. */
+  viewerUserId?: string;
+  /** Viewer is a super admin — may delete any comment. */
+  viewerIsSuperAdmin?: boolean;
 };
 
 function countComments(nodes: SocialCommentNode[]): number {
@@ -187,6 +195,85 @@ function CommentComposer({
   );
 }
 
+function CommentContent({ content, light }: { content: string; light: boolean }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [overflows, setOverflows] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const measure = () => {
+      const prev = {
+        display: el.style.display,
+        lineClamp: el.style.webkitLineClamp,
+        boxOrient: el.style.webkitBoxOrient,
+        overflow: el.style.overflow,
+      };
+      el.style.display = "-webkit-box";
+      el.style.webkitLineClamp = String(COMMENT_CLAMP_LINES);
+      el.style.webkitBoxOrient = "vertical";
+      el.style.overflow = "hidden";
+      const overflow = el.scrollHeight > el.clientHeight + 4;
+      el.style.display = prev.display;
+      el.style.webkitLineClamp = prev.lineClamp;
+      el.style.webkitBoxOrient = prev.boxOrient;
+      el.style.overflow = prev.overflow;
+      setOverflows(overflow);
+    };
+    measure();
+
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(el);
+    return () => ro?.disconnect();
+  }, [content]);
+
+  const clampSx = {
+    display: "-webkit-box",
+    WebkitLineClamp: COMMENT_CLAMP_LINES,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  } as const;
+
+  return (
+    <>
+      <Box ref={ref} sx={overflows && !expanded ? clampSx : undefined}>
+        <Typography
+          sx={{
+            fontSize: "0.9375rem",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            mt: 0.15,
+            lineHeight: 1.35,
+            color: light ? "#050505" : "#e7e9ea",
+          }}
+        >
+          {content}
+        </Typography>
+      </Box>
+      {overflows ? (
+        <Button
+          size="small"
+          onClick={() => setExpanded((v) => !v)}
+          sx={{
+            minWidth: 0,
+            px: 0,
+            mt: 0.25,
+            textTransform: "none",
+            fontWeight: 700,
+            fontSize: "0.75rem",
+            color: light ? "#0866ff" : "#6eb5ff",
+            "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+          }}
+        >
+          {expanded ? "See less" : "See more"}
+        </Button>
+      ) : null}
+    </>
+  );
+}
+
 function CommentItem({
   node,
   commentReactionUrl,
@@ -196,6 +283,10 @@ function CommentItem({
   replyComposer,
   depth,
   light,
+  viewerUserId,
+  viewerIsSuperAdmin,
+  deleting,
+  onDelete,
 }: {
   node: SocialCommentNode;
   commentReactionUrl: (commentId: string) => string;
@@ -205,9 +296,14 @@ function CommentItem({
   replyComposer: ReactNode;
   depth: number;
   light: boolean;
+  viewerUserId?: string;
+  viewerIsSuperAdmin: boolean;
+  deleting: boolean;
+  onDelete: (commentId: string) => void;
 }) {
   const [reactions, setReactions] = useState(node.reactions);
   const [busy, setBusy] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const profileHref = mobilizeMemberProfileHref(node.author.id);
 
   async function setReaction(next: ReactionType | null) {
@@ -226,6 +322,7 @@ function CommentItem({
     }
   }
 
+  const canDelete = Boolean(viewerUserId && (viewerUserId === node.author_id || viewerIsSuperAdmin));
   const liked = reactions.viewer_reaction === "like";
   const bubbleBg = light ? "#f0f2f5" : "rgba(255,255,255,0.08)";
   const nameMuted = light ? "#65676b" : "rgba(255,255,255,0.45)";
@@ -273,55 +370,107 @@ function CommentItem({
                 {timeAgo(node.created_at)}
               </Typography>
             </Stack>
-            <Typography
-              sx={{
-                fontSize: depth > 0 ? "0.875rem" : "0.9375rem",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                mt: 0.15,
-                lineHeight: 1.35,
-                color: light ? "#050505" : "#e7e9ea",
-              }}
-            >
-              {node.content}
-            </Typography>
+            <CommentContent content={node.content} light={light} />
           </Box>
           <Stack direction="row" spacing={0.25} alignItems="center" sx={{ mt: 0.35, ml: 0.5 }}>
-            <IconButton
-              size="small"
-              disabled={busy}
-              onClick={() => void setReaction(liked ? null : "like")}
-              aria-label={liked ? "Unlike" : "Like"}
-              sx={{ p: 0.35, color: liked ? likeBlue : actionMuted }}
-            >
-              {liked ? <ThumbUpAltIcon sx={{ fontSize: 16 }} /> : <ThumbUpOffAltIcon sx={{ fontSize: 16 }} />}
-            </IconButton>
-            {reactions.like > 0 ? (
-              <Typography variant="caption" sx={{ color: actionMuted, mr: 0.25, minWidth: 10 }}>
-                {reactions.like}
-              </Typography>
-            ) : null}
-            <IconButton size="small" disabled aria-label="Dislike" sx={{ p: 0.35, color: actionMuted, opacity: 0.65 }}>
-              <ThumbDownOffAltIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-            {canComment && node.depth < 3 ? (
-              <Button
-                size="small"
-                onClick={() => onReply(node.id, node.author.display_name)}
-                sx={{
-                  minWidth: 0,
-                  px: 0.75,
-                  py: 0,
-                  textTransform: "none",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: replyParentId === node.id ? likeBlue : actionMuted,
-                  "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
-                }}
-              >
-                Reply
-              </Button>
-            ) : null}
+            {confirmingDelete ? (
+              <>
+                <Typography variant="caption" sx={{ color: actionMuted, mr: 0.25 }}>
+                  Delete this comment?
+                </Typography>
+                <Button
+                  size="small"
+                  disabled={deleting}
+                  onClick={() => onDelete(node.id)}
+                  sx={{
+                    minWidth: 0,
+                    px: 0.75,
+                    py: 0,
+                    textTransform: "none",
+                    fontWeight: 700,
+                    fontSize: "0.75rem",
+                    color: "#d32f2f",
+                    "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+                  }}
+                >
+                  {deleting ? "…" : "Yes"}
+                </Button>
+                <Button
+                  size="small"
+                  disabled={deleting}
+                  onClick={() => setConfirmingDelete(false)}
+                  sx={{
+                    minWidth: 0,
+                    px: 0.75,
+                    py: 0,
+                    textTransform: "none",
+                    fontWeight: 700,
+                    fontSize: "0.75rem",
+                    color: actionMuted,
+                    "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+                  }}
+                >
+                  No
+                </Button>
+              </>
+            ) : (
+              <>
+                <IconButton
+                  size="small"
+                  disabled={busy}
+                  onClick={() => void setReaction(liked ? null : "like")}
+                  aria-label={liked ? "Unlike" : "Like"}
+                  sx={{ p: 0.35, color: liked ? likeBlue : actionMuted }}
+                >
+                  {liked ? <ThumbUpAltIcon sx={{ fontSize: 16 }} /> : <ThumbUpOffAltIcon sx={{ fontSize: 16 }} />}
+                </IconButton>
+                {reactions.like > 0 ? (
+                  <Typography variant="caption" sx={{ color: actionMuted, mr: 0.25, minWidth: 10 }}>
+                    {reactions.like}
+                  </Typography>
+                ) : null}
+                <IconButton size="small" disabled aria-label="Dislike" sx={{ p: 0.35, color: actionMuted, opacity: 0.65 }}>
+                  <ThumbDownOffAltIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+                {canComment && node.depth < 3 ? (
+                  <Button
+                    size="small"
+                    onClick={() => onReply(node.id, node.author.display_name)}
+                    sx={{
+                      minWidth: 0,
+                      px: 0.75,
+                      py: 0,
+                      textTransform: "none",
+                      fontWeight: 700,
+                      fontSize: "0.75rem",
+                      color: replyParentId === node.id ? likeBlue : actionMuted,
+                      "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+                    }}
+                  >
+                    Reply
+                  </Button>
+                ) : null}
+                {canDelete ? (
+                  <Button
+                    size="small"
+                    onClick={() => setConfirmingDelete(true)}
+                    startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
+                    sx={{
+                      minWidth: 0,
+                      px: 0.75,
+                      py: 0,
+                      textTransform: "none",
+                      fontWeight: 700,
+                      fontSize: "0.75rem",
+                      color: actionMuted,
+                      "&:hover": { bgcolor: "transparent", color: "#d32f2f" },
+                    }}
+                  >
+                    Delete
+                  </Button>
+                ) : null}
+              </>
+            )}
           </Stack>
           {node.replies.map((reply) => (
             <CommentItem
@@ -334,6 +483,10 @@ function CommentItem({
               replyComposer={replyComposer}
               depth={depth + 1}
               light={light}
+              viewerUserId={viewerUserId}
+              viewerIsSuperAdmin={viewerIsSuperAdmin}
+              deleting={deleting}
+              onDelete={onDelete}
             />
           ))}
           {replyParentId === node.id ? replyComposer : null}
@@ -352,12 +505,15 @@ export function MobilizeSocialComments({
   tone = "light",
   viewerAvatarUrl,
   viewerDisplayName,
+  viewerUserId,
+  viewerIsSuperAdmin = false,
 }: Props) {
   const light = tone === "light";
   const isDark = tone === "dark";
   const [comments, setComments] = useState<SocialCommentNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [replyToName, setReplyToName] = useState<string | null>(null);
@@ -421,13 +577,27 @@ export function MobilizeSocialComments({
     }
   }
 
+  async function deleteComment(commentId: string) {
+    setDeletingId(commentId);
+    try {
+      const res = await fetch(`${commentsUrl}/${commentId}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Delete failed.");
+      await load();
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   if (!open) return null;
 
   const asName = viewerDisplayName?.trim() || "you";
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
   const visibleComments =
-    commentsExpanded || comments.length <= 1 ? comments : comments.slice(0, 1);
-  const hiddenCount = Math.max(0, comments.length - 1);
+    commentsExpanded || comments.length <= DEFAULT_VISIBLE_COMMENTS
+      ? comments
+      : comments.slice(0, DEFAULT_VISIBLE_COMMENTS);
+  const hiddenCount = Math.max(0, comments.length - DEFAULT_VISIBLE_COMMENTS);
 
   const replyComposer = (
     <CommentComposer
@@ -495,6 +665,10 @@ export function MobilizeSocialComments({
           replyComposer={replyComposer}
           depth={0}
           light={light}
+          viewerUserId={viewerUserId}
+          viewerIsSuperAdmin={viewerIsSuperAdmin}
+          deleting={deletingId === c.id}
+          onDelete={(id) => void deleteComment(id)}
         />
       ))}
       {!loading && hiddenCount > 0 ? (
@@ -514,7 +688,7 @@ export function MobilizeSocialComments({
             "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
           }}
         >
-          {commentsExpanded ? "Read less" : "Read more"}
+          {commentsExpanded ? "Read less" : "More comments"}
         </Button>
       ) : null}
       {canComment && !replyParentId ? (

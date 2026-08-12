@@ -81,7 +81,7 @@ function RecommendedUserRow({
         onClick={() => handleClick()}
         sx={{ textTransform: "none", borderRadius: 99, minWidth: 88 }}
       >
-        {following ? "Following" : "Follow"}
+        {following ? "Following" : user.is_followed_by ? "Follow back" : "Follow"}
       </Button>
     </Box>
     {confirmUnfollow ? (
@@ -195,6 +195,8 @@ export function MobilizeHomeFeedClient() {
                 showGroupBadge
                 viewerAvatarUrl={me.avatar_url}
                 viewerDisplayName={me.display_name ?? me.email}
+                viewerUserId={me.id}
+                viewerIsSuperAdmin={me.role_names.includes("super_admin")}
               />
             );
           })}

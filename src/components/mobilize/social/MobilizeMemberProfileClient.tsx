@@ -6,6 +6,7 @@ import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSo
 import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeProfilePageShell";
 import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
+import { MobilizeConnectionsDialog, type ConnectionKind } from "@/components/mobilize/social/MobilizeConnectionsDialog";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
@@ -32,6 +33,7 @@ import {
   DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS,
   mbToBytes,
 } from "@/lib/mobilize/image-upload-limits";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
@@ -48,11 +50,13 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
+  IconButton,
   Paper,
   Radio,
   RadioGroup,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
@@ -141,6 +145,9 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [savingSettings, setSavingSettings] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [unfollowConfirmOpen, setUnfollowConfirmOpen] = useState(false);
+  const [connectionsDialog, setConnectionsDialog] = useState<ConnectionKind | null>(null);
+  const [deletePostTarget, setDeletePostTarget] = useState<ProfilePost | null>(null);
+  const [deletingPost, setDeletingPost] = useState(false);
   const [mediaUploading, setMediaUploading] = useState<"avatar" | "cover" | null>(null);
   const [cropKind, setCropKind] = useState<ImageCropKind | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
@@ -311,6 +318,25 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     void toggleFollow();
   }
 
+  async function confirmDeletePost() {
+    if (!deletePostTarget || !profile) return;
+    setDeletingPost(true);
+    try {
+      const res = await fetch(
+        `/api/mobilize/social/profiles/${profile.id}/posts/${deletePostTarget.post_id}`,
+        { method: "DELETE" }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Delete failed.");
+      setDeletePostTarget(null);
+      await load({ silent: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed.");
+    } finally {
+      setDeletingPost(false);
+    }
+  }
+
   async function publishPost() {
     const plain = composerHtml.replace(/<[^>]+>/g, "").trim();
     if (!plain && !composerImages.length) return;
@@ -473,7 +499,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               }),
         }}
       >
-        {followBusy ? "…" : p.is_following ? "Following" : "Follow"}
+        {followBusy ? "…" : p.is_following ? "Following" : p.is_followed_by ? "Follow back" : "Follow"}
       </Button>
       {p.can_message ? (
         <Button
@@ -489,21 +515,53 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     </Stack>
   );
 
+  const canViewConnections = p.is_own_profile || p.profile_visibility === "public";
+  const connectionStatSx = {
+    fontWeight: 500,
+    color: "text.secondary",
+    fontFamily: "inherit",
+    fontSize: "inherit",
+    lineHeight: "inherit",
+    textAlign: "left" as const,
+    ...(canViewConnections
+      ? {
+          cursor: "pointer",
+          border: "none",
+          bgcolor: "transparent",
+          p: 0,
+          borderRadius: 1,
+          "&:hover": { color: "#0866ff" },
+        }
+      : {}),
+  };
+
   const profileMeta = (
     <Box>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1.5, sm: 2 }, mt: 0.15 }}>
-        <Typography variant="body2" sx={{ fontWeight: 500, color: "text.secondary" }}>
+        <Box
+          component={canViewConnections ? "button" : "span"}
+          type={canViewConnections ? "button" : undefined}
+          onClick={canViewConnections ? () => setConnectionsDialog("followers") : undefined}
+          aria-label="View followers"
+          sx={connectionStatSx}
+        >
           <Box component="span" sx={{ fontWeight: 800, color: "text.primary" }}>
             {p.followers_count.toLocaleString()}
           </Box>{" "}
           Followers
-        </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 500, color: "text.secondary" }}>
+        </Box>
+        <Box
+          component={canViewConnections ? "button" : "span"}
+          type={canViewConnections ? "button" : undefined}
+          onClick={canViewConnections ? () => setConnectionsDialog("following") : undefined}
+          aria-label="View following"
+          sx={connectionStatSx}
+        >
           <Box component="span" sx={{ fontWeight: 800, color: "text.primary" }}>
             {p.following_count.toLocaleString()}
           </Box>{" "}
           Following
-        </Typography>
+        </Box>
       </Box>
       {(locationLabel || p.joined_at) && (
         <Typography variant="body2" sx={{ mt: 0.5, color: "text.secondary" }}>
@@ -587,6 +645,22 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           layout="groupFeedCard"
           viewerAvatarUrl={me.avatar_url}
           viewerDisplayName={me.display_name ?? me.email}
+          viewerUserId={me.id}
+          viewerIsSuperAdmin={me.role_names.includes("super_admin")}
+          manageActions={
+            post.author.id === me.id || me.role_names.includes("super_admin") ? (
+              <Tooltip title="Delete post">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => setDeletePostTarget(post)}
+                  aria-label="Delete post"
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            ) : undefined
+          }
         />
       ))}
 
@@ -611,7 +685,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const tabPanelSx = {
     flex: 1,
     minHeight: 0,
-    bgcolor: "#f0f2f5",
+    bgcolor: "transparent",
     borderRadius: 2,
     p: { xs: 1, sm: 2 },
     display: "flex",
@@ -767,7 +841,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         </Alert>
       ) : null}
 
-      <MobilizeSocialHubLayout showInternalNav={false}>
+      <MobilizeSocialHubLayout showInternalNav={false} showRightRail={false}>
         <MobilizeSocialHubContent tone="light">
           <Box
             sx={{
@@ -776,7 +850,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              maxWidth: 1200,
+              maxWidth: 950,
               mx: "auto",
               p: { xs: 1, sm: 1.5, md: 2 },
             }}
@@ -1024,6 +1098,40 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           else if (kind === "cover") void uploadProfileMedia("cover", file);
         }}
       />
+
+      <MobilizeConnectionsDialog
+        open={Boolean(connectionsDialog)}
+        kind={connectionsDialog ?? "followers"}
+        userId={p.id}
+        onClose={() => setConnectionsDialog(null)}
+      />
+
+      <MobilizeDialog
+        open={Boolean(deletePostTarget)}
+        onClose={() => !deletingPost && setDeletePostTarget(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Delete post?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            This post will be permanently removed. This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeletePostTarget(null)} disabled={deletingPost}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={deletingPost}
+            onClick={() => void confirmDeletePost()}
+          >
+            {deletingPost ? "Deleting…" : "Delete"}
+          </Button>
+        </DialogActions>
+      </MobilizeDialog>
     </Box>
   );
 }

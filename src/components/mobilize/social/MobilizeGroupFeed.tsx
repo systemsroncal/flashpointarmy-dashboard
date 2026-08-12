@@ -172,6 +172,8 @@ export function MobilizeGroupFeed({
                 authorRoleLabel={authorRoleLabels?.[m.author.id]}
                 viewerAvatarUrl={me.avatar_url}
                 viewerDisplayName={me.display_name ?? me.email}
+                viewerUserId={me.id}
+                viewerIsSuperAdmin={isSuperAdmin}
                 manageActions={
                   canManage || canPinPost ? (
                     <Stack direction="row" spacing={0.25}>

@@ -94,6 +94,25 @@ export async function GET(req: Request) {
     rows.map((g: { id: string }) => ({ id: g.id })),
     auth.userId
   );
+
+  // Featured subgroups appear in every chapter's circle row, as if they were
+  // created in all of them (browse list + map circles).
+  let featuredBriefs: { id: string; name: string; cover_image_url: string | null; enrollment_mode: string }[] = [];
+  if (scope === "chapters") {
+    const { data: featuredRows } = await auth.admin
+      .from("mobilize_groups")
+      .select("id, name, cover_image_url, enrollment_mode, parent_group_id, created_at")
+      .eq("is_featured", true)
+      .not("parent_group_id", "is", null)
+      .order("created_at", { ascending: true });
+    featuredBriefs = (featuredRows ?? []).map((f) => ({
+      id: f.id as string,
+      name: f.name as string,
+      cover_image_url: (f.cover_image_url as string | null) ?? null,
+      enrollment_mode: String((f as { enrollment_mode?: string }).enrollment_mode ?? "request_to_join"),
+    }));
+  }
+
   const groups = rows.map((g: {
     id: string;
     parent_group_id?: string | null;
@@ -106,6 +125,7 @@ export async function GET(req: Request) {
     const parent = parentIdForRow ? parentInfoById.get(parentIdForRow) : undefined;
     const effectiveLat = g.latitude ?? parent?.latitude ?? null;
     const effectiveLng = g.longitude ?? parent?.longitude ?? null;
+    const ownSubgroups = e?.subgroups ?? [];
     return {
       ...g,
       latitude: effectiveLat,
@@ -117,8 +137,14 @@ export async function GET(req: Request) {
       leaders: e?.leaders ?? [],
       upcoming_activity_count: e?.upcoming_activity_count ?? 0,
       my_membership_status: e?.my_membership_status ?? null,
-      subgroups: e?.subgroups ?? [],
-      subgroup_count: e?.subgroup_count ?? 0,
+      subgroups:
+        scope === "chapters" && featuredBriefs.length
+          ? [...featuredBriefs, ...ownSubgroups].slice(0, 5)
+          : ownSubgroups,
+      subgroup_count:
+        scope === "chapters" && featuredBriefs.length
+          ? (e?.subgroup_count ?? ownSubgroups.length) + featuredBriefs.length
+          : e?.subgroup_count ?? 0,
     };
   });
   return NextResponse.json({ groups });
