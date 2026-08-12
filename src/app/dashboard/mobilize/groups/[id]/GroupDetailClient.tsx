@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { MobilizeAddMemberDialog } from "@/components/mobilize/MobilizeAddMemberDialog";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Autocomplete,
@@ -36,6 +37,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -320,6 +322,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     name: string;
   } | null>(null);
   const [memberActionSaving, setMemberActionSaving] = useState(false);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [eventSaving, setEventSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
@@ -1302,6 +1305,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   const canEditGroup = isLeader || group.created_by === me.id || isSuperAdmin;
   const canManageMembers = isLeader || group.created_by === me.id || isSuperAdmin;
+  // Matches the server-side POST /members gate: site staff, group owner, or an approved leader.
+  const canAddMember = isLeader || group.created_by === me.id || isSuperAdmin || me.role_names.includes("admin");
   const gridSx = {
     display: "grid",
     gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
@@ -1658,9 +1663,27 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             </>
           ) : null}
 
-          <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-            Members ({approvedMembers.length})
-          </Typography>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            flexWrap="wrap"
+            gap={1}
+            sx={{ mt: 2, mb: 1 }}
+          >
+            <Typography variant="subtitle2">Members ({approvedMembers.length})</Typography>
+            {canAddMember ? (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<GroupAddIcon />}
+                onClick={() => setAddMemberOpen(true)}
+                sx={{ textTransform: "none" }}
+              >
+                Add member
+              </Button>
+            ) : null}
+          </Stack>
           {approvedMembers.length ? (
           <TableContainer sx={{ ...mobilizeTableContainerSx, overflowX: "auto" }}>
               <Table size="small" sx={mobilizeGroupMembersTableMobileSx}>
@@ -2446,6 +2469,18 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           </Button>
         </DialogActions>
       </MobilizeDialog>
+
+      <MobilizeAddMemberDialog
+        open={addMemberOpen}
+        groupId={groupId}
+        groupName={group.name}
+        onClose={() => setAddMemberOpen(false)}
+        onAdded={() => {
+          setAddMemberOpen(false);
+          void loadMembers();
+          void loadGroup();
+        }}
+      />
     </Box>
   );
 }

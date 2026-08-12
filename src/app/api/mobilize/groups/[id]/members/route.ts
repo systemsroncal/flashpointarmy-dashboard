@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadTrainingGraduateBadgesForUsers } from "@/lib/courses/course-completion";
-import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
+import { canManageMobilizeGroupMembers, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -119,4 +119,135 @@ export async function GET(_req: Request, ctx: Ctx) {
   });
 
   return NextResponse.json({ members });
+}
+
+/**
+ * POST /api/mobilize/groups/[id]/members
+ * Body: { userId: string, member_role?: "member" | "leader" }
+ *
+ * Group leaders, the group owner, the parent chapter owner, and site staff
+ * (admin / super_admin) may add a dashboard user directly. The added row is
+ * inserted (or upgraded) with membership_status = "approved", avoiding the
+ * self-join RLS path which only allows pending self-inserts.
+ */
+export async function POST(req: Request, ctx: Ctx) {
+  const auth = await requireMobilizeRead();
+  if (auth instanceof NextResponse) return auth;
+  const { id } = await ctx.params;
+
+  const body = (await req.json().catch(() => null)) as
+    | { userId?: unknown; member_role?: unknown }
+    | null;
+  const userId = typeof body?.userId === "string" ? body.userId.trim() : "";
+  if (!userId) {
+    return NextResponse.json({ error: "userId is required." }, { status: 400 });
+  }
+  const requestedRole =
+    body?.member_role === "leader"
+      ? "leader"
+      : body?.member_role === "member"
+        ? "member"
+        : "member";
+
+  const { data: group, error: gErr } = await auth.admin
+    .from("mobilize_groups")
+    .select("id, created_by, parent_group_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (gErr || !group) {
+    return NextResponse.json({ error: "Group not found." }, { status: 404 });
+  }
+
+  const { data: meMember } = await auth.admin
+    .from("mobilize_group_members")
+    .select("member_role, membership_status")
+    .eq("group_id", id)
+    .eq("user_id", auth.userId)
+    .maybeSingle();
+  const isApprovedLeader =
+    meMember?.membership_status === "approved" && meMember?.member_role === "leader";
+  const isGroupOwner = group.created_by === auth.userId;
+
+  let isChapterOwner = false;
+  if (group.parent_group_id) {
+    const { data: chapter } = await auth.admin
+      .from("mobilize_groups")
+      .select("created_by")
+      .eq("id", group.parent_group_id)
+      .maybeSingle();
+    isChapterOwner = chapter?.created_by === auth.userId;
+  }
+
+  const allowed = canManageMobilizeGroupMembers({
+    roleNames: auth.roleNames,
+    isLeader: isApprovedLeader,
+    isGroupOwner,
+    isChapterOwner,
+  });
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const targetRole = requestedRole === "leader" ? "leader" : "member";
+
+  const { data: existing } = await auth.admin
+    .from("mobilize_group_members")
+    .select("id, membership_status, member_role")
+    .eq("group_id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (existing) {
+    if (existing.membership_status === "approved" && existing.member_role === targetRole) {
+      return NextResponse.json(
+        { error: "User is already a member of this group." },
+        { status: 400 }
+      );
+    }
+    const { data, error } = await auth.admin
+      .from("mobilize_group_members")
+      .update({ membership_status: "approved", member_role: targetRole })
+      .eq("id", existing.id)
+      .select("*")
+      .maybeSingle();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data) return NextResponse.json({ error: "Member row not found." }, { status: 404 });
+
+    // Avoid downgrading an approved leader to member if they're the primary group owner.
+    if (targetRole === "member" && userId === group.created_by) {
+      return NextResponse.json(
+        {
+          membership: data,
+          warning: "Primary owner role kept as leader.",
+        },
+        { status: 200 }
+      );
+    }
+
+    await auth.admin
+      .from("mobilize_groups")
+      .update({ last_activity_at: new Date().toISOString() })
+      .eq("id", id);
+    return NextResponse.json({ membership: data });
+  }
+
+  const { data: inserted, error: insErr } = await auth.admin
+    .from("mobilize_group_members")
+    .insert({
+      group_id: id,
+      user_id: userId,
+      member_role: userId === group.created_by ? "leader" : targetRole,
+      membership_status: "approved",
+    })
+    .select("*")
+    .maybeSingle();
+  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+  if (!inserted) return NextResponse.json({ error: "Insert failed." }, { status: 500 });
+
+  await auth.admin
+    .from("mobilize_groups")
+    .update({ last_activity_at: new Date().toISOString() })
+    .eq("id", id);
+
+  return NextResponse.json({ membership: inserted });
 }

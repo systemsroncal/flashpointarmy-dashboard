@@ -3,10 +3,12 @@
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
+import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
+import { MobilizeAddMemberDialog } from "@/components/mobilize/MobilizeAddMemberDialog";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Avatar,
@@ -105,6 +107,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
   const [canCreate, setCanCreate] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [addMemberGroup, setAddMemberGroup] = useState<GroupRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [form, setForm] = useState({
@@ -179,6 +182,18 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
   const isSuperAdmin = me.role_names.includes("super_admin");
   const canEditChapter =
     Boolean(chapter) && (isSuperAdmin || chapter?.created_by === me.id);
+
+  // Matches canManageMobilizeGroupMembers on the server: site staff, group owner,
+  // chapter owner, or an approved leader of this group may add members directly.
+  function canAddMemberToGroup(g: GroupRow) {
+    return (
+      isSuperAdmin ||
+      me.role_names.includes("admin") ||
+      g.created_by === me.id ||
+      chapter?.created_by === me.id ||
+      (g.leaders ?? []).some((l) => l.user_id === me.id)
+    );
+  }
 
   function openCreateGroup() {
     setForm((f) => ({ ...f, parent_group_id: chapterId }));
@@ -525,19 +540,33 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                 <Typography variant="caption" color="text.secondary" sx={{ mt: "auto" }}>
                   {listed ? "Listed" : "Link only"} · {g.member_count ?? 0} members · {enrollment}
                 </Typography>
-                {g.my_membership_status !== "approved" &&
-                g.enrollment_mode !== "closed" &&
-                g.enrollment_mode !== "auto_closed" ? (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<PersonAddIcon />}
-                    onClick={() => void joinGroup(g.id)}
-                    sx={{ mt: 0.5, alignSelf: "flex-start", textTransform: "none", borderRadius: 99 }}
-                  >
-                    {g.enrollment_mode === "open_signup" ? "Join" : "Request"}
-                  </Button>
-                ) : null}
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+                  {g.my_membership_status !== "approved" &&
+                  g.enrollment_mode !== "closed" &&
+                  g.enrollment_mode !== "auto_closed" ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<PersonAddIcon />}
+                      onClick={() => void joinGroup(g.id)}
+                      sx={{ alignSelf: "flex-start", textTransform: "none", borderRadius: 99 }}
+                    >
+                      {g.enrollment_mode === "open_signup" ? "Join" : "Request"}
+                    </Button>
+                  ) : null}
+                  {canAddMemberToGroup(g) ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      startIcon={<GroupAddIcon />}
+                      onClick={() => setAddMemberGroup(g)}
+                      sx={{ alignSelf: "flex-start", textTransform: "none", borderRadius: 99 }}
+                    >
+                      Add member
+                    </Button>
+                  ) : null}
+                </Stack>
               </Box>
             </Box>
           );
@@ -674,6 +703,18 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                               {g.enrollment_mode === "open_signup" ? "Join" : "Request"}
                             </Button>
                           )}
+                          {canAddMemberToGroup(g) ? (
+                            <Tooltip title="Add member">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                aria-label="Add member"
+                                onClick={() => setAddMemberGroup(g)}
+                              >
+                                <GroupAddIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : null}
                           <Tooltip title="Open group">
                             <IconButton
                               component={Link}
@@ -1078,6 +1119,17 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
           </Button>
         </DialogActions>
       </MobilizeDialog>
+
+      <MobilizeAddMemberDialog
+        open={addMemberGroup != null}
+        groupId={addMemberGroup?.id ?? ""}
+        groupName={addMemberGroup?.name ?? ""}
+        onClose={() => setAddMemberGroup(null)}
+        onAdded={() => {
+          setAddMemberGroup(null);
+          void load();
+        }}
+      />
     </Box>
   );
 }

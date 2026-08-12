@@ -35,3 +35,23 @@ export function canPinMobilizeGroupMessage(input: {
   if (input.isLeader) return true;
   return false;
 }
+
+/**
+ * Group leaders, group owner, chapter owner, site staff (admin/super_admin) may add
+ * or remove members directly without an approval round-trip. `isLeader` and
+ * `isChapterOwner` flags are precomputed by the caller from mobilize_group_members
+ * and mobilize_groups rows.
+ */
+export function canManageMobilizeGroupMembers(input: {
+  roleNames: string[];
+  isLeader?: boolean;
+  isGroupOwner?: boolean;
+  isChapterOwner?: boolean;
+}): boolean {
+  if (isMobilizeSuperAdmin(input.roleNames)) return true;
+  if (input.roleNames.includes("admin")) return true;
+  if (input.isLeader) return true;
+  if (input.isGroupOwner) return true;
+  if (input.isChapterOwner) return true;
+  return false;
+}
