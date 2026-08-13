@@ -486,12 +486,7 @@ export function NationalOverview({
               sx={{
                 minWidth: 0,
                 width: "100%",
-                ...(isDual
-                  ? {
-                      gridColumn: { xs: "span 2", sm: "span 1" },
-                      minWidth: { sm: 200 },
-                    }
-                  : {}),
+                ...(isDual ? { gridColumn: "span 2" } : {}),
               }}
             >
               <Card
@@ -499,7 +494,7 @@ export function NationalOverview({
                   bgcolor: "rgba(0,0,0,0.45)",
                   border: `1px solid ${s.color}44`,
                   position: "relative",
-                  overflow: "visible",
+                  overflow: "hidden",
                   height: "100%",
                 }}
               >
@@ -532,22 +527,59 @@ export function NationalOverview({
                   }}
                 >
                   {isDual && s.dual ? (
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr auto 1fr",
-                        alignItems: "center",
-                        gap: { xs: 1, sm: 1.25 },
-                        minHeight: { xs: 56, sm: 72 },
-                      }}
-                    >
-                      {([s.dual.left, s.dual.right] as const).map((side, idx) => (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 1, sm: 1.25 }, minWidth: 0 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          minWidth: 0,
+                        }}
+                      >
                         <Box
-                          key={side.label}
+                          sx={{
+                            width: { xs: 40, sm: 44 },
+                            height: { xs: 40, sm: 44 },
+                            borderRadius: 1.5,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            bgcolor: s.color,
+                            boxShadow: `0 0 27px ${s.color}`,
+                            border: `1px solid ${s.color}`,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
+                        </Box>
+                        <Typography
+                          component="span"
+                          sx={{
+                            color: "rgba(255,255,255,0.72)",
+                            fontWeight: 700,
+                            fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                            lineHeight: 1.2,
+                            letterSpacing: "0.02em",
+                          }}
+                        >
+                          {s.value.toLocaleString()}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: "minmax(0, 1fr) 1px minmax(0, 1fr)",
+                          alignItems: "center",
+                          columnGap: { xs: 1, sm: 1.25 },
+                          minWidth: 0,
+                        }}
+                      >
+                        <Box
                           sx={{
                             textAlign: "center",
-                            px: { xs: 0.5, sm: 1 },
-                            gridColumn: idx === 0 ? 1 : 3,
+                            px: { xs: 0.5, sm: 0.75 },
+                            minWidth: 0,
+                            overflow: "hidden",
                           }}
                         >
                           <Typography
@@ -556,36 +588,68 @@ export function NationalOverview({
                               color: "#fff",
                               fontWeight: 800,
                               lineHeight: 1.1,
-                              fontSize: { xs: "1.35rem", sm: "2.125rem" },
+                              fontSize: { xs: "1.2rem", sm: "1.75rem" },
                             }}
                           >
-                            {side.value.toLocaleString()}
+                            {s.dual.left.value.toLocaleString()}
                           </Typography>
                           <Typography
                             variant="caption"
                             sx={{
                               display: "block",
-                              mt: { xs: 0.25, sm: 0.5 },
+                              mt: { xs: 0.25, sm: 0.35 },
                               lineHeight: 1.25,
                               fontSize: { xs: "0.7rem", sm: "0.75rem" },
                               color: "rgba(255,255,255,0.82)",
                               fontWeight: 500,
                             }}
                           >
-                            {side.label}
+                            {s.dual.left.label}
                           </Typography>
                         </Box>
-                      ))}
-                      <Box
-                        aria-hidden
-                        sx={{
-                          gridColumn: 2,
-                          width: "1px",
-                          alignSelf: "stretch",
-                          bgcolor: "rgba(255,255,255,0.35)",
-                          my: { xs: 0.5, sm: 0.75 },
-                        }}
-                      />
+                        <Box
+                          aria-hidden
+                          sx={{
+                            width: "1px",
+                            alignSelf: "stretch",
+                            bgcolor: "rgba(255,255,255,0.35)",
+                            my: { xs: 0.25, sm: 0.5 },
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            textAlign: "center",
+                            px: { xs: 0.5, sm: 0.75 },
+                            minWidth: 0,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <Typography
+                            variant="h4"
+                            sx={{
+                              color: "#fff",
+                              fontWeight: 800,
+                              lineHeight: 1.1,
+                              fontSize: { xs: "1.2rem", sm: "1.75rem" },
+                            }}
+                          >
+                            {s.dual.right.value.toLocaleString()}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "block",
+                              mt: { xs: 0.25, sm: 0.35 },
+                              lineHeight: 1.25,
+                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                              color: "rgba(255,255,255,0.82)",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {s.dual.right.label}
+                          </Typography>
+                        </Box>
+                      </Box>
                     </Box>
                   ) : (
                     <Box
