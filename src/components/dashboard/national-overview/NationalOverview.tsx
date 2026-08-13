@@ -9,9 +9,9 @@ import GroupWorkOutlined from "@mui/icons-material/GroupWorkOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import ShareOutlined from "@mui/icons-material/ShareOutlined";
-import { Box, Card, CardContent, Paper, Typography } from "@mui/material";
+import { Box, Card, CardContent, Paper, Tooltip, Typography } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import {
@@ -81,6 +81,65 @@ const drawerLikeScrollbarSx = {
   },
   "&::-webkit-scrollbar-corner": { background: "transparent" },
 } as const;
+
+/** Compact display for Command Center stats (e.g. 8412 → 8.4K). */
+function formatStatCompact(n: number): string {
+  if (!Number.isFinite(n)) return "0";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (abs >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  return String(Math.round(n));
+}
+
+function StatCountWithExactTooltip({
+  value,
+  label,
+  children,
+}: {
+  value: number;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <Tooltip
+      title={`${value.toLocaleString()} ${label}`}
+      enterTouchDelay={0}
+      leaveTouchDelay={2800}
+      describeChild
+      arrow
+      slotProps={{
+        tooltip: {
+          sx: {
+            bgcolor: "rgba(20,20,20,0.96)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            fontWeight: 600,
+            fontSize: "0.8125rem",
+          },
+        },
+        arrow: { sx: { color: "rgba(20,20,20,0.96)" } },
+      }}
+    >
+      <Box
+        component="span"
+        role="button"
+        tabIndex={0}
+        aria-label={`${value.toLocaleString()} ${label}`}
+        sx={{
+          display: "block",
+          minWidth: 0,
+          cursor: "help",
+          outline: "none",
+          borderRadius: 0.5,
+          "&:focus-visible": {
+            boxShadow: "0 0 0 2px rgba(249,115,22,0.65)",
+          },
+        }}
+      >
+        {children}
+      </Box>
+    </Tooltip>
+  );
+}
 
 export function NationalOverview({
   initialStats,
@@ -469,13 +528,14 @@ export function NationalOverview({
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: {
-            xs: "repeat(2, minmax(0, 1fr))",
-            sm: "repeat(auto-fill, minmax(160px, 1fr))",
-          },
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
           gap: 2,
           mb: 3,
           alignItems: "stretch",
+          // Desktop (≥768): equal cards in a flexible row; dual card uses compact numbers so it fits.
+          "@media (min-width: 768px)": {
+            gridTemplateColumns: "repeat(auto-fill, minmax(168px, 1fr))",
+          },
         }}
       >
         {statCards.map((s) => {
@@ -532,7 +592,7 @@ export function NationalOverview({
                       sx={{
                         display: "flex",
                         flexDirection: "column",
-                        gap: { xs: 1, sm: 1.25 },
+                        gap: 1.25,
                         width: "100%",
                         minWidth: 0,
                       }}
@@ -540,8 +600,9 @@ export function NationalOverview({
                       <Box
                         sx={{
                           display: "flex",
-                          alignItems: "center",
-                          gap: 1.25,
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          gap: 1,
                           minWidth: 0,
                         }}
                       >
@@ -561,19 +622,22 @@ export function NationalOverview({
                         >
                           <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
                         </Box>
-                        <Typography
-                          component="span"
-                          sx={{
-                            color: "rgba(255,255,255,0.72)",
-                            fontWeight: 700,
-                            fontSize: { xs: "0.75rem", sm: "0.8125rem" },
-                            lineHeight: 1.2,
-                            letterSpacing: "0.01em",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {`${s.value.toLocaleString()} members`}
-                        </Typography>
+                        <StatCountWithExactTooltip value={s.value} label="Total members">
+                          <Typography
+                            component="span"
+                            sx={{
+                              color: "rgba(255,255,255,0.72)",
+                              fontWeight: 700,
+                              fontSize: { xs: "0.75rem", sm: "0.8125rem" },
+                              lineHeight: 1.25,
+                              letterSpacing: "0.01em",
+                              textAlign: "right",
+                              pt: 0.25,
+                            }}
+                          >
+                            {`${formatStatCompact(s.value)} Total members`}
+                          </Typography>
+                        </StatCountWithExactTooltip>
                       </Box>
                       <Box
                         sx={{
@@ -585,89 +649,118 @@ export function NationalOverview({
                           minWidth: 0,
                         }}
                       >
-                        <Box sx={{ textAlign: "left", minWidth: 0 }}>
-                          <Typography
-                            variant="h4"
-                            sx={{
-                              color: "#fff",
-                              fontWeight: 800,
-                              lineHeight: 1.1,
-                              fontSize: { xs: "1.25rem", sm: "2.125rem" },
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {s.dual.left.value.toLocaleString()}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              display: "block",
-                              mt: { xs: 0.25, sm: 0.35 },
-                              lineHeight: 1.25,
-                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                              color: "rgba(255,255,255,0.82)",
-                              fontWeight: 500,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {s.dual.left.label}
-                          </Typography>
-                        </Box>
+                        <StatCountWithExactTooltip
+                          value={s.dual.left.value}
+                          label={s.dual.left.label}
+                        >
+                          <Box sx={{ textAlign: "left", minWidth: 0 }}>
+                            <Typography
+                              variant="h4"
+                              sx={{
+                                color: "#fff",
+                                fontWeight: 800,
+                                lineHeight: 1.1,
+                                fontSize: {
+                                  xs: "1.25rem",
+                                  // Below 768 keep mobile-scale; desktop uses compact digits so this fits.
+                                  "@media (min-width: 768px)": { fontSize: "1.65rem" },
+                                },
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {formatStatCompact(s.dual.left.value)}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: "block",
+                                mt: 0.35,
+                                lineHeight: 1.25,
+                                fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                color: "rgba(255,255,255,0.82)",
+                                fontWeight: 500,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {s.dual.left.label}
+                            </Typography>
+                          </Box>
+                        </StatCountWithExactTooltip>
                         <Box
                           aria-hidden
                           sx={{
                             width: "1px",
                             alignSelf: "stretch",
                             bgcolor: "rgba(255,255,255,0.35)",
-                            my: { xs: 0.25, sm: 0.5 },
+                            my: 0.35,
                           }}
                         />
-                        <Box sx={{ textAlign: "left", minWidth: 0 }}>
-                          <Typography
-                            variant="h4"
-                            sx={{
-                              color: "#fff",
-                              fontWeight: 800,
-                              lineHeight: 1.1,
-                              fontSize: { xs: "1.25rem", sm: "2.125rem" },
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {s.dual.right.value.toLocaleString()}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              display: "block",
-                              mt: { xs: 0.25, sm: 0.35 },
-                              lineHeight: 1.25,
-                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                              color: "rgba(255,255,255,0.82)",
-                              fontWeight: 500,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {s.dual.right.label}
-                          </Typography>
-                        </Box>
+                        <StatCountWithExactTooltip
+                          value={s.dual.right.value}
+                          label={s.dual.right.label}
+                        >
+                          <Box sx={{ textAlign: "left", minWidth: 0 }}>
+                            <Typography
+                              variant="h4"
+                              sx={{
+                                color: "#fff",
+                                fontWeight: 800,
+                                lineHeight: 1.1,
+                                fontSize: {
+                                  xs: "1.25rem",
+                                  "@media (min-width: 768px)": { fontSize: "1.65rem" },
+                                },
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {formatStatCompact(s.dual.right.value)}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: "block",
+                                mt: 0.35,
+                                lineHeight: 1.25,
+                                fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                color: "rgba(255,255,255,0.82)",
+                                fontWeight: 500,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {s.dual.right.label}
+                            </Typography>
+                          </Box>
+                        </StatCountWithExactTooltip>
                       </Box>
                     </Box>
                   ) : (
                     <Box
                       sx={{
                         display: "flex",
-                        flexDirection: { xs: "row", sm: "column" },
-                        alignItems: { xs: "center", sm: "stretch" },
-                        gap: { xs: 1.25, sm: 0 },
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 1.25,
+                        "@media (min-width: 768px)": {
+                          flexDirection: "column",
+                          alignItems: "stretch",
+                          gap: 0,
+                        },
                       }}
                     >
                       <Box
                         sx={{
                           display: "flex",
-                          justifyContent: { xs: "flex-start", sm: "flex-start" },
-                          alignItems: { xs: "center", sm: "flex-start" },
-                          mb: { xs: 0, sm: 1.25 },
+                          justifyContent: "flex-start",
+                          alignItems: "center",
                           flexShrink: 0,
+                          "@media (min-width: 768px)": {
+                            alignItems: "flex-start",
+                            mb: 1.25,
+                          },
                         }}
                       >
                         <Box
@@ -687,14 +780,27 @@ export function NationalOverview({
                           <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
                         </Box>
                       </Box>
-                      <Box sx={{ minWidth: 0, flex: { xs: 1, sm: "none" }, pr: { xs: 1.5, sm: 0 } }}>
+                      <Box
+                        sx={{
+                          minWidth: 0,
+                          flex: 1,
+                          pr: 1.5,
+                          "@media (min-width: 768px)": {
+                            flex: "none",
+                            pr: 0,
+                          },
+                        }}
+                      >
                         <Typography
                           variant="h4"
                           sx={{
                             color: "#fff",
                             fontWeight: 800,
                             lineHeight: 1.1,
-                            fontSize: { xs: "1.35rem", sm: "2.125rem" },
+                            fontSize: "1.35rem",
+                            "@media (min-width: 768px)": {
+                              fontSize: "2.125rem",
+                            },
                           }}
                         >
                           {s.value.toLocaleString()}
@@ -704,9 +810,12 @@ export function NationalOverview({
                           color="text.secondary"
                           sx={{
                             display: "block",
-                            mt: { xs: 0.25, sm: 0.5 },
+                            mt: 0.25,
                             lineHeight: 1.25,
                             fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                            "@media (min-width: 768px)": {
+                              mt: 0.5,
+                            },
                           }}
                         >
                           {s.label}
