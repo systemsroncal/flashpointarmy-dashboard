@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { insertGroupJoinActivity } from "@/lib/community/group-activity-feed";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string; memberUserId: string }> };
@@ -159,6 +160,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
     );
   }
 
+  const { data: before } = await auth.admin
+    .from("mobilize_group_members")
+    .select("membership_status")
+    .eq("group_id", id)
+    .eq("user_id", memberUserId)
+    .maybeSingle();
+
   const { data, error } = await auth.admin
     .from("mobilize_group_members")
     .update({ membership_status: nextStatus })
@@ -169,5 +177,14 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Member row not found." }, { status: 404 });
+
+  if (nextStatus === "approved" && before?.membership_status !== "approved") {
+    await insertGroupJoinActivity({
+      supabase: auth.admin,
+      userId: memberUserId,
+      groupId: id,
+    });
+  }
+
   return NextResponse.json({ membership: data });
 }

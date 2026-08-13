@@ -45,24 +45,31 @@ type FeedVisual = {
 function englishCategoryLabel(row: ActivityFeedRow): string {
   const c = row.feed_category.trim().toLowerCase();
   const byCat: Record<string, string> = {
-    chapter: "Chapter",
-    member: "Member",
-    leadership: "Leadership",
-    gathering: "Gathering",
-    manual: "Manual log",
-    upcoming_gatherings: "Upcoming gatherings",
-    hosted_events: "Recently hosted events",
-    growth: "Growth milestone",
-    community: "Community",
-    member_invite: "Community Growth",
-    auto_weekly_members: "Community Update",
-    auto_member_goal: "Milestone Update",
-    auto_shares_today: "Engagement",
-    training_session: "Training · lesson",
-    training_course: "Training · course",
-    training_briefing: "Training · briefing",
-    missions: "Missions",
-    certificate_request: "Prior BibCit",
+    chapter: "Community Activity",
+    member: "Community Activity",
+    leadership: "Leader Activity",
+    gathering: "Community Activity",
+    manual: "Community Activity",
+    upcoming_gatherings: "Community Activity",
+    hosted_events: "Impact",
+    growth: "Impact",
+    community: "Community Activity",
+    member_invite: "Social Connections",
+    auto_weekly_members: "Social Connections",
+    auto_member_goal: "Member Milestones",
+    auto_shares_today: "Social Connections",
+    training_session: "Member Milestones",
+    training_course: "Member Milestones",
+    training_briefing: "Member Milestones",
+    missions: "Member Milestones",
+    certificate_request: "Member Milestones",
+    group_join: "Community Activity",
+    group_post: "Community Activity",
+    group_comment: "Community Activity",
+    group_reply: "Community Activity",
+    group_leader_post: "Leader Activity",
+    social_follow: "Social Connections",
+    impact: "Impact",
   };
   if (byCat[c]) return byCat[c];
   return c
@@ -269,6 +276,10 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   if (key === "graduate") return graduateGold;
 
   if (cat === "member_invite") return purpleGrowth;
+  if (cat === "social_follow") return orangeMember;
+  if (cat === "group_join") return tealCommunityUpdate;
+  if (cat === "group_post" || cat === "group_comment" || cat === "group_reply") return navyBolt;
+  if (cat === "group_leader_post") return goldLead;
   if (cat === "member" && /joined FlashPoint Army|New member registered/i.test(row.title)) {
     return purpleGrowth;
   }

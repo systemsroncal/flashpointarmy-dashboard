@@ -117,8 +117,10 @@ export function MobilizeGroupFeed({
           sx={{
             ...(embedded ? embeddedPaperSx : standalonePaperSx),
             flexShrink: 0,
-            border: "1px solid rgba(0,0,0,0.08)",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+            border: { xs: "none", sm: "1px solid rgba(0,0,0,0.08)" },
+            boxShadow: { xs: "none", sm: "0 2px 12px rgba(0,0,0,0.06)" },
+            borderRadius: { xs: 0, sm: "1rem" },
+            borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
           }}
         >
           <MobilizeSocialPostEditor
@@ -189,14 +191,14 @@ export function MobilizeGroupFeed({
                           </IconButton>
                         </Tooltip>
                       ) : null}
-                      {onEdit ? (
+                      {canManage && onEdit ? (
                         <Tooltip title="Edit">
                           <IconButton size="small" onClick={() => onEdit(m)} aria-label="Edit post">
                             <EditOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       ) : null}
-                      {onDelete ? (
+                      {canManage && onDelete ? (
                         <Tooltip title="Delete">
                           <IconButton
                             size="small"

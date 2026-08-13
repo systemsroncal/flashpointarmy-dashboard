@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { insertGroupCommentActivity } from "@/lib/community/group-activity-feed";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { resolveMobilizeAuthors } from "@/lib/mobilize/social/resolve-authors";
@@ -179,5 +180,13 @@ export async function POST(req: Request, ctx: Ctx) {
     .select("*")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await insertGroupCommentActivity({
+    supabase: auth.admin,
+    userId: auth.userId,
+    groupId,
+    isReply: Boolean(parent_id),
+  });
+
   return NextResponse.json({ comment: data });
 }

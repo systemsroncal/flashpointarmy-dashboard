@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-images";
+import { insertGroupPostActivity } from "@/lib/community/group-activity-feed";
 import { loadMobilizeImageUploadLimits } from "@/lib/mobilize/image-upload-limits";
 import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { getMobilizeWallPostAccess } from "@/lib/mobilize/mobilize-wall-post-access";
@@ -108,5 +109,15 @@ export async function POST(req: Request, ctx: Ctx) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await insertGroupPostActivity({
+    supabase: auth.admin,
+    userId: auth.userId,
+    groupId: id,
+    hasText: Boolean(content),
+    hasImages: image_urls.length > 0,
+    isLeader: access.isLeader,
+  });
+
   return NextResponse.json({ message: data });
 }

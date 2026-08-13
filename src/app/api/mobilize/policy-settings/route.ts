@@ -13,6 +13,7 @@ import {
   loadMobilizeImageUploadLimits,
   type MobilizeImageUploadLimits,
 } from "@/lib/mobilize/image-upload-limits";
+import { loadGroupUpdatesAllowGroupLeaders } from "@/lib/mobilize/group-update-notifications-access";
 import { loadMobilizeGroupCreatorPolicy } from "@/lib/mobilize/mobilize-roles";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { createClient } from "@/utils/supabase/server";
@@ -83,6 +84,7 @@ export async function GET() {
   const uploadLimits = await loadMobilizeImageUploadLimits(auth.admin);
   const viewer = await loadViewerSettings(auth.admin);
   const users = await resolveViewerUserOptions(auth.admin, viewer.chapters_viewer_user_ids);
+  const group_updates_allow_group_leaders = await loadGroupUpdatesAllowGroupLeaders(auth.admin);
 
   return NextResponse.json({
     allow_member_group_create: false,
@@ -92,6 +94,7 @@ export async function GET() {
     auto_close_inactive_days,
     chapters_viewer_roles: viewer.chapters_viewer_roles,
     chapters_viewer_user_ids: viewer.chapters_viewer_user_ids,
+    group_updates_allow_group_leaders,
     users,
     ...uploadLimits,
   });
@@ -113,6 +116,7 @@ export async function PUT(req: Request) {
     profile_image_max_count?: unknown;
     chapters_viewer_roles?: unknown;
     chapters_viewer_user_ids?: unknown;
+    group_updates_allow_group_leaders?: unknown;
   };
 
   let creatorRoles = normalizeGroupCreatorRoles(body.group_creator_roles);
@@ -132,6 +136,7 @@ export async function PUT(req: Request) {
     : 60;
   const chapters_viewer_roles = normalizeChaptersViewerRoles(body.chapters_viewer_roles);
   const chapters_viewer_user_ids = normalizeChaptersViewerUserIds(body.chapters_viewer_user_ids);
+  const group_updates_allow_group_leaders = body.group_updates_allow_group_leaders !== false;
 
   const uploadLimits: MobilizeImageUploadLimits = {
     groups_image_max_mb: clampImageMaxMb(body.groups_image_max_mb, 1),
@@ -149,6 +154,7 @@ export async function PUT(req: Request) {
       auto_close_inactive_days,
       chapters_viewer_roles,
       chapters_viewer_user_ids,
+      group_updates_allow_group_leaders,
       ...uploadLimits,
       updated_at: new Date().toISOString(),
     },
@@ -161,6 +167,7 @@ export async function PUT(req: Request) {
   const policy = await loadMobilizeGroupCreatorPolicy(auth.admin);
   const savedLimits = await loadMobilizeImageUploadLimits(auth.admin);
   const viewer = await loadViewerSettings(auth.admin);
+  const savedGroupUpdatesLeaders = await loadGroupUpdatesAllowGroupLeaders(auth.admin);
   return NextResponse.json({
     allow_member_group_create: false,
     allow_local_leader_group_create: policy.allowLocalLeader,
@@ -169,6 +176,7 @@ export async function PUT(req: Request) {
     auto_close_inactive_days,
     chapters_viewer_roles: viewer.chapters_viewer_roles,
     chapters_viewer_user_ids: viewer.chapters_viewer_user_ids,
+    group_updates_allow_group_leaders: savedGroupUpdatesLeaders,
     ...savedLimits,
   });
 }

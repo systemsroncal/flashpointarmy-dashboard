@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { mixCommunityActivityFeed } from "@/lib/community/feed-tiers";
 
 export const COMMUNITY_ACTIVITY_FEED_LIMIT = 25;
 
@@ -33,6 +34,9 @@ export type CommunityActivityFeedRow = {
 const feedSelect =
   "id, feed_category, title, subtitle, state_code, created_at, icon_key, actor_user_id";
 
+/** Pull extra rows so the 70% community mix has enough candidates. */
+const FETCH_MULTIPLIER = 4;
+
 function mapFeedRows(
   rows: {
     id: string;
@@ -53,32 +57,32 @@ function mapFeedRows(
 }
 
 /**
- * Last {@link COMMUNITY_ACTIVITY_FEED_LIMIT} rows from the past 24 hours.
- * If fewer than 25 exist in that window, returns the 25 most recent overall.
+ * Last {@link COMMUNITY_ACTIVITY_FEED_LIMIT} rows mixed ~70% Community Activity.
+ * Prefers the past 24 hours; falls back to newest overall when the window is thin.
  */
 export async function loadCommunityActivityFeed(
   supabase: SupabaseClient
 ): Promise<CommunityActivityFeedRow[]> {
   const sinceIso = new Date(Date.now() - COMMUNITY_ACTIVITY_WINDOW_MS).toISOString();
+  const fetchLimit = COMMUNITY_ACTIVITY_FEED_LIMIT * FETCH_MULTIPLIER;
 
   const { data: withinWindow } = await supabase
     .from("community_activity")
     .select(feedSelect)
     .gte("created_at", sinceIso)
     .order("created_at", { ascending: false })
-    .limit(COMMUNITY_ACTIVITY_FEED_LIMIT);
+    .limit(fetchLimit);
 
-  const windowRows = (withinWindow ?? []).filter((r) => !isHiddenCommunityFeedRow(r));
-  if (windowRows.length >= COMMUNITY_ACTIVITY_FEED_LIMIT) {
-    return mapFeedRows(windowRows);
+  let candidates = (withinWindow ?? []).filter((r) => !isHiddenCommunityFeedRow(r));
+
+  if (candidates.length < COMMUNITY_ACTIVITY_FEED_LIMIT) {
+    const { data: latest } = await supabase
+      .from("community_activity")
+      .select(feedSelect)
+      .order("created_at", { ascending: false })
+      .limit(fetchLimit);
+    candidates = (latest ?? []).filter((r) => !isHiddenCommunityFeedRow(r));
   }
 
-  const { data: latest } = await supabase
-    .from("community_activity")
-    .select(feedSelect)
-    .order("created_at", { ascending: false })
-    .limit(COMMUNITY_ACTIVITY_FEED_LIMIT * 2);
-
-  const visible = (latest ?? []).filter((r) => !isHiddenCommunityFeedRow(r)).slice(0, COMMUNITY_ACTIVITY_FEED_LIMIT);
-  return mapFeedRows(visible);
+  return mixCommunityActivityFeed(mapFeedRows(candidates), COMMUNITY_ACTIVITY_FEED_LIMIT);
 }

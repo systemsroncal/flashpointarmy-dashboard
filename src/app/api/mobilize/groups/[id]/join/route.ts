@@ -4,6 +4,7 @@ import {
   enrollmentAutoApproves,
 } from "@/lib/mobilize/chapter-subgroup";
 import { applyMobilizeAutoCloseInactive } from "@/lib/mobilize/apply-auto-close";
+import { insertGroupJoinActivity } from "@/lib/community/group-activity-feed";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -67,6 +68,13 @@ export async function POST(_req: Request, ctx: Ctx) {
       .from("mobilize_groups")
       .update({ last_activity_at: new Date().toISOString() })
       .eq("id", id);
+    if (membership_status === "approved") {
+      await insertGroupJoinActivity({
+        supabase: auth.admin,
+        userId: auth.userId,
+        groupId: id,
+      });
+    }
     return NextResponse.json({ membership: data });
   }
 
@@ -89,6 +97,14 @@ export async function POST(_req: Request, ctx: Ctx) {
     .from("mobilize_groups")
     .update({ last_activity_at: new Date().toISOString() })
     .eq("id", id);
+
+  if (membership_status === "approved") {
+    await insertGroupJoinActivity({
+      supabase: auth.admin,
+      userId: auth.userId,
+      groupId: id,
+    });
+  }
 
   return NextResponse.json({ membership: data });
 }

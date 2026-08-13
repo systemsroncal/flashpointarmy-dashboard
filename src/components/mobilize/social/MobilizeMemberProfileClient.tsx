@@ -35,6 +35,7 @@ import {
   mbToBytes,
 } from "@/lib/mobilize/image-upload-limits";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
@@ -104,9 +105,10 @@ type Props = {
 
 const profileContentGridSx = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", lg: "minmax(260px, 335px) minmax(0, 1fr)" },
+  gridTemplateColumns: { xs: "1fr", lg: "minmax(220px, 260px) minmax(0, 685px)" },
   gap: { xs: 2, lg: 2.5 },
   alignItems: "start",
+  justifyContent: "center",
 } as const;
 
 function formatJoinedDate(iso: string) {
@@ -149,6 +151,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [connectionsDialog, setConnectionsDialog] = useState<ConnectionKind | null>(null);
   const [deletePostTarget, setDeletePostTarget] = useState<ProfilePost | null>(null);
   const [deletingPost, setDeletingPost] = useState(false);
+  const [editPostTarget, setEditPostTarget] = useState<ProfilePost | null>(null);
+  const [editPostHtml, setEditPostHtml] = useState("");
+  const [editPostImages, setEditPostImages] = useState<string[]>([]);
+  const [editPostSaving, setEditPostSaving] = useState(false);
   const [mediaUploading, setMediaUploading] = useState<"avatar" | "cover" | null>(null);
   const [cropKind, setCropKind] = useState<ImageCropKind | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
@@ -337,6 +343,37 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       setError(e instanceof Error ? e.message : "Delete failed.");
     } finally {
       setDeletingPost(false);
+    }
+  }
+
+  function openEditPost(post: ProfilePost) {
+    setEditPostTarget(post);
+    setEditPostHtml(post.content_html || post.content || "");
+    setEditPostImages(post.image_urls ?? []);
+  }
+
+  async function saveEditPost() {
+    if (!editPostTarget || !profile?.id || !editPostTarget.post_id) return;
+    const plain = editPostHtml.replace(/<[^>]+>/g, "").trim();
+    if (!plain && !editPostImages.length) return;
+    setEditPostSaving(true);
+    try {
+      const res = await fetch(
+        `/api/mobilize/social/profiles/${profile.id}/posts/${editPostTarget.post_id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content_html: editPostHtml, image_urls: editPostImages }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Update failed.");
+      setEditPostTarget(null);
+      await load({ silent: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update failed.");
+    } finally {
+      setEditPostSaving(false);
     }
   }
 
@@ -652,16 +689,27 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           viewerIsSuperAdmin={me.role_names.includes("super_admin")}
           manageActions={
             post.author.id === me.id || me.role_names.includes("super_admin") ? (
-              <Tooltip title="Delete post">
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => setDeletePostTarget(post)}
-                  aria-label="Delete post"
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <Stack direction="row" spacing={0.25}>
+                <Tooltip title="Edit post">
+                  <IconButton
+                    size="small"
+                    onClick={() => openEditPost(post)}
+                    aria-label="Edit post"
+                  >
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete post">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => setDeletePostTarget(post)}
+                    aria-label="Delete post"
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
             ) : undefined
           }
         />
@@ -729,6 +777,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             layout="groupFeedCard"
             viewerAvatarUrl={me.avatar_url}
             viewerDisplayName={me.display_name ?? me.email}
+            viewerUserId={me.id}
+            viewerIsSuperAdmin={me.role_names.includes("super_admin")}
           />
         ))}
         {!items.length && !tabLoading ? (
@@ -876,9 +926,9 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              maxWidth: 1150,
+              maxWidth: 960,
               mx: "auto",
-              p: { xs: 1, sm: 1.5, md: 2 },
+              p: { xs: 0, sm: 1.5, md: 2 },
             }}
           >
           <MobilizeProfilePageShell
@@ -1155,6 +1205,43 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             onClick={() => void confirmDeletePost()}
           >
             {deletingPost ? "Deleting…" : "Delete"}
+          </Button>
+        </DialogActions>
+      </MobilizeDialog>
+
+      <MobilizeDialog
+        open={Boolean(editPostTarget)}
+        onClose={() => !editPostSaving && setEditPostTarget(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Edit post</DialogTitle>
+        <DialogContent>
+          {editPostTarget ? (
+            <Box sx={{ mt: 1 }}>
+              <MobilizeSocialPostEditor
+                value={editPostHtml}
+                onChange={setEditPostHtml}
+                disabled={editPostSaving}
+                surface="light"
+                brandAccent
+                avatarUrl={avatarDisplaySrc ?? p.avatar_url}
+                avatarFallback={p.display_name}
+                imageUrls={editPostImages}
+                onImageUrlsChange={setEditPostImages}
+                postLabel="Save"
+                onPost={() => void saveEditPost()}
+                posting={editPostSaving}
+                canPost={
+                  Boolean(editPostHtml.replace(/<[^>]+>/g, "").trim()) || editPostImages.length > 0
+                }
+              />
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditPostTarget(null)} disabled={editPostSaving}>
+            Cancel
           </Button>
         </DialogActions>
       </MobilizeDialog>

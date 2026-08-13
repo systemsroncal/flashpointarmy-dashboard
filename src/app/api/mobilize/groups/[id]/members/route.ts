@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { insertGroupJoinActivity } from "@/lib/community/group-activity-feed";
 import { loadTrainingGraduateBadgesForUsers } from "@/lib/courses/course-completion";
 import { canManageMobilizeGroupMembers, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
@@ -268,6 +269,17 @@ export async function POST(req: Request, ctx: Ctx) {
       .from("mobilize_groups")
       .update({ last_activity_at: new Date().toISOString() })
       .eq("id", id);
+    await Promise.all(
+      addedRows.map((row) => {
+        const uid = String((row as { user_id?: string }).user_id ?? "");
+        if (!uid) return Promise.resolve();
+        return insertGroupJoinActivity({
+          supabase: auth.admin,
+          userId: uid,
+          groupId: id,
+        });
+      })
+    );
   }
 
   return NextResponse.json({

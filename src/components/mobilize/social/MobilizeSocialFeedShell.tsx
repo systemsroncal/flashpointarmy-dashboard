@@ -27,17 +27,28 @@ export function MobilizeSocialFeedShell({
   const isGroupProfile = variant === "groupProfile";
   const fillSx = fill || isGroupProfile ? { flex: 1, minHeight: 0, height: "100%", display: "flex", flexDirection: "column" as const } : {};
   const threeColumn = Boolean(leftRail && rightRail);
+  const twoColumn = Boolean(leftRail && !rightRail);
   const feedColumnSx = {
-    maxWidth: threeColumn && !isGroupProfile ? "none" : isGroupProfile ? "none" : 680,
-    mx: threeColumn || isGroupProfile ? 0 : "auto",
+    maxWidth: isGroupProfile || twoColumn || threeColumn ? 685 : 680,
+    mx: threeColumn || (isGroupProfile && leftRail) || twoColumn ? 0 : "auto",
     width: "100%",
   } as const;
 
   const gridColumns = isGroupProfile
-    ? {
-        xs: "1fr",
-        lg: "minmax(240px, 300px) minmax(0, 1fr) minmax(220px, 280px)",
-      }
+    ? leftRail && rightRail
+      ? {
+          xs: "1fr",
+          lg: "minmax(240px, 300px) minmax(0, 685px) minmax(220px, 280px)",
+        }
+      : leftRail
+        ? {
+            xs: "1fr",
+            lg: "minmax(240px, 300px) minmax(0, 685px)",
+          }
+        : {
+            xs: "1fr",
+            lg: "minmax(0, 685px)",
+          }
     : {
         xs: "1fr",
         lg: threeColumn

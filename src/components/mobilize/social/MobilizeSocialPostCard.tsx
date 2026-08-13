@@ -68,7 +68,7 @@ export function MobilizeSocialPostCard({
   const isGroupFeedCard = layout === "groupFeedCard";
   const [reactions, setReactions] = useState(post.reactions);
   const [commentCount, setCommentCount] = useState(post.comment_count);
-  const [commentsOpen, setCommentsOpen] = useState(post.comment_count > 0);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const [reacting, setReacting] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkBusy, setBookmarkBusy] = useState(false);
@@ -140,7 +140,14 @@ export function MobilizeSocialPostCard({
       <CardContent
         sx={
           isGroupFeedCard
-            ? { ...mobilizeGroupFeedPostCardSx, "&:last-child": { pb: 2 } }
+            ? {
+                ...mobilizeGroupFeedPostCardSx,
+                p: { xs: 1.25, sm: 2 },
+                borderRadius: { xs: 0, sm: "1rem" },
+                boxShadow: { xs: "none", sm: "0 0 9px 1px #d2d2d2" },
+                borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
+                "&:last-child": { pb: { xs: 1.25, sm: 2 }, mb: 0 },
+              }
             : { p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }
         }
       >

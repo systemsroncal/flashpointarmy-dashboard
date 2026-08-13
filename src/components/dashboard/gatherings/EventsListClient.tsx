@@ -108,7 +108,7 @@ export function EventsListClient({
               py: 1.5,
               borderBottom: "1px solid rgba(255,215,0,0.12)",
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "96px 1fr auto" },
+              gridTemplateColumns: { xs: "1fr", md: "140px 1fr auto" },
               gap: 1.5,
               alignItems: "center",
             }}
@@ -118,10 +118,10 @@ export function EventsListClient({
               src={publicAssetSrc(e.featured_image_url || "/favicon.ico")}
               alt=""
               sx={{
-                width: 96,
-                height: 72,
+                width: { xs: "100%", md: 140 },
+                height: { xs: 160, md: 105 },
                 borderRadius: 1,
-                objectFit: "contain",
+                objectFit: "cover",
                 bgcolor: "rgba(255,255,255,0.06)",
               }}
             />

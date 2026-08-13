@@ -1077,10 +1077,10 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
               </Select>
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel id="wpp-new">Who can post announcements</InputLabel>
+              <InputLabel id="wpp-new">Who can post?</InputLabel>
               <Select
                 labelId="wpp-new"
-                label="Who can post announcements"
+                label="Who can post?"
                 value={form.wall_post_policy}
                 onChange={(e) =>
                   setForm((f) => ({

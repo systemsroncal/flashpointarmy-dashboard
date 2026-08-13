@@ -27,6 +27,7 @@ export default async function GatheringsPageContent() {
       .select(
         "id, title, starts_at, status, slug, featured_image_url, is_virtual, virtual_url, location_manual, use_chapter_address, chapter:chapters(name, city, state, zip_code)"
       )
+      .eq("status", "published")
       .order("starts_at", { ascending: true });
     const rows = data ?? [];
     events = rows.map((row) => {

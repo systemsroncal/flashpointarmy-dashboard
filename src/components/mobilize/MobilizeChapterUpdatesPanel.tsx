@@ -1,5 +1,6 @@
 "use client";
 
+import { MobilizeGroupCustomNotifications } from "@/components/mobilize/MobilizeGroupCustomNotifications";
 import { MobilizeNotificationsFeed } from "@/components/mobilize/MobilizeNotificationsFeed";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import { Box, Stack, Typography } from "@mui/material";
@@ -19,10 +20,12 @@ export function MobilizeChapterUpdatesPanel({ groupId, chapterName }: Props) {
             Group updates
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Join requests and new events for {chapterName}
+            Custom notifications, join requests, and new events for {chapterName}
           </Typography>
         </Box>
       </Stack>
+
+      <MobilizeGroupCustomNotifications groupId={groupId} />
 
       <MobilizeNotificationsFeed
         groupId={groupId}

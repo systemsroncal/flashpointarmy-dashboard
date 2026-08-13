@@ -56,6 +56,7 @@ export function MobilizePolicySettingsForm() {
   const [chaptersViewerRoles, setChaptersViewerRoles] = useState<string[]>([]);
   const [chaptersViewerUserIds, setChaptersViewerUserIds] = useState<string[]>([]);
   const [groupCreatorRoles, setGroupCreatorRoles] = useState<string[]>(["local_leader"]);
+  const [groupUpdatesAllowLeaders, setGroupUpdatesAllowLeaders] = useState(true);
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
   const [searchOptions, setSearchOptions] = useState<UserOption[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -144,6 +145,7 @@ export function MobilizePolicySettingsForm() {
         group_creator_roles?: string[];
         allow_local_leader_group_create?: boolean;
         allow_verified_local_leader_group_create?: boolean;
+        group_updates_allow_group_leaders?: boolean;
         users?: UserOption[];
       };
       if (!res.ok) throw new Error(j.error || "Failed to load settings.");
@@ -166,6 +168,7 @@ export function MobilizePolicySettingsForm() {
       setChaptersViewerUserIds(
         Array.isArray(j.chapters_viewer_user_ids) ? j.chapters_viewer_user_ids : []
       );
+      setGroupUpdatesAllowLeaders(j.group_updates_allow_group_leaders !== false);
       if (Array.isArray(j.group_creator_roles) && j.group_creator_roles.length > 0) {
         setGroupCreatorRoles(
           j.group_creator_roles.filter(
@@ -247,6 +250,7 @@ export function MobilizePolicySettingsForm() {
           profile_image_max_count: profileImageMaxCount,
           chapters_viewer_roles: chaptersViewerRoles,
           chapters_viewer_user_ids: chaptersViewerUserIds,
+          group_updates_allow_group_leaders: groupUpdatesAllowLeaders,
         }),
       });
       const j = (await res.json()) as {
@@ -259,6 +263,7 @@ export function MobilizePolicySettingsForm() {
         chapters_viewer_roles?: string[];
         chapters_viewer_user_ids?: string[];
         group_creator_roles?: string[];
+        group_updates_allow_group_leaders?: boolean;
       };
       if (!res.ok) throw new Error(j.error || "Save failed.");
       setAutoCloseDays(
@@ -285,6 +290,7 @@ export function MobilizePolicySettingsForm() {
         Array.isArray(j.chapters_viewer_user_ids) ? j.chapters_viewer_user_ids : []
       );
       if (Array.isArray(j.group_creator_roles)) setGroupCreatorRoles(j.group_creator_roles);
+      setGroupUpdatesAllowLeaders(j.group_updates_allow_group_leaders !== false);
       setSavedOk(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed.");
@@ -422,6 +428,38 @@ export function MobilizePolicySettingsForm() {
           inputProps={{ min: 1, max: 3650 }}
           sx={{ maxWidth: 280 }}
         />
+
+        <Box sx={{ pt: 1 }}>
+          <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+            Group updates — who can manage notifications
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Super administrators can always create, edit, and delete custom notifications on a
+            group&apos;s Group updates tab. Optionally allow that group&apos;s leaders to do the
+            same (on by default).
+          </Typography>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked
+                disabled
+                size="small"
+              />
+            }
+            label="Super administrators (always)"
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={groupUpdatesAllowLeaders}
+                onChange={(_, checked) => setGroupUpdatesAllowLeaders(checked)}
+                disabled={loading || saving}
+                size="small"
+              />
+            }
+            label="Group leaders / group admins"
+          />
+        </Box>
 
         <Box sx={{ pt: 1 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>

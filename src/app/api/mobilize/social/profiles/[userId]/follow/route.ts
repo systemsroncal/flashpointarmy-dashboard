@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { insertSocialFollowActivity } from "@/lib/community/group-activity-feed";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ userId: string }> };
@@ -15,11 +16,27 @@ export async function POST(_req: Request, ctx: Ctx) {
   const { data: target } = await auth.admin.from("profiles").select("id").eq("id", userId).maybeSingle();
   if (!target) return NextResponse.json({ error: "User not found." }, { status: 404 });
 
+  const { data: already } = await auth.admin
+    .from("mobilize_user_follows")
+    .select("follower_id")
+    .eq("follower_id", auth.userId)
+    .eq("following_id", userId)
+    .maybeSingle();
+
   const { error } = await auth.admin.from("mobilize_user_follows").upsert(
     { follower_id: auth.userId, following_id: userId },
     { onConflict: "follower_id,following_id" }
   );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (!already) {
+    await insertSocialFollowActivity({
+      supabase: auth.admin,
+      followerId: auth.userId,
+      followingId: userId,
+    });
+  }
+
   return NextResponse.json({ ok: true, is_following: true });
 }
 

@@ -43,6 +43,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import MilitaryTechOutlinedIcon from "@mui/icons-material/MilitaryTechOutlined";
@@ -1088,13 +1089,35 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Button>
       );
     }
+    if (group) {
+      actions.push(
+        <Tooltip key="public-link" title="Public group link">
+          <IconButton
+            component={Link}
+            href={`/g/${groupId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            size="small"
+            aria-label="Open public group link"
+            sx={{
+              ...heroBtnSx,
+              width: 36,
+              height: 36,
+              border: "1px solid",
+            }}
+          >
+            <LinkOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      );
+    }
     if (!actions.length) return null;
     return (
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
         {actions}
       </Stack>
     );
-  }, [group, isLeader, isSuperAdmin, showJoin, membership?.membership_status, me.id, openEditGroup, joinRequest]);
+  }, [group, groupId, isLeader, isSuperAdmin, showJoin, membership?.membership_status, me.id, openEditGroup, joinRequest]);
 
   const profileMeta = useMemo(() => {
     if (!group) return null;
@@ -1155,10 +1178,15 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     );
   }, [group, groupCoverSrc, groupStateInfo, joinCallToAction]);
 
+  const groupFeedAdsRail = useMemo(() => {
+    if (!feedAds.length) return null;
+    return <MobilizeFeedAdsRail items={feedAds} />;
+  }, [feedAds]);
+
   const groupFeedAboutRail = useMemo(() => {
     if (!group || !canViewContent) return null;
     return (
-      <>
+      <Stack spacing={2}>
         {group.description ? (
           <MobilizeProfileSidebarCard title="About this group" variant="groupFeed">
             <MobilizeGroupAboutText text={group.description} />
@@ -1169,9 +1197,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           totalCount={approvedMembers.length}
           groupId={groupId}
         />
-      </>
+        {groupFeedAdsRail}
+      </Stack>
     );
-  }, [approvedMembers.length, canViewContent, group, groupId, recentMembers]);
+  }, [approvedMembers.length, canViewContent, group, groupFeedAdsRail, groupId, recentMembers]);
 
   const groupAboutPanel = useMemo(() => {
     if (!group) return null;
@@ -1240,11 +1269,6 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     }
     return labels;
   }, [approvedMembers]);
-
-  const groupFeedAdsRail = useMemo(() => {
-    if (!feedAds.length) return null;
-    return <MobilizeFeedAdsRail items={feedAds} />;
-  }, [feedAds]);
 
   const compactHeader = useMemo(() => {
     if (!group) return null;
@@ -1325,9 +1349,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       sx={{
         ...mobilizeGroupDetailPageRootSx,
         bgcolor: SOCIAL_HUB_LIGHT_BG,
-        borderRadius: 2,
-        border: "1px solid rgba(0,0,0,0.06)",
-        p: { xs: 1, sm: 1.5, md: 2 },
+        borderRadius: { xs: 0, sm: 2 },
+        border: { xs: "none", sm: "1px solid rgba(0,0,0,0.06)" },
+        p: { xs: 0, sm: 1.5, md: 2 },
         boxSizing: "border-box",
       }}
     >
@@ -1338,7 +1362,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           flexDirection: "column",
           minHeight: 0,
           width: "100%",
-          maxWidth: 1200,
+          maxWidth: 960,
           mx: "auto",
         }}
       >
@@ -1387,7 +1411,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           {!isMobileGroupFeed || mobileSection === "feed" ? (
             <MobilizeSocialFeedShell
               leftRail={isMobileGroupFeed ? null : groupFeedAboutRail}
-              rightRail={isMobileGroupFeed ? null : groupFeedAdsRail}
+              rightRail={null}
               variant="groupProfile"
               fill
             >
@@ -2374,10 +2398,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               </Select>
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel id="wpp">Who can post announcements</InputLabel>
+              <InputLabel id="wpp">Who can post?</InputLabel>
               <Select
                 labelId="wpp"
-                label="Who can post announcements"
+                label="Who can post?"
                 value={editForm.wall_post_policy}
                 onChange={(e) =>
                   setEditForm((f) => ({
