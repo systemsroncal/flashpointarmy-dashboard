@@ -168,16 +168,18 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#fff", color: "#1a1a1a" }}>
       {/* Hero: logo + name | cover — column-reverse on mobile */}
-      <Box
-        sx={{
-          bgcolor: "#000",
-          color: "#fff",
-          display: "flex",
-          flexDirection: { xs: "column-reverse", md: "row" },
-          alignItems: "stretch",
-          width: "100%",
-        }}
-      >
+      <Box sx={{ bgcolor: "#000", color: "#fff", width: "100%" }}>
+        <Box
+          sx={{
+            maxWidth: 1200,
+            mx: "auto",
+            width: "100%",
+            display: "flex",
+            flexDirection: { xs: "column-reverse", md: "row" },
+            alignItems: "stretch",
+            boxSizing: "border-box",
+          }}
+        >
         <Box
           sx={{
             flex: { xs: "0 0 auto", md: "1 1 50%" },
@@ -263,6 +265,7 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
             </Typography>
           </Box>
         )}
+        </Box>
       </Box>
 
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 }, px: { xs: 2, sm: 3 } }}>

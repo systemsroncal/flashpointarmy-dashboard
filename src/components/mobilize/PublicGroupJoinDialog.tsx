@@ -214,13 +214,50 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
     }
   }
 
+  const fieldSx = {
+    "& .MuiInputLabel-root": { color: "rgba(0,0,0,0.65)" },
+    "& .MuiInputLabel-root.Mui-focused": { color: "#000" },
+    "& .MuiOutlinedInput-root": {
+      color: "#000",
+      bgcolor: "#fff",
+      "& fieldset": { borderColor: "rgba(0,0,0,0.23)" },
+      "&:hover fieldset": { borderColor: "rgba(0,0,0,0.45)" },
+      "&.Mui-focused fieldset": { borderColor: "#000" },
+    },
+    "& .MuiFormHelperText-root": { color: "rgba(0,0,0,0.55)" },
+  } as const;
+
+  const submitBtnSx = {
+    mt: 0.5,
+    textTransform: "none",
+    fontWeight: 700,
+    borderRadius: 99,
+    bgcolor: "#000",
+    color: "#fff",
+    boxShadow: "none",
+    "&:hover": { bgcolor: "#222", boxShadow: "none" },
+    "&.Mui-disabled": { bgcolor: "rgba(0,0,0,0.35)", color: "rgba(255,255,255,0.85)" },
+  } as const;
+
   return (
-    <Dialog open={open} onClose={loading ? undefined : onClose} fullWidth maxWidth="xs">
-      <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
+    <Dialog
+      open={open}
+      onClose={loading ? undefined : onClose}
+      fullWidth
+      maxWidth="xs"
+      PaperProps={{
+        sx: {
+          bgcolor: "#fff",
+          color: "#000",
+          borderRadius: 2,
+        },
+      }}
+    >
+      <DialogTitle sx={{ fontWeight: 800, pb: 1, color: "#000" }}>
         {mode === "register" ? "Join group" : "Sign in to join"}
       </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <DialogContent sx={{ bgcolor: "#fff", color: "#000" }}>
+        <Typography variant="body2" sx={{ mb: 2, color: "rgba(0,0,0,0.65)" }}>
           {mode === "register"
             ? "Create your member account. We’ll assign you to the nearest church by ZIP and add you to this group."
             : "Sign in with your existing account. You’ll be added to this group if you aren’t already a member."}
@@ -253,6 +290,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   autoComplete="given-name"
+                  sx={fieldSx}
                 />
                 <TextField
                   label="Last name"
@@ -262,6 +300,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   autoComplete="family-name"
+                  sx={fieldSx}
                 />
                 <TextField
                   label="Phone (optional)"
@@ -270,6 +309,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   autoComplete="tel"
+                  sx={fieldSx}
                 />
                 <TextField
                   label="ZIP code"
@@ -280,6 +320,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                   onChange={(e) => setZipCode(e.target.value)}
                   autoComplete="postal-code"
                   helperText="Used to assign you to the nearest church (chapter)."
+                  sx={fieldSx}
                 />
               </>
             ) : null}
@@ -292,6 +333,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              sx={fieldSx}
             />
             <TextField
               label="Password"
@@ -302,6 +344,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === "register" ? "new-password" : "current-password"}
+              sx={fieldSx}
             />
             {mode === "register" && otpSent ? (
               <>
@@ -313,13 +356,19 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
                   inputProps={{ inputMode: "numeric", maxLength: 8 }}
+                  sx={fieldSx}
                 />
                 <Button
                   type="button"
                   size="small"
                   disabled={!resendCooldown.canResend || resendLoading}
                   onClick={() => void handleResendOtp()}
-                  sx={{ alignSelf: "flex-start", textTransform: "none" }}
+                  sx={{
+                    alignSelf: "flex-start",
+                    textTransform: "none",
+                    color: "#000",
+                    fontWeight: 600,
+                  }}
                 >
                   {resendLoading
                     ? "Sending…"
@@ -330,19 +379,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
               </>
             ) : null}
 
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading}
-              sx={{
-                mt: 0.5,
-                textTransform: "none",
-                fontWeight: 700,
-                borderRadius: 99,
-                bgcolor: "#00206b",
-                "&:hover": { bgcolor: "#00164d" },
-              }}
-            >
+            <Button type="submit" variant="contained" disabled={loading} sx={submitBtnSx}>
               {loading ? (
                 <CircularProgress size={22} color="inherit" />
               ) : mode === "register" ? (
@@ -358,7 +395,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
           </Stack>
         </Box>
 
-        <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }}>
+        <Typography variant="body2" sx={{ mt: 2, textAlign: "center", color: "#000" }}>
           {mode === "register" ? (
             <>
               Already registered?{" "}
@@ -367,7 +404,14 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                 type="button"
                 underline="hover"
                 onClick={() => switchMode("signin")}
-                sx={{ fontWeight: 700, cursor: "pointer", border: 0, background: "none", p: 0 }}
+                sx={{
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  border: 0,
+                  background: "none",
+                  p: 0,
+                  color: "#000",
+                }}
               >
                 Sign in
               </MuiLink>
@@ -380,7 +424,14 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                 type="button"
                 underline="hover"
                 onClick={() => switchMode("register")}
-                sx={{ fontWeight: 700, cursor: "pointer", border: 0, background: "none", p: 0 }}
+                sx={{
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  border: 0,
+                  background: "none",
+                  p: 0,
+                  color: "#000",
+                }}
               >
                 Register
               </MuiLink>
