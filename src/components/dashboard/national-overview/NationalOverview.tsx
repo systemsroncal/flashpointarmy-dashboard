@@ -375,6 +375,11 @@ export function NationalOverview({
       color: string;
       icon: SvgIconComponent;
       pulse?: boolean;
+      /** Side-by-side Members | Leaders (admin / chapter staff). */
+      dual?: {
+        left: { label: string; value: number };
+        right: { label: string; value: number };
+      };
     };
 
     const cards: StatCard[] = [
@@ -386,8 +391,18 @@ export function NationalOverview({
       },
     ];
 
-    if (memberLeaderOnly || chapterStaff) {
-      // Fusionado: Members + Leader Recruitment en una sola tarjeta.
+    if (chapterStaff) {
+      cards.push({
+        label: "Members & Leaders",
+        value: stats.membersEngaged + stats.localLeaders,
+        color: "#f97316",
+        icon: GroupsOutlined,
+        dual: {
+          left: { label: "Members", value: stats.membersEngaged },
+          right: { label: "Leaders", value: stats.localLeaders },
+        },
+      });
+    } else if (memberLeaderOnly) {
       cards.push({
         label: "Members",
         value: stats.membersEngaged + stats.localLeaders,
@@ -464,8 +479,21 @@ export function NationalOverview({
       >
         {statCards.map((s) => {
           const StatIcon = s.icon;
+          const isDual = Boolean(s.dual);
           return (
-            <Box key={s.label} sx={{ minWidth: 0, width: "100%" }}>
+            <Box
+              key={s.label}
+              sx={{
+                minWidth: 0,
+                width: "100%",
+                ...(isDual
+                  ? {
+                      gridColumn: { xs: "span 2", sm: "span 1" },
+                      minWidth: { sm: 200 },
+                    }
+                  : {}),
+              }}
+            >
               <Card
                 sx={{
                   bgcolor: "rgba(0,0,0,0.45)",
@@ -503,66 +531,124 @@ export function NationalOverview({
                     "&:last-child": { pb: { xs: 1.25, sm: 1.5 } },
                   }}
                 >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: { xs: "row", sm: "column" },
-                      alignItems: { xs: "center", sm: "stretch" },
-                      gap: { xs: 1.25, sm: 0 },
-                    }}
-                  >
+                  {isDual && s.dual ? (
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr auto 1fr",
+                        alignItems: "center",
+                        gap: { xs: 1, sm: 1.25 },
+                        minHeight: { xs: 56, sm: 72 },
+                      }}
+                    >
+                      {([s.dual.left, s.dual.right] as const).map((side, idx) => (
+                        <Box
+                          key={side.label}
+                          sx={{
+                            textAlign: "center",
+                            px: { xs: 0.5, sm: 1 },
+                            gridColumn: idx === 0 ? 1 : 3,
+                          }}
+                        >
+                          <Typography
+                            variant="h4"
+                            sx={{
+                              color: "#fff",
+                              fontWeight: 800,
+                              lineHeight: 1.1,
+                              fontSize: { xs: "1.35rem", sm: "2.125rem" },
+                            }}
+                          >
+                            {side.value.toLocaleString()}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "block",
+                              mt: { xs: 0.25, sm: 0.5 },
+                              lineHeight: 1.25,
+                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                              color: "rgba(255,255,255,0.82)",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {side.label}
+                          </Typography>
+                        </Box>
+                      ))}
+                      <Box
+                        aria-hidden
+                        sx={{
+                          gridColumn: 2,
+                          width: "1px",
+                          alignSelf: "stretch",
+                          bgcolor: "rgba(255,255,255,0.35)",
+                          my: { xs: 0.5, sm: 0.75 },
+                        }}
+                      />
+                    </Box>
+                  ) : (
                     <Box
                       sx={{
                         display: "flex",
-                        justifyContent: { xs: "flex-start", sm: "flex-start" },
-                        alignItems: { xs: "center", sm: "flex-start" },
-                        mb: { xs: 0, sm: 1.25 },
-                        flexShrink: 0,
+                        flexDirection: { xs: "row", sm: "column" },
+                        alignItems: { xs: "center", sm: "stretch" },
+                        gap: { xs: 1.25, sm: 0 },
                       }}
                     >
                       <Box
                         sx={{
-                          width: { xs: 40, sm: 44 },
-                          height: { xs: 40, sm: 44 },
-                          borderRadius: 1.5,
                           display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          bgcolor: s.color,
-                          boxShadow: `0 0 27px ${s.color}`,
-                          border: `1px solid ${s.color}`,
+                          justifyContent: { xs: "flex-start", sm: "flex-start" },
+                          alignItems: { xs: "center", sm: "flex-start" },
+                          mb: { xs: 0, sm: 1.25 },
                           flexShrink: 0,
                         }}
                       >
-                        <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
+                        <Box
+                          sx={{
+                            width: { xs: 40, sm: 44 },
+                            height: { xs: 40, sm: 44 },
+                            borderRadius: 1.5,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            bgcolor: s.color,
+                            boxShadow: `0 0 27px ${s.color}`,
+                            border: `1px solid ${s.color}`,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
+                        </Box>
+                      </Box>
+                      <Box sx={{ minWidth: 0, flex: { xs: 1, sm: "none" }, pr: { xs: 1.5, sm: 0 } }}>
+                        <Typography
+                          variant="h4"
+                          sx={{
+                            color: "#fff",
+                            fontWeight: 800,
+                            lineHeight: 1.1,
+                            fontSize: { xs: "1.35rem", sm: "2.125rem" },
+                          }}
+                        >
+                          {s.value.toLocaleString()}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            display: "block",
+                            mt: { xs: 0.25, sm: 0.5 },
+                            lineHeight: 1.25,
+                            fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                          }}
+                        >
+                          {s.label}
+                        </Typography>
                       </Box>
                     </Box>
-                    <Box sx={{ minWidth: 0, flex: { xs: 1, sm: "none" }, pr: { xs: 1.5, sm: 0 } }}>
-                      <Typography
-                        variant="h4"
-                        sx={{
-                          color: "#fff",
-                          fontWeight: 800,
-                          lineHeight: 1.1,
-                          fontSize: { xs: "1.35rem", sm: "2.125rem" },
-                        }}
-                      >
-                        {s.value}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{
-                          display: "block",
-                          mt: { xs: 0.25, sm: 0.5 },
-                          lineHeight: 1.25,
-                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                        }}
-                      >
-                        {s.label}
-                      </Typography>
-                    </Box>
-                  </Box>
+                  )}
                 </CardContent>
               </Card>
             </Box>
