@@ -78,7 +78,7 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { DashboardPresenceProvider } from "@/contexts/DashboardPresenceContext";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/client";
-import { AnnouncementsNavBadge } from "./AnnouncementsNavBadge";
+import { UserNotificationsMenu } from "./UserNotificationsMenu";
 import { MissionUpdatesNavIcon } from "./MissionUpdatesNavIcon";
 import { MissionUpdatesUnreadProvider } from "./MissionUpdatesUnreadProvider";
 import { HeaderSuperAdminProfileAvatar } from "./HeaderSuperAdminProfileAvatar";
@@ -1321,7 +1321,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {showSystemNotificationBell ? (
               <NotificationMenu userId={user.id} />
             ) : (
-              <AnnouncementsNavBadge />
+              <UserNotificationsMenu />
             )}
           </Box>
           <HeaderSuperAdminProfileAvatar

@@ -351,16 +351,16 @@ export function buildMainDashboardTourEntries(
       "header-account-settings",
       '[data-tour="header-account-settings"]',
       "Account menu",
-      "Open your avatar in the top bar to change your password or edit your profile. This is the quickest way to update your sign-in details.",
+      "Open your avatar menu for My profile, Groups, Messages, My saved, Settings, Change password, and Sign out.",
       "bottom"
     ),
     stepForSelector(
       "header-notifications",
       '[data-tour="header-notifications"]',
-      elevated && input.showSystemNotificationBell ? "System notifications" : "Announcements",
+      elevated && input.showSystemNotificationBell ? "System notifications" : "Notifications",
       elevated && input.showSystemNotificationBell
         ? "Quick access to system notification events (new sign-ups, completions, and similar alerts). Click the bell to read and dismiss items."
-        : "Shortcut to organization announcements. The badge shows how many unread messages you have.",
+        : "See follows, likes, comments, and posts from people you follow. Open the bell for the latest five, or See all for the full list.",
       "bottom"
     ),
     stepForSelector(

@@ -2,28 +2,22 @@
 
 import { AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
-import { isElevatedRole, isSuperAdminUser } from "@/lib/auth/user-roles";
+import { isElevatedRole } from "@/lib/auth/user-roles";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import {
-  isMobilizeSocialNavActive,
-  mobilizeSocialNavItems,
-  type MobilizeSocialNavKey,
-} from "@/lib/mobilize/social/mobilize-social-nav-config";
+  MOBILIZE_BOOKMARKS_HREF,
+  MOBILIZE_MESSAGES_HREF,
+  MOBILIZE_MY_GROUPS_HREF,
+} from "@/lib/mobilize/mobilize-nav-config";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
-import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import {
-  Collapse,
   Divider,
   IconButton,
   ListItemIcon,
@@ -35,18 +29,8 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useState } from "react";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
-
-const SOCIAL_MENU_ICONS: Record<Exclude<MobilizeSocialNavKey, "search">, ReactNode> = {
-  home: <HomeOutlinedIcon fontSize="small" />,
-  alerts: <NotificationsNoneOutlinedIcon fontSize="small" />,
-  messages: <MailOutlineIcon fontSize="small" />,
-  groups: <GroupsOutlinedIcon fontSize="small" />,
-  bookmarks: <BookmarkBorderOutlinedIcon fontSize="small" />,
-  profile: <PersonOutlineIcon fontSize="small" />,
-  settings: <SettingsOutlinedIcon fontSize="small" />,
-};
 
 export function HeaderSuperAdminProfileAvatar({
   onOpenProfile,
@@ -59,28 +43,8 @@ export function HeaderSuperAdminProfileAvatar({
   const pathname = usePathname();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
-  const [publicProfileOpen, setPublicProfileOpen] = useState(false);
   const open = Boolean(anchor);
-  const isSuperAdmin = isSuperAdminUser(user.role_names);
   const profileHref = mobilizeMemberProfileHref(user.id);
-
-  const socialItems = useMemo(
-    () =>
-      isSuperAdmin
-        ? mobilizeSocialNavItems(profileHref).filter((item) => item.key !== "search")
-        : [],
-    [isSuperAdmin, profileHref]
-  );
-
-  const anySocialActive = useMemo(
-    () =>
-      socialItems.some((item) => isMobilizeSocialNavActive(item.key, pathname, profileHref)),
-    [pathname, profileHref, socialItems]
-  );
-
-  useEffect(() => {
-    if (open && anySocialActive) setPublicProfileOpen(true);
-  }, [anySocialActive, open]);
 
   const displayInitial =
     user.display_name?.trim() ||
@@ -125,53 +89,58 @@ export function HeaderSuperAdminProfileAvatar({
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         slotProps={{
           paper: {
-            sx: { width: 280, mt: 0.75 },
+            sx: { width: 260, mt: 0.75 },
           },
         }}
       >
         <MenuList dense disablePadding sx={{ py: 0.5 }}>
-          {socialItems.length > 0 ? (
-            <>
-              <MenuItem
-                onClick={() => setPublicProfileOpen((prev) => !prev)}
-                selected={anySocialActive}
-                aria-expanded={publicProfileOpen}
-              >
-                <ListItemIcon>
-                  <PublicOutlinedIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary="Public Profile" />
-                {publicProfileOpen ? (
-                  <ExpandLessIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                ) : (
-                  <ExpandMoreIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                )}
-              </MenuItem>
-              <Collapse in={publicProfileOpen} timeout="auto" unmountOnExit>
-                <MenuList dense disablePadding>
-                  {socialItems.map((item) => {
-                    const active = isMobilizeSocialNavActive(item.key, pathname, profileHref);
-                    return (
-                      <MenuItem
-                        key={item.key}
-                        component={Link}
-                        href={item.href}
-                        selected={active}
-                        onClick={closeMenu}
-                        sx={{ pl: 3.5 }}
-                      >
-                        <ListItemIcon>
-                          {SOCIAL_MENU_ICONS[item.key as Exclude<MobilizeSocialNavKey, "search">]}
-                        </ListItemIcon>
-                        <ListItemText primary={item.label} />
-                      </MenuItem>
-                    );
-                  })}
-                </MenuList>
-              </Collapse>
-              <Divider sx={{ my: 0.5 }} />
-            </>
-          ) : null}
+          <MenuItem
+            component={Link}
+            href={profileHref}
+            selected={pathname === profileHref || pathname.startsWith(`${profileHref}/`)}
+            onClick={closeMenu}
+          >
+            <ListItemIcon>
+              <PersonOutlineIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="My profile" />
+          </MenuItem>
+          <MenuItem
+            component={Link}
+            href={MOBILIZE_MY_GROUPS_HREF}
+            selected={
+              pathname === MOBILIZE_MY_GROUPS_HREF ||
+              pathname.startsWith(`${MOBILIZE_MY_GROUPS_HREF}/`)
+            }
+            onClick={closeMenu}
+          >
+            <ListItemIcon>
+              <GroupsOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Groups" />
+          </MenuItem>
+          <MenuItem
+            component={Link}
+            href={MOBILIZE_MESSAGES_HREF}
+            selected={pathname.startsWith(MOBILIZE_MESSAGES_HREF)}
+            onClick={closeMenu}
+          >
+            <ListItemIcon>
+              <MailOutlineIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Messages" />
+          </MenuItem>
+          <MenuItem
+            component={Link}
+            href={MOBILIZE_BOOKMARKS_HREF}
+            selected={pathname.startsWith(MOBILIZE_BOOKMARKS_HREF)}
+            onClick={closeMenu}
+          >
+            <ListItemIcon>
+              <BookmarkBorderOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="My saved" />
+          </MenuItem>
           <MenuItem
             onClick={() => {
               closeMenu();
@@ -179,13 +148,9 @@ export function HeaderSuperAdminProfileAvatar({
             }}
           >
             <ListItemIcon>
-              <PersonOutlineIcon fontSize="small" />
+              <SettingsOutlinedIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText
-              primary="My profile"
-              secondary="Name, photo, phone, email"
-              secondaryTypographyProps={{ variant: "caption" }}
-            />
+            <ListItemText primary="Settings" />
           </MenuItem>
           <MenuItem
             onClick={() => {
@@ -196,11 +161,7 @@ export function HeaderSuperAdminProfileAvatar({
             <ListItemIcon>
               <LockOutlinedIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText
-              primary="Change password"
-              secondary="Update your sign-in password"
-              secondaryTypographyProps={{ variant: "caption" }}
-            />
+            <ListItemText primary="Change password" />
           </MenuItem>
           <Divider sx={{ my: 0.5 }} />
           <MenuItem
@@ -213,11 +174,7 @@ export function HeaderSuperAdminProfileAvatar({
             <ListItemIcon>
               <LogoutOutlinedIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText
-              primary="Sign out"
-              secondary="End your session and return to login"
-              secondaryTypographyProps={{ variant: "caption" }}
-            />
+            <ListItemText primary="Sign out" />
           </MenuItem>
         </MenuList>
       </Popover>
