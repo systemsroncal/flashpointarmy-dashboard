@@ -21,7 +21,7 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const { data: me } = await auth.admin
     .from("mobilize_group_members")
-    .select("membership_status")
+    .select("membership_status, member_role")
     .eq("group_id", id)
     .eq("user_id", auth.userId)
     .maybeSingle();
@@ -29,6 +29,18 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (!isMobilizeSuperAdmin(auth.roleNames) && (!me || me.membership_status !== "approved")) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
+
+  const { data: groupRow } = await auth.admin
+    .from("mobilize_groups")
+    .select("created_by")
+    .eq("id", id)
+    .maybeSingle();
+
+  const canViewContacts =
+    isMobilizeSuperAdmin(auth.roleNames) ||
+    auth.roleNames.includes("admin") ||
+    auth.roleNames.includes("sub_admin") ||
+    groupRow?.created_by === auth.userId;
 
   const { data: rows, error } = await auth.admin
     .from("mobilize_group_members")
@@ -111,8 +123,8 @@ export async function GET(_req: Request, ctx: Ctx) {
     return {
       ...m,
       display_name: dn || em || m.user_id.slice(0, 8),
-      email: em || null,
-      phone: ph || null,
+      email: canViewContacts ? em || null : null,
+      phone: canViewContacts ? ph || null : null,
       member_since: m.created_at,
       avatar_url: pr?.avatar_url ?? null,
       state: st,
@@ -120,7 +132,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     };
   });
 
-  return NextResponse.json({ members });
+  return NextResponse.json({ members, can_view_contacts: canViewContacts });
 }
 
 /**

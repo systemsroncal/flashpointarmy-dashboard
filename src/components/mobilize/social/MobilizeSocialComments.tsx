@@ -21,16 +21,32 @@ import {
   CircularProgress,
   IconButton,
   Link as MuiLink,
+  Popover,
   Stack,
   TextField,
   ThemeProvider,
   Typography,
 } from "@mui/material";
+import EmojiEmotionsOutlinedIcon from "@mui/icons-material/EmojiEmotionsOutlined";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 const DEFAULT_VISIBLE_COMMENTS = 2;
 const COMMENT_CLAMP_LINES = 3;
+const COMMENT_EMOJI_OPTIONS = [
+  "😀",
+  "😂",
+  "❤️",
+  "👍",
+  "🙏",
+  "🔥",
+  "🇺🇸",
+  "✝️",
+  "🙌",
+  "💪",
+  "🎉",
+  "👏",
+] as const;
 
 export type SocialCommentNode = {
   id: string;
@@ -112,6 +128,27 @@ function CommentComposer({
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
   const avatarSize = compact ? 28 : 36;
   const hasDraft = Boolean(draft.trim());
+  const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null);
+  const localInputRef = useRef<HTMLInputElement | null>(null);
+  const fieldRef = inputRef ?? localInputRef;
+
+  function insertEmoji(emoji: string) {
+    const el = fieldRef.current;
+    if (el && typeof el.selectionStart === "number") {
+      const start = el.selectionStart;
+      const end = el.selectionEnd ?? start;
+      const next = `${draft.slice(0, start)}${emoji}${draft.slice(end)}`;
+      onDraftChange(next);
+      window.requestAnimationFrame(() => {
+        const pos = start + emoji.length;
+        el.focus();
+        el.setSelectionRange(pos, pos);
+      });
+    } else {
+      onDraftChange(`${draft}${emoji}`);
+    }
+    setEmojiAnchor(null);
+  }
 
   return (
     <Box sx={{ mt: compact ? 1 : 1.5, overflow: "visible" }}>
@@ -125,7 +162,7 @@ function CommentComposer({
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0, overflow: "visible" }}>
           <TextField
-            inputRef={inputRef}
+            inputRef={fieldRef}
             fullWidth
             size="small"
             multiline
@@ -171,9 +208,20 @@ function CommentComposer({
             alignItems="center"
             sx={{ mt: 0.65, px: 0.75, minHeight: 28 }}
           >
-            <Typography variant="caption" sx={{ color: nameMuted }}>
-              {helperText ?? `You're commenting as ${asName}.`}
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
+              <IconButton
+                size="small"
+                disabled={posting}
+                aria-label="Add emoji"
+                onClick={(e) => setEmojiAnchor(e.currentTarget)}
+                sx={{ color: nameMuted }}
+              >
+                <EmojiEmotionsOutlinedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+              <Typography variant="caption" sx={{ color: nameMuted }} noWrap>
+                {helperText ?? `You're commenting as ${asName}.`}
+              </Typography>
+            </Stack>
             {hasDraft || posting ? (
               <Button
                 size="small"
@@ -195,6 +243,28 @@ function CommentComposer({
           </Stack>
         </Box>
       </Box>
+
+      <Popover
+        open={Boolean(emojiAnchor)}
+        anchorEl={emojiAnchor}
+        onClose={() => setEmojiAnchor(null)}
+        anchorOrigin={{ vertical: "top", horizontal: "left" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <Box sx={{ p: 1, display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 0.25 }}>
+          {COMMENT_EMOJI_OPTIONS.map((emoji) => (
+            <IconButton
+              key={emoji}
+              size="small"
+              onClick={() => insertEmoji(emoji)}
+              aria-label={`Insert ${emoji}`}
+              sx={{ fontSize: "1.15rem" }}
+            >
+              {emoji}
+            </IconButton>
+          ))}
+        </Box>
+      </Popover>
     </Box>
   );
 }

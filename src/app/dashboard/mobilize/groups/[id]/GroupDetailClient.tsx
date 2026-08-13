@@ -43,7 +43,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
-import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
+import IosShareOutlinedIcon from "@mui/icons-material/IosShareOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import MilitaryTechOutlinedIcon from "@mui/icons-material/MilitaryTechOutlined";
@@ -83,6 +83,7 @@ import {
   mobilizeGroupTabPanelScrollSx,
   mobilizeGroupSecondaryTabPanelScrollSx,
   mobilizeGroupMembersTableMobileSx,
+  mobilizeJoinGroupButtonSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
@@ -109,6 +110,7 @@ import { MobilizeChapterFeedBanner } from "@/components/mobilize/MobilizeChapter
 import { MobilizeFeedAdsRail } from "@/components/mobilize/feed-ads/MobilizeFeedAdsRail";
 import type { MobilizeFeedAdBlock } from "@/lib/mobilize/feed-ads-types";
 import { MobilizeChapterUpdatesPanel } from "@/components/mobilize/MobilizeChapterUpdatesPanel";
+import { MobilizeGroupShareDialog } from "@/components/mobilize/MobilizeGroupShareDialog";
 import { MobilizeTypeDeleteDialog } from "@/components/mobilize/MobilizeTypeDeleteDialog";
 import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupStateFlag";
 import { resolveMobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
@@ -257,9 +259,13 @@ function JoinToViewGate({
               variant="contained"
               startIcon={<PersonAddIcon />}
               onClick={() => void onJoin()}
-              sx={{ alignSelf: { xs: "stretch", sm: "center" }, flexShrink: 0 }}
+              sx={{
+                alignSelf: { xs: "stretch", sm: "center" },
+                flexShrink: 0,
+                ...mobilizeJoinGroupButtonSx,
+              }}
             >
-              Join now
+              Join group
             </Button>
           ) : null}
         </Stack>
@@ -358,6 +364,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     comments_policy: "everyone" | "leaders_only";
   } | null>(null);
   const [feedAds, setFeedAds] = useState<MobilizeFeedAdBlock[]>([]);
+  const [approvedMemberCount, setApprovedMemberCount] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [canViewMemberContacts, setCanViewMemberContacts] = useState(false);
 
   const loadGroup = useCallback(async () => {
     const res = await fetch(`/api/mobilize/groups/${groupId}`);
@@ -370,6 +379,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     }
     setGroup(g);
     setMembership(json.membership ?? null);
+    setApprovedMemberCount(
+      typeof json.approved_member_count === "number" ? json.approved_member_count : 0
+    );
   }, [groupId, router]);
 
   const loadWall = useCallback(async () => {
@@ -395,6 +407,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || "Failed to load members.");
     setMembers(json.members ?? []);
+    setCanViewMemberContacts(Boolean(json.can_view_contacts));
+    if (Array.isArray(json.members)) {
+      const approved = (json.members as MemberRow[]).filter(
+        (m) => m.membership_status === "approved"
+      ).length;
+      setApprovedMemberCount(approved);
+    }
   }, [groupId]);
 
   useEffect(() => {
@@ -432,6 +451,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     () => members.filter((m) => m.membership_status === "approved"),
     [members]
   );
+  const displayMemberCount = canViewContent
+    ? approvedMembers.length || approvedMemberCount
+    : approvedMemberCount;
   const recentMembers = useMemo(
     () =>
       [...approvedMembers]
@@ -1020,7 +1042,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           size="small"
           startIcon={<PersonAddIcon />}
           onClick={() => void joinRequest()}
-          sx={{ borderRadius: 99, textTransform: "none", fontWeight: 700 }}
+          sx={mobilizeJoinGroupButtonSx}
         >
           Join group
         </Button>
@@ -1056,10 +1078,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         <Button
           key="join"
           size="small"
-          variant="outlined"
+          variant="contained"
           startIcon={<PersonAddIcon />}
           onClick={() => void joinRequest()}
-          sx={{ ...heroBtnSx, fontWeight: 700 }}
+          sx={{
+            ...heroBtnSx,
+            ...mobilizeJoinGroupButtonSx,
+          }}
         >
           Join group
         </Button>
@@ -1091,14 +1116,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     }
     if (group) {
       actions.push(
-        <Tooltip key="public-link" title="Public group link">
+        <Tooltip key="share" title="Share group">
           <IconButton
-            component={Link}
-            href={`/g/${groupId}`}
-            target="_blank"
-            rel="noopener noreferrer"
             size="small"
-            aria-label="Open public group link"
+            aria-label="Share group"
+            onClick={() => setShareOpen(true)}
             sx={{
               ...heroBtnSx,
               width: 36,
@@ -1106,7 +1128,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
               border: "1px solid",
             }}
           >
-            <LinkOutlinedIcon fontSize="small" />
+            <IosShareOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       );
@@ -1121,7 +1143,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   const profileMeta = useMemo(() => {
     if (!group) return null;
-    const memberLabel = `${approvedMembers.length} member${approvedMembers.length === 1 ? "" : "s"}`;
+    const memberLabel = `${displayMemberCount} member${displayMemberCount === 1 ? "" : "s"}`;
     const visibilityLabel = isMobilizeGroupListed(group.visibility) ? "Public group" : "Private group";
     return (
       <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap alignItems="center">
@@ -1139,7 +1161,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Stack>
       </Stack>
     );
-  }, [approvedMembers.length, group]);
+  }, [displayMemberCount, group]);
 
   const fullHeader = useMemo(() => {
     if (!group) return null;
@@ -1194,17 +1216,17 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         ) : null}
         <MobilizeGroupMembersPreview
           members={recentMembers}
-          totalCount={approvedMembers.length}
+          totalCount={displayMemberCount}
           groupId={groupId}
         />
         {groupFeedAdsRail}
       </Stack>
     );
-  }, [approvedMembers.length, canViewContent, group, groupFeedAdsRail, groupId, recentMembers]);
+  }, [displayMemberCount, canViewContent, group, groupFeedAdsRail, groupId, recentMembers]);
 
   const groupAboutPanel = useMemo(() => {
     if (!group) return null;
-    const memberLabel = `${approvedMembers.length} member${approvedMembers.length === 1 ? "" : "s"}`;
+    const memberLabel = `${displayMemberCount} member${displayMemberCount === 1 ? "" : "s"}`;
     const visibilityLabel = isMobilizeGroupListed(group.visibility) ? "Public group" : "Private group";
     return (
       <Stack spacing={2}>
@@ -1240,11 +1262,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </MobilizeProfileSidebarCard>
       </Stack>
     );
-  }, [approvedMembers.length, group]);
+  }, [displayMemberCount, group]);
 
   const groupMembersSegment = useMemo(() => {
     if (!group) return null;
-    if (!approvedMembers.length) {
+    if (!displayMemberCount) {
       return (
         <MobilizeProfileSidebarCard title="Members" variant="groupFeed">
           <Typography variant="body2" color="text.secondary">
@@ -1256,11 +1278,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     return (
       <MobilizeGroupMembersPreview
         members={recentMembers}
-        totalCount={approvedMembers.length}
+        totalCount={displayMemberCount}
         groupId={groupId}
       />
     );
-  }, [approvedMembers.length, group, groupId, recentMembers]);
+  }, [displayMemberCount, group, groupId, recentMembers]);
 
   const groupAuthorRoleLabels = useMemo(() => {
     const labels: Record<string, string> = {};
@@ -1331,6 +1353,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const canManageMembers = isLeader || group.created_by === me.id || isSuperAdmin;
   // Matches the server-side POST /members gate: site staff, group owner, or an approved leader.
   const canAddMember = isLeader || group.created_by === me.id || isSuperAdmin || me.role_names.includes("admin");
+  const showMemberContacts =
+    canViewMemberContacts ||
+    isSuperAdmin ||
+    me.role_names.includes("admin") ||
+    me.role_names.includes("sub_admin") ||
+    group.created_by === me.id;
   const gridSx = {
     display: "grid",
     gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
@@ -1386,12 +1414,64 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       <Box sx={{ ...mobilizeGroupFeedContentScrollSx, width: "100%", bgcolor: "transparent" }}>
       {activeTab === "announcements" && !canViewContent ? (
         <Box sx={secondaryTabPanelSx}>
-        <JoinToViewGate
-          section="announcements"
-          onJoin={joinRequest}
-          showJoinButton={showJoin}
-          isPending={isPendingJoin}
-        />
+          <Stack spacing={2} sx={{ maxWidth: 685, mx: "auto", width: "100%" }}>
+            <MobilizeProfileSidebarCard title="About this group" variant="groupFeed">
+              {group.description?.trim() ? (
+                <MobilizeGroupAboutText text={group.description} />
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No description yet.
+                </Typography>
+              )}
+              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 1.75 }}>
+                <GroupsOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                <Typography variant="body2" color="text.secondary">
+                  {displayMemberCount} member{displayMemberCount === 1 ? "" : "s"}
+                </Typography>
+              </Stack>
+            </MobilizeProfileSidebarCard>
+
+            {isPendingJoin ? (
+              <Typography variant="body2" color="warning.main" fontWeight={600}>
+                Your join request is pending. A group leader must approve it before you can view the
+                feed.
+              </Typography>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Join this group to see posts, events, and member activity.
+              </Typography>
+            )}
+
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+              {showJoin ? (
+                <Button
+                  variant="contained"
+                  startIcon={<PersonAddIcon />}
+                  onClick={() => void joinRequest()}
+                  sx={mobilizeJoinGroupButtonSx}
+                >
+                  Join group
+                </Button>
+              ) : null}
+              <Tooltip title="Share group">
+                <IconButton
+                  size="small"
+                  aria-label="Share group"
+                  onClick={() => setShareOpen(true)}
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 99,
+                    border: "1px solid rgba(0,0,0,0.18)",
+                    bgcolor: "#fff",
+                    color: "#0d0d0d",
+                  }}
+                >
+                  <IosShareOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </Stack>
         </Box>
       ) : null}
 
@@ -1695,7 +1775,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             gap={1}
             sx={{ mt: 2, mb: 1 }}
           >
-            <Typography variant="subtitle2">Members ({approvedMembers.length})</Typography>
+            <Typography variant="subtitle2">Members ({displayMemberCount})</Typography>
             {canAddMember ? (
               <Button
                 size="small"
@@ -1714,8 +1794,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 <TableHead>
                   <TableRow>
                     <TableCell>Member</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Phone</TableCell>
+                    {showMemberContacts ? <TableCell>Email</TableCell> : null}
+                    {showMemberContacts ? <TableCell>Phone</TableCell> : null}
                     <TableCell>Role</TableCell>
                     <TableCell>Member since</TableCell>
                     {canManageMembers ? <TableCell align="right">Actions</TableCell> : null}
@@ -1756,31 +1836,35 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                           </Typography>
                         </Stack>
                       </TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={
-                            isMobileMembersTable
-                              ? {
-                                  maxWidth: "19vw",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  fontSize: "12px !important",
-                                  lineHeight: 1.1,
-                                }
-                              : undefined
-                          }
-                        >
-                          {m.email?.trim() || "—"}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {m.phone?.trim() || "—"}
-                        </Typography>
-                      </TableCell>
+                      {showMemberContacts ? (
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={
+                              isMobileMembersTable
+                                ? {
+                                    maxWidth: "19vw",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    fontSize: "12px !important",
+                                    lineHeight: 1.1,
+                                  }
+                                : undefined
+                            }
+                          >
+                            {m.email?.trim() || "—"}
+                          </Typography>
+                        </TableCell>
+                      ) : null}
+                      {showMemberContacts ? (
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {m.phone?.trim() || "—"}
+                          </Typography>
+                        </TableCell>
+                      ) : null}
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
                           <Typography variant="body2" component="span">
@@ -2504,6 +2588,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           void loadMembers();
           void loadGroup();
         }}
+      />
+
+      <MobilizeGroupShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        groupName={group.name}
+        publicUrl={`/g/${groupId}`}
       />
     </Box>
   );

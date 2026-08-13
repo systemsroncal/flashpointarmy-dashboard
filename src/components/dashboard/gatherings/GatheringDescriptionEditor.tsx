@@ -219,8 +219,8 @@ export function GatheringDescriptionEditor({
     };
     if (isSocial) {
       const socialBodyStyle = socialDark
-        ? "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px 10px 0; background: transparent; color: #e7e9ea; } p { margin: 0 0 0.5em 0; color: #e7e9ea; }"
-        : "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px 10px 0; background: transparent; color: #0d0d0d; } p { margin: 0 0 0.5em 0; }";
+        ? "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px; background: transparent; color: #e7e9ea; } p { margin: 0 0 0.5em 0; color: #e7e9ea; }"
+        : "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px; background: transparent; color: #0d0d0d; } p { margin: 0 0 0.5em 0; }";
       const socialChrome = socialDark
         ? { skin: "oxide-dark" as const, content_css: "dark" as const }
         : {};
@@ -336,7 +336,7 @@ export function GatheringDescriptionEditor({
             ? {
                 border: "2px solid rgba(0, 108, 231, 0.22)",
                 borderRadius: "10px",
-                pl: "10px",
+                pl: 0,
                 overflow: "hidden",
                 bgcolor: socialDark ? "transparent" : "#fff",
                 "&:focus-within": {

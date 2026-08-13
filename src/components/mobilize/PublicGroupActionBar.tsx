@@ -7,6 +7,7 @@ import {
   enrollmentAcceptsNewMembers,
   enrollmentModeLabel,
 } from "@/lib/mobilize/chapter-subgroup";
+import { mobilizeJoinGroupButtonSx } from "@/lib/mobilize/mobilize-ui-surface";
 
 type Props = {
   groupId: string;
@@ -105,21 +106,9 @@ export function PublicGroupActionBar({
               variant="contained"
               onClick={() => void onJoin()}
               disabled={busy}
-              sx={{
-                borderRadius: 99,
-                textTransform: "none",
-                fontWeight: 700,
-                px: 2.5,
-                background: "linear-gradient(90deg, #1e88e5 0%, #26a69a 100%)",
-                color: "#fff",
-                boxShadow: "none",
-                "&:hover": {
-                  background: "linear-gradient(90deg, #1976d2 0%, #00897b 100%)",
-                  boxShadow: "0 2px 8px rgba(30,136,229,0.35)",
-                },
-              }}
+              sx={mobilizeJoinGroupButtonSx}
             >
-              {enrollmentMode === "open_signup" ? "Join" : "Request to join"}
+              {enrollmentMode === "open_signup" ? "Join group" : "Request to join"}
             </Button>
           ) : (
             <Button

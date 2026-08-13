@@ -287,6 +287,24 @@ export const mobilizeGroupMembersTableMobileSx: SxProps<Theme> = {
 
 export const mobilizeGoldBorder = "rgba(202, 154, 0, 0.35)";
 
+/** Pastel Join group CTA — shared across group profile, chapter groups list, public pages. */
+export const mobilizeJoinGroupButtonSx: SxProps<Theme> = {
+  borderRadius: 99,
+  textTransform: "none",
+  fontWeight: 800,
+  fontSize: "calc(0.8125rem + 2px)",
+  bgcolor: "#d1eeff",
+  color: "#00206b",
+  borderColor: "#d1eeff",
+  boxShadow: "none",
+  "&:hover": {
+    bgcolor: "#bfe4fb",
+    borderColor: "#bfe4fb",
+    color: "#00206b",
+    boxShadow: "none",
+  },
+};
+
 export const mobilizeCalendarDaySx = (inMonth: boolean) =>
   ({
     bgcolor: inMonth ? "#f3f4f6" : "#fafafa",

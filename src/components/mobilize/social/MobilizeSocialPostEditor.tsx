@@ -95,6 +95,8 @@ export function MobilizeSocialPostEditor({
   const editorRef = useRef<EditorHandle | null>(null);
   const [uploading, setUploading] = useState(false);
   const [maxImages, setMaxImages] = useState(MAX_MOBILIZE_ANNOUNCEMENT_IMAGES);
+  const visibilityLabel = "Post to public";
+  const createPostLabel = "Create a post";
 
   useEffect(() => {
     let cancelled = false;
@@ -214,24 +216,24 @@ export function MobilizeSocialPostEditor({
     <Box
       sx={{
         borderBottom: isDark ? `1px solid ${borderColor}` : "none",
-        px: { xs: 1.5, sm: 2 },
+        px: { xs: 1.25, sm: 1.5 },
         py: 1.5,
         color: textColor,
       }}
     >
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+      <Stack direction="row" spacing={1.25} alignItems="flex-start">
         <Avatar
           src={avatarUrl ? publicAssetSrc(avatarUrl) : undefined}
           alt=""
-          sx={{ width: 44, height: 44, bgcolor: "#263238", flexShrink: 0, mt: 0.25 }}
+          sx={{ width: 44, height: 44, bgcolor: "#263238", flexShrink: 0, mt: 0.15 }}
         >
           {avatarFallback.charAt(0).toUpperCase()}
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+          <Box sx={{ mb: 1 }}>
             {showCommentsPolicySelect ? (
-              <FormControl size="small" sx={{ minWidth: 0, maxWidth: "100%" }}>
+              <FormControl size="small" sx={{ minWidth: 0, maxWidth: "100%", display: "block" }}>
                 <Select
                   value={commentsPolicy}
                   onChange={(e) =>
@@ -259,21 +261,47 @@ export function MobilizeSocialPostEditor({
                   borderRadius: 99,
                   px: 1.5,
                   py: 0.35,
-                  color: brandAccent ? flashpointYellow : textColor,
-                  border: `1px solid ${brandAccent ? "rgba(255,215,0,0.35)" : borderColor}`,
-                  bgcolor: brandAccent ? "#0d0d0d" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
+                  color: brandAccent ? "#0d0d0d" : textColor,
+                  border: `1px solid ${brandAccent ? "rgba(0,0,0,0.12)" : borderColor}`,
+                  bgcolor: brandAccent ? "#fff" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
                   minWidth: 0,
                   "&:hover": {
-                    bgcolor: brandAccent ? "#151515" : isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)",
+                    bgcolor: brandAccent ? "#f7f7f7" : isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)",
                   },
                 }}
               >
-                Post to Public
+                {visibilityLabel}
               </Button>
             ) : (
-              <Box />
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  borderRadius: 99,
+                  border: `1px solid ${brandAccent ? "rgba(0,0,0,0.12)" : borderColor}`,
+                  bgcolor: brandAccent ? "#fff" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
+                  px: 1.5,
+                  py: 0.35,
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  color: brandAccent ? "#0d0d0d" : textColor,
+                }}
+              >
+                {visibilityLabel}
+              </Box>
             )}
-          </Stack>
+            <Typography
+              sx={{
+                mt: 0.55,
+                fontSize: "0.92rem",
+                fontWeight: 600,
+                color: isDark ? TRUTH_HUB_TEXT_MUTED : "#65676b",
+                lineHeight: 1.25,
+              }}
+            >
+              {createPostLabel}
+            </Typography>
+          </Box>
 
           <GatheringDescriptionEditor
             value={value}

@@ -19,7 +19,10 @@ export type MobilizeChaptersNavItem = {
   href: string;
 };
 
-export function mobilizeChaptersNavItems(showGroupsSettings: boolean): MobilizeChaptersNavItem[] {
+export function mobilizeChaptersNavItems(
+  showGroupsSettings: boolean,
+  showNotifications = true
+): MobilizeChaptersNavItem[] {
   const items: MobilizeChaptersNavItem[] = [
     {
       key: "chapter",
@@ -39,13 +42,16 @@ export function mobilizeChaptersNavItems(showGroupsSettings: boolean): MobilizeC
       shortLabel: "Activities",
       href: `${MOBILIZE_PREFIX}/activities`,
     },
-    {
+  ];
+
+  if (showNotifications) {
+    items.push({
       key: "notifications",
       label: "Notifications",
       shortLabel: "Alerts",
       href: `${MOBILIZE_PREFIX}/notifications`,
-    },
-  ];
+    });
+  }
 
   if (showGroupsSettings) {
     items.push({

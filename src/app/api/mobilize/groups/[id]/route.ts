@@ -27,7 +27,17 @@ export async function GET(_req: Request, ctx: Ctx) {
     .eq("user_id", auth.userId)
     .maybeSingle();
 
-  return NextResponse.json({ group, membership: myMembership ?? null });
+  const { count: approvedMemberCount } = await auth.admin
+    .from("mobilize_group_members")
+    .select("id", { count: "exact", head: true })
+    .eq("group_id", id)
+    .eq("membership_status", "approved");
+
+  return NextResponse.json({
+    group,
+    membership: myMembership ?? null,
+    approved_member_count: approvedMemberCount ?? 0,
+  });
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {

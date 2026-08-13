@@ -176,7 +176,7 @@ function ClusterLayer({ markers }: { markers: MapMarkerPoint[] }) {
       el.innerHTML = `<div style="min-width:200px;font-family:system-ui,sans-serif">
         <strong>${escapeHtml(m.title)}</strong><br/>
         <span style="font-size:12px;opacity:.9">${escapeHtml(m.subtitle)}</span><br/>
-        <a href="${m.href}" style="display:inline-block;margin-top:8px;font-weight:600">View details</a>
+        <a href="${m.href}" style="display:inline-block;margin-top:8px;font-weight:600">View Groups</a>
       </div>`;
       mk.bindPopup(el, { maxWidth: 280 });
       mcg.addLayer(mk);

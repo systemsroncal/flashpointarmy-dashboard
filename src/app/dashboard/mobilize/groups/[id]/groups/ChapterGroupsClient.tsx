@@ -59,6 +59,7 @@ import {
 } from "@/lib/mobilize/group-ui-labels";
 import {
   mobilizeChapterDetailRootSx,
+  mobilizeJoinGroupButtonSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
@@ -548,12 +549,12 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                   g.enrollment_mode !== "auto_closed" ? (
                     <Button
                       size="small"
-                      variant="outlined"
+                      variant="contained"
                       startIcon={<PersonAddIcon />}
                       onClick={() => void joinGroup(g.id)}
-                      sx={{ alignSelf: "flex-start", textTransform: "none", borderRadius: 99 }}
+                      sx={{ alignSelf: "flex-start", ...mobilizeJoinGroupButtonSx }}
                     >
-                      {g.enrollment_mode === "open_signup" ? "Join" : "Request"}
+                      {g.enrollment_mode === "open_signup" ? "Join group" : "Request to join"}
                     </Button>
                   ) : null}
                   {canAddMemberToGroup(g) ? (
@@ -698,11 +699,12 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                           ) : (
                             <Button
                               size="small"
-                              variant="outlined"
+                              variant="contained"
                               startIcon={<PersonAddIcon />}
                               onClick={() => void joinGroup(g.id)}
+                              sx={mobilizeJoinGroupButtonSx}
                             >
-                              {g.enrollment_mode === "open_signup" ? "Join" : "Request"}
+                              {g.enrollment_mode === "open_signup" ? "Join group" : "Request to join"}
                             </Button>
                           )}
                           {canAddMemberToGroup(g) ? (

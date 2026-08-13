@@ -200,9 +200,13 @@ function MobilizeChaptersBottomNav() {
   const me = useDashboardUser();
   const pathname = usePathname();
   const showGroupsSettings = me.role_names.includes("super_admin");
+  const showNotifications =
+    me.role_names.includes("super_admin") ||
+    me.role_names.includes("admin") ||
+    me.role_names.includes("sub_admin");
 
   const items = useMemo<MobilizeBottomNavBarItem[]>(() => {
-    return mobilizeChaptersNavItems(showGroupsSettings).map((item) => ({
+    return mobilizeChaptersNavItems(showGroupsSettings, showNotifications).map((item) => ({
       key: item.key,
       label: item.label,
       shortLabel: item.shortLabel,
@@ -210,7 +214,7 @@ function MobilizeChaptersBottomNav() {
       icon: CHAPTERS_ICONS[item.key],
       active: isMobilizeChaptersNavActive(item.key, pathname),
     }));
-  }, [pathname, showGroupsSettings]);
+  }, [pathname, showGroupsSettings, showNotifications]);
 
   return <MobilizeBottomNavBar items={items} ariaLabel="Mobilize chapters navigation" borderAccent="gold" />;
 }

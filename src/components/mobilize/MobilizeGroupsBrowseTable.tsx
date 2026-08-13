@@ -410,8 +410,7 @@ export default function MobilizeGroupsBrowseTable({
               </>
             ) : subgroupsMap ? (
               <>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: "44%" }}>Group</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: "32%" }}>Chapter</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: "56%" }}>Group</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", width: 72 }}>
                   Members
                 </TableCell>
@@ -539,11 +538,6 @@ export default function MobilizeGroupsBrowseTable({
                 {subgroupsMap ? (
                   <>
                     <TableCell sx={{ py: 0.85, verticalAlign: "top" }}>{groupInfo}</TableCell>
-                    <TableCell sx={{ py: 0.85, verticalAlign: "middle" }}>
-                      <Typography variant="body2" color="text.secondary" noWrap title={g.parent_chapter_name ?? ""}>
-                        {g.parent_chapter_name ?? "—"}
-                      </Typography>
-                    </TableCell>
                     <TableCell align="right" sx={{ py: 0.85, verticalAlign: "middle" }}>
                       <Typography variant="body2">{count}</Typography>
                     </TableCell>

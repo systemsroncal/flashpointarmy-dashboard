@@ -149,6 +149,17 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const [myGroupsOpen, setMyGroupsOpen] = useState(false);
 
+  const canSeeNotifications = useMemo(() => {
+    if (
+      me.role_names.includes("super_admin") ||
+      me.role_names.includes("admin") ||
+      me.role_names.includes("sub_admin")
+    ) {
+      return true;
+    }
+    return myGroups.some((g) => g.created_by === me.id);
+  }, [me.id, me.role_names, myGroups]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -476,6 +487,7 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
         </ListItemButton>
       </ListItem>
 
+      {canSeeNotifications ? (
       <ListItem disablePadding>
         <ListItemButton
           component={Link}
@@ -510,6 +522,7 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
           <MobilizeNavNotificationsBadge />
         </ListItemButton>
       </ListItem>
+      ) : null}
 
       {showSettings ? (
         <ListItem disablePadding>
