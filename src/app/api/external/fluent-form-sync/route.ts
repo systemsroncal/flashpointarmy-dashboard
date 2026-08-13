@@ -32,6 +32,7 @@ import {
   syncExistingUserFromFluentForm,
 } from "@/lib/import/dashboard-user-mirror";
 import { validateImportIdentity } from "@/lib/import/validate-import-identity";
+import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 
 type SyncBody = {
   fromDate: string;
@@ -858,6 +859,8 @@ export async function POST(req: Request) {
                 });
                 continue;
               }
+
+              await applyMobilizeAutoFollowForUser(admin, newId);
 
               membersAdded += 1;
               send({ level: "ok", message: `Member synced: ${emailNorm}` });

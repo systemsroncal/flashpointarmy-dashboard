@@ -11,6 +11,7 @@ import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import SearchIcon from "@mui/icons-material/Search";
+import TerminalIcon from "@mui/icons-material/Terminal";
 import {
   Avatar,
   Box,
@@ -72,6 +73,7 @@ export function MobilizeAutoFollowSettings() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<AutoFollowTarget | null>(null);
   const [deleteTyped, setDeleteTyped] = useState("");
 
@@ -128,17 +130,27 @@ export function MobilizeAutoFollowSettings() {
             Auto-follow whitelist
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            New users will automatically follow every user on this list when they
-            join. Existing users are not affected.
+            New members and local leaders automatically follow every user on this
+            list when they join. Use Sync to apply the same follows to existing
+            accounts.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<PersonAddAlt1Icon />}
-          onClick={() => setAddOpen(true)}
-        >
-          Add users
-        </Button>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Button
+            variant="outlined"
+            startIcon={<TerminalIcon />}
+            onClick={() => setSyncOpen(true)}
+          >
+            Sync users
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PersonAddAlt1Icon />}
+            onClick={() => setAddOpen(true)}
+          >
+            Add users
+          </Button>
+        </Stack>
       </Stack>
 
       {loading ? (
@@ -234,6 +246,8 @@ export function MobilizeAutoFollowSettings() {
           void load();
         }}
       />
+
+      <MobilizeAutoFollowSyncDialog open={syncOpen} onClose={() => setSyncOpen(false)} />
 
       <MobilizeDialog
         open={confirmTarget !== null}
@@ -523,6 +537,182 @@ function MobilizeAutoFollowAddDialog({
           {adding
             ? "Adding…"
             : `Add ${selectedIds.size + parsedEmails.length} user${selectedIds.size + parsedEmails.length === 1 ? "" : "s"}`}
+        </Button>
+      </DialogActions>
+    </MobilizeDialog>
+  );
+}
+
+type SyncLogLine = { level: string; text: string };
+
+function logColor(level: string): string {
+  if (level === "ok") return "#4ade80";
+  if (level === "warn") return "#fbbf24";
+  if (level === "error") return "#f87171";
+  if (level === "summary") return "#67e8f9";
+  return "#cbd5e1";
+}
+
+function MobilizeAutoFollowSyncDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const toast = useMobilizeToast();
+  const [running, setRunning] = useState(false);
+  const [logs, setLogs] = useState<SyncLogLine[]>([]);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const startedRef = useRef(false);
+  const runningRef = useRef(false);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [logs]);
+
+  const runSync = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    setRunning(true);
+    setLogs([{ level: "info", text: "[INFO] Connecting…" }]);
+    try {
+      const res = await fetch("/api/mobilize/settings/auto-follow-targets/sync", {
+        method: "POST",
+      });
+      if (!res.ok || !res.body) {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        const retryAfter = res.headers.get("Retry-After");
+        const msg =
+          payload.error ||
+          (res.status === 429
+            ? `Too many requests. Retry after ${retryAfter || "60"}s.`
+            : "Could not start sync.");
+        throw new Error(msg);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        const incoming: SyncLogLine[] = [];
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const evt = JSON.parse(trimmed) as { level?: string; message?: string };
+            const level = evt.level || "info";
+            const prefix =
+              level === "ok"
+                ? "[OK]"
+                : level === "warn"
+                  ? "[WARN]"
+                  : level === "error"
+                    ? "[ERROR]"
+                    : level === "summary"
+                      ? "[SUMMARY]"
+                      : "[INFO]";
+            incoming.push({ level, text: `${prefix} ${evt.message ?? trimmed}` });
+          } catch {
+            incoming.push({ level: "info", text: trimmed });
+          }
+        }
+        if (incoming.length) {
+          setLogs((prev) => {
+            const next = [...prev, ...incoming];
+            return next.length > 4000 ? next.slice(-4000) : next;
+          });
+        }
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Sync failed.";
+      setLogs((prev) => [...prev, { level: "error", text: `[ERROR] ${msg}` }]);
+      toast(msg, "error");
+    } finally {
+      runningRef.current = false;
+      setRunning(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (!open) {
+      startedRef.current = false;
+      runningRef.current = false;
+      setLogs([]);
+      setRunning(false);
+      return;
+    }
+    if (startedRef.current) return;
+    startedRef.current = true;
+    void runSync();
+  }, [open, runSync]);
+
+  return (
+    <MobilizeDialog
+      open={open}
+      onClose={() => !running && onClose()}
+      fullWidth
+      maxWidth="md"
+    >
+      <DialogTitle>Auto-follow sync</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          Applies the whitelist to existing members and local leaders. New
+          registrations follow automatically; this backfills everyone already in
+          the system.
+        </Typography>
+        <Box
+          ref={scrollerRef}
+          sx={{
+            bgcolor: "#0b1220",
+            color: "#e2e8f0",
+            fontFamily:
+              'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            fontSize: "0.75rem",
+            lineHeight: 1.55,
+            borderRadius: 1,
+            p: 1.5,
+            height: { xs: 280, sm: 380 },
+            overflow: "auto",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          {logs.length === 0 ? (
+            <Box component="span" sx={{ color: "#64748b" }}>
+              $ waiting…
+            </Box>
+          ) : (
+            logs.map((line, i) => (
+              <Box key={`${i}-${line.text.slice(0, 24)}`} sx={{ color: logColor(line.level) }}>
+                {line.text}
+              </Box>
+            ))
+          )}
+          {running ? (
+            <Box component="span" sx={{ color: "#64748b" }}>
+              ▍
+            </Box>
+          ) : null}
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button
+          variant="outlined"
+          onClick={() => void runSync()}
+          disabled={running}
+          startIcon={running ? <CircularProgress size={14} color="inherit" /> : <TerminalIcon />}
+        >
+          {running ? "Running…" : "Run again"}
+        </Button>
+        <Button onClick={onClose} disabled={running} variant="contained">
+          Close
         </Button>
       </DialogActions>
     </MobilizeDialog>

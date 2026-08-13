@@ -4,6 +4,7 @@ import {
   withExternalPasswordChangeFlag,
 } from "@/lib/auth/default-external-user-password";
 import { ensureDashboardUserMirror } from "@/lib/import/dashboard-user-mirror";
+import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 import type { UserMailingFields } from "@/lib/import/user-mailing-address";
 import { mailingForUserMetadata } from "@/lib/import/user-mailing-address";
 
@@ -122,6 +123,7 @@ export async function createLocalLeaderUserForChapter(
     return { error: mirror.error };
   }
 
+  await applyMobilizeAutoFollowForUser(admin, userId);
   return { userId };
 }
 
@@ -156,5 +158,6 @@ export async function linkExistingUserAsLocalLeader(
   if (clErr) {
     return { error: clErr.message || "Could not link chapter leader." };
   }
+  await applyMobilizeAutoFollowForUser(admin, userId);
   return { userId };
 }

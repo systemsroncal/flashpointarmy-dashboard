@@ -17,6 +17,7 @@ import {
   syncExistingUserFromFluentForm,
 } from "@/lib/import/dashboard-user-mirror";
 import { resolveChapterForMemberImport, type ChapterRow } from "@/lib/import/chapter-import";
+import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 import { mailingForUserMetadata, userMailingAddressFromImportRow } from "@/lib/import/user-mailing-address";
 import { DEFAULT_EXTERNAL_USER_PASSWORD, withExternalPasswordChangeFlag } from "@/lib/auth/default-external-user-password";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
@@ -217,6 +218,8 @@ export async function POST(req: Request) {
       results.push({ status: "omitted", email, phone, reason: mirror.error });
       continue;
     }
+
+    await applyMobilizeAutoFollowForUser(admin, userId);
 
     batchEmails.add(email);
     if (phone) batchPhones.add(phone);

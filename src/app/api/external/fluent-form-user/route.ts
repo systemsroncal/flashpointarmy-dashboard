@@ -9,6 +9,7 @@ import {
 import { resolveChapterIdForExternalWebhook } from "@/lib/external/resolve-webhook-chapter";
 import { createLocalLeaderUserForChapter } from "@/lib/import/create-local-leader-user";
 import { ensureDashboardUserMirror, loadAuthUsersByEmail, syncExistingUserFromFluentForm } from "@/lib/import/dashboard-user-mirror";
+import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 import {
   mailingForUserMetadata,
   userMailingAddressFromImportRow,
@@ -327,6 +328,8 @@ export async function POST(req: Request) {
     await admin.auth.admin.deleteUser(newId);
     return NextResponse.json({ error: mirror.error }, { status: 500 });
   }
+
+  await applyMobilizeAutoFollowForUser(admin, newId);
 
   return NextResponse.json({
     ok: true,

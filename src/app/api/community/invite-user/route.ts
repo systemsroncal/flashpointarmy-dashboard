@@ -2,6 +2,7 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isChapterStaffRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { MODULE_SLUGS } from "@/config/modules";
 import { sendTemplatedEmail } from "@/lib/mail/send-templated-email";
+import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -217,6 +218,8 @@ export async function POST(req: Request) {
         /* optional notice */
       }
     }
+
+    await applyMobilizeAutoFollowForUser(admin, newId);
 
     return NextResponse.json({
       ok: true,

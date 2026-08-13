@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isEmailInUse } from "@/lib/auth/email-in-use";
 import { ensureMemberRoleIfUserHasNoRoles } from "@/lib/import/dashboard-user-mirror";
+import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { hashOtp, normalizeEmail, OTP_PURPOSE_REGISTER } from "@/lib/auth/email-otp";
 
@@ -86,6 +87,8 @@ export async function POST(req: Request) {
     if (roleFix.error) {
       console.error("[register-with-otp] ensureMemberRoleIfUserHasNoRoles:", roleFix.error);
     }
+
+    await applyMobilizeAutoFollowForUser(supabase, created.user.id);
 
     await supabase
       .from("email_otp_codes")
