@@ -456,6 +456,9 @@ export function MobilizeProfilePageShell({
                 px: "1.5rem",
                 py: 0,
                 boxSizing: "border-box",
+                maxWidth: 1100,
+                width: "100%",
+                mx: "auto",
               }}
             >
               {tabsInContent && tabs?.length ? (

@@ -18,7 +18,6 @@ import {
 import {
   mobilizeChapterDetailRootSx,
   mobilizeGroupFeedCardSx,
-  mobilizeGroupFeedPaperSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import { flashpointYellow } from "@/theme/tokens";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
@@ -650,11 +649,14 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         <Paper
           elevation={0}
           sx={{
-            ...mobilizeGroupFeedPaperSx,
+            bgcolor: "#fff",
+            color: "#0d0d0d",
             overflow: "hidden",
-            border: "1px solid rgba(0,0,0,0.1)",
-            boxShadow: "none",
-            borderRadius: "12px",
+            p: 0,
+            mt: "1rem",
+            borderRadius: "1rem",
+            boxShadow: "0 0 9px 1px #d2d2d2",
+            border: "none",
           }}
         >
           <MobilizeSocialPostEditor

@@ -53,7 +53,13 @@ export function mobilizeGroupDetailHref(
   return `/dashboard/mobilize/groups/${groupId}?tab=${tab}`;
 }
 
-export function mobilizeGroupTabsForNav(canViewReports: boolean): MobilizeGroupTabSlug[] {
+export function mobilizeGroupTabsForNav(
+  canViewReports: boolean,
+  opts?: { canViewMemberContent?: boolean }
+): MobilizeGroupTabSlug[] {
+  if (opts?.canViewMemberContent === false) {
+    return ["announcements"];
+  }
   return canViewReports ? [...MOBILIZE_GROUP_TAB_SLUGS] : [...MOBILIZE_GROUP_MEMBER_TAB_SLUGS];
 }
 

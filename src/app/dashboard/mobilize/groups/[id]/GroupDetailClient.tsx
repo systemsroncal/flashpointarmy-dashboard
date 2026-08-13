@@ -80,6 +80,7 @@ import {
   mobilizeCardSx,
   mobilizeGroupDetailPageRootSx,
   mobilizeGroupFeedContentScrollSx,
+  mobilizeGroupFeedPostCardSx,
   mobilizeGroupTabPanelScrollSx,
   mobilizeGroupSecondaryTabPanelScrollSx,
   mobilizeGroupMembersTableMobileSx,
@@ -532,6 +533,13 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   useEffect(() => {
     if (activeTab !== "announcements") setMobileSection("feed");
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!group) return;
+    if (!canViewContent && activeTab !== "announcements") {
+      router.replace(mobilizeGroupDetailHref(groupId, "announcements"));
+    }
+  }, [group, canViewContent, activeTab, groupId, router]);
 
   async function joinRequest() {
     try {
@@ -1226,6 +1234,54 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     );
   }, [displayMemberCount, canViewContent, group, groupFeedAdsRail, groupId, recentMembers]);
 
+  const guestGroupAboutRail = useMemo(() => {
+    if (!group || canViewContent) return null;
+    const isListed = isMobilizeGroupListed(group.visibility);
+    const mode = String(group.enrollment_mode ?? "request_to_join");
+    const visibilityTitle = isListed ? "Public" : "Unlisted";
+    let visibilityCopy: string;
+    if (!isListed) {
+      visibilityCopy = "This group is unlisted. You need an invite link to find it.";
+    } else if (mode === "open_signup") {
+      visibilityCopy = "Anyone can find this group and join instantly. No approval is required.";
+    } else if (mode === "request_to_join" || !mode) {
+      visibilityCopy =
+        "Anyone can find this group. Request to join and a leader must approve before you can participate.";
+    } else {
+      visibilityCopy = "This group is not currently accepting new members.";
+    }
+
+    return (
+      <MobilizeProfileSidebarCard title="About this group" variant="groupFeed">
+        {group.description?.trim() ? (
+          <MobilizeGroupAboutText text={group.description} />
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            No description yet.
+          </Typography>
+        )}
+        <Box sx={{ mt: 2.25 }}>
+          <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 0.5 }}>
+            {visibilityTitle}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.55 }}>
+            {visibilityCopy}
+          </Typography>
+        </Box>
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 0.5 }}>
+            Members Only Feed
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.55 }}>
+            {isPendingJoin
+              ? "Your join request is pending. Once approved, you can view posts, participate in discussions, and access member content."
+              : "Join the group to view posts, participate in discussions, and access member content."}
+          </Typography>
+        </Box>
+      </MobilizeProfileSidebarCard>
+    );
+  }, [canViewContent, group, isPendingJoin]);
+
   const groupAboutPanel = useMemo(() => {
     if (!group) return null;
     const memberLabel = `${displayMemberCount} member${displayMemberCount === 1 ? "" : "s"}`;
@@ -1369,7 +1425,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   const feedTabPanelSx = mobilizeGroupTabPanelScrollSx;
   const secondaryTabPanelSx = mobilizeGroupSecondaryTabPanelScrollSx;
-  const profileTabs = mobilizeGroupTabsForNav(canViewReports).map((slug) => ({
+  const profileTabs = mobilizeGroupTabsForNav(canViewReports, {
+    canViewMemberContent: canViewContent,
+  }).map((slug) => ({
     id: slug,
     label: MOBILIZE_GROUP_TAB_LABELS[slug],
   }));
@@ -1415,65 +1473,36 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       >
       <Box sx={{ ...mobilizeGroupFeedContentScrollSx, width: "100%", bgcolor: "transparent" }}>
       {activeTab === "announcements" && !canViewContent ? (
-        <Box sx={secondaryTabPanelSx}>
-          <Stack spacing={2} sx={{ maxWidth: 685, mx: "auto", width: "100%" }}>
-            <MobilizeProfileSidebarCard title="About this group" variant="groupFeed">
-              {group.description?.trim() ? (
-                <MobilizeGroupAboutText text={group.description} />
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No description yet.
-                </Typography>
-              )}
-              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 1.75 }}>
-                <GroupsOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                <Typography variant="body2" color="text.secondary">
-                  {displayMemberCount} member{displayMemberCount === 1 ? "" : "s"}
-                </Typography>
-              </Stack>
-            </MobilizeProfileSidebarCard>
-
-            {isPendingJoin ? (
-              <Typography variant="body2" color="warning.main" fontWeight={600}>
-                Your join request is pending. A group leader must approve it before you can view the
-                feed.
-              </Typography>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                Join this group to see posts, events, and member activity.
-              </Typography>
-            )}
-
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
-              {showJoin ? (
-                <Button
-                  variant="contained"
-                  startIcon={<PersonAddIcon />}
-                  onClick={() => void joinRequest()}
-                  sx={mobilizeJoinGroupButtonSx}
-                >
-                  Join group
-                </Button>
-              ) : null}
-              <Tooltip title="Share group">
-                <IconButton
-                  size="small"
-                  aria-label="Share group"
-                  onClick={() => setShareOpen(true)}
-                  sx={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 99,
-                    border: "1px solid rgba(0,0,0,0.18)",
-                    bgcolor: "#fff",
-                    color: "#0d0d0d",
-                  }}
-                >
-                  <IosShareOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          </Stack>
+        <Box sx={feedTabPanelSx}>
+          <MobilizeSocialFeedShell
+            leftRail={null}
+            rightRail={guestGroupAboutRail}
+            variant="groupProfile"
+            fill
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                ...mobilizeGroupFeedPostCardSx,
+                mb: 0,
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                minHeight: { xs: 320, md: 420 },
+              }}
+            >
+              <MobilizeSectionEmptyState
+                title={isPendingJoin ? "Join request pending" : "Join the Public Square"}
+                description={
+                  isPendingJoin
+                    ? "A group leader must approve your request before you can unlock the feed, share posts, and participate in gatherings."
+                    : "Join the community to unlock the feed, share posts, connect with others, mobilize your community, and participate in gatherings."
+                }
+                imageSrc={MOBILIZE_EMPTY_STATE_IMAGES.announcements}
+                fill
+              />
+            </Paper>
+          </MobilizeSocialFeedShell>
         </Box>
       ) : null}
 

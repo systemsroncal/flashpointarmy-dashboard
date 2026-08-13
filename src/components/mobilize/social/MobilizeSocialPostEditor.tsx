@@ -37,9 +37,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, t
 const TRUTH_POST_PURPLE = "#5448e8";
 const TRUTH_ICON = "#9aa3c7";
 const MAX_CHARS = 3000;
-/** Soft cream Post CTA from profile composer design. */
-const DESIGN_POST_BTN_BG = "#FEF0C7";
-const DESIGN_POST_BTN_HOVER = "#f5e4a8";
 const DESIGN_EDITOR_BORDER = "rgba(0, 108, 231, 0.28)";
 
 export type MobilizePostCommentsPolicy = "everyone" | "leaders_only";
@@ -64,7 +61,7 @@ type Props = {
   posting?: boolean;
   canPost?: boolean;
   showVisibility?: boolean;
-  /** Use design cream yellow for the Post button (group / profile feed). */
+  /** Group / profile feed: yellow Post button + card layout. */
   brandAccent?: boolean;
   /** Replaces the visibility pill with a comments-policy select (group feed leaders). */
   commentsPolicy?: MobilizePostCommentsPolicy;
@@ -188,23 +185,21 @@ export function MobilizeSocialPostEditor({
   const muted = isDark ? TRUTH_HUB_TEXT_MUTED : "rgba(0,0,0,0.45)";
   const textColor = isDark ? TRUTH_HUB_TEXT : "#0d0d0d";
   const useDesignAccent = brandAccent && !isDark;
-  const postBtnBg = isDark
-    ? TRUTH_POST_PURPLE
-    : useDesignAccent
-      ? DESIGN_POST_BTN_BG
-      : TRUTH_HUB_ACCENT;
-  const postBtnColor = useDesignAccent ? "#0d0d0d" : "#fff";
+  const postBtnBg = isDark ? TRUTH_POST_PURPLE : useDesignAccent ? flashpointYellow : TRUTH_HUB_ACCENT;
+  const postBtnColor = useDesignAccent ? "#000" : "#fff";
   const showCommentsPolicySelect = Boolean(commentsPolicy && onCommentsPolicyChange);
+  const selectRadius = useDesignAccent ? "1rem" : 99;
   const pillSelectSx = {
     minWidth: 0,
     maxWidth: "100%",
     fontSize: "0.85rem",
     fontWeight: 600,
-    borderRadius: 99,
+    borderRadius: selectRadius,
     color: useDesignAccent ? "#0d0d0d" : textColor,
     bgcolor: useDesignAccent || !isDark ? "#fff" : "rgba(255,255,255,0.04)",
     "& .MuiOutlinedInput-notchedOutline": {
       borderColor: useDesignAccent ? "rgba(0,0,0,0.14)" : borderColor,
+      borderRadius: selectRadius,
     },
     "&:hover .MuiOutlinedInput-notchedOutline": {
       borderColor: useDesignAccent ? "rgba(0,0,0,0.28)" : borderColor,
@@ -224,7 +219,282 @@ export function MobilizeSocialPostEditor({
     },
   } as const;
 
-  const body = (
+  const policyControl = showCommentsPolicySelect ? (
+    <FormControl size="small" sx={{ minWidth: 0, maxWidth: "100%", display: "block" }}>
+      <Select
+        value={commentsPolicy}
+        onChange={(e) => onCommentsPolicyChange?.(e.target.value as MobilizePostCommentsPolicy)}
+        disabled={disabled || posting}
+        displayEmpty
+        IconComponent={KeyboardArrowDownIcon}
+        sx={pillSelectSx}
+        inputProps={{ "aria-label": "Who can comment on this post" }}
+      >
+        <MenuItem value="everyone">Everyone can comment</MenuItem>
+        <MenuItem value="leaders_only">Leaders only can comment</MenuItem>
+      </Select>
+    </FormControl>
+  ) : showVisibility ? (
+    <Button
+      size="small"
+      endIcon={<KeyboardArrowDownIcon sx={{ fontSize: "1rem !important" }} />}
+      disabled={disabled || posting}
+      sx={{
+        textTransform: "none",
+        fontWeight: 600,
+        fontSize: "0.85rem",
+        borderRadius: selectRadius,
+        px: 1.5,
+        py: 0.35,
+        color: useDesignAccent ? "#0d0d0d" : textColor,
+        border: `1px solid ${useDesignAccent ? "rgba(0,0,0,0.14)" : borderColor}`,
+        bgcolor: useDesignAccent || !isDark ? "#fff" : "rgba(255,255,255,0.04)",
+        minWidth: 0,
+        "&:hover": {
+          bgcolor: useDesignAccent
+            ? "#f7f7f7"
+            : isDark
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(0,0,0,0.03)",
+        },
+      }}
+    >
+      {visibilityLabel}
+    </Button>
+  ) : (
+    <Box
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        borderRadius: selectRadius,
+        border: `1px solid ${useDesignAccent ? "rgba(0,0,0,0.14)" : borderColor}`,
+        bgcolor: useDesignAccent || !isDark ? "#fff" : "rgba(255,255,255,0.04)",
+        px: 1.5,
+        py: 0.35,
+        fontSize: "0.85rem",
+        fontWeight: 600,
+        color: useDesignAccent ? "#0d0d0d" : textColor,
+      }}
+    >
+      {visibilityLabel}
+    </Box>
+  );
+
+  const heading = (
+    <Typography
+      sx={{
+        mt: 0.65,
+        fontSize: "0.95rem",
+        fontWeight: 700,
+        color: isDark ? TRUTH_HUB_TEXT_MUTED : "#65676b",
+        lineHeight: 1.25,
+      }}
+    >
+      {headingLabel}
+    </Typography>
+  );
+
+  const editorBlock = (
+    <Box
+      sx={
+        useDesignAccent
+          ? {
+              "& > .MuiBox-root": {
+                borderColor: `${DESIGN_EDITOR_BORDER} !important`,
+                borderRadius: "12px !important",
+                borderWidth: "1.5px !important",
+              },
+            }
+          : undefined
+      }
+    >
+      <GatheringDescriptionEditor
+        value={value}
+        onChange={onChange}
+        disabled={disabled || posting}
+        label=""
+        showHelper={false}
+        variant="social"
+        socialSurface={surface}
+        onEditorInit={(ed) => {
+          editorRef.current = ed;
+        }}
+      />
+    </Box>
+  );
+
+  const imageThumbs =
+    imageUrls.length > 0 ? (
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.25 }}>
+        {imageUrls.map((url, i) => (
+          <Box
+            key={`${url}-${i}`}
+            sx={{
+              position: "relative",
+              width: 120,
+              height: 120,
+              borderRadius: 2,
+              overflow: "hidden",
+              border: `1px solid ${borderColor}`,
+              flexShrink: 0,
+            }}
+          >
+            <Box
+              component="img"
+              src={publicAssetSrc(url)}
+              alt=""
+              sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+            <IconButton
+              size="small"
+              aria-label="Remove image"
+              onClick={() => removeImage(i)}
+              disabled={disabled || posting || uploading}
+              sx={{
+                position: "absolute",
+                top: 4,
+                right: 4,
+                bgcolor: "rgba(0,0,0,0.6)",
+                color: "#fff",
+                width: 26,
+                height: 26,
+                "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
+              }}
+            >
+              <CloseIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Box>
+        ))}
+      </Stack>
+    ) : null;
+
+  const footer = (
+    <>
+      <Divider sx={{ mt: 1.5, mb: 1.25, borderColor: isDark ? borderColor : "rgba(0,0,0,0.08)" }} />
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Stack direction="row" alignItems="center" spacing={0.25}>
+          {onImageUrlsChange ? (
+            <>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                hidden
+                onChange={(e) => {
+                  onPickFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <Tooltip title="Attach image">
+                <span>
+                  <IconButton
+                    size="small"
+                    disabled={disabled || posting || uploading || imageUrls.length >= maxImages}
+                    onClick={() => fileRef.current?.click()}
+                    sx={{ color: TRUTH_ICON }}
+                  >
+                    {uploading ? <CircularProgress size={18} /> : <AttachFileOutlinedIcon fontSize="small" />}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </>
+          ) : null}
+          <Tooltip title="Emoji">
+            <span>
+              <IconButton
+                size="small"
+                disabled={disabled || posting}
+                onClick={() => editorRef.current?.execCommand("mceEmoticons")}
+                sx={{ color: TRUTH_ICON }}
+              >
+                <EmojiEmotionsOutlinedIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Stack>
+
+        <Stack direction="row" alignItems="center" spacing={1.25}>
+          <Typography variant="caption" sx={{ color: charsLeft < 0 ? "#ff6b6b" : muted, fontWeight: 500 }}>
+            {useDesignAccent
+              ? `${charCount.toLocaleString()} / ${MAX_CHARS.toLocaleString()}`
+              : charsLeft.toLocaleString()}
+          </Typography>
+          {onPost ? (
+            <Button
+              variant="contained"
+              disabled={posting || !postEnabled || charsLeft < 0}
+              onClick={onPost}
+              sx={{
+                borderRadius: 99,
+                textTransform: "none",
+                fontWeight: 800,
+                fontSize: "0.9rem",
+                px: 2.5,
+                py: 0.7,
+                minWidth: 72,
+                bgcolor: postBtnBg,
+                color: postBtnColor,
+                boxShadow: "none",
+                "&:hover": {
+                  bgcolor: isDark ? "#4338ca" : useDesignAccent ? "#e6c200" : "#e01f45",
+                  boxShadow: "none",
+                },
+                "&.Mui-disabled": {
+                  bgcolor: postBtnBg,
+                  color: postBtnColor,
+                  opacity: 0.6,
+                },
+              }}
+            >
+              {posting ? "…" : postLabel}
+            </Button>
+          ) : null}
+        </Stack>
+      </Stack>
+    </>
+  );
+
+  /** Group / profile: Avatar + title row, then full-width editor + footer. */
+  const designBody = (
+    <Box
+      sx={{
+        px: { xs: 1.5, sm: 2 },
+        py: { xs: 1.5, sm: 2 },
+        color: textColor,
+      }}
+    >
+      <Stack spacing={0}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: "10px",
+            alignItems: "flex-start",
+            mb: 1.25,
+          }}
+        >
+          <Avatar
+            src={avatarUrl ? publicAssetSrc(avatarUrl) : undefined}
+            alt=""
+            sx={{ width: 48, height: 48, bgcolor: "#263238", flexShrink: 0, mt: 0.15 }}
+          >
+            {avatarFallback.charAt(0).toUpperCase()}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {policyControl}
+            {heading}
+          </Box>
+        </Box>
+
+        {editorBlock}
+        {imageThumbs}
+        {children}
+        {footer}
+      </Stack>
+    </Box>
+  );
+
+  const legacyBody = (
     <Box
       sx={{
         borderBottom: isDark ? `1px solid ${borderColor}` : "none",
@@ -244,248 +514,19 @@ export function MobilizeSocialPostEditor({
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ mb: 1.25 }}>
-            {showCommentsPolicySelect ? (
-              <FormControl size="small" sx={{ minWidth: 0, maxWidth: "100%", display: "block" }}>
-                <Select
-                  value={commentsPolicy}
-                  onChange={(e) =>
-                    onCommentsPolicyChange?.(e.target.value as MobilizePostCommentsPolicy)
-                  }
-                  disabled={disabled || posting}
-                  displayEmpty
-                  IconComponent={KeyboardArrowDownIcon}
-                  sx={pillSelectSx}
-                  inputProps={{ "aria-label": "Who can comment on this post" }}
-                >
-                  <MenuItem value="everyone">Everyone can comment</MenuItem>
-                  <MenuItem value="leaders_only">Leaders only can comment</MenuItem>
-                </Select>
-              </FormControl>
-            ) : showVisibility ? (
-              <Button
-                size="small"
-                endIcon={<KeyboardArrowDownIcon sx={{ fontSize: "1rem !important" }} />}
-                disabled={disabled || posting}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "0.85rem",
-                  borderRadius: 99,
-                  px: 1.5,
-                  py: 0.35,
-                  color: useDesignAccent ? "#0d0d0d" : textColor,
-                  border: `1px solid ${useDesignAccent ? "rgba(0,0,0,0.14)" : borderColor}`,
-                  bgcolor: useDesignAccent || !isDark ? "#fff" : "rgba(255,255,255,0.04)",
-                  minWidth: 0,
-                  "&:hover": {
-                    bgcolor: useDesignAccent
-                      ? "#f7f7f7"
-                      : isDark
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(0,0,0,0.03)",
-                  },
-                }}
-              >
-                {visibilityLabel}
-              </Button>
-            ) : (
-              <Box
-                sx={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  borderRadius: 99,
-                  border: `1px solid ${useDesignAccent ? "rgba(0,0,0,0.14)" : borderColor}`,
-                  bgcolor: useDesignAccent || !isDark ? "#fff" : "rgba(255,255,255,0.04)",
-                  px: 1.5,
-                  py: 0.35,
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  color: useDesignAccent ? "#0d0d0d" : textColor,
-                }}
-              >
-                {visibilityLabel}
-              </Box>
-            )}
-            <Typography
-              sx={{
-                mt: 0.65,
-                fontSize: "0.95rem",
-                fontWeight: 700,
-                color: isDark ? TRUTH_HUB_TEXT_MUTED : "#65676b",
-                lineHeight: 1.25,
-              }}
-            >
-              {headingLabel}
-            </Typography>
+            {policyControl}
+            {heading}
           </Box>
-
-          <Box
-            sx={
-              useDesignAccent
-                ? {
-                    "& > .MuiBox-root": {
-                      borderColor: `${DESIGN_EDITOR_BORDER} !important`,
-                      borderRadius: "12px !important",
-                      borderWidth: "1.5px !important",
-                    },
-                  }
-                : undefined
-            }
-          >
-            <GatheringDescriptionEditor
-              value={value}
-              onChange={onChange}
-              disabled={disabled || posting}
-              label=""
-              showHelper={false}
-              variant="social"
-              socialSurface={surface}
-              onEditorInit={(ed) => {
-                editorRef.current = ed;
-              }}
-            />
-          </Box>
-
-          {imageUrls.length ? (
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.25 }}>
-              {imageUrls.map((url, i) => (
-                <Box
-                  key={`${url}-${i}`}
-                  sx={{
-                    position: "relative",
-                    width: 120,
-                    height: 120,
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    border: `1px solid ${borderColor}`,
-                    flexShrink: 0,
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={publicAssetSrc(url)}
-                    alt=""
-                    sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                  />
-                  <IconButton
-                    size="small"
-                    aria-label="Remove image"
-                    onClick={() => removeImage(i)}
-                    disabled={disabled || posting || uploading}
-                    sx={{
-                      position: "absolute",
-                      top: 4,
-                      right: 4,
-                      bgcolor: "rgba(0,0,0,0.6)",
-                      color: "#fff",
-                      width: 26,
-                      height: 26,
-                      "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
-                    }}
-                  >
-                    <CloseIcon sx={{ fontSize: 14 }} />
-                  </IconButton>
-                </Box>
-              ))}
-            </Stack>
-          ) : null}
-
+          {editorBlock}
+          {imageThumbs}
           {children}
-
-          <Divider sx={{ mt: 1.5, mb: 1.25, borderColor: isDark ? borderColor : "rgba(0,0,0,0.08)" }} />
-
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Stack direction="row" alignItems="center" spacing={0.25}>
-              {onImageUrlsChange ? (
-                <>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    multiple
-                    hidden
-                    onChange={(e) => {
-                      onPickFiles(e.target.files);
-                      e.target.value = "";
-                    }}
-                  />
-                  <Tooltip title="Attach image">
-                    <span>
-                      <IconButton
-                        size="small"
-                        disabled={disabled || posting || uploading || imageUrls.length >= maxImages}
-                        onClick={() => fileRef.current?.click()}
-                        sx={{ color: TRUTH_ICON }}
-                      >
-                        {uploading ? <CircularProgress size={18} /> : <AttachFileOutlinedIcon fontSize="small" />}
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                </>
-              ) : null}
-              <Tooltip title="Emoji">
-                <span>
-                  <IconButton
-                    size="small"
-                    disabled={disabled || posting}
-                    onClick={() => editorRef.current?.execCommand("mceEmoticons")}
-                    sx={{ color: TRUTH_ICON }}
-                  >
-                    <EmojiEmotionsOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Stack>
-
-            <Stack direction="row" alignItems="center" spacing={1.25}>
-              <Typography variant="caption" sx={{ color: charsLeft < 0 ? "#ff6b6b" : muted, fontWeight: 500 }}>
-                {useDesignAccent
-                  ? `${charCount.toLocaleString()} / ${MAX_CHARS.toLocaleString()}`
-                  : charsLeft.toLocaleString()}
-              </Typography>
-              {onPost ? (
-                <Button
-                  variant="contained"
-                  disabled={posting || !postEnabled || charsLeft < 0}
-                  onClick={onPost}
-                  sx={{
-                    borderRadius: 99,
-                    textTransform: "none",
-                    fontWeight: 800,
-                    fontSize: "0.9rem",
-                    px: 2.5,
-                    py: 0.7,
-                    minWidth: 72,
-                    bgcolor: postBtnBg,
-                    color: postBtnColor,
-                    boxShadow: "none",
-                    "&:hover": {
-                      bgcolor: isDark
-                        ? "#4338ca"
-                        : useDesignAccent
-                          ? DESIGN_POST_BTN_HOVER
-                          : "#e01f45",
-                      boxShadow: "none",
-                    },
-                    "&.Mui-disabled": {
-                      bgcolor: isDark
-                        ? "rgba(84,72,232,0.35)"
-                        : useDesignAccent
-                          ? "rgba(254,240,199,0.55)"
-                          : "rgba(255,41,82,0.35)",
-                      color: useDesignAccent ? "rgba(13,13,13,0.4)" : "rgba(255,255,255,0.5)",
-                    },
-                  }}
-                >
-                  {posting ? "…" : postLabel}
-                </Button>
-              ) : null}
-            </Stack>
-          </Stack>
+          {footer}
         </Box>
       </Stack>
     </Box>
   );
+
+  const body = useDesignAccent ? designBody : legacyBody;
 
   if (!isDark) {
     return <ThemeProvider theme={mobilizePanelTheme}>{body}</ThemeProvider>;

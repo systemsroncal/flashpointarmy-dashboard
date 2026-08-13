@@ -29,8 +29,8 @@ export function MobilizeSocialFeedShell({
   const threeColumn = Boolean(leftRail && rightRail);
   const twoColumn = Boolean(leftRail && !rightRail);
   const feedColumnSx = {
-    maxWidth: isGroupProfile || twoColumn || threeColumn ? 685 : 680,
-    mx: threeColumn || (isGroupProfile && leftRail) || twoColumn ? 0 : "auto",
+    maxWidth: isGroupProfile || twoColumn || threeColumn || Boolean(rightRail) ? 685 : 680,
+    mx: threeColumn || (isGroupProfile && leftRail) || twoColumn ? 0 : rightRail ? 0 : "auto",
     width: "100%",
   } as const;
 
@@ -45,10 +45,15 @@ export function MobilizeSocialFeedShell({
             xs: "1fr",
             lg: "minmax(240px, 300px) minmax(0, 685px)",
           }
-        : {
-            xs: "1fr",
-            lg: "minmax(0, 685px)",
-          }
+        : rightRail
+          ? {
+              xs: "1fr",
+              lg: "minmax(0, 685px) minmax(240px, 300px)",
+            }
+          : {
+              xs: "1fr",
+              lg: "minmax(0, 685px)",
+            }
     : {
         xs: "1fr",
         lg: threeColumn
@@ -101,12 +106,13 @@ export function MobilizeSocialFeedShell({
       {rightRail ? (
         <Box
           sx={{
-            display: { xs: "none", lg: "block" },
+            display: { xs: "block", lg: "block" },
+            order: { xs: 2, lg: 0 },
             alignSelf: "start",
-            position: "sticky",
-            top: 72,
-            maxHeight: "calc(100dvh - 88px)",
-            overflowY: "auto",
+            position: { lg: "sticky" },
+            top: { lg: 72 },
+            maxHeight: { lg: "calc(100dvh - 88px)" },
+            overflowY: { lg: "auto" },
           }}
         >
           {rightRail}

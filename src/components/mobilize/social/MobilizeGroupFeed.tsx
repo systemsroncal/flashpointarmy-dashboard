@@ -10,7 +10,6 @@ import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/socia
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import {
   mobilizeGroupFeedCardSx,
-  mobilizeGroupFeedPaperSx,
   mobilizeGroupFeedPostsListSx,
   mobilizeGroupFeedPostsStackSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
@@ -100,7 +99,6 @@ export function MobilizeGroupFeed({
     return Boolean(plain || wallImages.length);
   }, [wallHtml, wallImages.length]);
 
-  const embeddedPaperSx = { ...mobilizeGroupFeedPaperSx, overflow: "hidden" as const };
   const standalonePaperSx = { ...mobilizeGroupFeedCardSx, overflow: "hidden" as const };
 
   const feedBody = (
@@ -115,12 +113,16 @@ export function MobilizeGroupFeed({
         <Paper
           elevation={0}
           sx={{
-            ...(embedded ? embeddedPaperSx : standalonePaperSx),
+            bgcolor: "#fff",
+            color: "#0d0d0d",
             flexShrink: 0,
-            border: { xs: "none", sm: "1px solid rgba(0,0,0,0.1)" },
-            boxShadow: "none",
-            borderRadius: { xs: 0, sm: "12px" },
+            p: 0,
+            mt: "1rem",
+            borderRadius: { xs: 0, sm: "1rem" },
+            boxShadow: { xs: "none", sm: "0 0 9px 1px #d2d2d2" },
+            border: "none",
             borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
+            overflow: "hidden",
           }}
         >
           <MobilizeSocialPostEditor
@@ -146,7 +148,16 @@ export function MobilizeGroupFeed({
           />
         </Paper>
       ) : (
-        <Paper elevation={0} sx={{ ...(embedded ? embeddedPaperSx : standalonePaperSx), p: 2, flexShrink: 0 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            ...(embedded
+              ? { ...mobilizeGroupFeedCardSx, overflow: "hidden", border: "none", boxShadow: "none" }
+              : standalonePaperSx),
+            p: 2,
+            flexShrink: 0,
+          }}
+        >
           <Typography sx={{ color: "rgba(0,0,0,0.65)" }}>
             Only leaders can post on this group feed.
           </Typography>
