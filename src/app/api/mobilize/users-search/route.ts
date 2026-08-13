@@ -25,15 +25,6 @@ const MAX_LIMIT = 500;
 const DASHBOARD_USER_SELECT =
   "id, email, phone, display_name, created_at, first_name, last_name, primary_chapter_id, address_line, city, state, zip_code";
 
-/** Roles allowed for Mobilize Chapters whitelist / directory picks. */
-export const MOBILIZE_VIEWER_WHITELIST_ROLES = [
-  "member",
-  "local_leader",
-  "admin",
-  "sub_admin",
-  "super_admin",
-] as const;
-
 function sanitizeIlikeTerm(raw: string): string {
   return raw.replace(/[%_,]/g, " ").trim().slice(0, 80);
 }
