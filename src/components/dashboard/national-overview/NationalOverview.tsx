@@ -486,7 +486,6 @@ export function NationalOverview({
               sx={{
                 minWidth: 0,
                 width: "100%",
-                ...(isDual ? { gridColumn: "span 2" } : {}),
               }}
             >
               <Card
@@ -557,31 +556,25 @@ export function NationalOverview({
                           sx={{
                             color: "rgba(255,255,255,0.72)",
                             fontWeight: 700,
-                            fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                            fontSize: { xs: "0.75rem", sm: "0.8125rem" },
                             lineHeight: 1.2,
-                            letterSpacing: "0.02em",
+                            letterSpacing: "0.01em",
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          {s.value.toLocaleString()}
+                          {`${s.value.toLocaleString()} members`}
                         </Typography>
                       </Box>
                       <Box
                         sx={{
                           display: "grid",
                           gridTemplateColumns: "minmax(0, 1fr) 1px minmax(0, 1fr)",
-                          alignItems: "center",
-                          columnGap: { xs: 1, sm: 1.25 },
+                          alignItems: "start",
+                          columnGap: { xs: 0.75, sm: 1 },
                           minWidth: 0,
                         }}
                       >
-                        <Box
-                          sx={{
-                            textAlign: "center",
-                            px: { xs: 0.5, sm: 0.75 },
-                            minWidth: 0,
-                            overflow: "hidden",
-                          }}
-                        >
+                        <Box sx={{ textAlign: "left", minWidth: 0, overflow: "hidden", pr: 0.5 }}>
                           <Typography
                             variant="h4"
                             sx={{
@@ -616,14 +609,7 @@ export function NationalOverview({
                             my: { xs: 0.25, sm: 0.5 },
                           }}
                         />
-                        <Box
-                          sx={{
-                            textAlign: "center",
-                            px: { xs: 0.5, sm: 0.75 },
-                            minWidth: 0,
-                            overflow: "hidden",
-                          }}
-                        >
+                        <Box sx={{ textAlign: "left", minWidth: 0, overflow: "hidden", pl: 0.5 }}>
                           <Typography
                             variant="h4"
                             sx={{
