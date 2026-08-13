@@ -3,7 +3,6 @@
 import type { OverviewStatBlock } from "@/lib/stats/overview-stats";
 import { loadStatePopupStats } from "@/lib/stats/overview-stats";
 import { createClient } from "@/utils/supabase/client";
-import AssignmentIndOutlined from "@mui/icons-material/AssignmentIndOutlined";
 import BoltOutlined from "@mui/icons-material/BoltOutlined";
 import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import GroupWorkOutlined from "@mui/icons-material/GroupWorkOutlined";
@@ -387,28 +386,14 @@ export function NationalOverview({
       },
     ];
 
-    if (memberLeaderOnly) {
+    if (memberLeaderOnly || chapterStaff) {
+      // Fusionado: Members + Leader Recruitment en una sola tarjeta.
       cards.push({
         label: "Members",
         value: stats.membersEngaged + stats.localLeaders,
         color: "#f97316",
         icon: GroupsOutlined,
       });
-    } else if (chapterStaff) {
-      cards.push(
-        {
-          label: "Members",
-          value: stats.membersEngaged,
-          color: "#f97316",
-          icon: GroupsOutlined,
-        },
-        {
-          label: "Leader Recruitment",
-          value: stats.localLeaders,
-          color: "#eab308",
-          icon: AssignmentIndOutlined,
-        }
-      );
     }
 
     if (superAdmin) {

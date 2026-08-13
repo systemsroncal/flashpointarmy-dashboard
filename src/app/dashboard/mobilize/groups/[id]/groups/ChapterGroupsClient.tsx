@@ -471,11 +471,29 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
             >
               <Box sx={{ position: "relative", aspectRatio: "16 / 10", bgcolor: "#1a2744" }}>
                 <Box
-                  component="img"
-                  src={cover}
-                  alt=""
-                  sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                />
+                  component={Link}
+                  href={detailHref}
+                  aria-label={`Open group ${g.name}`}
+                  sx={{
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    "&:hover img": { transform: "scale(1.04)" },
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={cover}
+                    alt={g.name}
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                      transition: "transform 0.25s ease",
+                    }}
+                  />
+                </Box>
                 <Tooltip title="Open group">
                   <IconButton
                     component={Link}

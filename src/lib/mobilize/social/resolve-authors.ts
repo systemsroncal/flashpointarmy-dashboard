@@ -35,6 +35,30 @@ function buildHandle(row: {
   return `@${slug || row.id.slice(0, 8)}`;
 }
 
+const ID_CHUNK_SIZE = 250;
+
+/**
+ * PostgREST encodes `in.(...)` values into the request URL, so querying a large
+ * id list at once blows past URL length limits (414 from Cloudflare) and the
+ * whole call fails. Fetch in chunks so big lists (e.g. thousands of followers)
+ * still resolve instead of silently returning nothing.
+ */
+async function fetchByIdsChunked<T>(
+  admin: SupabaseClient,
+  table: "profiles" | "dashboard_users",
+  columns: string,
+  ids: string[]
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let i = 0; i < ids.length; i += ID_CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + ID_CHUNK_SIZE);
+    const { data, error } = await admin.from(table).select(columns).in("id", chunk);
+    if (error) continue; // best-effort: keep whatever chunks resolved
+    rows.push(...((data ?? []) as T[]));
+  }
+  return rows;
+}
+
 export async function resolveMobilizeAuthors(
   admin: SupabaseClient,
   userIds: string[]
@@ -43,15 +67,9 @@ export async function resolveMobilizeAuthors(
   const map = new Map<string, MobilizeAuthorSummary>();
   if (!unique.length) return map;
 
-  const [{ data: profiles }, { data: users }] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("id, display_name, first_name, last_name, avatar_url")
-      .in("id", unique),
-    admin
-      .from("dashboard_users")
-      .select("id, display_name, first_name, last_name")
-      .in("id", unique),
+  const [profiles, users] = await Promise.all([
+    fetchByIdsChunked<Record<string, unknown>>(admin, "profiles", "id, display_name, first_name, last_name, avatar_url", unique),
+    fetchByIdsChunked<Record<string, unknown>>(admin, "dashboard_users", "id, display_name, first_name, last_name", unique),
   ]);
 
   const byId = new Map<string, Record<string, unknown>>();

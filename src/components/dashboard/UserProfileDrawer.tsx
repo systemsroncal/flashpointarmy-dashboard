@@ -178,7 +178,12 @@ export function UserProfileDrawer({
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const [{ data, error: qErr }, groupsRes, followersRes, followingRes] = await Promise.all([
+    const [
+      { data, error: qErr },
+      groupsCountRes,
+      followersRes,
+      followingRes,
+    ] = await Promise.all([
       supabase
         .from("profiles")
         .select(
@@ -186,11 +191,10 @@ export function UserProfileDrawer({
         )
         .eq("id", du.id)
         .maybeSingle(),
-      supabase
-        .from("mobilize_group_members")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", du.id)
-        .eq("membership_status", "approved"),
+      // Authoritative count (member + owner + leader) via the service-role API.
+      fetch(`/api/mobilize/social/profiles/${du.id}/group-count`)
+        .then((r) => (r.ok ? (r.json() as Promise<{ count?: number }>) : Promise.resolve({ count: 0 })))
+        .catch(() => ({ count: 0 })),
       supabase
         .from("mobilize_user_follows")
         .select("follower_id", { count: "exact", head: true })
@@ -219,7 +223,7 @@ export function UserProfileDrawer({
     setGender(row?.gender === "male" || row?.gender === "female" ? row.gender : "");
     setAvatarUrl(row?.avatar_url ?? "");
     setCoverUrl(row?.cover_url ?? "");
-    setGroupsCount(groupsRes.count ?? 0);
+    setGroupsCount(groupsCountRes.count ?? 0);
     setFollowersCount(followersRes.count ?? 0);
     setFollowingCount(followingRes.count ?? 0);
   }, [du.display_name, du.first_name, du.id, du.last_name, du.phone]);
