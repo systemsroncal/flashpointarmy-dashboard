@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
 import { loadUserRoleNames, isSuperAdminUser } from "@/lib/auth/user-roles";
+import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -92,6 +93,8 @@ export async function POST(
         { status: 500 }
       );
     }
+
+    await applyMobilizeAutoFollowForUser(admin, userId);
 
     const nextRoles = targetRoles
       .filter((n) => n !== "member" && n !== "local_leader")

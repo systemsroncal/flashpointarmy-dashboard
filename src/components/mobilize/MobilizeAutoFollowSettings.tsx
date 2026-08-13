@@ -130,9 +130,9 @@ export function MobilizeAutoFollowSettings() {
             Auto-follow whitelist
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            New members and local leaders automatically follow every user on this
-            list when they join. Use Sync to apply the same follows to existing
-            accounts.
+            Members, local leaders, and admins (admin, sub-admin, super-admin)
+            automatically follow every user on this list. Use Sync to apply the
+            same follows to existing accounts.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -159,8 +159,8 @@ export function MobilizeAutoFollowSettings() {
         </Box>
       ) : targets.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ py: 5, textAlign: "center" }}>
-          No auto-follow targets yet. Click “Add users” to whitelist the users new
-          members should follow automatically.
+          No auto-follow targets yet. Click “Add users” to whitelist the users
+          members, leaders, and admins should follow automatically.
         </Typography>
       ) : (
         <TableContainer>

@@ -2,6 +2,7 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { MODULE_SLUGS } from "@/config/modules";
 import { can } from "@/types/permissions";
+import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
@@ -174,6 +175,8 @@ export async function POST(req: Request) {
     if (phone) {
       await admin.from("dashboard_users").update({ phone }).eq("id", newId);
     }
+
+    await applyMobilizeAutoFollowForUser(admin, newId);
 
     return NextResponse.json({
       ok: true,

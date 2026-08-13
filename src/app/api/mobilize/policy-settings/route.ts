@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listDashboardUsersByIds } from "@/lib/admin/dashboard-user-queries";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import {
   normalizeChaptersViewerRoles,
@@ -45,6 +46,24 @@ async function loadViewerSettings(admin: SupabaseClient): Promise<{
   };
 }
 
+async function resolveViewerUserOptions(
+  admin: SupabaseClient,
+  userIds: string[]
+): Promise<{ id: string; label: string }[]> {
+  if (!userIds.length) return [];
+  const rows = await listDashboardUsersByIds(admin, userIds);
+  const byId = new Map(rows.map((u) => [u.id, u] as const));
+  return userIds.map((id) => {
+    const u = byId.get(id);
+    if (!u) return { id, label: id };
+    const name =
+      u.display_name?.trim() ||
+      [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
+      u.email;
+    return { id, label: `${name} (${u.email})` };
+  });
+}
+
 async function requireSuperAdmin() {
   const auth = await requireMobilizeRead();
   if (auth instanceof NextResponse) return auth;
@@ -63,26 +82,7 @@ export async function GET() {
   const auto_close_inactive_days = await loadAutoCloseDays(auth.admin);
   const uploadLimits = await loadMobilizeImageUploadLimits(auth.admin);
   const viewer = await loadViewerSettings(auth.admin);
-
-  const { data: userRows } = await auth.admin
-    .from("dashboard_users")
-    .select("id, email, display_name, first_name, last_name")
-    .order("email", { ascending: true })
-    .limit(5000);
-
-  const users = ((userRows ?? []) as {
-    id: string;
-    email: string;
-    display_name: string | null;
-    first_name: string | null;
-    last_name: string | null;
-  }[]).map((u) => {
-    const name =
-      u.display_name?.trim() ||
-      [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
-      u.email;
-    return { id: u.id, label: `${name} (${u.email})` };
-  });
+  const users = await resolveViewerUserOptions(auth.admin, viewer.chapters_viewer_user_ids);
 
   return NextResponse.json({
     allow_member_group_create: false,

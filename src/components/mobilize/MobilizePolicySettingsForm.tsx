@@ -8,6 +8,7 @@ import {
   Button,
   Checkbox,
   Chip,
+  CircularProgress,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -18,7 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const VIEWER_ROLE_OPTIONS = [
   { value: "admin", label: "Administrators" },
@@ -35,6 +36,15 @@ const CREATOR_ROLE_OPTIONS = [
   },
 ] as const;
 
+/** Members, leaders, and admins — same set as server search `roles` filter. */
+const WHITELIST_SEARCH_ROLES = [
+  "member",
+  "local_leader",
+  "admin",
+  "sub_admin",
+  "super_admin",
+].join(",");
+
 type UserOption = { id: string; label: string };
 
 export function MobilizePolicySettingsForm() {
@@ -47,6 +57,8 @@ export function MobilizePolicySettingsForm() {
   const [chaptersViewerUserIds, setChaptersViewerUserIds] = useState<string[]>([]);
   const [groupCreatorRoles, setGroupCreatorRoles] = useState<string[]>(["local_leader"]);
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
+  const [searchOptions, setSearchOptions] = useState<UserOption[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,13 +68,64 @@ export function MobilizePolicySettingsForm() {
     label: string;
   } | null>(null);
   const [deleteTyped, setDeleteTyped] = useState("");
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectedByIdRef = useRef<Map<string, UserOption>>(new Map());
 
   const selectedViewerUsers = useMemo(() => {
-    const byId = new Map(userOptions.map((u) => [u.id, u] as const));
-    return chaptersViewerUserIds
-      .map((id) => byId.get(id))
-      .filter(Boolean) as UserOption[];
-  }, [chaptersViewerUserIds, userOptions]);
+    const byId = new Map<string, UserOption>([
+      ...userOptions.map((u) => [u.id, u] as const),
+      ...searchOptions.map((u) => [u.id, u] as const),
+      ...selectedByIdRef.current.entries(),
+    ]);
+    return chaptersViewerUserIds.map(
+      (id) => byId.get(id) ?? { id, label: id }
+    );
+  }, [chaptersViewerUserIds, userOptions, searchOptions]);
+
+  useEffect(() => {
+    for (const u of selectedViewerUsers) {
+      selectedByIdRef.current.set(u.id, u);
+    }
+  }, [selectedViewerUsers]);
+
+  const autocompleteOptions = useMemo(() => {
+    const byId = new Map<string, UserOption>();
+    for (const u of selectedViewerUsers) byId.set(u.id, u);
+    for (const u of searchOptions) byId.set(u.id, u);
+    return [...byId.values()];
+  }, [selectedViewerUsers, searchOptions]);
+
+  const searchUsers = useCallback(async (q: string) => {
+    setSearchLoading(true);
+    try {
+      const params = new URLSearchParams({
+        limit: "50",
+        roles: WHITELIST_SEARCH_ROLES,
+      });
+      if (q.trim()) params.set("q", q.trim());
+      const res = await fetch(`/api/mobilize/users-search?${params.toString()}`);
+      const j = (await res.json()) as {
+        users?: { id: string; label: string; email?: string }[];
+        error?: string;
+      };
+      if (!res.ok) throw new Error(j.error || "User search failed.");
+      setSearchOptions(
+        (j.users ?? []).map((u) => ({
+          id: u.id,
+          label: u.email ? `${u.label} (${u.email})` : u.label,
+        }))
+      );
+    } catch {
+      setSearchOptions([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  function handleSearchInput(value: string) {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => void searchUsers(value), 300);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -117,16 +180,22 @@ export function MobilizePolicySettingsForm() {
         }
         setGroupCreatorRoles(roles.length ? roles : ["local_leader"]);
       }
-      setUserOptions(Array.isArray(j.users) ? j.users : []);
+      const resolved = Array.isArray(j.users) ? j.users : [];
+      setUserOptions(resolved);
+      for (const u of resolved) selectedByIdRef.current.set(u.id, u);
+      void searchUsers("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load failed.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchUsers]);
 
   useEffect(() => {
     void load();
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
   }, [load]);
 
   function toggleRole(list: string[], role: string, checked: boolean): string[] {
@@ -144,6 +213,7 @@ export function MobilizePolicySettingsForm() {
       setDeleteTyped("");
       return;
     }
+    for (const u of next) selectedByIdRef.current.set(u.id, u);
     setChaptersViewerUserIds(next.map((u) => u.id));
   }
 
@@ -303,13 +373,18 @@ export function MobilizePolicySettingsForm() {
           <Autocomplete
             multiple
             sx={{ mt: 1.5 }}
-            options={userOptions}
+            options={autocompleteOptions}
             value={selectedViewerUsers}
             onChange={(_, v) => handleViewerUsersChange(v)}
+            onInputChange={(_, value, reason) => {
+              if (reason === "input" || reason === "clear") handleSearchInput(value);
+            }}
+            filterOptions={(opts) => opts}
             getOptionLabel={(o) => o.label}
             isOptionEqualToValue={(a, b) => a.id === b.id}
             disabled={loading || saving}
             filterSelectedOptions
+            loading={searchLoading}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => {
                 const { key, ...tagProps } = getTagProps({ index });
@@ -320,8 +395,17 @@ export function MobilizePolicySettingsForm() {
               <TextField
                 {...params}
                 label="Specific users (whitelist)"
-                placeholder="Search users…"
-                helperText="Selected users can open Mobilize Chapters even if their role is not checked above."
+                placeholder="Search name or email…"
+                helperText="Searches members, local leaders, and admins in the database."
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {searchLoading ? <CircularProgress color="inherit" size={18} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
               />
             )}
           />

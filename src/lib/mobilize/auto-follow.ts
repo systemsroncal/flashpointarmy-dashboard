@@ -7,6 +7,15 @@ import {
 const FOLLOW_INSERT_CHUNK = 200;
 const FOLLOWER_LOG_CHUNK = 80;
 
+/** Roles that must auto-follow whitelist targets (sync + eligibility in DB). */
+export const MOBILIZE_AUTO_FOLLOW_FOLLOWER_ROLES = [
+  "member",
+  "local_leader",
+  "admin",
+  "sub_admin",
+  "super_admin",
+] as const;
+
 export type AutoFollowSyncEvent = {
   level: "info" | "ok" | "warn" | "error" | "summary";
   message: string;
@@ -91,17 +100,22 @@ export async function syncMobilizeAutoFollow(
       .join(", ")}`,
   });
 
-  onLog({ level: "info", message: "Resolving members and local leaders…" });
-  const followerIds = await listUserIdsByRoleNames(admin, ["member", "local_leader"]);
   onLog({
     level: "info",
-    message: `Found ${followerIds.length} member/leader account(s).`,
+    message: "Resolving members, leaders, and admins…",
+  });
+  const followerIds = await listUserIdsByRoleNames(admin, [
+    ...MOBILIZE_AUTO_FOLLOW_FOLLOWER_ROLES,
+  ]);
+  onLog({
+    level: "info",
+    message: `Found ${followerIds.length} member/leader/admin account(s).`,
   });
 
   if (!followerIds.length) {
     onLog({
       level: "summary",
-      message: "Done. No members or local leaders to sync.",
+      message: "Done. No members, leaders, or admins to sync.",
       summary: {
         followers: 0,
         targets: validTargetIds.length,
