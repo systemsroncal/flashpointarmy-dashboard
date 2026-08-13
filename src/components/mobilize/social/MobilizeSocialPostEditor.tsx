@@ -22,6 +22,7 @@ import {
   Box,
   Button,
   CircularProgress,
+  Divider,
   FormControl,
   IconButton,
   MenuItem,
@@ -34,8 +35,12 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 
 const TRUTH_POST_PURPLE = "#5448e8";
-const TRUTH_ICON = "#7c8db5";
+const TRUTH_ICON = "#9aa3c7";
 const MAX_CHARS = 3000;
+/** Soft cream Post CTA from profile composer design. */
+const DESIGN_POST_BTN_BG = "#FEF0C7";
+const DESIGN_POST_BTN_HOVER = "#f5e4a8";
+const DESIGN_EDITOR_BORDER = "rgba(0, 108, 231, 0.28)";
 
 export type MobilizePostCommentsPolicy = "everyone" | "leaders_only";
 
@@ -53,11 +58,13 @@ type Props = {
   /** Group wall uploads */
   groupId?: string;
   postLabel?: string;
+  /** Header under the visibility / comments pill. */
+  headingLabel?: string;
   onPost?: () => void;
   posting?: boolean;
   canPost?: boolean;
   showVisibility?: boolean;
-  /** Use Flash Point yellow for the Post button (group feed). */
+  /** Use design cream yellow for the Post button (group / profile feed). */
   brandAccent?: boolean;
   /** Replaces the visibility pill with a comments-policy select (group feed leaders). */
   commentsPolicy?: MobilizePostCommentsPolicy;
@@ -80,6 +87,7 @@ export function MobilizeSocialPostEditor({
   onImageUrlsChange,
   groupId,
   postLabel = "Post",
+  headingLabel = "Create a post",
   onPost,
   posting = false,
   canPost,
@@ -96,7 +104,6 @@ export function MobilizeSocialPostEditor({
   const [uploading, setUploading] = useState(false);
   const [maxImages, setMaxImages] = useState(MAX_MOBILIZE_ANNOUNCEMENT_IMAGES);
   const visibilityLabel = "Post to public";
-  const createPostLabel = "Create a post";
 
   useEffect(() => {
     let cancelled = false;
@@ -177,11 +184,16 @@ export function MobilizeSocialPostEditor({
     onImageUrlsChange?.(imageUrls.filter((_, i) => i !== index));
   }
 
-  const borderColor = isDark ? TRUTH_HUB_BORDER : "rgba(0,0,0,0.1)";
-  const muted = isDark ? TRUTH_HUB_TEXT_MUTED : "rgba(0,0,0,0.55)";
+  const borderColor = isDark ? TRUTH_HUB_BORDER : "rgba(0,0,0,0.12)";
+  const muted = isDark ? TRUTH_HUB_TEXT_MUTED : "rgba(0,0,0,0.45)";
   const textColor = isDark ? TRUTH_HUB_TEXT : "#0d0d0d";
-  const postBtnBg = isDark ? TRUTH_POST_PURPLE : brandAccent ? flashpointYellow : TRUTH_HUB_ACCENT;
-  const postBtnColor = brandAccent && !isDark ? "#0d0d0d" : "#fff";
+  const useDesignAccent = brandAccent && !isDark;
+  const postBtnBg = isDark
+    ? TRUTH_POST_PURPLE
+    : useDesignAccent
+      ? DESIGN_POST_BTN_BG
+      : TRUTH_HUB_ACCENT;
+  const postBtnColor = useDesignAccent ? "#0d0d0d" : "#fff";
   const showCommentsPolicySelect = Boolean(commentsPolicy && onCommentsPolicyChange);
   const pillSelectSx = {
     minWidth: 0,
@@ -189,16 +201,16 @@ export function MobilizeSocialPostEditor({
     fontSize: "0.85rem",
     fontWeight: 600,
     borderRadius: 99,
-    color: brandAccent ? "#0d0d0d" : textColor,
-    bgcolor: brandAccent ? "#fff" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
+    color: useDesignAccent ? "#0d0d0d" : textColor,
+    bgcolor: useDesignAccent || !isDark ? "#fff" : "rgba(255,255,255,0.04)",
     "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: brandAccent ? "rgba(0,0,0,0.12)" : borderColor,
+      borderColor: useDesignAccent ? "rgba(0,0,0,0.14)" : borderColor,
     },
     "&:hover .MuiOutlinedInput-notchedOutline": {
-      borderColor: brandAccent ? "rgba(0,0,0,0.22)" : borderColor,
+      borderColor: useDesignAccent ? "rgba(0,0,0,0.28)" : borderColor,
     },
     "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-      borderColor: brandAccent ? flashpointYellow : "primary.main",
+      borderColor: useDesignAccent ? flashpointYellow : "primary.main",
     },
     "& .MuiSelect-select": {
       py: 0.65,
@@ -208,7 +220,7 @@ export function MobilizeSocialPostEditor({
       alignItems: "center",
     },
     "& .MuiSelect-icon": {
-      color: brandAccent ? "#0d0d0d" : muted,
+      color: useDesignAccent ? "#0d0d0d" : muted,
     },
   } as const;
 
@@ -216,22 +228,22 @@ export function MobilizeSocialPostEditor({
     <Box
       sx={{
         borderBottom: isDark ? `1px solid ${borderColor}` : "none",
-        px: { xs: 1.25, sm: 1.5 },
-        py: 1.5,
+        px: { xs: 1.5, sm: 2 },
+        py: { xs: 1.5, sm: 2 },
         color: textColor,
       }}
     >
-      <Stack direction="row" spacing={1.25} alignItems="flex-start">
+      <Stack direction="row" spacing={1.5} alignItems="flex-start">
         <Avatar
           src={avatarUrl ? publicAssetSrc(avatarUrl) : undefined}
           alt=""
-          sx={{ width: 44, height: 44, bgcolor: "#263238", flexShrink: 0, mt: 0.15 }}
+          sx={{ width: 48, height: 48, bgcolor: "#263238", flexShrink: 0, mt: 0.15 }}
         >
           {avatarFallback.charAt(0).toUpperCase()}
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ mb: 1 }}>
+          <Box sx={{ mb: 1.25 }}>
             {showCommentsPolicySelect ? (
               <FormControl size="small" sx={{ minWidth: 0, maxWidth: "100%", display: "block" }}>
                 <Select
@@ -261,12 +273,16 @@ export function MobilizeSocialPostEditor({
                   borderRadius: 99,
                   px: 1.5,
                   py: 0.35,
-                  color: brandAccent ? "#0d0d0d" : textColor,
-                  border: `1px solid ${brandAccent ? "rgba(0,0,0,0.12)" : borderColor}`,
-                  bgcolor: brandAccent ? "#fff" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
+                  color: useDesignAccent ? "#0d0d0d" : textColor,
+                  border: `1px solid ${useDesignAccent ? "rgba(0,0,0,0.14)" : borderColor}`,
+                  bgcolor: useDesignAccent || !isDark ? "#fff" : "rgba(255,255,255,0.04)",
                   minWidth: 0,
                   "&:hover": {
-                    bgcolor: brandAccent ? "#f7f7f7" : isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)",
+                    bgcolor: useDesignAccent
+                      ? "#f7f7f7"
+                      : isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(0,0,0,0.03)",
                   },
                 }}
               >
@@ -278,13 +294,13 @@ export function MobilizeSocialPostEditor({
                   display: "inline-flex",
                   alignItems: "center",
                   borderRadius: 99,
-                  border: `1px solid ${brandAccent ? "rgba(0,0,0,0.12)" : borderColor}`,
-                  bgcolor: brandAccent ? "#fff" : isDark ? "rgba(255,255,255,0.04)" : "#fff",
+                  border: `1px solid ${useDesignAccent ? "rgba(0,0,0,0.14)" : borderColor}`,
+                  bgcolor: useDesignAccent || !isDark ? "#fff" : "rgba(255,255,255,0.04)",
                   px: 1.5,
                   py: 0.35,
                   fontSize: "0.85rem",
                   fontWeight: 600,
-                  color: brandAccent ? "#0d0d0d" : textColor,
+                  color: useDesignAccent ? "#0d0d0d" : textColor,
                 }}
               >
                 {visibilityLabel}
@@ -292,29 +308,43 @@ export function MobilizeSocialPostEditor({
             )}
             <Typography
               sx={{
-                mt: 0.55,
-                fontSize: "0.92rem",
-                fontWeight: 600,
+                mt: 0.65,
+                fontSize: "0.95rem",
+                fontWeight: 700,
                 color: isDark ? TRUTH_HUB_TEXT_MUTED : "#65676b",
                 lineHeight: 1.25,
               }}
             >
-              {createPostLabel}
+              {headingLabel}
             </Typography>
           </Box>
 
-          <GatheringDescriptionEditor
-            value={value}
-            onChange={onChange}
-            disabled={disabled || posting}
-            label=""
-            showHelper={false}
-            variant="social"
-            socialSurface={surface}
-            onEditorInit={(ed) => {
-              editorRef.current = ed;
-            }}
-          />
+          <Box
+            sx={
+              useDesignAccent
+                ? {
+                    "& > .MuiBox-root": {
+                      borderColor: `${DESIGN_EDITOR_BORDER} !important`,
+                      borderRadius: "12px !important",
+                      borderWidth: "1.5px !important",
+                    },
+                  }
+                : undefined
+            }
+          >
+            <GatheringDescriptionEditor
+              value={value}
+              onChange={onChange}
+              disabled={disabled || posting}
+              label=""
+              showHelper={false}
+              variant="social"
+              socialSurface={surface}
+              onEditorInit={(ed) => {
+                editorRef.current = ed;
+              }}
+            />
+          </Box>
 
           {imageUrls.length ? (
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.25 }}>
@@ -362,7 +392,9 @@ export function MobilizeSocialPostEditor({
 
           {children}
 
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 1.25 }}>
+          <Divider sx={{ mt: 1.5, mb: 1.25, borderColor: isDark ? borderColor : "rgba(0,0,0,0.08)" }} />
+
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Stack direction="row" alignItems="center" spacing={0.25}>
               {onImageUrlsChange ? (
                 <>
@@ -407,7 +439,9 @@ export function MobilizeSocialPostEditor({
 
             <Stack direction="row" alignItems="center" spacing={1.25}>
               <Typography variant="caption" sx={{ color: charsLeft < 0 ? "#ff6b6b" : muted, fontWeight: 500 }}>
-                {brandAccent ? `${charCount.toLocaleString()} / ${MAX_CHARS.toLocaleString()}` : charsLeft.toLocaleString()}
+                {useDesignAccent
+                  ? `${charCount.toLocaleString()} / ${MAX_CHARS.toLocaleString()}`
+                  : charsLeft.toLocaleString()}
               </Typography>
               {onPost ? (
                 <Button
@@ -419,23 +453,27 @@ export function MobilizeSocialPostEditor({
                     textTransform: "none",
                     fontWeight: 800,
                     fontSize: "0.9rem",
-                    px: 2.25,
-                    py: 0.65,
+                    px: 2.5,
+                    py: 0.7,
                     minWidth: 72,
                     bgcolor: postBtnBg,
                     color: postBtnColor,
                     boxShadow: "none",
                     "&:hover": {
-                      bgcolor: isDark ? "#4338ca" : brandAccent ? "#e6c200" : "#e01f45",
+                      bgcolor: isDark
+                        ? "#4338ca"
+                        : useDesignAccent
+                          ? DESIGN_POST_BTN_HOVER
+                          : "#e01f45",
                       boxShadow: "none",
                     },
                     "&.Mui-disabled": {
                       bgcolor: isDark
                         ? "rgba(84,72,232,0.35)"
-                        : brandAccent
-                          ? "rgba(255,215,0,0.35)"
+                        : useDesignAccent
+                          ? "rgba(254,240,199,0.55)"
                           : "rgba(255,41,82,0.35)",
-                      color: brandAccent ? "rgba(13,13,13,0.45)" : "rgba(255,255,255,0.5)",
+                      color: useDesignAccent ? "rgba(13,13,13,0.4)" : "rgba(255,255,255,0.5)",
                     },
                   }}
                 >

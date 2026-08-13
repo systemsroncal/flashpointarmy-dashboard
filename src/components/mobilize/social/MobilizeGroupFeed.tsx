@@ -117,9 +117,9 @@ export function MobilizeGroupFeed({
           sx={{
             ...(embedded ? embeddedPaperSx : standalonePaperSx),
             flexShrink: 0,
-            border: { xs: "none", sm: "1px solid rgba(0,0,0,0.08)" },
-            boxShadow: { xs: "none", sm: "0 2px 12px rgba(0,0,0,0.06)" },
-            borderRadius: { xs: 0, sm: "1rem" },
+            border: { xs: "none", sm: "1px solid rgba(0,0,0,0.1)" },
+            boxShadow: "none",
+            borderRadius: { xs: 0, sm: "12px" },
             borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
           }}
         >

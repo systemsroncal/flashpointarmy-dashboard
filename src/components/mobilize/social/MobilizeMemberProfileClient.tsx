@@ -652,8 +652,9 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           sx={{
             ...mobilizeGroupFeedPaperSx,
             overflow: "hidden",
-            border: "1px solid rgba(0,0,0,0.08)",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+            border: "1px solid rgba(0,0,0,0.1)",
+            boxShadow: "none",
+            borderRadius: "12px",
           }}
         >
           <MobilizeSocialPostEditor
@@ -926,7 +927,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              maxWidth: 960,
+              maxWidth: 1180,
               mx: "auto",
               p: { xs: 0, sm: 1.5, md: 2 },
             }}
@@ -1218,13 +1219,22 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         <DialogTitle>Edit post</DialogTitle>
         <DialogContent>
           {editPostTarget ? (
-            <Box sx={{ mt: 1 }}>
+            <Box
+              sx={{
+                mt: 1,
+                border: "1px solid rgba(0,0,0,0.1)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                bgcolor: "#fff",
+              }}
+            >
               <MobilizeSocialPostEditor
                 value={editPostHtml}
                 onChange={setEditPostHtml}
                 disabled={editPostSaving}
                 surface="light"
                 brandAccent
+                headingLabel="Edit post"
                 avatarUrl={avatarDisplaySrc ?? p.avatar_url}
                 avatarFallback={p.display_name}
                 imageUrls={editPostImages}

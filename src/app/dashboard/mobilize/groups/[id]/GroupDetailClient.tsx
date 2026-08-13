@@ -92,15 +92,14 @@ import {
   mobilizeGroupListingVisibilityFromListed,
 } from "@/lib/mobilize/group-ui-labels";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import MobilizeAnnouncementImagePicker from "@/components/mobilize/MobilizeAnnouncementImagePicker";
 import { MobilizeGroupAboutText } from "@/components/mobilize/MobilizeGroupAboutText";
 import { MobilizeGroupMembersPreview } from "@/components/mobilize/MobilizeGroupMembersPreview";
 import { MobilizeGroupFeed } from "@/components/mobilize/social/MobilizeGroupFeed";
-import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import type { EnrichedGroupMessage } from "@/lib/mobilize/social/enrich-group-messages";
 import { MobilizeContentTabBar } from "@/components/mobilize/social/MobilizeContentTabBar";
 import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeProfilePageShell";
 import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
+import { MobilizeSocialPostEditor } from "@/components/mobilize/social/MobilizeSocialPostEditor";
 import { MobilizeSocialFeedShell } from "@/components/mobilize/social/MobilizeSocialFeedShell";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
@@ -613,6 +612,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
 
   async function saveMessageEdit() {
     if (!msgEdit) return;
+    setWallPosting(true);
     try {
       const res = await fetch(`/api/mobilize/groups/${groupId}/messages/${msgEdit.id}`, {
         method: "PATCH",
@@ -633,6 +633,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       await loadWall();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Update failed.", "error");
+    } finally {
+      setWallPosting(false);
     }
   }
 
@@ -1390,7 +1392,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           flexDirection: "column",
           minHeight: 0,
           width: "100%",
-          maxWidth: 960,
+          maxWidth: 1180,
           mx: "auto",
         }}
       >
@@ -2531,50 +2533,52 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         <DialogTitle>Edit announcement</DialogTitle>
         <DialogContent>
           {msgEdit ? (
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <GatheringDescriptionEditor
+            <Box
+              sx={{
+                mt: 1,
+                border: "1px solid rgba(0,0,0,0.1)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                bgcolor: "#fff",
+              }}
+            >
+              <MobilizeSocialPostEditor
                 value={msgEdit.content_html}
                 onChange={(html) => setMsgEdit((s) => (s ? { ...s, content_html: html } : s))}
-                label="Content"
-                showHelper={false}
-                compact
-              />
-              <MobilizeAnnouncementImagePicker
+                disabled={wallPosting}
+                surface="light"
+                brandAccent
+                headingLabel="Edit post"
+                avatarUrl={me.avatar_url}
+                avatarFallback={me.display_name ?? me.email ?? "?"}
+                imageUrls={msgEdit.image_urls}
+                onImageUrlsChange={(urls) =>
+                  setMsgEdit((s) => (s ? { ...s, image_urls: urls } : s))
+                }
                 groupId={groupId}
-                value={msgEdit.image_urls}
-                onChange={(urls) => setMsgEdit((s) => (s ? { ...s, image_urls: urls } : s))}
+                commentsPolicy={
+                  isLeader || isSuperAdmin ? msgEdit.comments_policy : undefined
+                }
+                onCommentsPolicyChange={
+                  isLeader || isSuperAdmin
+                    ? (policy) =>
+                        setMsgEdit((s) => (s ? { ...s, comments_policy: policy } : s))
+                    : undefined
+                }
+                showVisibility={false}
+                postLabel="Save"
+                onPost={() => void saveMessageEdit()}
+                posting={wallPosting}
+                canPost={
+                  Boolean(msgEdit.content_html.replace(/<[^>]+>/g, "").trim()) ||
+                  msgEdit.image_urls.length > 0
+                }
               />
-              {isLeader || isSuperAdmin ? (
-                <FormControl fullWidth>
-                  <InputLabel id="cpol">Who can comment</InputLabel>
-                  <Select
-                    labelId="cpol"
-                    label="Who can comment"
-                    value={msgEdit.comments_policy}
-                    onChange={(e) =>
-                      setMsgEdit((s) =>
-                        s
-                          ? {
-                              ...s,
-                              comments_policy: e.target.value as "everyone" | "leaders_only",
-                            }
-                          : s
-                      )
-                    }
-                  >
-                    <MenuItem value="everyone">Everyone</MenuItem>
-                    <MenuItem value="leaders_only">Leaders only</MenuItem>
-                  </Select>
-                </FormControl>
-              ) : null}
-            </Stack>
+            </Box>
           ) : null}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setMsgEdit(null)}>Cancel</Button>
-          <Button variant="contained" onClick={() => void saveMessageEdit()}>
-            Save
-          </Button>
         </DialogActions>
       </MobilizeDialog>
 

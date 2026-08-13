@@ -453,6 +453,9 @@ export function MobilizeProfilePageShell({
                 flexDirection: "column",
                 borderTop: "1px solid rgba(0,0,0,0.08)",
                 color: "#0d0d0d",
+                px: "1.5rem",
+                py: 0,
+                boxSizing: "border-box",
               }}
             >
               {tabsInContent && tabs?.length ? (

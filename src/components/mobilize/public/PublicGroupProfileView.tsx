@@ -119,18 +119,25 @@ function EventRow({
           <CalendarMonthOutlinedIcon sx={{ fontSize: 16, color: "rgba(0,0,0,0.45)" }} />
           <Typography
             fontWeight={700}
-            sx={{ color: "#1565c0", fontSize: "0.95rem", lineHeight: 1.3 }}
+            sx={{ color: "rgba(0,0,0,0.82)", fontSize: "0.95rem", lineHeight: 1.3 }}
             noWrap
             title={event.title}
           >
             {event.title}
           </Typography>
         </Stack>
-        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.45 }}>
+        <Typography
+          variant="body2"
+          sx={{ lineHeight: 1.45, color: "rgba(0,0,0,0.65)" }}
+        >
           {formatEventShort(event.date_time)}
         </Typography>
         {event.address?.trim() ? (
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
+          <Typography
+            variant="caption"
+            display="block"
+            sx={{ mt: 0.25, color: "rgba(0,0,0,0.55)" }}
+          >
             {event.address}
           </Typography>
         ) : null}
@@ -160,72 +167,109 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#fff", color: "#1a1a1a" }}>
-      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 }, px: { xs: 2, sm: 3 } }}>
-        {/* Hero: title + cover (no site header) */}
+      {/* Hero: logo + name | cover — column-reverse on mobile */}
+      <Box
+        sx={{
+          bgcolor: "#000",
+          color: "#fff",
+          display: "flex",
+          flexDirection: { xs: "column-reverse", md: "row" },
+          alignItems: "stretch",
+          width: "100%",
+        }}
+      >
         <Box
           sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1.05fr) minmax(0, 0.95fr)" },
-            gap: { xs: 2, md: 4 },
-            alignItems: "center",
-            mb: 0,
+            flex: { xs: "0 0 auto", md: "1 1 50%" },
+            minWidth: 0,
+            px: "1.5rem",
+            pt: { xs: 2, md: 3 },
+            pb: { xs: 2.5, md: 3.5 },
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            boxSizing: "border-box",
           }}
         >
+          <Box
+            component="img"
+            src="/logos/fp-army-chapters-white.png"
+            alt="FP Army Chapters"
+            sx={{
+              width: "35%",
+              maxWidth: 280,
+              height: "auto",
+              objectFit: "contain",
+              display: "block",
+              mb: "1rem",
+            }}
+          />
           <Typography
             component="h1"
             sx={{
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-              lineHeight: 1.15,
-              fontSize: { xs: "1.75rem", sm: "2.1rem", md: "2.35rem" },
-              color: "#111",
               m: 0,
+              color: "#fff",
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.2,
+              fontSize: { xs: "1.5rem", sm: "1.85rem", md: "2.15rem" },
             }}
           >
             {group.name}
           </Typography>
+        </Box>
 
-          {coverSrc ? (
-            <Box
-              component="img"
-              src={coverSrc}
-              alt=""
+        {coverSrc ? (
+          <Box
+            component="img"
+            src={coverSrc}
+            alt=""
+            sx={{
+              flex: { xs: "0 0 auto", md: "1 1 50%" },
+              width: { xs: "100%", md: "50%" },
+              minWidth: 0,
+              aspectRatio: "16 / 9",
+              objectFit: "cover",
+              borderRadius: 0,
+              display: "block",
+            }}
+          />
+        ) : (
+          <Box
+            sx={{
+              flex: { xs: "0 0 auto", md: "1 1 50%" },
+              width: { xs: "100%", md: "50%" },
+              minWidth: 0,
+              aspectRatio: "16 / 9",
+              borderRadius: 0,
+              bgcolor: "#111",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              px: 3,
+            }}
+          >
+            <Typography
               sx={{
-                width: "100%",
-                aspectRatio: "16 / 9",
-                objectFit: "cover",
-                borderRadius: 2,
-                boxShadow: "0 8px 28px rgba(0,0,0,0.12)",
-                display: "block",
-              }}
-            />
-          ) : (
-            <Box
-              sx={{
-                width: "100%",
-                aspectRatio: "16 / 9",
-                borderRadius: 2,
-                background: "linear-gradient(135deg, #1a2744 0%, #2d4a7a 55%, #4a6fa5 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                px: 3,
+                color: "rgba(255,255,255,0.72)",
+                fontWeight: 800,
+                letterSpacing: 1.5,
+                fontSize: "0.85rem",
                 textAlign: "center",
               }}
             >
-              <Typography sx={{ color: "rgba(255,255,255,0.92)", fontWeight: 800, letterSpacing: 1.5, fontSize: "0.85rem" }}>
-                FLASHPOINT ARMY GROUP
-              </Typography>
-            </Box>
-          )}
-        </Box>
+              FLASHPOINT ARMY GROUP
+            </Typography>
+          </Box>
+        )}
+      </Box>
 
-        <Box sx={{ mt: { xs: 2.5, md: 3 }, mx: { xs: -2, sm: -3 }, px: { xs: 2, sm: 3 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 }, px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ mt: 0, mx: { xs: -2, sm: -3 }, px: { xs: 2, sm: 3 } }}>
           <PublicGroupActionBar
             groupId={group.id}
             enrollmentMode={group.enrollment_mode}
-            contactEmail={group.leaderEmail}
-            contactName={group.leaderName}
           />
         </Box>
 
@@ -268,7 +312,11 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
               </Typography>
             )}
 
-            <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>
+            <Typography
+              variant="h6"
+              fontWeight={800}
+              sx={{ mb: 1.5, color: "rgba(0,0,0,0.82)" }}
+            >
               Upcoming events
             </Typography>
             {(group.upcoming ?? []).length ? (
@@ -278,12 +326,16 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
                 ))}
               </Stack>
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+              <Typography variant="body2" sx={{ mb: 4, color: "rgba(0,0,0,0.55)" }}>
                 No upcoming public events are scheduled for this group right now.
               </Typography>
             )}
 
-            <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>
+            <Typography
+              variant="h6"
+              fontWeight={800}
+              sx={{ mb: 1.5, color: "rgba(0,0,0,0.82)" }}
+            >
               Past events
             </Typography>
             {(group.past ?? []).length ? (
@@ -293,7 +345,7 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
                 ))}
               </Stack>
             ) : (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: "rgba(0,0,0,0.55)" }}>
                 No past public events have been recorded for this group.
               </Typography>
             )}
@@ -317,8 +369,9 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
                   size="small"
                   sx={{
                     fontWeight: 600,
-                    bgcolor: "#fff",
-                    border: "1px solid rgba(0,0,0,0.12)",
+                    bgcolor: "#000",
+                    color: "#fff",
+                    border: "1px solid #000",
                     height: 28,
                   }}
                 />
