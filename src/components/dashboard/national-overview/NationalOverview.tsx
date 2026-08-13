@@ -557,6 +557,14 @@ export function NationalOverview({
                   overflow: "hidden",
                   height: "100%",
                   width: "100%",
+                  // 2-column stack only — give Members/Leaders room to breathe.
+                  ...(isDual
+                    ? {
+                        "@media (max-width: 767.98px)": {
+                          minWidth: 200,
+                        },
+                      }
+                    : null),
                 }}
               >
                 {"pulse" in s && s.pulse ? (
@@ -591,19 +599,27 @@ export function NationalOverview({
                     <Box
                       sx={{
                         display: "flex",
-                        flexDirection: "column",
-                        gap: 1.25,
+                        flexDirection: "row",
+                        alignItems: "flex-start",
                         width: "100%",
                         minWidth: 0,
+                        "@media (min-width: 768px)": {
+                          flexDirection: "column",
+                          gap: 1.25,
+                        },
                       }}
                     >
+                      {/* Mobile (2-col): icon + content side-by-side. Desktop: icon/total header then split. */}
                       <Box
                         sx={{
                           display: "flex",
                           alignItems: "flex-start",
-                          justifyContent: "space-between",
-                          gap: 1,
-                          minWidth: 0,
+                          flexShrink: 0,
+                          "@media (min-width: 768px)": {
+                            width: "100%",
+                            justifyContent: "space-between",
+                            gap: 1,
+                          },
                         }}
                       >
                         <Box
@@ -622,119 +638,172 @@ export function NationalOverview({
                         >
                           <StatIcon sx={{ color: "#fff", fontSize: { xs: 22, sm: 24 } }} />
                         </Box>
-                        <StatCountWithExactTooltip value={s.value} label="Total members">
-                          <Typography
-                            component="span"
-                            sx={{
-                              color: "rgba(255,255,255,0.72)",
-                              fontWeight: 700,
-                              fontSize: { xs: "0.75rem", sm: "0.8125rem" },
-                              lineHeight: 1.25,
-                              letterSpacing: "0.01em",
-                              textAlign: "right",
-                              pt: 0.25,
-                            }}
-                          >
-                            {`${formatStatCompact(s.value)} Total members`}
-                          </Typography>
-                        </StatCountWithExactTooltip>
+                        <Box
+                          sx={{
+                            display: "none",
+                            "@media (min-width: 768px)": { display: "block" },
+                          }}
+                        >
+                          <StatCountWithExactTooltip value={s.value} label="Total members">
+                            <Typography
+                              component="span"
+                              sx={{
+                                color: "rgba(255,255,255,0.72)",
+                                fontWeight: 700,
+                                fontSize: "0.8125rem",
+                                lineHeight: 1.25,
+                                textAlign: "right",
+                                pt: 0.25,
+                                display: "block",
+                              }}
+                            >
+                              {`${formatStatCompact(s.value)} Total members`}
+                            </Typography>
+                          </StatCountWithExactTooltip>
+                        </Box>
                       </Box>
+
                       <Box
                         sx={{
-                          display: "grid",
-                          gridTemplateColumns: "minmax(0, 1fr) 1px minmax(0, 1fr)",
-                          alignItems: "start",
-                          columnGap: { xs: 1, sm: 1.5 },
-                          width: "100%",
                           minWidth: 0,
+                          flex: 1,
+                          width: "98%",
+                          pl: "2%",
+                          "@media (min-width: 768px)": {
+                            width: "100%",
+                            pl: 0,
+                            flex: "none",
+                          },
                         }}
                       >
-                        <StatCountWithExactTooltip
-                          value={s.dual.left.value}
-                          label={s.dual.left.label}
-                        >
-                          <Box sx={{ textAlign: "left", minWidth: 0 }}>
-                            <Typography
-                              variant="h4"
-                              sx={{
-                                color: "#fff",
-                                fontWeight: 800,
-                                lineHeight: 1.1,
-                                fontSize: {
-                                  xs: "1.25rem",
-                                  // Below 768 keep mobile-scale; desktop uses compact digits so this fits.
-                                  "@media (min-width: 768px)": { fontSize: "1.65rem" },
-                                },
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {formatStatCompact(s.dual.left.value)}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                display: "block",
-                                mt: 0.35,
-                                lineHeight: 1.25,
-                                fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                                color: "rgba(255,255,255,0.82)",
-                                fontWeight: 500,
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {s.dual.left.label}
-                            </Typography>
-                          </Box>
-                        </StatCountWithExactTooltip>
                         <Box
-                          aria-hidden
                           sx={{
-                            width: "1px",
-                            alignSelf: "stretch",
-                            bgcolor: "rgba(255,255,255,0.35)",
-                            my: 0.35,
+                            display: "block",
+                            "@media (min-width: 768px)": { display: "none" },
                           }}
-                        />
-                        <StatCountWithExactTooltip
-                          value={s.dual.right.value}
-                          label={s.dual.right.label}
                         >
-                          <Box sx={{ textAlign: "left", minWidth: 0 }}>
+                          <StatCountWithExactTooltip value={s.value} label="Total members">
                             <Typography
-                              variant="h4"
+                              component="span"
                               sx={{
-                                color: "#fff",
-                                fontWeight: 800,
-                                lineHeight: 1.1,
-                                fontSize: {
-                                  xs: "1.25rem",
-                                  "@media (min-width: 768px)": { fontSize: "1.65rem" },
-                                },
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {formatStatCompact(s.dual.right.value)}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              sx={{
+                                color: "rgba(255,255,255,0.72)",
+                                fontWeight: 100,
+                                fontSize: "11px !important",
+                                lineHeight: 1,
+                                letterSpacing: "0.01em",
+                                textAlign: "left",
                                 display: "block",
-                                mt: 0.35,
-                                lineHeight: 1.25,
-                                fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                                color: "rgba(255,255,255,0.82)",
-                                fontWeight: 500,
-                                whiteSpace: "nowrap",
+                                mt: "-7px",
+                                mb: "2px",
                               }}
                             >
-                              {s.dual.right.label}
+                              {`${formatStatCompact(s.value)} Total members`}
                             </Typography>
-                          </Box>
-                        </StatCountWithExactTooltip>
+                          </StatCountWithExactTooltip>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: "minmax(0, 1fr) 1px minmax(0, 1fr)",
+                            alignItems: "start",
+                            columnGap: { xs: 1, sm: 1.5 },
+                            width: "100%",
+                            minWidth: 0,
+                          }}
+                        >
+                          <StatCountWithExactTooltip
+                            value={s.dual.left.value}
+                            label={s.dual.left.label}
+                          >
+                            <Box sx={{ textAlign: "left", minWidth: 0 }}>
+                              <Typography
+                                variant="h4"
+                                sx={{
+                                  color: "#fff",
+                                  fontWeight: 800,
+                                  lineHeight: 1.1,
+                                  fontSize: {
+                                    xs: "1.25rem",
+                                    "@media (min-width: 768px)": { fontSize: "1.65rem" },
+                                  },
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {formatStatCompact(s.dual.left.value)}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: "block",
+                                  mt: 0.35,
+                                  lineHeight: 1.25,
+                                  fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                  color: "rgba(255,255,255,0.82)",
+                                  fontWeight: 100,
+                                  whiteSpace: "nowrap",
+                                  "@media (min-width: 768px)": {
+                                    fontWeight: 500,
+                                  },
+                                }}
+                              >
+                                {s.dual.left.label}
+                              </Typography>
+                            </Box>
+                          </StatCountWithExactTooltip>
+                          <Box
+                            aria-hidden
+                            sx={{
+                              width: "1px",
+                              alignSelf: "stretch",
+                              bgcolor: "rgba(255,255,255,0.35)",
+                              my: 0.35,
+                            }}
+                          />
+                          <StatCountWithExactTooltip
+                            value={s.dual.right.value}
+                            label={s.dual.right.label}
+                          >
+                            <Box sx={{ textAlign: "left", minWidth: 0 }}>
+                              <Typography
+                                variant="h4"
+                                sx={{
+                                  color: "#fff",
+                                  fontWeight: 800,
+                                  lineHeight: 1.1,
+                                  fontSize: {
+                                    xs: "1.25rem",
+                                    "@media (min-width: 768px)": { fontSize: "1.65rem" },
+                                  },
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {formatStatCompact(s.dual.right.value)}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: "block",
+                                  mt: 0.35,
+                                  lineHeight: 1.25,
+                                  fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                  color: "rgba(255,255,255,0.82)",
+                                  fontWeight: 100,
+                                  whiteSpace: "nowrap",
+                                  "@media (min-width: 768px)": {
+                                    fontWeight: 500,
+                                  },
+                                }}
+                              >
+                                {s.dual.right.label}
+                              </Typography>
+                            </Box>
+                          </StatCountWithExactTooltip>
+                        </Box>
                       </Box>
                     </Box>
                   ) : (
