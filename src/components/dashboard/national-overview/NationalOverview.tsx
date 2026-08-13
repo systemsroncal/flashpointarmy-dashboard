@@ -468,8 +468,11 @@ export function NationalOverview({
 
       <Box
         sx={{
-          display: "flex",
-          flexWrap: "wrap",
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2, minmax(0, 1fr))",
+            sm: "repeat(auto-fill, minmax(160px, 1fr))",
+          },
           gap: 2,
           mb: 3,
           alignItems: "stretch",
@@ -482,11 +485,8 @@ export function NationalOverview({
             <Box
               key={s.label}
               sx={{
-                flex: isDual ? "0 0 auto" : "1 1 148px",
-                flexShrink: isDual ? 0 : 1,
-                width: isDual ? "max-content" : "auto",
-                minWidth: isDual ? "max-content" : { xs: "calc(50% - 8px)", sm: 148 },
-                maxWidth: isDual ? { xs: "100%", sm: "none" } : { xs: "calc(50% - 8px)", sm: 220 },
+                minWidth: 0,
+                width: "100%",
               }}
             >
               <Card
@@ -494,11 +494,9 @@ export function NationalOverview({
                   bgcolor: "rgba(0,0,0,0.45)",
                   border: `1px solid ${s.color}44`,
                   position: "relative",
-                  overflow: isDual ? "visible" : "hidden",
+                  overflow: "hidden",
                   height: "100%",
-                  width: isDual ? "max-content" : "100%",
-                  minWidth: isDual ? "max-content" : undefined,
-                  maxWidth: isDual ? { xs: "100%", sm: "none" } : undefined,
+                  width: "100%",
                 }}
               >
                 {"pulse" in s && s.pulse ? (
@@ -535,7 +533,8 @@ export function NationalOverview({
                         display: "flex",
                         flexDirection: "column",
                         gap: { xs: 1, sm: 1.25 },
-                        width: "max-content",
+                        width: "100%",
+                        minWidth: 0,
                       }}
                     >
                       <Box
@@ -543,6 +542,7 @@ export function NationalOverview({
                           display: "flex",
                           alignItems: "center",
                           gap: 1.25,
+                          minWidth: 0,
                         }}
                       >
                         <Box
@@ -578,20 +578,21 @@ export function NationalOverview({
                       <Box
                         sx={{
                           display: "grid",
-                          gridTemplateColumns: "max-content 1px max-content",
+                          gridTemplateColumns: "minmax(0, 1fr) 1px minmax(0, 1fr)",
                           alignItems: "start",
-                          columnGap: { xs: 1.5, sm: 2 },
-                          width: "max-content",
+                          columnGap: { xs: 1, sm: 1.5 },
+                          width: "100%",
+                          minWidth: 0,
                         }}
                       >
-                        <Box sx={{ textAlign: "left", pr: 0.25 }}>
+                        <Box sx={{ textAlign: "left", minWidth: 0 }}>
                           <Typography
                             variant="h4"
                             sx={{
                               color: "#fff",
                               fontWeight: 800,
                               lineHeight: 1.1,
-                              fontSize: { xs: "1.35rem", sm: "2.125rem" },
+                              fontSize: { xs: "1.25rem", sm: "2.125rem" },
                               whiteSpace: "nowrap",
                             }}
                           >
@@ -621,14 +622,14 @@ export function NationalOverview({
                             my: { xs: 0.25, sm: 0.5 },
                           }}
                         />
-                        <Box sx={{ textAlign: "left", pl: 0.25 }}>
+                        <Box sx={{ textAlign: "left", minWidth: 0 }}>
                           <Typography
                             variant="h4"
                             sx={{
                               color: "#fff",
                               fontWeight: 800,
                               lineHeight: 1.1,
-                              fontSize: { xs: "1.35rem", sm: "2.125rem" },
+                              fontSize: { xs: "1.25rem", sm: "2.125rem" },
                               whiteSpace: "nowrap",
                             }}
                           >
