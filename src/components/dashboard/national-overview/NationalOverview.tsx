@@ -468,13 +468,11 @@ export function NationalOverview({
 
       <Box
         sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "repeat(2, minmax(0, 1fr))",
-            sm: "repeat(auto-fill, minmax(160px, 1fr))",
-          },
+          display: "flex",
+          flexWrap: "wrap",
           gap: 2,
           mb: 3,
+          alignItems: "stretch",
         }}
       >
         {statCards.map((s) => {
@@ -484,8 +482,11 @@ export function NationalOverview({
             <Box
               key={s.label}
               sx={{
-                minWidth: 0,
-                width: "100%",
+                flex: isDual ? "0 0 auto" : "1 1 148px",
+                flexShrink: isDual ? 0 : 1,
+                width: isDual ? "max-content" : "auto",
+                minWidth: isDual ? "max-content" : { xs: "calc(50% - 8px)", sm: 148 },
+                maxWidth: isDual ? { xs: "100%", sm: "none" } : { xs: "calc(50% - 8px)", sm: 220 },
               }}
             >
               <Card
@@ -493,8 +494,11 @@ export function NationalOverview({
                   bgcolor: "rgba(0,0,0,0.45)",
                   border: `1px solid ${s.color}44`,
                   position: "relative",
-                  overflow: "hidden",
+                  overflow: isDual ? "visible" : "hidden",
                   height: "100%",
+                  width: isDual ? "max-content" : "100%",
+                  minWidth: isDual ? "max-content" : undefined,
+                  maxWidth: isDual ? { xs: "100%", sm: "none" } : undefined,
                 }}
               >
                 {"pulse" in s && s.pulse ? (
@@ -526,13 +530,19 @@ export function NationalOverview({
                   }}
                 >
                   {isDual && s.dual ? (
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 1, sm: 1.25 }, minWidth: 0 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: { xs: 1, sm: 1.25 },
+                        width: "max-content",
+                      }}
+                    >
                       <Box
                         sx={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 1,
-                          minWidth: 0,
+                          gap: 1.25,
                         }}
                       >
                         <Box
@@ -568,20 +578,21 @@ export function NationalOverview({
                       <Box
                         sx={{
                           display: "grid",
-                          gridTemplateColumns: "minmax(0, 1fr) 1px minmax(0, 1fr)",
+                          gridTemplateColumns: "max-content 1px max-content",
                           alignItems: "start",
-                          columnGap: { xs: 0.75, sm: 1 },
-                          minWidth: 0,
+                          columnGap: { xs: 1.5, sm: 2 },
+                          width: "max-content",
                         }}
                       >
-                        <Box sx={{ textAlign: "left", minWidth: 0, overflow: "hidden", pr: 0.5 }}>
+                        <Box sx={{ textAlign: "left", pr: 0.25 }}>
                           <Typography
                             variant="h4"
                             sx={{
                               color: "#fff",
                               fontWeight: 800,
                               lineHeight: 1.1,
-                              fontSize: { xs: "1.2rem", sm: "1.75rem" },
+                              fontSize: { xs: "1.35rem", sm: "2.125rem" },
+                              whiteSpace: "nowrap",
                             }}
                           >
                             {s.dual.left.value.toLocaleString()}
@@ -595,6 +606,7 @@ export function NationalOverview({
                               fontSize: { xs: "0.7rem", sm: "0.75rem" },
                               color: "rgba(255,255,255,0.82)",
                               fontWeight: 500,
+                              whiteSpace: "nowrap",
                             }}
                           >
                             {s.dual.left.label}
@@ -609,14 +621,15 @@ export function NationalOverview({
                             my: { xs: 0.25, sm: 0.5 },
                           }}
                         />
-                        <Box sx={{ textAlign: "left", minWidth: 0, overflow: "hidden", pl: 0.5 }}>
+                        <Box sx={{ textAlign: "left", pl: 0.25 }}>
                           <Typography
                             variant="h4"
                             sx={{
                               color: "#fff",
                               fontWeight: 800,
                               lineHeight: 1.1,
-                              fontSize: { xs: "1.2rem", sm: "1.75rem" },
+                              fontSize: { xs: "1.35rem", sm: "2.125rem" },
+                              whiteSpace: "nowrap",
                             }}
                           >
                             {s.dual.right.value.toLocaleString()}
@@ -630,6 +643,7 @@ export function NationalOverview({
                               fontSize: { xs: "0.7rem", sm: "0.75rem" },
                               color: "rgba(255,255,255,0.82)",
                               fontWeight: 500,
+                              whiteSpace: "nowrap",
                             }}
                           >
                             {s.dual.right.label}
