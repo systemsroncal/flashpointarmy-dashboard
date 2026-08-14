@@ -352,6 +352,7 @@ export function GatheringDescriptionEditor({
                 "& .tox .tox-edit-area": {
                   bgcolor: "transparent !important",
                   outline: "none !important",
+                  paddingLeft: "7px",
                 },
                 "& .tox .tox-edit-area::before, & .tox.tox-edit-focus .tox-edit-area::before": {
                   display: "none !important",

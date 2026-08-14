@@ -93,7 +93,7 @@ export function MobilizeOwnerHomeClient() {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              maxWidth: 1180,
+              maxWidth: 960,
               mx: "auto",
               p: { xs: 0, sm: 1.5, md: 2 },
             }}

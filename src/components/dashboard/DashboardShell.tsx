@@ -149,6 +149,12 @@ const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
     icon: <ArrowBackIcon />,
   },
   {
+    label: "Home",
+    href: `${MOBILIZE_PREFIX}/home`,
+    module: MODULE_SLUGS.movilization,
+    icon: <HomeOutlinedIcon />,
+  },
+  {
     label: "Chapters",
     href: `${MOBILIZE_PREFIX}/map`,
     module: MODULE_SLUGS.movilization,
