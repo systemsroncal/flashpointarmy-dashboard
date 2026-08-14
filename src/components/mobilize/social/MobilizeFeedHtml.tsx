@@ -19,7 +19,8 @@ export function MobilizeFeedHtml({ html, plain, sx }: Props) {
           sx={{
             typography: "body2",
             color: "#1a1a1a",
-            "& p": { mb: 1 },
+            "& p": { mt: 0, pt: 0, mb: 1 },
+            "& p:first-of-type": { mt: 0, pt: 0 },
             "& p:last-child": { mb: 0 },
             "& a": { color: "#1565c0", wordBreak: "break-word" },
             "& img": { maxWidth: "100%", height: "auto", borderRadius: 1 },

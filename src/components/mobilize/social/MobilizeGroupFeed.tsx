@@ -117,7 +117,7 @@ export function MobilizeGroupFeed({
             color: "#0d0d0d",
             flexShrink: 0,
             p: 0,
-            mt: "1rem",
+            mt: { xs: 0, sm: "1rem" },
             borderRadius: { xs: 0, sm: "1rem" },
             boxShadow: { xs: "none", sm: "0 0 9px 1px #d2d2d2" },
             border: "none",

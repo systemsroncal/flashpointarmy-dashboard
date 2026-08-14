@@ -183,7 +183,7 @@ export const mobilizeGroupFeedPostsListSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
   alignSelf: "stretch",
-  gap: 2,
+  gap: { xs: 0, sm: 2 },
   minHeight: {
     xs: "calc(100dvh - 28rem)",
     sm: "calc(100dvh - 32rem)",
@@ -198,14 +198,15 @@ export const mobilizeGroupFeedPostsListSx: SxProps<Theme> = {
 /** Single post card in group feed (elevated white tile on camo). */
 export const mobilizeGroupFeedPostCardSx: SxProps<Theme> = {
   bgcolor: "#fff",
-  borderRadius: "1rem",
+  borderRadius: { xs: 0, sm: "1rem" },
   p: { xs: 1.25, sm: 2 },
-  boxShadow: "0 0 9px 1px #d2d2d2",
+  boxShadow: { xs: "none", sm: "0 0 9px 1px #d2d2d2" },
   m: 0,
-  mb: 2,
+  mb: { xs: 0, sm: 2 },
+  borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
   width: "100%",
   boxSizing: "border-box",
-  "&:last-child": { mb: 0 },
+  "&:last-child": { mb: 0, borderBottom: { xs: "none", sm: "none" } },
 };
 
 /** White tab panel — fills remaining height below the group hero. */

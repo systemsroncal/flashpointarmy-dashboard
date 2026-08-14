@@ -121,13 +121,24 @@ export function MobilizeSocialFeedShell({
     </Box>
   );
 
-  if (leftRail || rightRail) {
-    return <ThemeProvider theme={mobilizePanelTheme}><Box sx={fillSx}>{body}</Box></ThemeProvider>;
+  if (leftRail || rightRail || fill || isGroupProfile) {
+    return (
+      <ThemeProvider theme={mobilizePanelTheme}>
+        <Box sx={fillSx}>{body}</Box>
+      </ThemeProvider>
+    );
   }
 
   return (
     <ThemeProvider theme={mobilizePanelTheme}>
-      <Box sx={{ bgcolor: "#f0f2f5", borderRadius: 2, p: { xs: 1, sm: 1.5 }, minHeight: 200 }}>
+      <Box
+        sx={{
+          bgcolor: { xs: "transparent", sm: "#f0f2f5" },
+          borderRadius: { xs: 0, sm: 2 },
+          p: { xs: 0, sm: 1.5 },
+          minHeight: 200,
+        }}
+      >
         <Box sx={feedColumnSx}>{children}</Box>
       </Box>
     </ThemeProvider>

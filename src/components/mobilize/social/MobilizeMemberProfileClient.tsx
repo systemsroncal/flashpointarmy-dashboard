@@ -644,7 +644,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   );
 
   const postsFeed = (
-    <Stack spacing={1.5}>
+    <Stack spacing={{ xs: 0, sm: 1.5 }}>
       {p.is_own_profile ? (
         <Paper
           elevation={0}
@@ -653,10 +653,11 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             color: "#0d0d0d",
             overflow: "hidden",
             p: 0,
-            mt: "1rem",
-            borderRadius: "1rem",
-            boxShadow: "0 0 9px 1px #d2d2d2",
+            mt: { xs: 0, sm: "1rem" },
+            borderRadius: { xs: 0, sm: "1rem" },
+            boxShadow: { xs: "none", sm: "0 0 9px 1px #d2d2d2" },
             border: "none",
+            borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
           }}
         >
           <MobilizeSocialPostEditor
@@ -740,8 +741,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     flex: 1,
     minHeight: 0,
     bgcolor: "transparent",
-    borderRadius: 2,
-    p: { xs: 1, sm: 2 },
+    borderRadius: { xs: 0, sm: 2 },
+    p: { xs: 0, sm: 2 },
     display: "flex",
     flexDirection: "column",
   } as const;
@@ -768,7 +769,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     }
 
     const renderPostList = (items: ProfilePost[], emptyCopy: { title: string; description: string }) => (
-      <Stack spacing={1.5}>
+      <Stack spacing={{ xs: 0, sm: 1.5 }}>
         {items.map((post) => (
           <MobilizeSocialPostCard
             key={post.id}

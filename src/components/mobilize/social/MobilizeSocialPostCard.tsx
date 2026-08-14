@@ -175,7 +175,7 @@ export function MobilizeSocialPostCard({
         {post.comments_policy === "leaders_only" ? (
           <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
         ) : null}
-        <Box sx={{ mt: 1.25 }}>
+        <Box sx={{ mt: isGroupFeedCard || isGroupFeedList ? 0 : 1.25 }}>
           <MobilizeCollapsiblePostBody
             surface={surface}
             text={

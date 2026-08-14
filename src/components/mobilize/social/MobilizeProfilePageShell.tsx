@@ -250,12 +250,12 @@ export function MobilizeProfilePageShell({
         ) : (
         <Box
           sx={{
-            borderRadius: 2,
+            borderRadius: { xs: 0, sm: 2 },
             overflow: "hidden",
             bgcolor: "#fff",
-            border: "1px solid rgba(0,0,0,0.08)",
+            border: { xs: "none", sm: "1px solid rgba(0,0,0,0.08)" },
             mb: unifiedContent ? 0 : 1.5,
-            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+            boxShadow: { xs: "none", sm: "0 2px 12px rgba(0,0,0,0.06)" },
             ...(unifiedContent && panelFill
               ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
               : {}),
@@ -453,7 +453,7 @@ export function MobilizeProfilePageShell({
                 flexDirection: "column",
                 borderTop: "1px solid rgba(0,0,0,0.08)",
                 color: "#0d0d0d",
-                px: "1.5rem",
+                px: { xs: 0, sm: "1.5rem" },
                 py: 0,
                 boxSizing: "border-box",
                 maxWidth: 1100,
