@@ -618,11 +618,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const isMobilize =
     pathname.startsWith(MOBILIZE_PREFIX) &&
     canAccessMobilizeModule(user.role_names, mobilizeViewerRoles, mobilizeAccessOpts);
-  const onMobilizeSocialHub =
-    isMobilize &&
-    (pathname === `${MOBILIZE_PREFIX}/home` ||
-      pathname === MOBILIZE_PREFIX ||
-      pathname === `/dashboard/mobilize/profile/${user.id}`);
   const onMobilizeProfilePage =
     isMobilize && pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
   const onMobilizeSocialHubPage =
@@ -636,14 +631,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       pathname.startsWith(`${MOBILIZE_PREFIX}/social-settings`));
 
   useEffect(() => {
-    /** Keep Mobilize sidebar visible on member profiles (internal social nav is hidden there). */
-    if (onMobilizeProfilePage) {
+    /** Keep dashboard left sidebar open on Mobilize social hub pages (home, messages, etc.). */
+    if (onMobilizeSocialHubPage || onMobilizeProfilePage) {
       if (desktop) setDesktopDrawerOpen(true);
-      return;
     }
-    if (!onMobilizeSocialHubPage) return;
-    setDesktopDrawerOpen(false);
-    setMobileDrawerOpen(false);
   }, [onMobilizeSocialHubPage, onMobilizeProfilePage, pathname, desktop]);
 
   const mobilizeDrawerNav = useMemo(() => {

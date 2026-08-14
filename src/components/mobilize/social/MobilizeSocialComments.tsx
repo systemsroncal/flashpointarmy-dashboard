@@ -99,27 +99,25 @@ function timeAgo(iso: string): string {
 
 function CommentComposer({
   viewerAvatarUrl,
-  asName,
+  avatarFallback = "?",
   draft,
   onDraftChange,
   posting,
   onSubmit,
   light,
   placeholder,
-  helperText,
   header,
   inputRef,
   compact,
 }: {
   viewerAvatarUrl?: string | null;
-  asName: string;
+  avatarFallback?: string;
   draft: string;
   onDraftChange: (value: string) => void;
   posting: boolean;
   onSubmit: () => void;
   light: boolean;
   placeholder: string;
-  helperText?: string;
   header?: ReactNode;
   inputRef?: RefObject<HTMLInputElement | null>;
   compact?: boolean;
@@ -158,7 +156,7 @@ function CommentComposer({
           src={viewerAvatarUrl ? publicAssetSrc(viewerAvatarUrl) : undefined}
           sx={{ width: avatarSize, height: avatarSize, mt: 0.25, bgcolor: "#263238", flexShrink: 0 }}
         >
-          {asName[0]?.toUpperCase()}
+          {avatarFallback[0]?.toUpperCase()}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0, overflow: "visible" }}>
           <TextField
@@ -218,9 +216,6 @@ function CommentComposer({
               >
                 <EmojiEmotionsOutlinedIcon sx={{ fontSize: 18 }} />
               </IconButton>
-              <Typography variant="caption" sx={{ color: nameMuted }} noWrap>
-                {helperText ?? `You're commenting as ${asName}.`}
-              </Typography>
             </Stack>
             {hasDraft || posting ? (
               <Button
@@ -643,8 +638,8 @@ export function MobilizeSocialComments({
 
   if (!open) return null;
 
-  const asName = viewerDisplayName?.trim() || "you";
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
+  const avatarFallback = viewerDisplayName?.trim() || "?";
   const topComments = comments.slice(0, DEFAULT_VISIBLE_COMMENTS);
   const restComments =
     comments.length > DEFAULT_VISIBLE_COMMENTS ? comments.slice(DEFAULT_VISIBLE_COMMENTS) : [];
@@ -653,7 +648,7 @@ export function MobilizeSocialComments({
   const replyComposer = (
     <CommentComposer
       viewerAvatarUrl={viewerAvatarUrl}
-      asName={asName}
+      avatarFallback={avatarFallback}
       draft={draft}
       onDraftChange={setDraft}
       posting={posting}
@@ -661,8 +656,7 @@ export function MobilizeSocialComments({
       light={light}
       compact
       inputRef={replyInputRef}
-      placeholder={`Reply to ${replyToName || "comment"} as ${asName}`}
-      helperText={`You're replying to ${replyToName || "this comment"}.`}
+      placeholder={`Reply to ${replyToName || "comment"}`}
       header={
         <Typography variant="caption" display="block" sx={{ mb: 0.5, color: nameMuted }}>
           Replying to {replyToName || "comment"}…{" "}
@@ -778,13 +772,13 @@ export function MobilizeSocialComments({
       {canComment && !replyParentId ? (
         <CommentComposer
           viewerAvatarUrl={viewerAvatarUrl}
-          asName={asName}
+          avatarFallback={avatarFallback}
           draft={draft}
           onDraftChange={setDraft}
           posting={posting}
           onSubmit={() => void submitComment()}
           light={light}
-          placeholder={`Comment as ${asName}`}
+          placeholder="Write a comment…"
         />
       ) : null}
     </Box>

@@ -16,7 +16,7 @@ import {
 } from "@/lib/mobilize/social/feed-post-urls";
 import { HOME_FEED_EMPTY } from "@/lib/mobilize/social/social-empty-copy";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, Paper, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 
 const HOME_TABS = [
@@ -84,7 +84,7 @@ export function MobilizeOwnerHomeClient() {
 
   return (
     <Box sx={{ ...mobilizeChapterDetailRootSx, display: "flex", flexDirection: "column", minHeight: 0 }}>
-      <MobilizeSocialHubLayout>
+      <MobilizeSocialHubLayout showRightRail={false}>
         <MobilizeSocialHubContent tone="light">
           <Box
             sx={{
@@ -93,28 +93,37 @@ export function MobilizeOwnerHomeClient() {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              maxWidth: 1400,
+              maxWidth: 1100,
               mx: "auto",
-              p: { xs: 1, sm: 1.5, md: 2 },
+              p: { xs: 0, sm: 1.5, md: 2 },
             }}
           >
-            <Typography variant="h5" fontWeight={800} sx={{ mb: 1.5, color: "#0d0d0d" }}>
+            <Typography
+              variant="h5"
+              fontWeight={800}
+              sx={{ mb: 1.5, color: "#0d0d0d", px: { xs: 1.5, sm: 0 }, pt: { xs: 1.5, sm: 0 } }}
+            >
               Home
             </Typography>
 
             {error ? (
-              <Typography color="error" sx={{ mb: 1 }}>
+              <Typography color="error" sx={{ mb: 1, px: { xs: 1.5, sm: 0 } }}>
                 {error}
               </Typography>
             ) : null}
 
-            <Box
+            <Paper
+              elevation={0}
               sx={{
                 bgcolor: "#fff",
-                borderRadius: 2,
-                border: "1px solid rgba(0,0,0,0.08)",
+                color: "#0d0d0d",
                 overflow: "hidden",
-                mb: 1.5,
+                p: 0,
+                mt: { xs: 0, sm: "1rem" },
+                borderRadius: { xs: 0, sm: "1rem" },
+                boxShadow: { xs: "none", sm: "0 0 9px 1px #d2d2d2" },
+                border: "none",
+                borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
               }}
             >
               <MobilizeSocialPostEditor
@@ -122,6 +131,7 @@ export function MobilizeOwnerHomeClient() {
                 onChange={setComposerHtml}
                 disabled={posting}
                 surface="light"
+                brandAccent
                 avatarUrl={me.avatar_url}
                 avatarFallback={me.display_name ?? me.email ?? "?"}
                 imageUrls={composerImages}
@@ -131,6 +141,18 @@ export function MobilizeOwnerHomeClient() {
                 posting={posting}
                 canPost={canPost}
               />
+            </Paper>
+
+            <Box
+              sx={{
+                bgcolor: "#fff",
+                borderRadius: { xs: 0, sm: 2 },
+                borderTop: { xs: "none", sm: "1px solid rgba(0,0,0,0.08)" },
+                overflow: "hidden",
+                mb: { xs: 0, sm: 1.5 },
+                mt: { xs: 0, sm: 1.5 },
+              }}
+            >
               <MobilizeContentTabBar
                 tabs={HOME_TABS.map((t) => ({ id: t.id, label: t.label }))}
                 activeTab={activeTab}
@@ -151,6 +173,8 @@ export function MobilizeOwnerHomeClient() {
                   empty={empty}
                   viewerAvatarUrl={me.avatar_url}
                   viewerDisplayName={me.display_name ?? me.email}
+                  viewerUserId={me.id}
+                  viewerIsSuperAdmin={me.role_names.includes("super_admin")}
                 />
               )}
             </Box>
@@ -166,14 +190,18 @@ function StackFeed({
   empty,
   viewerAvatarUrl,
   viewerDisplayName,
+  viewerUserId,
+  viewerIsSuperAdmin,
 }: {
   posts: UnifiedFeedPost[];
   empty: { title: string; description: string };
   viewerAvatarUrl?: string | null;
   viewerDisplayName?: string | null;
+  viewerUserId?: string;
+  viewerIsSuperAdmin?: boolean;
 }) {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 0, sm: 1.5 } }}>
       {!posts.length ? (
         <MobilizeSectionEmptyState
           fill
@@ -196,8 +224,11 @@ function StackFeed({
             reactionUrl={reactionUrl}
             showGroupBadge
             surface="light"
+            layout="groupFeedCard"
             viewerAvatarUrl={viewerAvatarUrl}
             viewerDisplayName={viewerDisplayName}
+            viewerUserId={viewerUserId}
+            viewerIsSuperAdmin={viewerIsSuperAdmin}
           />
         );
       })}
