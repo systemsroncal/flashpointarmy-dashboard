@@ -1,11 +1,6 @@
-import { DataPaneFallback } from "@/components/dashboard/DataPaneFallback";
-import { Suspense } from "react";
-import EventCategoriesPageContent from "./EventCategoriesPageContent";
+import { redirect } from "next/navigation";
 
+/** Legacy path — categories live under Settings. */
 export default function EventCategoriesPage() {
-  return (
-    <Suspense fallback={<DataPaneFallback label="Loading categories" />}>
-      <EventCategoriesPageContent />
-    </Suspense>
-  );
+  redirect("/dashboard/settings/event-categories");
 }

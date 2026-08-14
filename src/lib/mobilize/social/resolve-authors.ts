@@ -5,6 +5,12 @@ export type MobilizeAuthorSummary = {
   display_name: string;
   handle: string;
   avatar_url: string | null;
+  /** True when profiles.verified_at is set (super_admin account verification). */
+  verified?: boolean;
+  /** When the account was verified — shown in the verified badge popover. */
+  verified_at?: string | null;
+  /** Whether the current viewer follows this author (when viewerId was provided). */
+  is_following?: boolean;
 };
 
 function buildDisplayName(row: {
@@ -59,18 +65,63 @@ async function fetchByIdsChunked<T>(
   return rows;
 }
 
+async function loadFollowingSet(
+  admin: SupabaseClient,
+  viewerId: string,
+  candidateIds: string[]
+): Promise<Set<string>> {
+  const following = new Set<string>();
+  for (let i = 0; i < candidateIds.length; i += ID_CHUNK_SIZE) {
+    const chunk = candidateIds.slice(i, i + ID_CHUNK_SIZE);
+    const { data } = await admin
+      .from("mobilize_user_follows")
+      .select("following_id")
+      .eq("follower_id", viewerId)
+      .in("following_id", chunk);
+    for (const row of data ?? []) {
+      following.add(row.following_id as string);
+    }
+  }
+  return following;
+}
+
 export async function resolveMobilizeAuthors(
   admin: SupabaseClient,
-  userIds: string[]
+  userIds: string[],
+  options?: { viewerId?: string }
 ): Promise<Map<string, MobilizeAuthorSummary>> {
   const unique = [...new Set(userIds.filter(Boolean))];
   const map = new Map<string, MobilizeAuthorSummary>();
   if (!unique.length) return map;
 
-  const [profiles, users] = await Promise.all([
-    fetchByIdsChunked<Record<string, unknown>>(admin, "profiles", "id, display_name, first_name, last_name, avatar_url", unique),
-    fetchByIdsChunked<Record<string, unknown>>(admin, "dashboard_users", "id, display_name, first_name, last_name", unique),
+  const viewerId = options?.viewerId;
+
+  const [profilesWithVerified, users, followingSet] = await Promise.all([
+    fetchByIdsChunked<Record<string, unknown>>(
+      admin,
+      "profiles",
+      "id, display_name, first_name, last_name, avatar_url, verified_at",
+      unique
+    ),
+    fetchByIdsChunked<Record<string, unknown>>(
+      admin,
+      "dashboard_users",
+      "id, display_name, first_name, last_name",
+      unique
+    ),
+    viewerId ? loadFollowingSet(admin, viewerId, unique) : Promise.resolve(null),
   ]);
+
+  // If verified_at is not migrated yet, retry without that column so feeds still resolve.
+  let profiles = profilesWithVerified;
+  if (!profiles.length && unique.length) {
+    profiles = await fetchByIdsChunked<Record<string, unknown>>(
+      admin,
+      "profiles",
+      "id, display_name, first_name, last_name, avatar_url",
+      unique
+    );
+  }
 
   const byId = new Map<string, Record<string, unknown>>();
   for (const row of users ?? []) {
@@ -84,11 +135,17 @@ export async function resolveMobilizeAuthors(
   for (const id of unique) {
     const row = byId.get(id) ?? { id };
     const display_name = buildDisplayName(row as Parameters<typeof buildDisplayName>[0]);
+    const verifiedAt = (row.verified_at as string | null | undefined) ?? null;
     map.set(id, {
       id,
       display_name,
       handle: buildHandle({ ...(row as object), id } as Parameters<typeof buildHandle>[0]),
       avatar_url: (row.avatar_url as string | null | undefined) ?? null,
+      verified: Boolean(verifiedAt),
+      verified_at: verifiedAt,
+      ...(viewerId
+        ? { is_following: id === viewerId ? true : Boolean(followingSet?.has(id)) }
+        : {}),
     });
   }
   return map;

@@ -5,6 +5,7 @@ import {
 } from "@/lib/people/person-profile-data";
 import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import { requireServerUser } from "@/lib/auth/server-session";
+import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { Paper, Typography } from "@mui/material";
 
@@ -48,6 +49,8 @@ export default async function PersonProfilePageContent({
 
   const { supabase, user } = await requireServerUser();
   const result = await loadPersonProfilePage(supabase, user.id, userId);
+  const viewerRoles = await loadUserRoleNames(supabase, user.id);
+  const viewerIsSuperAdmin = isSuperAdminUser(viewerRoles);
 
   if (!result.ok) {
     return (
@@ -79,6 +82,7 @@ export default async function PersonProfilePageContent({
       initialTab={parseTab(sp.tab)}
       backHref={parseBackHref(sp.from, result.person.role_names)}
       chapterOptions={chapterOptions}
+      viewerIsSuperAdmin={viewerIsSuperAdmin}
     />
   );
 }

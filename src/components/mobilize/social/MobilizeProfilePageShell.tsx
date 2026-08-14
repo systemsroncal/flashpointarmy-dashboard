@@ -14,6 +14,8 @@ type Tab = { id: string; label: string };
 type Props = {
   coverSrc: string;
   title: string;
+  /** Optional badge / control rendered next to the title (e.g. verified icon). */
+  titleAddon?: ReactNode;
   subtitle?: string | null;
   /** Optional stats line (e.g. followers, member count). */
   meta?: ReactNode;
@@ -41,6 +43,7 @@ type Props = {
 export function MobilizeProfilePageShell({
   coverSrc,
   title,
+  titleAddon,
   subtitle,
   meta,
   avatarSrc,
@@ -149,24 +152,27 @@ export function MobilizeProfilePageShell({
             </Box>
 
             <Box sx={{ minWidth: 0, pb: { sm: 0.5 } }}>
-              <Typography
-                variant="h4"
-                fontWeight={800}
-                sx={{
-                  color: "#fff",
-                  letterSpacing: "-0.02em",
-                  lineHeight: 1.15,
-                  fontSize: { xs: "1.35rem", sm: "1.6rem", md: "1.85rem" },
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  textShadow: "0 2px 16px rgba(0,0,0,0.45)",
-                }}
-                title={title}
-              >
-                {title}
-              </Typography>
+              <Stack direction="row" alignItems="center" spacing={0.75} useFlexGap flexWrap="wrap">
+                <Typography
+                  variant="h4"
+                  fontWeight={800}
+                  sx={{
+                    color: "#fff",
+                    letterSpacing: "-0.02em",
+                    lineHeight: 1.15,
+                    fontSize: { xs: "1.35rem", sm: "1.6rem", md: "1.85rem" },
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    textShadow: "0 2px 16px rgba(0,0,0,0.45)",
+                  }}
+                  title={title}
+                >
+                  {title}
+                </Typography>
+                {titleAddon}
+              </Stack>
               {subtitle ? (
                 <Typography
                   variant="body2"
@@ -333,23 +339,26 @@ export function MobilizeProfilePageShell({
                   pt: { xs: 0, md: 0.25 },
                 }}
               >
-                <Typography
-                  variant="h5"
-                  fontWeight={800}
-                  color="text.primary"
-                  lineHeight={1.2}
-                  sx={{
-                    letterSpacing: "-0.02em",
-                    fontSize: { xs: "1.35rem", sm: "1.55rem", md: "1.75rem" },
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                  title={title}
-                >
-                  {title}
-                </Typography>
+                <Stack direction="row" alignItems="center" spacing={0.75} useFlexGap flexWrap="wrap">
+                  <Typography
+                    variant="h5"
+                    fontWeight={800}
+                    color="text.primary"
+                    lineHeight={1.2}
+                    sx={{
+                      letterSpacing: "-0.02em",
+                      fontSize: { xs: "1.35rem", sm: "1.55rem", md: "1.75rem" },
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                    title={title}
+                  >
+                    {title}
+                  </Typography>
+                  {titleAddon}
+                </Stack>
                 {subtitle ? (
                   <Typography
                     variant="body2"

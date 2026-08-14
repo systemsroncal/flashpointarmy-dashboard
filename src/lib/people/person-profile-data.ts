@@ -29,6 +29,8 @@ export type PersonProfileData = {
   role_names: string[];
   created_at: string | null;
   canEdit: boolean;
+  /** Super-admin account verification timestamp (null = not verified). */
+  verified_at: string | null;
 };
 
 export type PersonActivityItem = {
@@ -97,7 +99,7 @@ export async function loadPersonProfilePage(
   const { data: profile } = await admin
     .from("profiles")
     .select(
-      "id, first_name, last_name, display_name, avatar_url, phone, address_line, city, state, zip_code, date_of_birth, gender, primary_chapter_id, created_at"
+      "id, first_name, last_name, display_name, avatar_url, phone, address_line, city, state, zip_code, date_of_birth, gender, primary_chapter_id, created_at, verified_at"
     )
     .eq("id", personUserId)
     .maybeSingle();
@@ -185,6 +187,7 @@ export async function loadPersonProfilePage(
     created_at:
       (profile?.created_at as string | null) ?? (du?.created_at as string | null) ?? null,
     canEdit,
+    verified_at: (profile?.verified_at as string | null) ?? null,
   };
 
   return { ok: true, person };

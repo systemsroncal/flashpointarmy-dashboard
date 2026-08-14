@@ -17,6 +17,9 @@ export type EnrichedGroupMessage = {
     display_name: string;
     handle: string;
     avatar_url: string | null;
+    verified?: boolean;
+    verified_at?: string | null;
+    is_following?: boolean;
   };
   reactions: {
     like: number;
@@ -47,7 +50,7 @@ export async function enrichGroupMessages(
   const authorIds = rows.map((r) => r.author_id);
 
   const [authors, { data: reactions }, { data: comments }] = await Promise.all([
-    resolveMobilizeAuthors(admin, authorIds),
+    resolveMobilizeAuthors(admin, authorIds, { viewerId }),
     admin
       .from("mobilize_message_reactions")
       .select("message_id, user_id, reaction_type")

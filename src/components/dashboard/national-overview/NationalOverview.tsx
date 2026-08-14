@@ -532,9 +532,11 @@ export function NationalOverview({
           gap: 2,
           mb: 3,
           alignItems: "stretch",
-          // Desktop (≥768): equal cards in a flexible row; dual card uses compact numbers so it fits.
+          // Desktop (≥768): equal cards in a flexible row. Tracks never go below
+          // the width the Members | Leaders card needs, so it cannot overflow
+          // into the next card on wide screens.
           "@media (min-width: 768px)": {
-            gridTemplateColumns: "repeat(auto-fill, minmax(168px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
           },
         }}
       >
@@ -544,20 +546,7 @@ export function NationalOverview({
           return (
             <Box
               key={s.label}
-              sx={{
-                minWidth: 0,
-                width: "100%",
-                // From ~5 auto-fill columns upward, keep Members/Leaders at a fixed 200px.
-                ...(isDual
-                  ? {
-                      "@media (min-width: 900px)": {
-                        width: 200,
-                        maxWidth: 200,
-                        justifySelf: "stretch",
-                      },
-                    }
-                  : null),
-              }}
+              sx={{ minWidth: 0, width: "100%" }}
             >
               <Card
                 sx={{

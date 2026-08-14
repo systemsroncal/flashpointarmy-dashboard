@@ -187,6 +187,7 @@ export function MobilizeGroupFeed({
                 viewerDisplayName={me.display_name ?? me.email}
                 viewerUserId={me.id}
                 viewerIsSuperAdmin={isSuperAdmin}
+                pinned={isPinned}
                 manageActions={
                   canManage || canPinPost ? (
                     <Stack direction="row" spacing={0.25}>
@@ -236,11 +237,15 @@ export function MobilizeGroupFeed({
       ) : (
         <Paper
           elevation={0}
-          sx={
-            embedded
+          sx={{
+            ...(embedded
               ? mobilizeGroupFeedPostsListSx
-              : { ...mobilizeGroupFeedCardSx, overflow: "hidden" }
-          }
+              : { ...mobilizeGroupFeedCardSx, overflow: "hidden" }),
+            // Sit right below the composer instead of stretching to match the
+            // taller "About this group" sidebar column.
+            flex: "0 0 auto",
+            minHeight: 0,
+          }}
         >
           <MobilizeSectionEmptyState
             fill

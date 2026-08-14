@@ -7,6 +7,7 @@ import CampaignIcon from "@mui/icons-material/Campaign";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EventIcon from "@mui/icons-material/Event";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import MapIcon from "@mui/icons-material/Map";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
@@ -235,6 +236,9 @@ const SETTINGS_MODULES = new Set<string>([
   MODULE_SLUGS.reports,
 ]);
 
+/** Settings entries whose module stays in the main nav (e.g. FPA Events). */
+const SETTINGS_EXTRA_HREFS = new Set<string>(["/dashboard/settings/event-categories"]);
+
 const MISSION_PIPELINE_HREFS = new Set<string>([
   "/dashboard/courses/certificate-requests",
   "/dashboard/onboarding/coach-meetings",
@@ -375,6 +379,12 @@ const NAV: NavItem[] = [
     href: "/dashboard/gatherings",
     module: MODULE_SLUGS.gatherings,
     icon: <EventIcon />,
+  },
+  {
+    label: "Event categories",
+    href: "/dashboard/settings/event-categories",
+    module: MODULE_SLUGS.gatherings,
+    icon: <CategoryOutlinedIcon />,
   },
   {
     label: "Logs",
@@ -708,6 +718,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const settingsNav = settingsAllowedByRole
     ? allVisibleNav.filter((item) => {
         if (MISSION_PIPELINE_HREFS.has(item.href)) return false;
+        if (SETTINGS_EXTRA_HREFS.has(item.href)) return true;
         if (!SETTINGS_MODULES.has(item.module)) return false;
         if (item.module === MODULE_SLUGS.reports) {
           return user.role_names.includes("super_admin");
@@ -718,6 +729,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const visibleNav = allVisibleNav.filter(
     (item) =>
       !SETTINGS_MODULES.has(item.module) &&
+      !SETTINGS_EXTRA_HREFS.has(item.href) &&
       !MISSION_PIPELINE_HREFS.has(item.href) &&
       !PEOPLE_HREFS.has(item.href)
   );

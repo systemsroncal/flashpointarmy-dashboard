@@ -37,14 +37,16 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Collapse,
+  FormControlLabel,
   IconButton,
   Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import { isSafeFeedAdImageUrl } from "@/lib/mobilize/feed-ads";
+import { isSafeFeedAdImageUrl, normalizeCarouselSpeedMs } from "@/lib/mobilize/feed-ads";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -255,6 +257,9 @@ export function MobilizeFeedAdsSettingsForm() {
         type: "carousel",
         sort_order,
         slides: [{ image_url: "", href: "" }],
+        autoplay: true,
+        speed_ms: 4500,
+        continuous_rotation: false,
       } satisfies MobilizeFeedAdCarouselBlock;
     } else {
       block = {
@@ -488,6 +493,58 @@ export function MobilizeFeedAdsSettingsForm() {
                           onChange={(title) => updateBlock(block.id, { title })}
                           disabled={loading || saving}
                         />
+                        <Stack spacing={0.5}>
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={block.autoplay !== false}
+                                onChange={(e) =>
+                                  updateBlock(block.id, {
+                                    autoplay: e.target.checked,
+                                  } as Partial<MobilizeFeedAdCarouselBlock>)
+                                }
+                                disabled={loading || saving}
+                              />
+                            }
+                            label="Autoplay"
+                          />
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={block.continuous_rotation === true}
+                                onChange={(e) =>
+                                  updateBlock(block.id, {
+                                    continuous_rotation: e.target.checked,
+                                  } as Partial<MobilizeFeedAdCarouselBlock>)
+                                }
+                                disabled={loading || saving}
+                              />
+                            }
+                            label="Continual rotation"
+                          />
+                          <Typography variant="caption" color="text.secondary" sx={{ pl: 4.5, mt: -0.5 }}>
+                            Continuous scroll without pausing between slides. Requires Autoplay.
+                          </Typography>
+                          <TextField
+                            size="small"
+                            type="number"
+                            label="Speed (milliseconds)"
+                            value={block.speed_ms ?? 4500}
+                            onChange={(e) =>
+                              updateBlock(block.id, {
+                                speed_ms: normalizeCarouselSpeedMs(e.target.value),
+                              } as Partial<MobilizeFeedAdCarouselBlock>)
+                            }
+                            disabled={loading || saving || block.autoplay === false}
+                            helperText={
+                              block.continuous_rotation
+                                ? "Duration of one full loop across all slides."
+                                : "Time each slide stays visible before advancing."
+                            }
+                            inputProps={{ min: 500, max: 120000, step: 100 }}
+                            sx={{ maxWidth: 280, mt: 0.5 }}
+                          />
+                        </Stack>
                         <LinkTargetFields
                           href=""
                           className={block.className ?? ""}

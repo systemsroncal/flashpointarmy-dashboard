@@ -3,8 +3,7 @@
 import { Box, Button, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
-const MAX_HEIGHT_PX = 130;
-const EXPAND_TRANSITION = "max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1)";
+const COLLAPSED_LINES = 4;
 
 type Props = {
   text: string;
@@ -14,7 +13,6 @@ export function MobilizeGroupAboutText({ text }: Props) {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
-  const [contentHeight, setContentHeight] = useState(MAX_HEIGHT_PX);
 
   useEffect(() => {
     setExpanded(false);
@@ -24,41 +22,44 @@ export function MobilizeGroupAboutText({ text }: Props) {
     const el = contentRef.current;
     if (!el) return;
 
+    // Compare full content height against the collapsed height so the result
+    // stays correct while expanded (clamped clientHeight is not usable then).
     function measure() {
       if (!el) return;
-      const height = el.scrollHeight;
-      setContentHeight(height);
-      setOverflows(height > MAX_HEIGHT_PX + 1);
+      const lineHeight = parseFloat(window.getComputedStyle(el).lineHeight);
+      if (!Number.isFinite(lineHeight) || lineHeight <= 0) return;
+      setOverflows(el.scrollHeight > lineHeight * COLLAPSED_LINES + 1);
     }
 
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [text]);
 
   return (
     <Box>
-      <Box
+      <Typography
+        ref={contentRef}
+        variant="body2"
+        component="div"
         sx={{
-          maxHeight: overflows ? (expanded ? contentHeight : MAX_HEIGHT_PX) : "none",
-          overflow: "hidden",
-          transition: overflows ? EXPAND_TRANSITION : "none",
+          whiteSpace: "pre-wrap",
+          lineHeight: 1.65,
+          color: "rgba(0,0,0,0.78)",
+          fontSize: "calc(0.875rem - 2pt + 2px)",
+          ...(expanded
+            ? {}
+            : {
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: COLLAPSED_LINES,
+                overflow: "hidden",
+              }),
         }}
       >
-        <Typography
-          ref={contentRef}
-          variant="body2"
-          component="div"
-          sx={{
-            whiteSpace: "pre-wrap",
-            lineHeight: 1.65,
-            color: "rgba(0,0,0,0.78)",
-            fontSize: "calc(0.875rem - 2pt + 2px)",
-          }}
-        >
-          {text}
-        </Typography>
-      </Box>
+        {text}
+      </Typography>
       {overflows ? (
         <Button
           size="small"
@@ -85,4 +86,4 @@ export function MobilizeGroupAboutText({ text }: Props) {
       ) : null}
     </Box>
   );
-};
+}

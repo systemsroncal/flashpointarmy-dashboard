@@ -86,6 +86,9 @@ export function MobilizeFeedAdsRail({ items }: Props) {
                 slides={block.slides}
                 className={block.className}
                 elementId={block.elementId}
+                autoplay={block.autoplay !== false}
+                speed_ms={block.speed_ms}
+                continuous_rotation={block.continuous_rotation === true}
               />
             );
           }

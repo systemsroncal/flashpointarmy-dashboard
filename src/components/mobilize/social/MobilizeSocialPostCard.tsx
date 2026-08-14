@@ -18,6 +18,7 @@ import {
 import { mobilizeGroupFeedPostCardSx } from "@/lib/mobilize/mobilize-ui-surface";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
+import PushPinIcon from "@mui/icons-material/PushPin";
 import { Box, Button, Card, CardContent, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import Link from "next/link";
 import { useState } from "react";
@@ -45,6 +46,8 @@ type Props = {
   viewerUserId?: string;
   /** Viewer is a super admin — may delete any post/comment. */
   viewerIsSuperAdmin?: boolean;
+  /** Shows the "Pinned Post" banner above the author row. */
+  pinned?: boolean;
 };
 
 export function MobilizeSocialPostCard({
@@ -62,6 +65,7 @@ export function MobilizeSocialPostCard({
   viewerDisplayName,
   viewerUserId,
   viewerIsSuperAdmin = false,
+  pinned = false,
 }: Props) {
   const isDark = surface === "dark";
   const isGroupFeedList = layout === "groupFeedList";
@@ -151,11 +155,32 @@ export function MobilizeSocialPostCard({
             : { p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }
         }
       >
+        {pinned ? (
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={{
+              mb: 1.25,
+              pb: 1,
+              borderBottom: isDark
+                ? "1px solid rgba(255,255,255,0.08)"
+                : "1px solid rgba(0,0,0,0.08)",
+              color: isDark ? TRUTH_HUB_TEXT_MUTED : "rgba(0,0,0,0.6)",
+            }}
+          >
+            <PushPinIcon sx={{ fontSize: 18, transform: "rotate(45deg)" }} />
+            <Typography variant="body2" fontWeight={700} sx={{ color: "inherit" }}>
+              Pinned Post
+            </Typography>
+          </Stack>
+        ) : null}
         <MobilizeSocialPostHeader
           author={post.author}
           createdAt={post.created_at}
           tone={surface}
           roleLabel={authorRoleLabel}
+          viewerUserId={viewerUserId}
         />
         {showGroupBadge && post.group ? (
           <Typography variant="caption" sx={{ display: "block", mt: 0.5, color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}>

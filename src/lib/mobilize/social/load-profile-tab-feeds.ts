@@ -129,7 +129,7 @@ async function loadProfilePostsById(
   if (!rows?.length) return [];
 
   const authorIds = rows.map((r) => r.author_id as string);
-  const authors = await resolveMobilizeAuthors(admin, authorIds);
+  const authors = await resolveMobilizeAuthors(admin, authorIds, { viewerId });
   const { data: reactions } = await admin
     .from("mobilize_profile_post_reactions")
     .select("post_id, user_id, reaction_type")

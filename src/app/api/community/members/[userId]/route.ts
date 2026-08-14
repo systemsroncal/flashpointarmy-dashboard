@@ -31,6 +31,11 @@ type PatchBody = {
   newPassword?: string;
   /** Staff only — marks a local leader as verified for Mobilize group creation. */
   localLeaderVerified?: boolean;
+  /**
+   * Super admin only — account verification badge (stores verified_at timestamp).
+   * Distinct from localLeaderVerified.
+   */
+  verified?: boolean;
 };
 
 async function getSessionAndPermissions() {
@@ -231,6 +236,27 @@ export async function PATCH(
       profileUpdate.local_leader_verified = body.localLeaderVerified === true;
     }
 
+    if ("verified" in body) {
+      if (!isSuperAdminUser(callerRoles)) {
+        return NextResponse.json(
+          { error: "Only super admins can verify users." },
+          { status: 403 }
+        );
+      }
+      if (body.verified === true) {
+        const { data: currentVerified } = await admin
+          .from("profiles")
+          .select("verified_at")
+          .eq("id", userId)
+          .maybeSingle();
+        const existing =
+          (currentVerified as { verified_at?: string | null } | null)?.verified_at ?? null;
+        profileUpdate.verified_at = existing ?? new Date().toISOString();
+      } else {
+        profileUpdate.verified_at = null;
+      }
+    }
+
     const { error: profileErr } = await admin.from("profiles").update(profileUpdate).eq("id", userId);
 
     if (profileErr) {
@@ -303,7 +329,7 @@ export async function PATCH(
 
     const { data: profileRow } = await admin
       .from("profiles")
-      .select("date_of_birth, gender, avatar_url, local_leader_verified")
+      .select("date_of_birth, gender, avatar_url, local_leader_verified, verified_at")
       .eq("id", userId)
       .maybeSingle();
 
@@ -326,6 +352,9 @@ export async function PATCH(
         local_leader_verified: Boolean(
           (profileRow as { local_leader_verified?: boolean } | null)?.local_leader_verified
         ),
+        verified_at:
+          ((profileRow as { verified_at?: string | null } | null)?.verified_at as string | null) ??
+          null,
       },
     });
   } catch (e) {

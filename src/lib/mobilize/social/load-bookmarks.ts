@@ -52,7 +52,7 @@ async function loadBookmarkedProfilePosts(
 
   const authorIds = rows.map((r) => r.author_id as string);
   const [authors, { data: reactions }, { data: comments }] = await Promise.all([
-    resolveMobilizeAuthors(admin, authorIds),
+    resolveMobilizeAuthors(admin, authorIds, { viewerId }),
     admin
       .from("mobilize_profile_post_reactions")
       .select("post_id, user_id, reaction_type")

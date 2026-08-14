@@ -148,6 +148,17 @@ export default async function AdminsPageContent() {
       });
     }
 
+    const { data: verifiedRows } = await admin
+      .from("profiles")
+      .select("id, verified_at")
+      .in("id", userIds);
+    const verifiedAtById = new Map(
+      ((verifiedRows ?? []) as { id: string; verified_at?: string | null }[]).map((r) => [
+        r.id,
+        r.verified_at ?? null,
+      ])
+    );
+
     const roleByUser = await listRoleNamesByUserIds(admin, userIds);
     merged = merged.map((u) => {
       const m = mailById.get(u.id);
@@ -164,6 +175,7 @@ export default async function AdminsPageContent() {
         zip_code: preferNonEmptyAddr(m?.zip_code, u.zip_code),
         date_of_birth: m?.date_of_birth ?? null,
         gender: m?.gender ?? null,
+        verified_at: verifiedAtById.get(u.id) ?? null,
       };
     });
     if (!isSuperAdmin) {

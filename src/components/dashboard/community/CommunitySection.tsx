@@ -48,6 +48,7 @@ import {
 import { SignInEmailChangePanel } from "@/components/auth/SignInEmailChangePanel";
 import { CourseGraduateBadge, AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import { ChapterSearchAutocomplete } from "@/components/forms/ChapterSearchAutocomplete";
+import { VerifiedUserSwitch } from "@/components/user/VerifiedUserSwitch";
 import { StateChapterFilterControls } from "@/components/forms/StateChapterFilterControls";
 import { matchesStateChapterFilter } from "@/lib/chapters/chapter-search";
 import { downloadExcelFromApi } from "@/lib/export/download-xlsx-client";
@@ -82,6 +83,8 @@ export type CommunityUserRow = {
   role_names: string[];
   /** Staff-managed: verified local leader (Mobilize group creation). */
   local_leader_verified?: boolean | null;
+  /** Super-admin account verification (badge). Distinct from local_leader_verified. */
+  verified_at?: string | null;
   /** Biblical Citizenship graduate badge, when applicable. */
   training_graduate_badge?: TrainingGraduateBadgeRole | null;
 };
@@ -418,6 +421,8 @@ export function CommunitySection({
   const [editDateOfBirth, setEditDateOfBirth] = useState("");
   const [editGender, setEditGender] = useState<"" | "male" | "female">("");
   const [editLocalLeaderVerified, setEditLocalLeaderVerified] = useState(false);
+  const [editUserVerified, setEditUserVerified] = useState(false);
+  const [editUserVerifiedAt, setEditUserVerifiedAt] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [editRoleDraft, setEditRoleDraft] = useState<EditableRole>("member");
@@ -941,6 +946,8 @@ export function CommunitySection({
     setEditGender(u.gender === "male" || u.gender === "female" ? u.gender : "");
     setEditChapterId(u.primary_chapter_id ?? "");
     setEditLocalLeaderVerified(Boolean(u.local_leader_verified));
+    setEditUserVerified(Boolean(u.verified_at));
+    setEditUserVerifiedAt(u.verified_at ?? null);
     setEditError(null);
     setEditRoleError(null);
     setEditRoleDraft(
@@ -1006,6 +1013,7 @@ export function CommunitySection({
           ...(isLeaders && elevated
             ? { localLeaderVerified: editLocalLeaderVerified }
             : {}),
+          ...(isSuperAdmin ? { verified: editUserVerified } : {}),
           ...passwordPayload,
         }),
       });
@@ -1048,6 +1056,14 @@ export function CommunitySection({
                       : isLeaders
                         ? editLocalLeaderVerified
                         : x.local_leader_verified,
+                  verified_at:
+                    row.verified_at !== undefined
+                      ? row.verified_at
+                      : isSuperAdmin
+                        ? editUserVerified
+                          ? editUserVerifiedAt ?? new Date().toISOString()
+                          : null
+                        : x.verified_at,
                 }
               : x
           )
@@ -2624,6 +2640,25 @@ export function CommunitySection({
                   />
                 }
                 label="Local Leader Verified"
+              />
+            ) : null}
+            {isSuperAdmin && editUser ? (
+              <VerifiedUserSwitch
+                checked={editUserVerified}
+                verifiedAt={editUserVerifiedAt}
+                disabled={editSaving || editRoleSaving}
+                userLabel={[
+                  [editFirstName, editLastName].filter(Boolean).join(" ").trim() ||
+                    editUser.display_name ||
+                    "User",
+                  editUser.email,
+                ]
+                  .filter(Boolean)
+                  .join(" — ")}
+                onChange={(next) => {
+                  setEditUserVerified(next);
+                  setEditUserVerifiedAt(next ? new Date().toISOString() : null);
+                }}
               />
             ) : null}
           </Box>

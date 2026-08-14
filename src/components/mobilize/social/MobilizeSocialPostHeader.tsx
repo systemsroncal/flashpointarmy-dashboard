@@ -1,16 +1,21 @@
 "use client";
 
+import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { Avatar, Box, Chip, Link as MuiLink, Typography } from "@mui/material";
+import { Avatar, Box, Button, Chip, Link as MuiLink, Typography } from "@mui/material";
 import Link from "next/link";
 import { flashpointYellow } from "@/theme/tokens";
+import { useEffect, useState } from "react";
 
 export type MobilizeSocialAuthor = {
   id: string;
   display_name: string;
   handle: string;
   avatar_url: string | null;
+  verified?: boolean;
+  verified_at?: string | null;
+  is_following?: boolean;
 };
 
 type Props = {
@@ -19,6 +24,8 @@ type Props = {
   size?: "sm" | "md";
   tone?: "light" | "dark";
   roleLabel?: string;
+  /** Current viewer — used to hide Follow on own posts. */
+  viewerUserId?: string;
 };
 
 function formatRelativeTime(iso: string): string {
@@ -34,17 +41,57 @@ function formatRelativeTime(iso: string): string {
   return d.toLocaleDateString();
 }
 
+const FOLLOW_BTN_SX = {
+  textTransform: "none" as const,
+  fontWeight: 700,
+  fontSize: "0.75rem",
+  lineHeight: 1.2,
+  minHeight: 24,
+  px: 1.25,
+  py: 0.25,
+  borderRadius: "6px",
+  boxShadow: "none",
+  bgcolor: "#e7f3ff",
+  color: "#1877f2",
+  "&:hover": { bgcolor: "#d8eaff", boxShadow: "none" },
+  "&.Mui-disabled": { bgcolor: "#f0f2f5", color: "rgba(0,0,0,0.4)" },
+};
+
 export function MobilizeSocialPostHeader({
   author,
   createdAt,
   size = "md",
   tone = "light",
   roleLabel,
+  viewerUserId,
 }: Props) {
   const avatarSize = size === "sm" ? 32 : 44;
   const isDark = tone === "dark";
   const nameColor = isDark ? "#e7e9ea" : "#111";
   const metaColor = isDark ? "#8b98a5" : "#6b7280";
+  const isOwn = Boolean(viewerUserId && viewerUserId === author.id);
+  const [following, setFollowing] = useState(Boolean(author.is_following));
+  const [followBusy, setFollowBusy] = useState(false);
+
+  useEffect(() => {
+    setFollowing(Boolean(author.is_following));
+  }, [author.id, author.is_following]);
+
+  async function followAuthor() {
+    if (isOwn || following || followBusy) return;
+    setFollowBusy(true);
+    try {
+      const res = await fetch(`/api/mobilize/social/profiles/${author.id}/follow`, {
+        method: "POST",
+      });
+      const json = (await res.json()) as { error?: string; is_following?: boolean };
+      if (!res.ok) throw new Error(json.error || "Follow failed.");
+      setFollowing(true);
+    } finally {
+      setFollowBusy(false);
+    }
+  }
+
   return (
     <Box sx={{ display: "flex", gap: 1.25, alignItems: "flex-start" }}>
       <Link href={mobilizeMemberProfileHref(author.id)} style={{ textDecoration: "none", flexShrink: 0 }}>
@@ -57,7 +104,7 @@ export function MobilizeSocialPostHeader({
         </Avatar>
       </Link>
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
           <MuiLink
             component={Link}
             href={mobilizeMemberProfileHref(author.id)}
@@ -66,6 +113,19 @@ export function MobilizeSocialPostHeader({
           >
             {author.display_name}
           </MuiLink>
+          {author.verified ? (
+            <VerifiedUserBadge size={size === "sm" ? 14 : 16} verifiedAt={author.verified_at} />
+          ) : null}
+          {!isOwn && !following ? (
+            <Button
+              size="small"
+              disabled={followBusy}
+              onClick={() => void followAuthor()}
+              sx={FOLLOW_BTN_SX}
+            >
+              {followBusy ? "…" : "Follow"}
+            </Button>
+          ) : null}
           {roleLabel ? (
             <Chip
               label={roleLabel}

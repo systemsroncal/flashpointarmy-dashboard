@@ -2,6 +2,8 @@
 
 import { ChapterSearchAutocomplete } from "@/components/forms/ChapterSearchAutocomplete";
 import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
+import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
+import { VerifiedUserSwitch } from "@/components/user/VerifiedUserSwitch";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import type { ChapterSearchRow } from "@/lib/chapters/chapter-search";
 import type {
@@ -56,6 +58,7 @@ type Props = {
   initialTab: PersonProfileTab;
   backHref: string;
   chapterOptions: ChapterSearchRow[];
+  viewerIsSuperAdmin?: boolean;
 };
 
 function formatState(code: string | null | undefined): string {
@@ -147,7 +150,13 @@ const panelSx = {
   borderRadius: 2,
 } as const;
 
-export function PersonProfileClient({ person: initialPerson, initialTab, backHref, chapterOptions }: Props) {
+export function PersonProfileClient({
+  person: initialPerson,
+  initialTab,
+  backHref,
+  chapterOptions,
+  viewerIsSuperAdmin = false,
+}: Props) {
   const router = useRouter();
   const [person, setPerson] = useState(initialPerson);
   const [tab, setTab] = useState<PersonProfileTab>(initialTab);
@@ -176,9 +185,13 @@ export function PersonProfileClient({ person: initialPerson, initialTab, backHre
   const [gender, setGender] = useState<"" | "male" | "female">(
     initialPerson.gender === "male" || initialPerson.gender === "female" ? initialPerson.gender : ""
   );
+  const [userVerified, setUserVerified] = useState(Boolean(initialPerson.verified_at));
+  const [userVerifiedAt, setUserVerifiedAt] = useState<string | null>(initialPerson.verified_at);
 
   useEffect(() => {
     setPerson(initialPerson);
+    setUserVerified(Boolean(initialPerson.verified_at));
+    setUserVerifiedAt(initialPerson.verified_at);
   }, [initialPerson]);
 
   const fullName = useMemo(() => personFullName(person), [person]);
@@ -254,6 +267,8 @@ export function PersonProfileClient({ person: initialPerson, initialTab, backHre
     setChapterId(person.primary_chapter_id ?? "");
     setDateOfBirth(person.date_of_birth?.slice(0, 10) ?? "");
     setGender(person.gender === "male" || person.gender === "female" ? person.gender : "");
+    setUserVerified(Boolean(person.verified_at));
+    setUserVerifiedAt(person.verified_at);
     setTab("profile");
     setEditing(true);
     const url = new URL(window.location.href);
@@ -294,6 +309,7 @@ export function PersonProfileClient({ person: initialPerson, initialTab, backHre
           zipCode: zipCode.trim() || null,
           dateOfBirth: dateOfBirth.trim() || null,
           gender: gender || null,
+          ...(viewerIsSuperAdmin ? { verified: userVerified } : {}),
         }),
       });
       const json = (await res.json()) as {
@@ -310,6 +326,7 @@ export function PersonProfileClient({ person: initialPerson, initialTab, backHre
           primary_chapter_id: string;
           date_of_birth: string | null;
           gender: string | null;
+          verified_at?: string | null;
         };
       };
       if (!res.ok) throw new Error(json.error ?? "Could not save profile.");
@@ -328,12 +345,17 @@ export function PersonProfileClient({ person: initialPerson, initialTab, backHre
         primary_chapter_id: u.primary_chapter_id,
         date_of_birth: u.date_of_birth,
         gender: u.gender,
+        verified_at: u.verified_at !== undefined ? u.verified_at : prev.verified_at,
         chapter: ch
           ? { id: ch.id, name: ch.name, city: ch.city, state: ch.state }
           : prev.chapter?.id === u.primary_chapter_id
             ? prev.chapter
             : null,
       }));
+      if (u.verified_at !== undefined) {
+        setUserVerified(Boolean(u.verified_at));
+        setUserVerifiedAt(u.verified_at);
+      }
       setEditing(false);
       router.refresh();
     } catch (e) {
@@ -392,9 +414,14 @@ export function PersonProfileClient({ person: initialPerson, initialTab, backHre
             {initials}
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.15 }}>
-              {fullName}
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1} useFlexGap flexWrap="wrap">
+              <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.15 }}>
+                {fullName}
+              </Typography>
+              {person.verified_at ? (
+                <VerifiedUserBadge size={22} verifiedAt={person.verified_at} />
+              ) : null}
+            </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               {[person.email, person.phone?.trim()].filter(Boolean).join(" · ")}
             </Typography>
@@ -603,6 +630,23 @@ export function PersonProfileClient({ person: initialPerson, initialTab, backHre
                         allowNameAndAddressSearch
                         required
                       />
+                      {viewerIsSuperAdmin ? (
+                        <VerifiedUserSwitch
+                          checked={userVerified}
+                          verifiedAt={userVerifiedAt}
+                          disabled={saving}
+                          userLabel={[
+                            [firstName, lastName].filter(Boolean).join(" ").trim() || fullName,
+                            person.email,
+                          ]
+                            .filter(Boolean)
+                            .join(" — ")}
+                          onChange={(next) => {
+                            setUserVerified(next);
+                            setUserVerifiedAt(next ? new Date().toISOString() : null);
+                          }}
+                        />
+                      ) : null}
                     </Stack>
                   </Box>
                 ) : (

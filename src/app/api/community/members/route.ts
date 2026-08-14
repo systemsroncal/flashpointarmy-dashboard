@@ -30,6 +30,7 @@ type ProfileRow = {
   zip_code: string | null;
   date_of_birth: string | null;
   gender: string | null;
+  verified_at: string | null;
 };
 
 type BaseRow = {
@@ -52,7 +53,7 @@ async function mergeProfilesAndRoles(admin: ReturnType<typeof createAdminClient>
   const { data: profileRows, error: profileErr } = userIds.length
     ? await admin
         .from("profiles")
-        .select("id, avatar_url, phone, address_line, city, state, zip_code, date_of_birth, gender")
+        .select("id, avatar_url, phone, address_line, city, state, zip_code, date_of_birth, gender, verified_at")
         .in("id", userIds)
     : { data: [] as ProfileRow[], error: null as null };
   if (profileErr) {
@@ -76,6 +77,7 @@ async function mergeProfilesAndRoles(admin: ReturnType<typeof createAdminClient>
       zip_code: preferNonEmptyAddr(p?.zip_code, u.zip_code),
       date_of_birth: p?.date_of_birth ?? null,
       gender: p?.gender ?? null,
+      verified_at: p?.verified_at ?? null,
       role_names: (roleByUser.get(u.id) ?? []).sort(),
     };
   });

@@ -1090,6 +1090,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       borderColor: "rgba(0,0,0,0.18)",
       bgcolor: "#fff",
       "&:hover": {
+        // Keep the label dark: the panel theme turns outlined buttons white on hover.
+        color: "#0d0d0d",
         borderColor: "rgba(0,0,0,0.28)",
         bgcolor: "rgba(0,0,0,0.03)",
       },
@@ -1100,6 +1102,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       borderColor: "#e4e6eb",
       boxShadow: "none",
       "&:hover": {
+        color: "#0d0d0d",
         bgcolor: "#d8dadf",
         borderColor: "#d8dadf",
         boxShadow: "none",

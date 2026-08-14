@@ -191,7 +191,7 @@ async function loadProfilePosts(
   const postIds = rows.map((r) => r.id as string);
   const authorIdsInPosts = rows.map((r) => r.author_id as string);
   const [authors, { data: reactions }, { data: comments }] = await Promise.all([
-    resolveMobilizeAuthors(admin, authorIdsInPosts),
+    resolveMobilizeAuthors(admin, authorIdsInPosts, { viewerId }),
     admin
       .from("mobilize_profile_post_reactions")
       .select("post_id, user_id, reaction_type")

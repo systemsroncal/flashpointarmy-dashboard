@@ -16,10 +16,10 @@ export async function GET(_req: Request, ctx: Ctx) {
     await Promise.all([
     auth.admin
       .from("profiles")
-      .select("id, display_name, first_name, last_name, avatar_url, cover_url, bio, profile_visibility, created_at, city, state")
+      .select("id, display_name, first_name, last_name, avatar_url, cover_url, bio, profile_visibility, created_at, city, state, verified_at")
       .eq("id", userId)
       .maybeSingle(),
-    resolveMobilizeAuthors(auth.admin, [userId]),
+    resolveMobilizeAuthors(auth.admin, [userId], { viewerId: auth.userId }),
     auth.admin
       .from("mobilize_user_follows")
       .select("follower_id", { count: "exact", head: true })

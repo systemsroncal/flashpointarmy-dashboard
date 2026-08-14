@@ -9,6 +9,7 @@ import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSoc
 import { MobilizeConnectionsDialog, type ConnectionKind } from "@/components/mobilize/social/MobilizeConnectionsDialog";
 import { MobilizeImageLightbox } from "@/components/mobilize/MobilizeImageLightbox";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
+import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import {
@@ -94,6 +95,8 @@ type ProfilePayload = {
   is_mutual_follow?: boolean;
   can_message?: boolean;
   is_private_locked?: boolean;
+  verified?: boolean;
+  verified_at?: string | null;
 };
 
 type ProfilePost = UnifiedFeedPost;
@@ -939,6 +942,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           <MobilizeProfilePageShell
         coverSrc={coverDisplaySrc}
         title={p.display_name}
+        titleAddon={p.verified ? <VerifiedUserBadge size={20} verifiedAt={p.verified_at} /> : null}
         subtitle={handleLabel}
         meta={profileMeta}
         avatarSrc={avatarDisplaySrc ?? p.avatar_url}

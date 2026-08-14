@@ -13,6 +13,15 @@ const MAX_CAROUSEL_SLIDES = 12;
 const MAX_CLASS_LEN = 200;
 const MAX_ID_LEN = 80;
 const MAX_TITLE_LEN = 120;
+const DEFAULT_CAROUSEL_SPEED_MS = 4500;
+const MIN_CAROUSEL_SPEED_MS = 500;
+const MAX_CAROUSEL_SPEED_MS = 120_000;
+
+export function normalizeCarouselSpeedMs(raw: unknown): number {
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n)) return DEFAULT_CAROUSEL_SPEED_MS;
+  return Math.min(MAX_CAROUSEL_SPEED_MS, Math.max(MIN_CAROUSEL_SPEED_MS, Math.round(n)));
+}
 
 export function isSafeFeedAdHref(href: string): boolean {
   const s = href.trim();
@@ -102,6 +111,9 @@ function parseCarouselBlock(
     sort_order,
     title: parseBlockTitle(raw),
     slides,
+    autoplay: raw.autoplay === false ? false : true,
+    speed_ms: normalizeCarouselSpeedMs(raw.speed_ms),
+    continuous_rotation: raw.continuous_rotation === true,
     className: cleanOptionalToken(raw.className, MAX_CLASS_LEN),
     elementId: cleanOptionalToken(raw.elementId, MAX_ID_LEN),
   };

@@ -114,19 +114,45 @@ export function EventsListClient({
             }}
           >
             <Box
-              component="img"
-              src={publicAssetSrc(e.featured_image_url || "/favicon.ico")}
-              alt=""
+              component={Link}
+              href={`/dashboard/gatherings/${e.id}`}
+              aria-label={`View ${e.title}`}
               sx={{
-                width: { xs: "100%", md: 140 },
-                height: { xs: 160, md: 105 },
+                display: "block",
+                lineHeight: 0,
                 borderRadius: 1,
-                objectFit: "cover",
-                bgcolor: "rgba(255,255,255,0.06)",
+                overflow: "hidden",
+                "&:hover img": { opacity: 0.92 },
               }}
-            />
+            >
+              <Box
+                component="img"
+                src={publicAssetSrc(e.featured_image_url || "/favicon.ico")}
+                alt=""
+                sx={{
+                  width: { xs: "100%", md: 140 },
+                  height: { xs: 160, md: 105 },
+                  borderRadius: 1,
+                  objectFit: "cover",
+                  bgcolor: "rgba(255,255,255,0.06)",
+                  transition: "opacity 0.15s ease",
+                }}
+              />
+            </Box>
             <Box>
-              <Typography sx={{ fontWeight: 700 }}>{e.title}</Typography>
+              <Typography
+                component={Link}
+                href={`/dashboard/gatherings/${e.id}`}
+                sx={{
+                  fontWeight: 700,
+                  color: "inherit",
+                  textDecoration: "none",
+                  display: "inline",
+                  "&:hover": { textDecoration: "underline" },
+                }}
+              >
+                {e.title}
+              </Typography>
               <Typography variant="caption" color="text.secondary" display="block">
                 {formatEventDateTime(e.starts_at)}
               </Typography>

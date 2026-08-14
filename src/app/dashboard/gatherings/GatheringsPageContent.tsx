@@ -76,12 +76,6 @@ export default async function GatheringsPageContent() {
       <Paper sx={{ bgcolor: "rgba(0,0,0,0.45)", p: 2 }}>
         <EventsListClient events={events} canUpdate={canUpdate} canDelete={canDelete} />
       </Paper>
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: "block" }}>
-        Event categories: manage at{" "}
-        <Link href="/dashboard/gatherings/categories" style={{ color: "inherit" }}>
-          /dashboard/gatherings/categories
-        </Link>
-      </Typography>
     </Box>
   );
 }

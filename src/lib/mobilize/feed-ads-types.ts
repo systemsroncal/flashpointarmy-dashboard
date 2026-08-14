@@ -27,6 +27,12 @@ export type MobilizeFeedAdCarouselBlock = {
   /** Optional heading above the carousel. */
   title?: string;
   slides: MobilizeFeedAdCarouselSlide[];
+  /** Advance slides automatically. Default true. */
+  autoplay?: boolean;
+  /** Autoplay interval (discrete) or full-loop duration (continuous), in ms. */
+  speed_ms?: number;
+  /** Seamless horizontal scroll instead of one-slide-at-a-time. */
+  continuous_rotation?: boolean;
   className?: string;
   elementId?: string;
 };
