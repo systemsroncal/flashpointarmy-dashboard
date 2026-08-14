@@ -357,9 +357,9 @@ export function buildMainDashboardTourEntries(
     stepForSelector(
       "header-notifications",
       '[data-tour="header-notifications"]',
-      elevated && input.showSystemNotificationBell ? "System notifications" : "Notifications",
+      elevated && input.showSystemNotificationBell ? "Notifications" : "Notifications",
       elevated && input.showSystemNotificationBell
-        ? "Quick access to system notification events (new sign-ups, completions, and similar alerts). Click the bell to read and dismiss items."
+        ? "Two bells: system events (new sign-ups, completions, and similar alerts) and your profile notifications (follows, likes, comments). Open each bell to read items."
         : "See follows, likes, comments, and posts from people you follow. Open the bell for the latest five, or See all for the full list.",
       "bottom"
     ),

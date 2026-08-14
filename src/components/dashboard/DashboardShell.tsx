@@ -1328,12 +1328,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
             <DashboardTourHelpButton />
           </Box>
-          <Box data-tour="header-notifications" sx={{ display: "inline-flex", alignItems: "center" }}>
-            {showSystemNotificationBell ? (
-              <NotificationMenu userId={user.id} />
-            ) : (
-              <UserNotificationsMenu />
-            )}
+          <Box data-tour="header-notifications" sx={{ display: "inline-flex", alignItems: "center", gap: 0.25 }}>
+            {showSystemNotificationBell ? <NotificationMenu userId={user.id} /> : null}
+            {/* Profile/social alerts (follows, likes, comments) — members and admins alike. */}
+            <UserNotificationsMenu />
           </Box>
           <HeaderSuperAdminProfileAvatar
             onOpenProfile={() => setProfileOpen(true)}

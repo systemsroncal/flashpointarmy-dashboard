@@ -220,16 +220,18 @@ export function NotificationMenu({ userId }: { userId: string }) {
 
   return (
     <>
-      <IconButton
-        color="inherit"
-        onClick={(e) => setAnchor(e.currentTarget)}
-        aria-label="Notifications"
-        size="small"
-      >
-        <Badge badgeContent={unread || undefined} color="primary">
-          <NotificationsNoneOutlinedIcon />
-        </Badge>
-      </IconButton>
+      <Tooltip title="System notifications">
+        <IconButton
+          color="inherit"
+          onClick={(e) => setAnchor(e.currentTarget)}
+          aria-label="System notifications"
+          size="small"
+        >
+          <Badge badgeContent={unread || undefined} color="primary">
+            <NotificationsNoneOutlinedIcon />
+          </Badge>
+        </IconButton>
+      </Tooltip>
       <Popover
         open={open}
         anchorEl={anchor}
