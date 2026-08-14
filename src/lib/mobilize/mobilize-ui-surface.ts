@@ -183,7 +183,7 @@ export const mobilizeGroupFeedPostsListSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
   alignSelf: "stretch",
-  gap: { xs: 0, sm: 2 },
+  gap: { xs: "15px", sm: 2 },
   minHeight: {
     xs: "calc(100dvh - 28rem)",
     sm: "calc(100dvh - 32rem)",

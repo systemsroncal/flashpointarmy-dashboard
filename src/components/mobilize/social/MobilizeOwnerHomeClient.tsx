@@ -201,7 +201,7 @@ function StackFeed({
   viewerIsSuperAdmin?: boolean;
 }) {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 0, sm: 1.5 } }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: "15px", sm: 1.5 } }}>
       {!posts.length ? (
         <MobilizeSectionEmptyState
           fill
