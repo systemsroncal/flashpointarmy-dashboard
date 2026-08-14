@@ -84,6 +84,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     "enrollment_mode",
     "public_slug",
     "is_featured",
+    "publish_status",
   ] as const;
   for (const k of allowed) {
     if (k in body) patch[k] = body[k];
@@ -193,6 +194,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
     // Only subgroups can be featured; chapters cannot.
     patch.is_featured =
       current?.parent_group_id != null ? patch.is_featured === true : false;
+  }
+  if ("publish_status" in patch) {
+    patch.publish_status = patch.publish_status === "draft" ? "draft" : "published";
   }
   if (Object.keys(patch).length === 0) {
     if (!ownershipSynced) {

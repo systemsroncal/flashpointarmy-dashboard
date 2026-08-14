@@ -22,6 +22,7 @@ import {
 import { flashpointYellow } from "@/theme/tokens";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
+import { SHOW_MOBILIZE_DIRECT_MESSAGES } from "@/lib/mobilize/mobilize-nav-config";
 import { publicAssetSrc, cacheBustAssetUrl } from "@/lib/media/public-asset-url";
 import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
 import {
@@ -540,7 +541,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       >
         {followBusy ? "…" : p.is_following ? "Following" : p.is_followed_by ? "Follow back" : "Follow"}
       </Button>
-      {p.can_message ? (
+      {SHOW_MOBILIZE_DIRECT_MESSAGES && p.can_message ? (
         <Button
           component={Link}
           href={`/dashboard/mobilize/messages?with=${userId}`}
@@ -769,7 +770,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     }
 
     const renderPostList = (items: ProfilePost[], emptyCopy: { title: string; description: string }) => (
-      <Stack spacing={{ xs: 0, sm: 1.5 }}>
+      <Stack spacing={{ xs: "15px", sm: 1.5 }}>
         {items.map((post) => (
           <MobilizeSocialPostCard
             key={post.id}

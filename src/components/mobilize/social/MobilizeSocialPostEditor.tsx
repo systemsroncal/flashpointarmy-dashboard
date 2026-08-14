@@ -181,6 +181,11 @@ export function MobilizeSocialPostEditor({
     onImageUrlsChange?.(imageUrls.filter((_, i) => i !== index));
   }
 
+  // TRUTH_ICON is tuned for the dark hub; on white surfaces it washes out.
+  const footerIconSx = {
+    color: isDark ? TRUTH_ICON : "rgba(0,0,0,0.6)",
+    "&.Mui-disabled": { color: isDark ? "rgba(154,163,199,0.4)" : "rgba(0,0,0,0.26)" },
+  } as const;
   const borderColor = isDark ? TRUTH_HUB_BORDER : "rgba(0,0,0,0.12)";
   const muted = isDark ? TRUTH_HUB_TEXT_MUTED : "rgba(0,0,0,0.45)";
   const textColor = isDark ? TRUTH_HUB_TEXT : "#0d0d0d";
@@ -392,7 +397,7 @@ export function MobilizeSocialPostEditor({
                     size="small"
                     disabled={disabled || posting || uploading || imageUrls.length >= maxImages}
                     onClick={() => fileRef.current?.click()}
-                    sx={{ color: TRUTH_ICON }}
+                    sx={footerIconSx}
                   >
                     {uploading ? <CircularProgress size={18} /> : <AttachFileOutlinedIcon fontSize="small" />}
                   </IconButton>
@@ -406,7 +411,7 @@ export function MobilizeSocialPostEditor({
                 size="small"
                 disabled={disabled || posting}
                 onClick={() => editorRef.current?.execCommand("mceEmoticons")}
-                sx={{ color: TRUTH_ICON }}
+                sx={footerIconSx}
               >
                 <EmojiEmotionsOutlinedIcon fontSize="small" />
               </IconButton>

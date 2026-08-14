@@ -71,6 +71,13 @@ export function MobilizeGroupAboutText({ text }: Props) {
             textTransform: "none",
             fontWeight: 600,
             fontSize: "0.82rem",
+            color: "#525252",
+            textDecoration: "underline",
+            "&:hover": {
+              bgcolor: "transparent",
+              textDecoration: "underline",
+              color: "#3a3a3a",
+            },
           }}
         >
           {expanded ? "Read less" : "Read more"}

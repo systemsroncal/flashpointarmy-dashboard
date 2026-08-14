@@ -15,7 +15,7 @@ import {
 } from "@/lib/mobilize/mobilize-ui-surface";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import {
   Box,
   IconButton,
@@ -194,11 +194,16 @@ export function MobilizeGroupFeed({
                         <Tooltip title={isPinned ? "Unpin post" : "Pin post"}>
                           <IconButton
                             size="small"
-                            color={isPinned ? "primary" : "default"}
                             onClick={() => onPin(m, !isPinned)}
                             aria-label={isPinned ? "Unpin post" : "Pin post"}
+                            sx={{
+                              color: isPinned ? "#1877f2" : "rgba(0,0,0,0.45)",
+                              "&:hover": {
+                                color: isPinned ? "#166fe5" : "rgba(0,0,0,0.7)",
+                              },
+                            }}
                           >
-                            <PushPinIcon fontSize="small" />
+                            <PushPinOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       ) : null}

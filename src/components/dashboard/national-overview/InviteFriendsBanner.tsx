@@ -17,9 +17,11 @@ type Slide = {
   url: string;
   alt: string;
   opensShareDialog?: boolean;
+  /** Kept in the rotation config but not rendered. */
+  hidden?: boolean;
 };
 
-const SLIDES: Slide[] = [
+const ALL_SLIDES: Slide[] = [
   {
     url: INVITE_FRIENDS_BANNER_URL,
     alt: "Invite friends — Let's reach 20k members together",
@@ -28,10 +30,14 @@ const SLIDES: Slide[] = [
   {
     url: NINE_K_USERS_BANNER_URL,
     alt: "9,000+ members strong — join the movement",
+    hidden: true,
   },
 ];
 
+const SLIDES = ALL_SLIDES.filter((s) => !s.hidden);
+
 const SET_SIZE = SLIDES.length;
+const HAS_CAROUSEL = SET_SIZE > 1;
 
 /**
  * Auto-playing banner carousel that always advances forward (slides enter from
@@ -47,7 +53,7 @@ export function InviteFriendsBanner({ variant = "full" }: { variant?: "full" | "
   const isCompact = variant === "compact";
 
   // One extra clone of the first slide enables the seamless forward-only loop.
-  const total = SET_SIZE + 1;
+  const total = HAS_CAROUSEL ? SET_SIZE + 1 : 1;
   const rendered = Array.from({ length: total }, (_, i) => SLIDES[i % SET_SIZE]);
 
   // Re-enable the slide transition right after an invisible rewind.
@@ -59,6 +65,7 @@ export function InviteFriendsBanner({ variant = "full" }: { variant?: "full" | "
 
   // Auto-advance forward forever.
   useEffect(() => {
+    if (!HAS_CAROUSEL) return;
     const timer = setInterval(() => {
       setIndex((i) => (i + 1) % total);
     }, SLIDE_DURATION_MS);
@@ -144,6 +151,7 @@ export function InviteFriendsBanner({ variant = "full" }: { variant?: "full" | "
             </Box>
           ))}
         </Box>
+        {HAS_CAROUSEL ? (
         <Stack direction="row" spacing={0.75} justifyContent="center" sx={{ mt: 1, pb: 0.75 }}>
           {SLIDES.map((slide, i) => (
             <Box
@@ -165,6 +173,7 @@ export function InviteFriendsBanner({ variant = "full" }: { variant?: "full" | "
             />
           ))}
         </Stack>
+        ) : null}
       </Box>
 
       <ChapterInviteShareDialog open={open} onClose={() => setOpen(false)} />

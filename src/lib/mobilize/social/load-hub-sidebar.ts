@@ -50,6 +50,7 @@ export async function loadMobilizeHubSidebar(
       .from("mobilize_groups")
       .select("id, name, profile_image_url, cover_image_url")
       .eq("visibility", "public")
+      .eq("publish_status", "published")
       .not("parent_group_id", "is", null)
       .order("last_activity_at", { ascending: false, nullsFirst: false })
       .limit(24),

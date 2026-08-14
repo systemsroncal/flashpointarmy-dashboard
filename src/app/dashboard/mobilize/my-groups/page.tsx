@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { Box, Typography } from "@mui/material";
-import MobilizeGroupsBrowseTable, {
-  type MobilizeBrowseGroupRow,
-} from "@/components/mobilize/MobilizeGroupsBrowseTable";
+import type { MobilizeBrowseGroupRow } from "@/components/mobilize/MobilizeGroupsBrowseTable";
+import MobilizeGroupCardList from "@/components/mobilize/MobilizeGroupCardList";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
@@ -63,16 +62,17 @@ export default function MyGroupsPage() {
         Groups
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
-        Groups you belong to or lead. Open a group from the table to view feed, events, and members.
+        Groups you belong to or lead. Open a group to view feed, events, and members.
       </Typography>
-      <MobilizeContentPanel fill sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <MobilizeGroupsBrowseTable
+      <MobilizeContentPanel
+        fill
+        sx={{ display: "flex", flexDirection: "column", minHeight: 0, overflowY: { lg: "auto" } }}
+      >
+        <MobilizeGroupCardList
           groups={rows}
           loading={loading}
-          fillHeight
           emptyMessage="You are not in any Mobilize group yet."
-          nameLinkTarget="group-detail"
-          thumbnailScale={3.5}
+          onJoined={() => void load()}
         />
       </MobilizeContentPanel>
     </Box>

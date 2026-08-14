@@ -6,6 +6,7 @@ import {
   MOBILIZE_MY_GROUPS_HREF,
   MOBILIZE_PREFIX,
   MOBILIZE_SOCIAL_SETTINGS_HREF,
+  SHOW_MOBILIZE_DIRECT_MESSAGES,
 } from "@/lib/mobilize/mobilize-nav-config";
 
 export type MobilizeSocialNavKey =
@@ -27,11 +28,10 @@ export type MobilizeSocialNavItem = {
 };
 
 export function mobilizeSocialNavItems(profileHref: string): MobilizeSocialNavItem[] {
-  return [
+  const items: MobilizeSocialNavItem[] = [
     { key: "search", label: "Search", href: MOBILIZE_HOME_HREF, shortLabel: "Search" },
     { key: "home", label: "Home", href: MOBILIZE_HOME_HREF, shortLabel: "Home" },
     { key: "alerts", label: "Alerts", href: MOBILIZE_ALERTS_HREF, shortLabel: "Alerts" },
-    { key: "messages", label: "Messages", href: MOBILIZE_MESSAGES_HREF, shortLabel: "Msgs" },
     { key: "groups", label: "Groups", href: MOBILIZE_MY_GROUPS_HREF, shortLabel: "Groups" },
     { key: "bookmarks", label: "My saved", href: MOBILIZE_BOOKMARKS_HREF, shortLabel: "Saved" },
     { key: "profile", label: "Profile", href: profileHref, shortLabel: "Profile" },
@@ -42,6 +42,15 @@ export function mobilizeSocialNavItems(profileHref: string): MobilizeSocialNavIt
       shortLabel: "Settings",
     },
   ];
+  if (SHOW_MOBILIZE_DIRECT_MESSAGES) {
+    items.splice(3, 0, {
+      key: "messages",
+      label: "Messages",
+      href: MOBILIZE_MESSAGES_HREF,
+      shortLabel: "Msgs",
+    });
+  }
+  return items;
 }
 
 export function isMobilizeSocialNavActive(

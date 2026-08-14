@@ -143,7 +143,7 @@ const MOBILIZE_HOME = `${MOBILIZE_PREFIX}/map`;
 
 const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
   {
-    label: "Dashboard",
+    label: "Main Dashboard",
     href: "/dashboard",
     module: MODULE_SLUGS.dashboard,
     icon: <ArrowBackIcon />,
@@ -155,13 +155,13 @@ const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
     icon: <HomeOutlinedIcon />,
   },
   {
-    label: "Chapters",
+    label: "Find Chapters",
     href: `${MOBILIZE_PREFIX}/map`,
     module: MODULE_SLUGS.movilization,
     icon: <MapIcon />,
   },
   {
-    label: "Groups",
+    label: "My Groups",
     href: `${MOBILIZE_PREFIX}/my-groups`,
     module: MODULE_SLUGS.movilization,
     icon: <Groups2OutlinedIcon />,
@@ -1313,7 +1313,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           ) : null}
           <Box sx={{ flexGrow: 1 }} />
           <RoleWelcomeVideoPrompt />
-          <DashboardTourHelpButton />
+          <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
+            <DashboardTourHelpButton />
+          </Box>
           <Box data-tour="header-notifications" sx={{ display: "inline-flex", alignItems: "center" }}>
             {showSystemNotificationBell ? (
               <NotificationMenu userId={user.id} />

@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, profile_image_url, created_by, created_at, parent_group_id, schedule_meeting, enrollment_mode, last_activity_at, public_slug, is_featured"
+      "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, profile_image_url, created_by, created_at, parent_group_id, schedule_meeting, enrollment_mode, last_activity_at, public_slug, is_featured, publish_status"
     )
     .order("created_at", { ascending: false });
 
@@ -47,6 +47,11 @@ export async function GET(req: Request) {
 
   if (visibility === "public" || visibility === "private") {
     query = query.eq("visibility", visibility);
+  }
+
+  // Public browse/map: hide drafts. Dashboard lists use visibility=all and still see drafts.
+  if (visibility !== "all") {
+    query = query.eq("publish_status", "published");
   }
 
   if (q) {
@@ -103,6 +108,7 @@ export async function GET(req: Request) {
       .from("mobilize_groups")
       .select("id, name, cover_image_url, enrollment_mode, parent_group_id, created_at")
       .eq("is_featured", true)
+      .eq("publish_status", "published")
       .not("parent_group_id", "is", null)
       .order("created_at", { ascending: true });
     featuredBriefs = (featuredRows ?? []).map((f) => ({
@@ -175,6 +181,7 @@ export async function POST(req: Request) {
     enrollment_mode?: string;
     is_featured?: boolean;
     profile_image_url?: string | null;
+    publish_status?: string;
   };
 
   const name = String(body.name ?? "").trim();
@@ -256,6 +263,7 @@ export async function POST(req: Request) {
       : null;
 
   const is_featured = parent_group_id ? body.is_featured === true : false;
+  const publish_status = body.publish_status === "draft" ? "draft" : "published";
 
   const row = {
     name,
@@ -275,6 +283,7 @@ export async function POST(req: Request) {
     schedule_meeting: parent_group_id ? schedule_meeting : null,
     enrollment_mode: parent_group_id ? enrollment_mode : "request_to_join",
     is_featured,
+    publish_status,
     last_activity_at: new Date().toISOString(),
   };
 

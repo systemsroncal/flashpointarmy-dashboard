@@ -8,6 +8,7 @@ import {
   MOBILIZE_BOOKMARKS_HREF,
   MOBILIZE_MESSAGES_HREF,
   MOBILIZE_MY_GROUPS_HREF,
+  SHOW_MOBILIZE_DIRECT_MESSAGES,
 } from "@/lib/mobilize/mobilize-nav-config";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
@@ -119,17 +120,19 @@ export function HeaderSuperAdminProfileAvatar({
             </ListItemIcon>
             <ListItemText primary="Groups" />
           </MenuItem>
-          <MenuItem
-            component={Link}
-            href={MOBILIZE_MESSAGES_HREF}
-            selected={pathname.startsWith(MOBILIZE_MESSAGES_HREF)}
-            onClick={closeMenu}
-          >
-            <ListItemIcon>
-              <MailOutlineIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Messages" />
-          </MenuItem>
+          {SHOW_MOBILIZE_DIRECT_MESSAGES ? (
+            <MenuItem
+              component={Link}
+              href={MOBILIZE_MESSAGES_HREF}
+              selected={pathname.startsWith(MOBILIZE_MESSAGES_HREF)}
+              onClick={closeMenu}
+            >
+              <ListItemIcon>
+                <MailOutlineIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Messages" />
+            </MenuItem>
+          ) : null}
           <MenuItem
             component={Link}
             href={MOBILIZE_BOOKMARKS_HREF}

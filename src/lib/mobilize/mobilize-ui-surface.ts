@@ -165,7 +165,7 @@ export const mobilizeGroupFeedPostsStackSx: SxProps<Theme> = {
   flex: 1,
   minHeight: 0,
   height: "100%",
-  gap: 2,
+  gap: { xs: "15px", sm: 2 },
 };
 
 /** White Paper shell for group feed composer and posts column. */

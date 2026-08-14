@@ -15,7 +15,7 @@ export default async function PublicMobilizeGroupPage({ params }: Props) {
   await applyMobilizeAutoCloseInactive(admin, [id]);
 
   const groupSelect =
-    "id, name, description, address, schedule_meeting, enrollment_mode, cover_image_url, parent_group_id, public_slug, visibility, created_by, region_code";
+    "id, name, description, address, schedule_meeting, enrollment_mode, cover_image_url, parent_group_id, public_slug, visibility, publish_status, created_by, region_code";
 
   let { data: group } = await admin.from("mobilize_groups").select(groupSelect).eq("id", id).maybeSingle();
 
@@ -24,7 +24,7 @@ export default async function PublicMobilizeGroupPage({ params }: Props) {
     group = bySlug.data;
   }
 
-  if (!group || group.parent_group_id == null) {
+  if (!group || group.parent_group_id == null || group.publish_status === "draft") {
     notFound();
   }
 

@@ -43,6 +43,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
+import MobilizeGroupPublishStatusSelect from "@/components/mobilize/MobilizeGroupPublishStatusSelect";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import {
@@ -55,7 +56,9 @@ import { mobilizeGroupInitials } from "@/lib/mobilize/group-initials";
 import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
 import {
   isMobilizeGroupListed,
+  isMobilizeGroupPublished,
   mobilizeGroupListingVisibilityFromListed,
+  type MobilizeGroupPublishStatus,
 } from "@/lib/mobilize/group-ui-labels";
 import {
   mobilizeChapterDetailRootSx,
@@ -95,6 +98,7 @@ type GroupRow = {
   my_membership_status?: string | null;
   created_by?: string;
   is_featured?: boolean | null;
+  publish_status?: string | null;
 };
 
 export default function ChapterGroupsClient({ chapterId }: { chapterId: string }) {
@@ -128,6 +132,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
     resources_post_policy: "all_approved" as "all_approved" | "leaders_only",
     parent_group_id: chapterId,
     is_featured: false,
+    publish_status: "published" as MobilizeGroupPublishStatus,
   });
   const [chapterOptions, setChapterOptions] = useState<{ id: string; name: string }[]>([]);
   const [editForm, setEditForm] = useState({
@@ -370,6 +375,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
           wall_post_policy: form.wall_post_policy,
           resources_post_policy: form.resources_post_policy,
           is_featured: form.is_featured === true,
+          publish_status: form.publish_status,
         }),
       });
       const json = await res.json();
@@ -393,6 +399,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
         resources_post_policy: "all_approved",
         parent_group_id: chapterId,
         is_featured: false,
+        publish_status: "published",
       });
       await load();
     } catch (e) {
@@ -445,7 +452,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
             sm: "repeat(2, minmax(0, 1fr))",
             lg: "repeat(3, minmax(0, 1fr))",
           },
-          gap: 2,
+          gap: { xs: 1.25, sm: 2 },
         }}
       >
         {filtered.map((g) => {
@@ -466,11 +473,21 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                 border: "1px solid rgba(0,0,0,0.1)",
                 bgcolor: "#fff",
                 display: "flex",
-                flexDirection: "column",
+                // Compact side-by-side row on phones; stacked card from sm up.
+                flexDirection: { xs: "row", sm: "column" },
                 minHeight: 0,
               }}
             >
-              <Box sx={{ position: "relative", aspectRatio: "16 / 10", bgcolor: "#1a2744" }}>
+              <Box
+                sx={{
+                  position: "relative",
+                  bgcolor: "#1a2744",
+                  flexShrink: 0,
+                  width: { xs: 104, sm: "auto" },
+                  alignSelf: { xs: "stretch", sm: "auto" },
+                  aspectRatio: { xs: "auto", sm: "16 / 10" },
+                }}
+              >
                 <Box
                   component={Link}
                   href={detailHref}
@@ -506,6 +523,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                       right: 8,
                       bgcolor: "rgba(0,0,0,0.45)",
                       color: "#fff",
+                      display: { xs: "none", sm: "inline-flex" },
                       "&:hover": { bgcolor: "rgba(0,0,0,0.6)" },
                     }}
                   >
@@ -513,16 +531,28 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                   </IconButton>
                 </Tooltip>
               </Box>
-              <Box sx={{ p: 1.5, flex: 1, display: "flex", flexDirection: "column", gap: 0.75 }}>
-                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1}>
+              <Box
+                sx={{
+                  p: { xs: 1.25, sm: 1.5 },
+                  flex: 1,
+                  minWidth: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: { xs: 0.35, sm: 0.75 },
+                }}
+              >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
                   <Typography
                     component={Link}
                     href={detailHref}
                     fontWeight={700}
                     color="text.primary"
+                    noWrap
+                    title={g.name}
                     sx={{
                       textDecoration: "none",
                       lineHeight: 1.25,
+                      fontSize: { xs: "0.92rem", sm: "1rem" },
                       "&:hover": { textDecoration: "underline" },
                       flex: 1,
                       minWidth: 0,
@@ -532,18 +562,42 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                   </Typography>
                   <Chip size="small" label={status.label} color={status.color} variant="outlined" sx={{ flexShrink: 0 }} />
                 </Stack>
-                {g.is_featured ? (
-                  <Chip size="small" label="Featured" color="primary" variant="outlined" sx={{ alignSelf: "flex-start" }} />
+                {g.is_featured || !isMobilizeGroupPublished(g.publish_status) ? (
+                  <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                    {g.is_featured ? (
+                      <Chip size="small" label="Featured" color="primary" variant="outlined" />
+                    ) : null}
+                    {!isMobilizeGroupPublished(g.publish_status) ? (
+                      <Chip size="small" label="Draft" color="warning" variant="outlined" />
+                    ) : null}
+                  </Stack>
                 ) : null}
                 {g.schedule_meeting ? (
-                  <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    noWrap
+                    title={g.schedule_meeting}
+                    sx={{ lineHeight: 1.4 }}
+                  >
                     {g.schedule_meeting}
                   </Typography>
                 ) : null}
-                <Typography variant="caption" color="text.secondary" sx={{ mt: "auto" }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  noWrap
+                  sx={{ mt: { xs: 0, sm: "auto" } }}
+                >
                   {listed ? "Listed" : "Link only"} · {g.member_count ?? 0} members · {enrollment}
                 </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  flexWrap="wrap"
+                  useFlexGap
+                  sx={{ mt: { xs: 0.25, sm: 0.5 } }}
+                >
                   {g.my_membership_status !== "approved" &&
                   g.enrollment_mode !== "closed" &&
                   g.enrollment_mode !== "auto_closed" ? (
@@ -640,6 +694,15 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                             size="small"
                             label="Featured"
                             color="primary"
+                            variant="outlined"
+                            sx={{ mt: 0.5, mr: 0.5 }}
+                          />
+                        ) : null}
+                        {!isMobilizeGroupPublished(g.publish_status) ? (
+                          <Chip
+                            size="small"
+                            label="Draft"
+                            color="warning"
                             variant="outlined"
                             sx={{ mt: 0.5 }}
                           />
@@ -766,7 +829,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
           color="primary"
           sx={{ fontWeight: 600 }}
         >
-          Back to chapters
+          Back to states
         </Button>
         <Stack direction="row" spacing={1} alignItems="center">
           {canCreate ? (
@@ -1043,6 +1106,11 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
             <Button variant="outlined" onClick={() => void geocodeAddress()} disabled={saving}>
               Geocode address
             </Button>
+            <MobilizeGroupPublishStatusSelect
+              value={form.publish_status}
+              disabled={saving}
+              onChange={(publish_status) => setForm((f) => ({ ...f, publish_status }))}
+            />
             <MobilizeGroupListedSwitch
               listed={isMobilizeGroupListed(form.visibility)}
               disabled={saving}

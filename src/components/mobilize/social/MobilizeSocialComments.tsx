@@ -761,9 +761,13 @@ export function MobilizeSocialComments({
             textTransform: "none",
             fontWeight: 700,
             fontSize: "0.8125rem",
-            color: light ? "#0866ff" : "#6eb5ff",
+            color: light ? "#525252" : "#b0b3b8",
             textDecoration: "underline",
-            "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+            "&:hover": {
+              bgcolor: "transparent",
+              textDecoration: "underline",
+              color: light ? "#3a3a3a" : "#d0d2d6",
+            },
           }}
         >
           {commentsExpanded ? "Read less" : "More comments"}

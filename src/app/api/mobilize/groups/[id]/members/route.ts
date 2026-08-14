@@ -132,6 +132,13 @@ export async function GET(_req: Request, ctx: Ctx) {
     };
   });
 
+  members.sort((a, b) => {
+    const aLeader = a.member_role === "leader" ? 0 : 1;
+    const bLeader = b.member_role === "leader" ? 0 : 1;
+    if (aLeader !== bLeader) return aLeader - bLeader;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
   return NextResponse.json({ members, can_view_contacts: canViewContacts });
 }
 

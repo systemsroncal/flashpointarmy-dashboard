@@ -46,7 +46,8 @@ export async function GET(req: Request) {
     .select(
       "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, profile_image_url, wall_post_policy, created_at, created_by, parent_group_id"
     )
-    .eq("visibility", "public");
+    .eq("visibility", "public")
+    .eq("publish_status", "published");
 
   if (scope === "subgroups") {
     query = query.not("parent_group_id", "is", null);

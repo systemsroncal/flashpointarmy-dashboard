@@ -7,6 +7,7 @@ import {
   MOBILIZE_MESSAGES_HREF,
   MOBILIZE_MY_GROUPS_HREF,
   MOBILIZE_SOCIAL_SETTINGS_HREF,
+  SHOW_MOBILIZE_DIRECT_MESSAGES,
 } from "@/lib/mobilize/mobilize-nav-config";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -47,20 +48,30 @@ export function MobilizeSocialInternalNav() {
   const profileHref = mobilizeMemberProfileHref(me.id);
 
   const items = useMemo<NavItem[]>(
-    () => [
-      { key: "home", label: "Home", href: MOBILIZE_HOME_HREF, icon: <HomeOutlinedIcon fontSize="small" /> },
-      { key: "alerts", label: "Alerts", href: MOBILIZE_ALERTS_HREF, icon: <NotificationsNoneOutlinedIcon fontSize="small" /> },
-      { key: "messages", label: "Messages", href: MOBILIZE_MESSAGES_HREF, icon: <MailOutlineIcon fontSize="small" /> },
-      { key: "groups", label: "Groups", href: MOBILIZE_MY_GROUPS_HREF, icon: <GroupsOutlinedIcon fontSize="small" /> },
-      { key: "bookmarks", label: "My saved", href: MOBILIZE_BOOKMARKS_HREF, icon: <BookmarkBorderOutlinedIcon fontSize="small" /> },
-      { key: "profile", label: "Profile", href: profileHref, icon: <PersonOutlineIcon fontSize="small" /> },
-      {
-        key: "settings",
-        label: "Settings",
-        href: MOBILIZE_SOCIAL_SETTINGS_HREF,
-        icon: <SettingsOutlinedIcon fontSize="small" />,
-      },
-    ],
+    () => {
+      const list: NavItem[] = [
+        { key: "home", label: "Home", href: MOBILIZE_HOME_HREF, icon: <HomeOutlinedIcon fontSize="small" /> },
+        { key: "alerts", label: "Alerts", href: MOBILIZE_ALERTS_HREF, icon: <NotificationsNoneOutlinedIcon fontSize="small" /> },
+        { key: "groups", label: "Groups", href: MOBILIZE_MY_GROUPS_HREF, icon: <GroupsOutlinedIcon fontSize="small" /> },
+        { key: "bookmarks", label: "My saved", href: MOBILIZE_BOOKMARKS_HREF, icon: <BookmarkBorderOutlinedIcon fontSize="small" /> },
+        { key: "profile", label: "Profile", href: profileHref, icon: <PersonOutlineIcon fontSize="small" /> },
+        {
+          key: "settings",
+          label: "Settings",
+          href: MOBILIZE_SOCIAL_SETTINGS_HREF,
+          icon: <SettingsOutlinedIcon fontSize="small" />,
+        },
+      ];
+      if (SHOW_MOBILIZE_DIRECT_MESSAGES) {
+        list.splice(2, 0, {
+          key: "messages",
+          label: "Messages",
+          href: MOBILIZE_MESSAGES_HREF,
+          icon: <MailOutlineIcon fontSize="small" />,
+        });
+      }
+      return list;
+    },
     [profileHref]
   );
 

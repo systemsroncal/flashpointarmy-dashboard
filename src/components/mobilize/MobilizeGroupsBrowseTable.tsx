@@ -4,6 +4,8 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   Avatar,
   Box,
+  Button,
+  CircularProgress,
   IconButton,
   Skeleton,
   Stack,
@@ -20,6 +22,7 @@ import {
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import Link from "next/link";
+import { useState } from "react";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import type { MobilizeSubgroupBrief } from "@/lib/mobilize/chapter-subgroup";
 import { resolveMobilizeGroupStateCode } from "@/lib/mobilize/group-state-flag";
@@ -28,6 +31,7 @@ import { mobilizeGroupInitials } from "@/lib/mobilize/group-initials";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { flashpointYellow } from "@/theme/tokens";
+import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
 export type MobilizeBrowseGroupRow = {
   id: string;
@@ -49,6 +53,20 @@ export type MobilizeBrowseGroupRow = {
   my_membership_status?: string | null;
   subgroups?: MobilizeSubgroupBrief[];
   subgroup_count?: number;
+};
+
+const JOIN_ACTION_BUTTON_SX = {
+  flexShrink: 0,
+  textTransform: "none" as const,
+  fontWeight: 700,
+  borderRadius: "8px",
+  boxShadow: "none",
+  px: 1.75,
+  whiteSpace: "nowrap" as const,
+  bgcolor: "#e7f3ff",
+  color: "#1877f2",
+  "&:hover": { bgcolor: "#d8eaff", boxShadow: "none" },
+  "&.Mui-disabled": { bgcolor: "#f0f2f5", color: "rgba(0,0,0,0.4)" },
 };
 
 const leaderPillSx = {
@@ -74,7 +92,7 @@ type Props = {
   /** Stretch table to fill a flex parent; enables internal scroll. */
   fillHeight?: boolean;
   emptyMessage?: string;
-  /** @deprecated Chapters no longer support join from browse. */
+  /** Called after a successful join from the Groups tab (subgroupsMap). */
   onJoined?: () => void | Promise<void>;
   /**
    * Map tab: Chapter + Groups preview + open link (no Leaders/Members/Join).
@@ -231,11 +249,14 @@ export default function MobilizeGroupsBrowseTable({
   maxHeight,
   fillHeight = false,
   emptyMessage = "No chapters match your filters.",
+  onJoined,
   layoutVariant = "default",
   nameLinkTarget = "chapter-groups",
   thumbnailScale = 1,
 }: Props) {
   const theme = useTheme();
+  const toast = useMobilizeToast();
+  const [joiningId, setJoiningId] = useState<string | null>(null);
   const compactThumb = useMediaQuery(theme.breakpoints.down("md"));
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const mapStacked = layoutVariant === "mapStacked";
@@ -271,6 +292,53 @@ export default function MobilizeGroupsBrowseTable({
     return nameLinkTarget === "group-detail"
       ? `/dashboard/mobilize/groups/${id}`
       : `/dashboard/mobilize/groups/${id}/groups`;
+  }
+
+  async function joinGroup(groupId: string) {
+    setJoiningId(groupId);
+    try {
+      const res = await fetch(`/api/mobilize/groups/${groupId}/join`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Join failed.");
+      const status = json.membership?.membership_status;
+      toast(status === "approved" ? "You joined this group." : "Join request sent.", "success");
+      await onJoined?.();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Join failed.", "error");
+    } finally {
+      setJoiningId(null);
+    }
+  }
+
+  function renderGroupJoinAction(g: MobilizeBrowseGroupRow) {
+    const detailHref = rowNameHref(g.id);
+    const isMember = g.my_membership_status === "approved";
+    const isPending = g.my_membership_status === "pending";
+    if (isMember) {
+      return (
+        <Button component={Link} href={detailHref} size="small" sx={JOIN_ACTION_BUTTON_SX}>
+          Create post
+        </Button>
+      );
+    }
+    if (isPending) {
+      return (
+        <Button size="small" disabled sx={JOIN_ACTION_BUTTON_SX}>
+          Pending
+        </Button>
+      );
+    }
+    return (
+      <Button
+        size="small"
+        disabled={joiningId === g.id}
+        onClick={() => void joinGroup(g.id)}
+        sx={JOIN_ACTION_BUTTON_SX}
+        startIcon={joiningId === g.id ? <CircularProgress size={14} color="inherit" /> : undefined}
+      >
+        Join Group
+      </Button>
+    );
   }
 
   function renderOpenChapter(g: MobilizeBrowseGroupRow, align: "end" | "start" = "end") {
@@ -410,11 +478,8 @@ export default function MobilizeGroupsBrowseTable({
               </>
             ) : subgroupsMap ? (
               <>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: "56%" }}>Group</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", width: 72 }}>
-                  Members
-                </TableCell>
-                <TableCell align="right" sx={{ width: 56, fontWeight: 700, color: "text.secondary", px: 1 }}>
+                <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: "auto" }}>Group</TableCell>
+                <TableCell align="right" sx={{ width: 140, fontWeight: 700, color: "text.secondary", px: 1 }}>
                   &nbsp;
                 </TableCell>
               </>
@@ -537,21 +602,9 @@ export default function MobilizeGroupsBrowseTable({
               >
                 {subgroupsMap ? (
                   <>
-                    <TableCell sx={{ py: 0.85, verticalAlign: "top" }}>{groupInfo}</TableCell>
-                    <TableCell align="right" sx={{ py: 0.85, verticalAlign: "middle" }}>
-                      <Typography variant="body2">{count}</Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ py: 0.85, px: 1 }}>
-                      <Tooltip title="Open group">
-                        <IconButton
-                          component={Link}
-                          href={detailHref}
-                          size="small"
-                          color="primary"
-                        >
-                          <OpenInNewIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                    <TableCell sx={{ py: 0.85, verticalAlign: "middle" }}>{groupInfo}</TableCell>
+                    <TableCell align="right" sx={{ py: 0.85, px: 1, verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                      {renderGroupJoinAction(g)}
                     </TableCell>
                   </>
                 ) : mapStacked ? (

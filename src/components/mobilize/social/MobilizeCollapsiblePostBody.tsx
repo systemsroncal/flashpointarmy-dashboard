@@ -69,9 +69,13 @@ export function MobilizeCollapsiblePostBody({ text, media, surface = "light" }: 
             textTransform: "none",
             fontWeight: 700,
             fontSize: "0.875rem",
-            color: "#0866ff",
+            color: surface === "dark" ? "#b0b3b8" : "#525252",
             textDecoration: "underline",
-            "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+            "&:hover": {
+              bgcolor: "transparent",
+              textDecoration: "underline",
+              color: surface === "dark" ? "#d0d2d6" : "#3a3a3a",
+            },
           }}
         >
           {accordion.expanded ? "Less" : "More"}

@@ -45,6 +45,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import IosShareOutlinedIcon from "@mui/icons-material/IosShareOutlined";
+import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import MilitaryTechOutlinedIcon from "@mui/icons-material/MilitaryTechOutlined";
@@ -89,9 +90,14 @@ import {
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
 import MobilizeGroupListedSwitch from "@/components/mobilize/MobilizeGroupListedSwitch";
+import MobilizeGroupPublishStatusSelect from "@/components/mobilize/MobilizeGroupPublishStatusSelect";
 import {
   isMobilizeGroupListed,
+  isMobilizeGroupPublished,
+  labelGroupPublishStatus,
   mobilizeGroupListingVisibilityFromListed,
+  normalizeMobilizeGroupPublishStatus,
+  type MobilizeGroupPublishStatus,
 } from "@/lib/mobilize/group-ui-labels";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { MobilizeGroupAboutText } from "@/components/mobilize/MobilizeGroupAboutText";
@@ -139,6 +145,7 @@ type Group = {
   enrollment_mode?: string | null;
   public_slug?: string | null;
   is_featured?: boolean | null;
+  publish_status?: MobilizeGroupPublishStatus | string | null;
 };
 
 type Membership = {
@@ -343,6 +350,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     leader_user_ids: [] as string[],
     parent_group_id: "" as string,
     is_featured: false,
+    publish_status: "published" as MobilizeGroupPublishStatus,
   });
   const [chapterOptions, setChapterOptions] = useState<{ id: string; name: string }[]>([]);
   const [ownerCandidates, setOwnerCandidates] = useState<{ userId: string; label: string }[]>([]);
@@ -439,7 +447,18 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     membership,
   });
   const approvedMembers = useMemo(
-    () => members.filter((m) => m.membership_status === "approved"),
+    () =>
+      [...members]
+        .filter((m) => m.membership_status === "approved")
+        .sort((a, b) => {
+          const aLeader = a.member_role === "leader" ? 0 : 1;
+          const bLeader = b.member_role === "leader" ? 0 : 1;
+          if (aLeader !== bLeader) return aLeader - bLeader;
+          return (
+            new Date(b.member_since ?? b.created_at).getTime() -
+            new Date(a.member_since ?? a.created_at).getTime()
+          );
+        }),
     [members]
   );
   const displayMemberCount = canViewContent
@@ -866,6 +885,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       })(),
       parent_group_id: group.parent_group_id ?? "",
       is_featured: Boolean(group.is_featured),
+      publish_status: normalizeMobilizeGroupPublishStatus(group.publish_status),
     });
     if (isSuperAdmin && group.parent_group_id) {
       void (async () => {
@@ -964,6 +984,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           wall_post_policy: editForm.wall_post_policy,
           resources_post_policy: editForm.resources_post_policy,
           is_featured: editForm.is_featured === true,
+          publish_status: editForm.publish_status,
           ...(isSuperAdmin
             ? {
                 created_by: editForm.created_by,
@@ -1058,16 +1079,30 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const profileHeaderActions = useMemo(() => {
     const canEdit = Boolean(group && (isLeader || group.created_by === me.id || isSuperAdmin));
     const actions: ReactNode[] = [];
+    // Facebook-style action row: full-width pills on mobile, compact buttons on desktop.
     const heroBtnSx = {
-      borderRadius: 99,
+      borderRadius: { xs: "10px", md: 99 },
       textTransform: "none" as const,
       fontWeight: 700,
+      minHeight: { xs: 40, md: 36 },
+      flex: { xs: "1 1 0", md: "0 0 auto" },
       color: "#0d0d0d",
       borderColor: "rgba(0,0,0,0.18)",
       bgcolor: "#fff",
       "&:hover": {
         borderColor: "rgba(0,0,0,0.28)",
         bgcolor: "rgba(0,0,0,0.03)",
+      },
+    };
+    const neutralBtnSx = {
+      ...heroBtnSx,
+      bgcolor: "#e4e6eb",
+      borderColor: "#e4e6eb",
+      boxShadow: "none",
+      "&:hover": {
+        bgcolor: "#d8dadf",
+        borderColor: "#d8dadf",
+        boxShadow: "none",
       },
     };
     if (showJoin) {
@@ -1081,20 +1116,44 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           sx={{
             ...heroBtnSx,
             ...mobilizeJoinGroupButtonSx,
+            borderRadius: { xs: "10px", md: 99 },
+            minHeight: { xs: 40, md: 36 },
+            flex: { xs: "1 1 0", md: "0 0 auto" },
           }}
         >
           Join group
         </Button>
       );
-    } else if (membership?.membership_status === "pending") {
+    } else if (isPendingJoin) {
       actions.push(
-        <Typography
+        <Button
           key="pending"
-          variant="body2"
-          sx={{ color: "warning.main", maxWidth: 220, fontWeight: 600 }}
+          size="small"
+          variant="contained"
+          disableRipple
+          startIcon={<HowToRegOutlinedIcon />}
+          sx={{
+            ...neutralBtnSx,
+            color: "#8a5a00",
+            cursor: "default",
+            pointerEvents: "none",
+          }}
         >
-          Membership pending approval.
-        </Typography>
+          Pending
+        </Button>
+      );
+    } else if (isApproved && !canEdit) {
+      actions.push(
+        <Button
+          key="joined"
+          size="small"
+          variant="contained"
+          disableRipple
+          startIcon={<HowToRegOutlinedIcon />}
+          sx={{ ...neutralBtnSx, cursor: "default", pointerEvents: "none" }}
+        >
+          Joined
+        </Button>
       );
     }
     if (canEdit) {
@@ -1113,35 +1172,49 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     }
     if (group) {
       actions.push(
-        <Tooltip key="share" title="Share group">
-          <IconButton
-            size="small"
-            aria-label="Share group"
-            onClick={() => setShareOpen(true)}
-            sx={{
-              ...heroBtnSx,
-              width: 36,
-              height: 36,
-              border: "1px solid",
-            }}
-          >
-            <IosShareOutlinedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <Button
+          key="share"
+          size="small"
+          variant="contained"
+          aria-label="Share group"
+          startIcon={<IosShareOutlinedIcon />}
+          onClick={() => setShareOpen(true)}
+          sx={neutralBtnSx}
+        >
+          Share
+        </Button>
       );
     }
     if (!actions.length) return null;
     return (
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1}
+        useFlexGap
+        alignItems="center"
+        sx={{ width: { xs: "100%", md: "auto" } }}
+      >
         {actions}
       </Stack>
     );
-  }, [group, groupId, isLeader, isSuperAdmin, showJoin, membership?.membership_status, me.id, openEditGroup, joinRequest]);
+  }, [
+    group,
+    isLeader,
+    isSuperAdmin,
+    showJoin,
+    isPendingJoin,
+    isApproved,
+    me.id,
+    openEditGroup,
+    joinRequest,
+  ]);
 
   const profileMeta = useMemo(() => {
     if (!group) return null;
     const memberLabel = `${displayMemberCount} member${displayMemberCount === 1 ? "" : "s"}`;
     const visibilityLabel = isMobilizeGroupListed(group.visibility) ? "Public group" : "Private group";
+    const publishLabel = labelGroupPublishStatus(group.publish_status);
+    const isDraft = !isMobilizeGroupPublished(group.publish_status);
     return (
       <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap alignItems="center">
         <Stack direction="row" spacing={0.75} alignItems="center">
@@ -1156,6 +1229,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
             {visibilityLabel}
           </Typography>
         </Stack>
+        {isDraft ? (
+          <Chip size="small" label={publishLabel} color="warning" variant="outlined" />
+        ) : null}
       </Stack>
     );
   }, [displayMemberCount, group]);
@@ -1332,7 +1408,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const groupAuthorRoleLabels = useMemo(() => {
     const labels: Record<string, string> = {};
     for (const m of approvedMembers) {
-      labels[m.user_id] = capitalizeRole(m.member_role);
+      // Yellow role chip next to post author name: leaders only (not Member).
+      if (m.member_role === "leader") {
+        labels[m.user_id] = capitalizeRole(m.member_role);
+      }
     }
     return labels;
   }, [approvedMembers]);
@@ -2442,6 +2521,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 />
               </Stack>
             ) : null}
+            <MobilizeGroupPublishStatusSelect
+              value={editForm.publish_status}
+              disabled={editSaving}
+              onChange={(publish_status) => setEditForm((f) => ({ ...f, publish_status }))}
+            />
             <MobilizeGroupListedSwitch
               listed={isMobilizeGroupListed(editForm.visibility)}
               disabled={editSaving}

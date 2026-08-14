@@ -2,6 +2,7 @@
 
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { mobilizeGroupFeedContentBg, mobilizeGroupFeedContentFillSx } from "@/lib/mobilize/mobilize-ui-surface";
+import { SOCIAL_HUB_LIGHT_BG } from "@/lib/mobilize/social/social-hub-surface";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { flashpointYellow } from "@/theme/tokens";
 import { Avatar, Box, Stack, ThemeProvider, Typography } from "@mui/material";
@@ -453,6 +454,7 @@ export function MobilizeProfilePageShell({
                 flexDirection: "column",
                 borderTop: "1px solid rgba(0,0,0,0.08)",
                 color: "#0d0d0d",
+                bgcolor: { xs: SOCIAL_HUB_LIGHT_BG, sm: "#fff" },
                 px: { xs: 0, sm: "1.5rem" },
                 py: 0,
                 boxSizing: "border-box",

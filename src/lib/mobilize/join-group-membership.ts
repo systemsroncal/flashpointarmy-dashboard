@@ -29,7 +29,7 @@ export async function joinMobilizeGroupAsMember(
 
   const { data: group, error: gErr } = await admin
     .from("mobilize_groups")
-    .select("id, visibility, parent_group_id, enrollment_mode")
+    .select("id, visibility, parent_group_id, enrollment_mode, publish_status")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -80,6 +80,9 @@ export async function joinMobilizeGroupAsMember(
         alreadyPending: true,
       };
     }
+    if (group.publish_status === "draft") {
+      return { ok: false, error: "This group is not available.", status: 404 };
+    }
     const { data, error } = await admin
       .from("mobilize_group_members")
       .update({ membership_status, member_role: "member" })
@@ -104,6 +107,10 @@ export async function joinMobilizeGroupAsMember(
       alreadyMember: false,
       alreadyPending: membership_status === "pending",
     };
+  }
+
+  if (group.publish_status === "draft") {
+    return { ok: false, error: "This group is not available.", status: 404 };
   }
 
   const { data, error } = await admin

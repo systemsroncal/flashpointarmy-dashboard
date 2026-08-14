@@ -9,7 +9,6 @@ import {
   MOBILIZE_MY_GROUPS_SIDEBAR_LIMIT,
   MOBILIZE_PREFIX,
 } from "@/lib/mobilize/mobilize-nav-config";
-import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { flashpointYellow } from "@/theme/tokens";
@@ -231,10 +230,6 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
   }, [activeGroupId, me.id, me.role_names]);
 
   const onChaptersPage = pathname === MOBILIZE_CHAPTERS_HREF || pathname === `${MOBILIZE_PREFIX}/`;
-  const onHomePage = pathname === MOBILIZE_HOME_HREF || pathname === MOBILIZE_PREFIX;
-  const onProfilePage = pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
-  const onOwnProfilePage = onProfilePage && pathname === mobilizeMemberProfileHref(me.id);
-  const onSocialHub = onHomePage || onOwnProfilePage;
   const onMyGroupsPage = pathname === MOBILIZE_MY_GROUPS_HREF;
   const onActivitiesPage = pathname.startsWith(`${MOBILIZE_PREFIX}/activities`);
   const onNotificationsPage = pathname.startsWith(`${MOBILIZE_PREFIX}/notifications`);
@@ -273,13 +268,9 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
   const myGroupsSelected =
     onMyGroupsPage || (Boolean(activeGroupId) && activeGroup !== null && activeGroup.isSubgroup);
 
-  const topNavHref = onSocialHub ? MOBILIZE_CHAPTERS_HREF : "/dashboard";
-  const topNavLabel = onSocialHub ? "Chapters" : "Dashboard";
-  const topNavIcon = onSocialHub ? (
-    <MapIcon sx={{ fontSize: 18 }} />
-  ) : (
-    <ArrowBackIcon sx={{ fontSize: 18 }} />
-  );
+  const topNavHref = "/dashboard";
+  const topNavLabel = "Main Dashboard";
+  const topNavIcon = <ArrowBackIcon sx={{ fontSize: 18 }} />;
 
   return (
     <>
@@ -369,7 +360,7 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
             <MapIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Chapters"
+            primary="Find Chapters"
             primaryTypographyProps={{
               variant: "body2",
               fontWeight: 600,
@@ -427,7 +418,7 @@ export function MobilizeSidebarNav({ onNavigate, showSettings }: Props) {
             <Groups2OutlinedIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Groups"
+            primary="My Groups"
             primaryTypographyProps={{
               variant: "body2",
               fontWeight: 600,

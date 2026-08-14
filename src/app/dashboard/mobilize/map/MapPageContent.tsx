@@ -517,6 +517,7 @@ export default function MobilizeMapPageContent() {
             layoutVariant={browseTab === "groups" ? "subgroupsMap" : "mapStacked"}
             nameLinkTarget={browseTab === "groups" ? "group-detail" : "chapter-groups"}
             thumbnailScale={1}
+            onJoined={browseTab === "groups" ? () => void load() : undefined}
           />
         </Box>
         <Box sx={{ minWidth: 0, position: "relative", display: "flex", flexDirection: "column", minHeight: { xs: 280, lg: 0 } }}>

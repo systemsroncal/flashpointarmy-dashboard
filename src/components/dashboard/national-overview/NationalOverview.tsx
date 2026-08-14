@@ -441,14 +441,7 @@ export function NationalOverview({
       };
     };
 
-    const cards: StatCard[] = [
-      {
-        label: "Churches",
-        value: stats.activeChapters,
-        color: "#3b82f6",
-        icon: PlaceOutlined,
-      },
-    ];
+    const cards: StatCard[] = [];
 
     if (chapterStaff) {
       cards.push({
@@ -469,6 +462,13 @@ export function NationalOverview({
         icon: GroupsOutlined,
       });
     }
+
+    cards.push({
+      label: "Churches",
+      value: stats.activeChapters,
+      color: "#3b82f6",
+      icon: PlaceOutlined,
+    });
 
     if (superAdmin) {
       cards.push({
@@ -547,6 +547,16 @@ export function NationalOverview({
               sx={{
                 minWidth: 0,
                 width: "100%",
+                // From ~5 auto-fill columns upward, keep Members/Leaders at a fixed 200px.
+                ...(isDual
+                  ? {
+                      "@media (min-width: 900px)": {
+                        width: 200,
+                        maxWidth: 200,
+                        justifySelf: "stretch",
+                      },
+                    }
+                  : null),
               }}
             >
               <Card
@@ -603,6 +613,7 @@ export function NationalOverview({
                         alignItems: "flex-start",
                         width: "100%",
                         minWidth: 0,
+                        gap: "4px",
                         "@media (min-width: 768px)": {
                           flexDirection: "column",
                           gap: 1.25,
