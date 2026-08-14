@@ -18,7 +18,7 @@ type Props = {
 export function MobilizeSocialHubLayout({
   children,
   sidebar = null,
-  showRightRail = true,
+  showRightRail = false,
 }: Props) {
   return (
     <Box

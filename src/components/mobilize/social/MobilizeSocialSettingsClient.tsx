@@ -39,7 +39,7 @@ export function MobilizeSocialSettingsClient() {
 
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
-      <MobilizeSocialHubLayout>
+      <MobilizeSocialHubLayout showRightRail={false}>
         <MobilizeSocialHubContent tone="light">
           <Box sx={{ p: { xs: 1.5, sm: 2 } }}>
           <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>

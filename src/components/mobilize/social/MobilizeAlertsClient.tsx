@@ -35,9 +35,20 @@ export function MobilizeAlertsClient() {
 
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
-      <MobilizeSocialHubLayout>
+      <MobilizeSocialHubLayout showRightRail={false}>
         <MobilizeSocialHubContent tone="light">
-          <Box sx={{ p: { xs: 1.5, sm: 2 }, flex: 1, display: "flex", flexDirection: "column" }}>
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              maxWidth: 1180,
+              mx: "auto",
+              p: { xs: 1.5, sm: 1.5, md: 2 },
+            }}
+          >
           <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
             Alerts
           </Typography>
