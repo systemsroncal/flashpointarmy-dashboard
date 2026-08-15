@@ -103,7 +103,7 @@ const MODULE_COPY: Record<string, { title: string; description: string }> = {
       "Member directory: invite users, edit profiles, reset passwords, and manage membership for your organization.",
   },
   [MODULE_SLUGS.gatherings]: {
-    title: "FPA Events",
+    title: "Events",
     description:
       "See FlashPoint Army Live events in your city and special events. Browse schedules and details so you stay informed — local leaders and members view events here rather than creating them.",
   },

@@ -38,7 +38,7 @@ export function mobilizeChaptersNavItems(
     },
     {
       key: "activities",
-      label: "Upcoming Activities",
+      label: "Deployment",
       shortLabel: "Activities",
       href: `${MOBILIZE_PREFIX}/activities`,
     },

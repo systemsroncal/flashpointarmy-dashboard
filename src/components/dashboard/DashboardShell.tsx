@@ -2,17 +2,14 @@
 
 import AdjustIcon from "@mui/icons-material/Adjust";
 import TimelineIcon from "@mui/icons-material/Timeline";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EventIcon from "@mui/icons-material/Event";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
-import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import MapIcon from "@mui/icons-material/Map";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
-import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import GroupsIcon from "@mui/icons-material/Groups";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -27,6 +24,7 @@ import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import NoteOutlinedIcon from "@mui/icons-material/NoteOutlined";
 import SchoolIcon from "@mui/icons-material/School";
 import SportsIcon from "@mui/icons-material/Sports";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import SecurityIcon from "@mui/icons-material/Security";
 import EmailIcon from "@mui/icons-material/Email";
 import AssessmentIcon from "@mui/icons-material/Assessment";
@@ -56,9 +54,8 @@ import type { Theme } from "@mui/material/styles";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { DashboardTourHelpButton, DashboardTourProvider } from "@/components/dashboard/DashboardTour";
-import { mobilizeNavTourAttr } from "@/lib/dashboard/dashboard-tour-steps";
 import { scrollTourTargetIntoView } from "@/lib/dashboard/dashboard-tour-actions";
 import { DASHBOARD_DRAWER_LOGO } from "@/config/login";
 import { MODULE_SLUGS } from "@/config/modules";
@@ -90,6 +87,8 @@ import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { SidebarYourJourney } from "./SidebarYourJourney";
 import { SidebarNestedNavList } from "./SidebarNestedNavList";
+import { ChaptersGroupsNavGroup } from "./ChaptersGroupsNavGroup";
+import { MobilizeSettingsNavGroup } from "./MobilizeSettingsNavGroup";
 import { TrainingNavSubmenu } from "@/components/dashboard/training/TrainingNavSubmenu";
 import {
   AvatarWithGraduateIcon,
@@ -100,33 +99,15 @@ import { UserProfileDrawer } from "./UserProfileDrawer";
 import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { MAINTENANCE_BANNER_OFFSET_VAR } from "@/lib/maintenance";
 import { flashpointYellow } from "@/theme/tokens";
-import { MobilizeSidebarNav } from "@/components/mobilize/MobilizeSidebarNav";
 import { PoweredByDreamsAnimation } from "@/components/PoweredByDreamsAnimation";
+import {
+  MOBILIZE_ACTIVITIES_HREF,
+  MOBILIZE_HOME_HREF,
+  MOBILIZE_PREFIX as MOBILIZE_PREFIX_CANON,
+} from "@/lib/mobilize/mobilize-nav-config";
+import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 
 const DRAWER_WIDTH = 220;
-
-/** Mobilize sidebar: back links — outline only, no fill. */
-const MOBILIZE_DASHBOARD_NAV_ITEM_SX = {
-  mx: 1,
-  mb: 0.75,
-  borderRadius: 1.5,
-  border: "1px solid rgba(255, 255, 255, 0.22)",
-  bgcolor: "transparent",
-  transition: "border-color 0.15s ease",
-  "&:hover": {
-    bgcolor: "transparent",
-    borderColor: "rgba(255, 215, 0, 0.55)",
-    "& .MuiListItemIcon-root": { color: flashpointYellow },
-    "& .MuiListItemText-primary": { color: flashpointYellow },
-  },
-  "&.Mui-selected": {
-    borderLeft: "1px solid rgba(255, 215, 0, 0.4) !important",
-    bgcolor: "transparent",
-    borderColor: "rgba(255, 215, 0, 0.4)",
-    "& .MuiListItemIcon-root": { color: flashpointYellow },
-    "& .MuiListItemText-primary": { color: flashpointYellow },
-  },
-} as const;
 
 const maintenanceTop = `var(${MAINTENANCE_BANNER_OFFSET_VAR}, 0px)`;
 
@@ -139,19 +120,13 @@ type NavItem = {
 
 const COURSE_LEARNER_PREFIX = "/dashboard/course";
 
-const MOBILIZE_PREFIX = "/dashboard/mobilize";
-const MOBILIZE_HOME = `${MOBILIZE_PREFIX}/map`;
+const MOBILIZE_PREFIX = MOBILIZE_PREFIX_CANON;
 
+/** Tour-only snapshot of Mobilize-related links (drawer is now unified). */
 const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
   {
-    label: "Main Dashboard",
-    href: "/dashboard",
-    module: MODULE_SLUGS.dashboard,
-    icon: <ArrowBackIcon />,
-  },
-  {
-    label: "Home",
-    href: `${MOBILIZE_PREFIX}/home`,
+    label: "Feed",
+    href: MOBILIZE_HOME_HREF,
     module: MODULE_SLUGS.movilization,
     icon: <HomeOutlinedIcon />,
   },
@@ -168,16 +143,10 @@ const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
     icon: <Groups2OutlinedIcon />,
   },
   {
-    label: "Upcoming Activities",
-    href: `${MOBILIZE_PREFIX}/activities`,
+    label: "Deployment",
+    href: MOBILIZE_ACTIVITIES_HREF,
     module: MODULE_SLUGS.movilization,
     icon: <EventAvailableOutlinedIcon />,
-  },
-  {
-    label: "Notifications",
-    href: `${MOBILIZE_PREFIX}/notifications`,
-    module: MODULE_SLUGS.movilization,
-    icon: <NotificationsActiveOutlinedIcon />,
   },
 ];
 
@@ -189,9 +158,7 @@ function isNavItemSelected(item: NavItem, pathname: string): boolean {
     if (item.href === "/dashboard") {
       return false;
     }
-    if (item.href === MOBILIZE_HOME && item.module === MODULE_SLUGS.movilization) {
-      return pathname === MOBILIZE_HOME || pathname === `${MOBILIZE_PREFIX}/`;
-    }
+    // Profile / feed / deployment: exact or nested under that path.
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
   if (item.module === MODULE_SLUGS.training) {
@@ -236,7 +203,7 @@ const SETTINGS_MODULES = new Set<string>([
   MODULE_SLUGS.reports,
 ]);
 
-/** Settings entries whose module stays in the main nav (e.g. FPA Events). */
+/** Settings entries whose module stays in the main nav (e.g. Events). */
 const SETTINGS_EXTRA_HREFS = new Set<string>(["/dashboard/settings/event-categories"]);
 
 const MISSION_PIPELINE_HREFS = new Set<string>([
@@ -332,11 +299,42 @@ const NAV: NavItem[] = [
     module: MODULE_SLUGS.nationalOverview,
     icon: <HomeOutlinedIcon />,
   },
+  // Chapters & Groups is rendered as ChaptersGroupsNavGroup (not a flat link).
   {
-    label: "Chapters & Groups",
-    href: MOBILIZE_HOME,
+    label: "Training",
+    href: "/dashboard/training",
+    module: MODULE_SLUGS.training,
+    icon: <SchoolIcon />,
+  },
+  {
+    label: "Deployment",
+    href: MOBILIZE_ACTIVITIES_HREF,
     module: MODULE_SLUGS.movilization,
-    icon: <FlagOutlined />,
+    icon: <EventAvailableOutlinedIcon />,
+  },
+  {
+    label: "Events",
+    href: "/dashboard/gatherings",
+    module: MODULE_SLUGS.gatherings,
+    icon: <EventIcon />,
+  },
+  {
+    label: "Mission Updates",
+    href: "/dashboard/notifications",
+    module: MODULE_SLUGS.communications,
+    icon: <CampaignIcon />,
+  },
+  {
+    label: "Feed",
+    href: MOBILIZE_HOME_HREF,
+    module: MODULE_SLUGS.movilization,
+    icon: <DashboardOutlinedIcon />,
+  },
+  {
+    label: "Profile",
+    href: "__PROFILE__", // replaced at render with the signed-in user's profile href
+    module: MODULE_SLUGS.movilization,
+    icon: <PersonOutlineIcon />,
   },
   {
     label: "Churches",
@@ -351,12 +349,6 @@ const NAV: NavItem[] = [
     icon: <AdminPanelSettingsIcon />,
   },
   {
-    label: "Training",
-    href: "/dashboard/training",
-    module: MODULE_SLUGS.training,
-    icon: <SchoolIcon />,
-  },
-  {
     label: "Courses",
     href: "/dashboard/courses",
     module: MODULE_SLUGS.courses,
@@ -367,18 +359,6 @@ const NAV: NavItem[] = [
     href: "/dashboard/settings/coaches",
     module: MODULE_SLUGS.courses,
     icon: <SportsIcon />,
-  },
-  {
-    label: "Mission Updates",
-    href: "/dashboard/notifications",
-    module: MODULE_SLUGS.communications,
-    icon: <CampaignIcon />,
-  },
-  {
-    label: "FPA Events",
-    href: "/dashboard/gatherings",
-    module: MODULE_SLUGS.gatherings,
-    icon: <EventIcon />,
   },
   {
     label: "Event categories",
@@ -837,9 +817,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     [user.first_name, user.last_name].filter(Boolean).join(" ").trim() ||
     user.email.split("@")[0];
 
-  const showSidebarJourney =
-    !isMobilize && shouldShowSidebarYourJourney(user.role_names, user.member_onboarding);
+  const showSidebarJourney = shouldShowSidebarYourJourney(user.role_names, user.member_onboarding);
   const showTrainingSubmenu = showSidebarJourney && Boolean(user.member_onboarding);
+  const canSeeMobilize = canSeeMobilizeNavItem(user.role_names, mobilizeViewerRoles, mobilizeAccessOpts);
+  const canAccessMobilize = canAccessMobilizeModule(
+    user.role_names,
+    mobilizeViewerRoles,
+    mobilizeAccessOpts
+  );
+  const showMobilizeSettings = user.role_names.includes("super_admin");
+  const profileHref = mobilizeMemberProfileHref(user.id);
+
+  const resolveNavHref = useCallback(
+    (item: NavItem) => (item.href === "__PROFILE__" ? profileHref : item.href),
+    [profileHref]
+  );
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -909,152 +901,27 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         }}
         data-tour="sidebar-nav-scroll"
       >
-        {isMobilize ? (
-          <MobilizeSidebarNav
-            onNavigate={closeMobileDrawer}
-            showSettings={user.role_names.includes("super_admin")}
-          />
-        ) : (
-          <>
-            {visibleNav.map((item) => {
-              const selected = isNavItemSelected(item, pathname);
-              const afterChaptersGroups =
-                item.href === MOBILIZE_HOME && item.module === MODULE_SLUGS.movilization ? (
-                  <>
-                    {missionPipelineNav.length > 0 ? (
-                      <MissionPipelineNavGroup
-                        key="mission-pipeline-group"
-                        missionPipelineNav={missionPipelineNav}
-                        missionPipelineOpen={missionPipelineOpen}
-                        setMissionPipelineOpen={setMissionPipelineOpen}
-                        missionPipelineHasActive={missionPipelineHasActive}
-                        pathname={pathname}
-                        closeMobileDrawer={closeMobileDrawer}
-                      />
-                    ) : null}
-                    {peopleNav.length > 0 ? (
-                      <PeopleNavGroup
-                        key="people-group"
-                        peopleNav={peopleNav}
-                        peopleOpen={peopleOpen}
-                        setPeopleOpen={setPeopleOpen}
-                        peopleHasActive={peopleHasActive}
-                        pathname={pathname}
-                        closeMobileDrawer={closeMobileDrawer}
-                      />
-                    ) : null}
-                  </>
-                ) : null;
-              if (item.href === "/dashboard/training" && showTrainingSubmenu && user.member_onboarding) {
-                return (
-                  <TrainingNavSubmenu
-                    key={item.href}
-                    snapshot={user.member_onboarding}
-                    selectedParent={selected || pathname.startsWith("/dashboard/training/")}
-                    onNavigate={closeMobileDrawer}
-                    navItemTouchSx={NAV_ITEM_TOUCH_SX}
-                    navSelectedSx={NAV_SELECTED_SX}
-                  />
-                );
-              }
-              if (
-                item.module === MODULE_SLUGS.movilization &&
-                !canAccessMobilizeModule(user.role_names, mobilizeViewerRoles, mobilizeAccessOpts)
-              ) {
-                return (
-                  <Box key={item.href} component="span" sx={{ display: "contents" }}>
-                    <ListItem disablePadding>
-                      <ListItemButton
-                        disabled
-                        aria-disabled
-                        data-tour={`nav-${item.module}`}
-                        sx={{
-                          ...NAV_ITEM_TOUCH_SX,
-                          py: 0.75,
-                          opacity: 0.42,
-                          cursor: "default",
-                          "&.Mui-disabled": { opacity: 0.42 },
-                        }}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            color: "rgba(255,255,255,0.5)",
-                            minWidth: 38,
-                          }}
-                        >
-                          {item.icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={item.label}
-                          primaryTypographyProps={{
-                            variant: "body2",
-                            fontWeight: 600,
-                            fontSize: "calc(0.82rem + 3px)",
-                            color: "rgba(255,255,255,0.45)",
-                          }}
-                        />
-                      </ListItemButton>
-                    </ListItem>
-                    {afterChaptersGroups}
-                  </Box>
-                );
-              }
-              return (
-                <Box key={item.href} component="span" sx={{ display: "contents" }}>
-                  <ListItem disablePadding>
-                    <ListItemButton
-                      component={Link}
-                      href={item.href}
-                      selected={selected}
-                      data-tour={`nav-${item.module}`}
-                      onClick={closeMobileDrawer}
-                      sx={{
-                        ...NAV_ITEM_TOUCH_SX,
-                        py: 0.75,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "flex-start",
-                        gap: 0.5,
-                        "&.Mui-selected": NAV_SELECTED_SX,
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
-                          minWidth: 38,
-                        }}
-                      >
-                        {item.href === "/dashboard/notifications" ? (
-                          <MissionUpdatesNavIcon>{item.icon}</MissionUpdatesNavIcon>
-                        ) : (
-                          item.icon
-                        )}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={item.label}
-                        sx={
-                          item.href === "/dashboard/notifications"
-                            ? { flex: "1 1 auto", minWidth: 0, m: 0 }
-                            : undefined
-                        }
-                        primaryTypographyProps={{
-                          variant: "body2",
-                          fontWeight: 600,
-                          fontSize: "calc(0.82rem + 3px)",
-                          color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
-                        }}
-                      />
-                      {item.href === "/dashboard/notifications" ? <NotificationsDrawerUnreadCount /> : null}
-                    </ListItemButton>
-                  </ListItem>
-                  {afterChaptersGroups}
-                </Box>
-              );
-            })}
-            {!visibleNav.some((i) => i.href === MOBILIZE_HOME) ? (
+        {visibleNav.map((item) => {
+          const href = resolveNavHref(item);
+          const selected = isNavItemSelected({ ...item, href }, pathname);
+
+          // After National overview → Chapters & Groups parent.
+          const afterOverview =
+            item.href === "/dashboard" && item.module === MODULE_SLUGS.nationalOverview && canSeeMobilize ? (
+              <ChaptersGroupsNavGroup
+                key="chapters-groups"
+                onNavigate={closeMobileDrawer}
+                disabled={!canAccessMobilize}
+              />
+            ) : null;
+
+          // After Profile → Member Journey + People (admin sections).
+          const afterProfile =
+            item.href === "__PROFILE__" ? (
               <>
                 {missionPipelineNav.length > 0 ? (
                   <MissionPipelineNavGroup
+                    key="mission-pipeline-group"
                     missionPipelineNav={missionPipelineNav}
                     missionPipelineOpen={missionPipelineOpen}
                     setMissionPipelineOpen={setMissionPipelineOpen}
@@ -1065,6 +932,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 ) : null}
                 {peopleNav.length > 0 ? (
                   <PeopleNavGroup
+                    key="people-group"
                     peopleNav={peopleNav}
                     peopleOpen={peopleOpen}
                     setPeopleOpen={setPeopleOpen}
@@ -1074,10 +942,127 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   />
                 ) : null}
               </>
+            ) : null;
+
+          if (item.href === "/dashboard/training" && showTrainingSubmenu && user.member_onboarding) {
+            return (
+              <Box key={item.href} component="span" sx={{ display: "contents" }}>
+                <TrainingNavSubmenu
+                  snapshot={user.member_onboarding}
+                  selectedParent={selected || pathname.startsWith("/dashboard/training/")}
+                  onNavigate={closeMobileDrawer}
+                  navItemTouchSx={NAV_ITEM_TOUCH_SX}
+                  navSelectedSx={NAV_SELECTED_SX}
+                />
+                {afterOverview}
+                {afterProfile}
+              </Box>
+            );
+          }
+
+          if (
+            item.module === MODULE_SLUGS.movilization &&
+            !canAccessMobilize &&
+            item.href !== "__PROFILE__"
+          ) {
+            // Profile / Feed / Deployment require Mobilize access — hide when blocked.
+            // (Chapters & Groups shows disabled separately.)
+            return null;
+          }
+
+          if (item.href === "__PROFILE__" && !canAccessMobilize) {
+            return (
+              <Box key="profile-block" component="span" sx={{ display: "contents" }}>
+                {afterOverview}
+                {afterProfile}
+              </Box>
+            );
+          }
+
+          return (
+            <Box key={item.href} component="span" sx={{ display: "contents" }}>
+              <ListItem disablePadding>
+                <ListItemButton
+                  component={Link}
+                  href={href}
+                  selected={selected}
+                  data-tour={`nav-${item.module}-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  onClick={closeMobileDrawer}
+                  sx={{
+                    ...NAV_ITEM_TOUCH_SX,
+                    py: 0.75,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    gap: 0.5,
+                    "&.Mui-selected": NAV_SELECTED_SX,
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.92)",
+                      minWidth: 38,
+                    }}
+                  >
+                    {item.href === "/dashboard/notifications" ? (
+                      <MissionUpdatesNavIcon>{item.icon}</MissionUpdatesNavIcon>
+                    ) : (
+                      item.icon
+                    )}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    sx={
+                      item.href === "/dashboard/notifications"
+                        ? { flex: "1 1 auto", minWidth: 0, m: 0 }
+                        : undefined
+                    }
+                    primaryTypographyProps={{
+                      variant: "body2",
+                      fontWeight: 600,
+                      fontSize: "calc(0.82rem + 3px)",
+                      color: selected ? "primary.main" : "rgba(255,255,255,0.88)",
+                    }}
+                  />
+                  {item.href === "/dashboard/notifications" ? <NotificationsDrawerUnreadCount /> : null}
+                </ListItemButton>
+              </ListItem>
+              {afterOverview}
+              {afterProfile}
+            </Box>
+          );
+        })}
+        {!visibleNav.some((i) => i.href === "/dashboard") && canSeeMobilize ? (
+          <ChaptersGroupsNavGroup
+            onNavigate={closeMobileDrawer}
+            disabled={!canAccessMobilize}
+          />
+        ) : null}
+        {!visibleNav.some((i) => i.href === "__PROFILE__") ? (
+          <>
+            {missionPipelineNav.length > 0 ? (
+              <MissionPipelineNavGroup
+                missionPipelineNav={missionPipelineNav}
+                missionPipelineOpen={missionPipelineOpen}
+                setMissionPipelineOpen={setMissionPipelineOpen}
+                missionPipelineHasActive={missionPipelineHasActive}
+                pathname={pathname}
+                closeMobileDrawer={closeMobileDrawer}
+              />
+            ) : null}
+            {peopleNav.length > 0 ? (
+              <PeopleNavGroup
+                peopleNav={peopleNav}
+                peopleOpen={peopleOpen}
+                setPeopleOpen={setPeopleOpen}
+                peopleHasActive={peopleHasActive}
+                pathname={pathname}
+                closeMobileDrawer={closeMobileDrawer}
+              />
             ) : null}
           </>
-        )}
-        {!isMobilize && settingsNav.length > 0 ? (
+        ) : null}
+        {settingsNav.length > 0 ? (
           <>
             <ListItem disablePadding>
               <ListItemButton
@@ -1128,6 +1113,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               />
             </Collapse>
           </>
+        ) : null}
+        {showMobilizeSettings ? (
+          <Suspense fallback={null}>
+            <MobilizeSettingsNavGroup onNavigate={closeMobileDrawer} />
+          </Suspense>
         ) : null}
         {showSidebarJourney ? (
           <Box sx={{ px: 1.5, pt: 1, pb: 0.5 }}>

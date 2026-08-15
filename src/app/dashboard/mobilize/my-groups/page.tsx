@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
-import { Box, Typography } from "@mui/material";
+import { SOCIAL_HUB_LIGHT_BG } from "@/lib/mobilize/social/social-hub-surface";
+import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
+import { Box, ThemeProvider, Typography } from "@mui/material";
 import type { MobilizeBrowseGroupRow } from "@/components/mobilize/MobilizeGroupsBrowseTable";
 import MobilizeGroupCardList from "@/components/mobilize/MobilizeGroupCardList";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
@@ -56,29 +57,43 @@ export default function MyGroupsPage() {
   }, []);
 
   return (
-    <Box
-      sx={{
-        // Same reading width as the home feed and profile columns. No fixed
-        // height here: the list grows and the page owns the scroll.
-        width: "100%",
-        maxWidth: 685,
-        mx: "auto",
-      }}
-    >
-      <Typography variant="h4" fontWeight={700} gutterBottom>
-        Groups
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Groups you belong to or lead. Open a group to view feed, events, and members.
-      </Typography>
-      <MobilizeContentPanel>
-        <MobilizeGroupCardList
-          groups={rows}
-          loading={loading}
-          emptyMessage="You are not in any Mobilize group yet."
-          onJoined={() => void load()}
-        />
-      </MobilizeContentPanel>
-    </Box>
+    // Same light chrome as the group profile: gray container, dark type, white cards.
+    <ThemeProvider theme={mobilizePanelTheme}>
+      <Box
+        sx={{
+          bgcolor: SOCIAL_HUB_LIGHT_BG,
+          color: "text.primary",
+          borderRadius: { xs: 0, sm: 2 },
+          border: { xs: "none", sm: "1px solid rgba(0,0,0,0.06)" },
+          p: { xs: 1.5, sm: 2, md: 2.5 },
+          boxSizing: "border-box",
+          width: "100%",
+          flex: 1,
+        }}
+      >
+        <Box
+          sx={{
+            // Same reading width as the home feed and profile columns. No fixed
+            // height here: the list grows and the page owns the scroll.
+            width: "100%",
+            maxWidth: 685,
+            mx: "auto",
+          }}
+        >
+          <Typography variant="h4" fontWeight={700} gutterBottom>
+            Groups
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Groups you belong to or lead. Open a group to view feed, events, and members.
+          </Typography>
+          <MobilizeGroupCardList
+            groups={rows}
+            loading={loading}
+            emptyMessage="You are not in any Mobilize group yet."
+            onJoined={() => void load()}
+          />
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 }

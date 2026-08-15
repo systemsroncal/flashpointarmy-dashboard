@@ -21,6 +21,7 @@ export const MOBILIZE_MESSAGES_HREF = `${MOBILIZE_PREFIX}/messages`;
 export const MOBILIZE_BOOKMARKS_HREF = `${MOBILIZE_PREFIX}/bookmarks`;
 export const MOBILIZE_SOCIAL_SETTINGS_HREF = `${MOBILIZE_PREFIX}/social-settings`;
 export const MOBILIZE_ADMIN_SETTINGS_HREF = `${MOBILIZE_PREFIX}/settings`;
+export const MOBILIZE_ACTIVITIES_HREF = `${MOBILIZE_PREFIX}/activities`;
 
 /**
  * Direct Messages UI for members/leaders is not ready yet.

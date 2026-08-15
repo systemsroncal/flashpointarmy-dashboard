@@ -143,7 +143,7 @@ function ActivitiesInner() {
   return (
     <Box sx={mobilizeChapterDetailRootSx}>
       <Typography variant="h4" fontWeight={700} gutterBottom sx={{ flexShrink: 0 }}>
-        Upcoming Activities
+        Deployment
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
         Mobilize events from your groups and public listings. Switch between list and month calendar; filter by My

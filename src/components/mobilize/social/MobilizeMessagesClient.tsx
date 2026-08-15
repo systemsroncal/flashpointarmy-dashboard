@@ -4,7 +4,6 @@ import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSection
 import { MESSAGES_EMPTY } from "@/lib/mobilize/social/social-empty-copy";
 import type { ConversationSummary, DirectMessageRow } from "@/lib/mobilize/social/load-direct-messages";
 import type { MobilizeAuthorSummary } from "@/lib/mobilize/social/resolve-authors";
-import { MOBILIZE_BOTTOM_NAV_HEIGHT_PX } from "@/lib/mobilize/mobilize-ui-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
@@ -159,7 +158,7 @@ export function MobilizeMessagesClient() {
 
   const messengerHeight = useMemo(
     () => ({
-      xs: `calc(100dvh - 7rem - ${MOBILIZE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`,
+      xs: "calc(100dvh - 7rem - env(safe-area-inset-bottom, 0px))",
       md: "calc(100dvh - 6.5rem - env(safe-area-inset-bottom, 0px))",
     }),
     []

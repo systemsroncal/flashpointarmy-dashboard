@@ -145,10 +145,10 @@ export function UserNotificationsMenu() {
               width: 300,
               maxWidth: "calc(100vw - 24px)",
               maxHeight: 420,
-              bgcolor: "rgba(18,18,22,0.97)",
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255,215,0,0.12)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
+              bgcolor: "#fff",
+              color: "#0d0d0d",
+              border: "1px solid rgba(0,0,0,0.1)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.28)",
             },
           },
         }}
@@ -163,32 +163,34 @@ export function UserNotificationsMenu() {
             gap: 1,
           }}
         >
-          <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: "0.06em" }}>
+          <Typography variant="caption" sx={{ color: "rgba(0,0,0,0.6)", letterSpacing: "0.06em" }}>
             Notifications
           </Typography>
-          {loading && preview.length ? <CircularProgress size={12} sx={{ color: "text.secondary" }} /> : null}
+          {loading && preview.length ? (
+            <CircularProgress size={12} sx={{ color: "rgba(0,0,0,0.45)" }} />
+          ) : null}
         </Box>
-        <Divider sx={{ borderColor: "rgba(255,215,0,0.1)" }} />
+        <Divider sx={{ borderColor: "rgba(0,0,0,0.08)" }} />
         <Box
           sx={{
             maxHeight: 320,
             overflow: "auto",
             scrollbarWidth: "thin",
-            scrollbarColor: "rgba(255,215,0,0.2) rgba(0,0,0,0.2)",
+            scrollbarColor: "rgba(0,0,0,0.25) rgba(0,0,0,0.06)",
             "&::-webkit-scrollbar": { width: 5 },
             "&::-webkit-scrollbar-thumb": {
-              background: "rgba(255,215,0,0.2)",
+              background: "rgba(0,0,0,0.25)",
               borderRadius: 3,
             },
-            "&::-webkit-scrollbar-track": { background: "rgba(0,0,0,0.2)" },
+            "&::-webkit-scrollbar-track": { background: "rgba(0,0,0,0.06)" },
           }}
         >
           {loading && !preview.length ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-              <CircularProgress size={20} sx={{ color: "text.secondary" }} />
+              <CircularProgress size={20} sx={{ color: "rgba(0,0,0,0.45)" }} />
             </Box>
           ) : !preview.length ? (
-            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+            <Typography variant="body2" sx={{ p: 2, color: "rgba(0,0,0,0.6)" }}>
               No notifications
             </Typography>
           ) : (
@@ -204,8 +206,9 @@ export function UserNotificationsMenu() {
                     alignItems: "flex-start",
                     py: 1,
                     px: 1,
-                    borderBottom: "1px solid rgba(255,255,255,0.06)",
+                    borderBottom: "1px solid rgba(0,0,0,0.07)",
                     "&:last-child": { borderBottom: "none" },
+                    "&:hover": a.href ? { bgcolor: "rgba(0,0,0,0.03)" } : undefined,
                   }}
                 >
                   <Box sx={{ pt: 0.25, flexShrink: 0 }}>
@@ -229,7 +232,7 @@ export function UserNotificationsMenu() {
                           variant="body2"
                           sx={{
                             fontWeight: isUnread ? 700 : 400,
-                            color: isUnread ? "common.white" : "text.secondary",
+                            color: isUnread ? "#0d0d0d" : "rgba(0,0,0,0.62)",
                             fontSize: "0.82rem",
                             lineHeight: 1.35,
                           }}
@@ -245,7 +248,7 @@ export function UserNotificationsMenu() {
                         variant="body2"
                         sx={{
                           fontWeight: isUnread ? 700 : 400,
-                          color: isUnread ? "common.white" : "text.secondary",
+                          color: isUnread ? "#0d0d0d" : "rgba(0,0,0,0.62)",
                           fontSize: "0.82rem",
                           lineHeight: 1.35,
                         }}
@@ -258,8 +261,12 @@ export function UserNotificationsMenu() {
                     )}
                     <Typography
                       variant="caption"
-                      color="text.secondary"
-                      sx={{ fontSize: "0.65rem", opacity: 0.8, display: "block", mt: 0.25 }}
+                      sx={{
+                        color: "rgba(0,0,0,0.55)",
+                        fontSize: "0.65rem",
+                        display: "block",
+                        mt: 0.25,
+                      }}
                       title={new Date(a.created_at).toLocaleString()}
                       suppressHydrationWarning
                     >
@@ -273,7 +280,12 @@ export function UserNotificationsMenu() {
                         e.stopPropagation();
                         void removeAlert(a.id);
                       }}
-                      sx={{ color: "error.main", opacity: 0.65, "&:hover": { opacity: 1 }, mt: -0.25 }}
+                      sx={{
+                        color: "#b91c1c",
+                        opacity: 0.7,
+                        "&:hover": { opacity: 1, bgcolor: "rgba(185,28,28,0.08)" },
+                        mt: -0.25,
+                      }}
                       aria-label="Delete notification"
                     >
                       <CloseIcon sx={{ fontSize: 18 }} />
@@ -284,7 +296,7 @@ export function UserNotificationsMenu() {
             })
           )}
         </Box>
-        <Divider sx={{ borderColor: "rgba(255,215,0,0.1)" }} />
+        <Divider sx={{ borderColor: "rgba(0,0,0,0.08)" }} />
         <Box sx={{ px: 1.5, py: 1 }}>
           <MuiLink
             component={Link}
@@ -295,9 +307,9 @@ export function UserNotificationsMenu() {
               display: "block",
               textAlign: "center",
               typography: "caption",
-              color: "text.secondary",
+              color: "rgba(0,0,0,0.62)",
               letterSpacing: "0.04em",
-              "&:hover": { color: "primary.main" },
+              "&:hover": { color: "#0d0d0d" },
             }}
           >
             See all

@@ -1,14 +1,14 @@
 import type { SxProps, Theme } from "@mui/material";
 
-/** Fixed bottom tab bar height (px) on mobile Mobilize routes. */
+/** @deprecated Sticky Mobilize bottom nav was removed; kept for MobilizeBottomNavBar. */
 export const MOBILIZE_BOTTOM_NAV_HEIGHT_PX = 56;
 
 /** Viewport height below dashboard main padding (toolbar offset + bottom padding). */
 export const mobilizePageViewportHeight =
   "calc(100dvh - 5.5rem - env(safe-area-inset-bottom, 0px))";
 
-/** Mobile chapter detail: reserve space for fixed bottom tab bar. */
-export const mobilizePageViewportHeightMobileBottomNav = `calc(100dvh - 5.5rem - ${MOBILIZE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`;
+/** @deprecated Alias — bottom nav no longer reserves space. */
+export const mobilizePageViewportHeightMobileBottomNav = mobilizePageViewportHeight;
 
 /** Horizontal gutter for Mobilize pages on small screens. */
 export const mobilizeMobilePagePx: SxProps<Theme> = {

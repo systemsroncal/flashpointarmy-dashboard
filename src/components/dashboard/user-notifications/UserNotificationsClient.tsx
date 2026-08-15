@@ -1,6 +1,7 @@
 "use client";
 
 import type { SocialAlert } from "@/lib/mobilize/social/load-social-alerts";
+import { SOCIAL_HUB_LIGHT_BG } from "@/lib/mobilize/social/social-hub-surface";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import {
   AlertAvatar,
@@ -58,23 +59,33 @@ export function UserNotificationsClient() {
   }
 
   return (
-    <Box sx={{ maxWidth: 720, mx: "auto", width: "100%", p: { xs: 1.5, sm: 2 } }}>
-      <Typography variant="h5" fontWeight={800} sx={{ mb: 0.75, letterSpacing: "-0.02em" }}>
-        Notifications
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-        Follows, likes, comments on your posts, and updates from people you follow.
-      </Typography>
+    // Same light chrome as the Mobilize group profile: gray container, white cards.
+    <ThemeProvider theme={mobilizePanelTheme}>
+      <Box
+        sx={{
+          bgcolor: SOCIAL_HUB_LIGHT_BG,
+          color: "text.primary",
+          borderRadius: { xs: 0, sm: 2 },
+          border: { xs: "none", sm: "1px solid rgba(0,0,0,0.06)" },
+          p: { xs: 1.5, sm: 2, md: 2.5 },
+          boxSizing: "border-box",
+          width: "100%",
+          flex: 1,
+        }}
+      >
+        <Box sx={{ maxWidth: 720, mx: "auto", width: "100%" }}>
+          <Typography variant="h5" fontWeight={800} sx={{ mb: 0.75, letterSpacing: "-0.02em" }}>
+            Notifications
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+            Follows, likes, comments on your posts, and updates from people you follow.
+          </Typography>
 
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress size={28} />
-        </Box>
-      ) : (
-        // Cards are white inside the dark dashboard chrome — force the light palette
-        // so names, summaries and timestamps stay readable.
-        <ThemeProvider theme={mobilizePanelTheme}>
-          {!alerts.length ? (
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : !alerts.length ? (
             <Paper
               elevation={0}
               sx={{
@@ -102,7 +113,7 @@ export function UserNotificationsClient() {
                     bgcolor: "#fff",
                     transition: "background-color 0.15s ease, border-color 0.15s ease",
                     "&:hover": a.href
-                      ? { bgcolor: "#f0f2f5", borderColor: "rgba(0,0,0,0.16)" }
+                      ? { bgcolor: "#f7f8fa", borderColor: "rgba(0,0,0,0.16)" }
                       : undefined,
                   }}
                 >
@@ -173,8 +184,8 @@ export function UserNotificationsClient() {
               ))}
             </Stack>
           )}
-        </ThemeProvider>
-      )}
-    </Box>
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 }

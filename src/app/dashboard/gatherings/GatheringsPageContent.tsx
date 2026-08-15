@@ -14,7 +14,7 @@ export default async function GatheringsPageContent() {
   if (!can(permissions, MODULE_SLUGS.gatherings, "read")) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
-        <Typography color="error">You do not have access to FPA Events.</Typography>
+        <Typography color="error">You do not have access to Events.</Typography>
       </Paper>
     );
   }
@@ -65,7 +65,7 @@ export default async function GatheringsPageContent() {
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 800, color: "primary.main" }}>
-          FPA Events
+          Events
         </Typography>
         {canCreate ? (
           <Button component={Link} href="/dashboard/gatherings/new" variant="contained">
