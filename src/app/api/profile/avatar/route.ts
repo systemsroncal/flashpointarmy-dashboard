@@ -6,8 +6,8 @@ import {
 } from "@/lib/upload/validate-image";
 import { writeUserAvatarImage } from "@/lib/uploads/local-public-image";
 import { loadMobilizeImageUploadLimits, mbToBytes } from "@/lib/mobilize/image-upload-limits";
+import { insertProfileUpdateActivity } from "@/lib/community/group-activity-feed";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth/server-session";
 
@@ -71,6 +71,11 @@ export async function POST(req: Request) {
     if (pErr) {
       return NextResponse.json({ error: pErr.message }, { status: 400 });
     }
+
+    await insertProfileUpdateActivity({
+      supabase: admin,
+      userId: user.id,
+    });
 
     return NextResponse.json({ ok: true, avatar_url: publicPath });
   } catch (e) {

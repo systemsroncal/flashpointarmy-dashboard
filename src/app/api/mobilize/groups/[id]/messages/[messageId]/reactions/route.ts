@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { insertPostLikeActivity } from "@/lib/community/group-activity-feed";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { summarizeReactions, type ReactionType } from "@/lib/mobilize/social/reaction-summary";
@@ -51,10 +52,26 @@ export async function POST(req: Request, ctx: Ctx) {
       .eq("message_id", messageId)
       .eq("user_id", auth.userId);
   } else {
+    const { data: prior } = await auth.admin
+      .from("mobilize_message_reactions")
+      .select("reaction_type")
+      .eq("message_id", messageId)
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+
     await auth.admin.from("mobilize_message_reactions").upsert(
       { message_id: messageId, user_id: auth.userId, reaction_type },
       { onConflict: "message_id,user_id" }
     );
+
+    // Feed only when a new like/love is set (not when toggling love↔like).
+    if (!prior) {
+      await insertPostLikeActivity({
+        supabase: auth.admin,
+        userId: auth.userId,
+        groupId,
+      });
+    }
   }
 
   const { data: rows } = await auth.admin

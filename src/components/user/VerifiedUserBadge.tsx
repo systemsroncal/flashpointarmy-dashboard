@@ -50,6 +50,7 @@ export function VerifiedUserBadge({ size = 18, title = "Verified account", verif
           alignItems: "center",
           flexShrink: 0,
           borderRadius: "50%",
+          ml: "-1px",
           "&:focus-visible": { outline: "2px solid #1877f2", outlineOffset: 2 },
         }}
       >

@@ -2719,6 +2719,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       <MobilizeGroupShareDialog
         open={shareOpen}
         onClose={() => setShareOpen(false)}
+        groupId={groupId}
         groupName={group.name}
         publicUrl={`/g/${groupId}`}
       />

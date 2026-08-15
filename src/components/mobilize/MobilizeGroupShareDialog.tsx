@@ -22,6 +22,7 @@ import {
 import { useCallback, useMemo, useState } from "react";
 
 type SharePlatform = "whatsapp" | "facebook" | "x" | "linkedin" | "telegram" | "email";
+type ShareChannel = SharePlatform | "direct_link";
 
 function shareHref(platform: SharePlatform, url: string, message: string, subject: string): string {
   const u = encodeURIComponent(url);
@@ -44,6 +45,16 @@ function shareHref(platform: SharePlatform, url: string, message: string, subjec
   }
 }
 
+function logGroupShare(groupId: string, channel: ShareChannel) {
+  void fetch(`/api/mobilize/groups/${groupId}/share`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ channel }),
+  }).catch(() => {
+    /* non-blocking */
+  });
+}
+
 const SOCIAL_BUTTONS: {
   platform: SharePlatform;
   label: string;
@@ -62,12 +73,13 @@ const SOCIAL_BUTTONS: {
 type Props = {
   open: boolean;
   onClose: () => void;
+  groupId: string;
   groupName: string;
   /** Absolute or path public URL, e.g. /g/{id} or full https URL. */
   publicUrl: string;
 };
 
-export function MobilizeGroupShareDialog({ open, onClose, groupName, publicUrl }: Props) {
+export function MobilizeGroupShareDialog({ open, onClose, groupId, groupName, publicUrl }: Props) {
   const [copied, setCopied] = useState(false);
 
   const absoluteUrl = useMemo(() => {
@@ -83,11 +95,12 @@ export function MobilizeGroupShareDialog({ open, onClose, groupName, publicUrl }
     try {
       await navigator.clipboard.writeText(absoluteUrl);
       setCopied(true);
+      logGroupShare(groupId, "direct_link");
       window.setTimeout(() => setCopied(false), 2500);
     } catch {
       setCopied(false);
     }
-  }, [absoluteUrl]);
+  }, [absoluteUrl, groupId]);
 
   return (
     <Dialog
@@ -130,6 +143,7 @@ export function MobilizeGroupShareDialog({ open, onClose, groupName, publicUrl }
                 variant="outlined"
                 size="small"
                 startIcon={icon}
+                onClick={() => logGroupShare(groupId, platform)}
                 sx={{
                   justifyContent: "center",
                   textTransform: "none",

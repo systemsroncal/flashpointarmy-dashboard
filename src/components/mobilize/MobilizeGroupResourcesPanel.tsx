@@ -26,6 +26,12 @@ import {
 } from "@mui/material";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import { MobilizeTypeDeleteDialog } from "@/components/mobilize/MobilizeTypeDeleteDialog";
+import { InlinePdfPreview } from "@/components/pdf/InlinePdfPreview";
+import {
+  isAllowedMobilizeDocumentUrl,
+  isMobilizePdfUrl,
+  mobilizePdfFileNameFromUrl,
+} from "@/lib/mobilize/default-group-resources";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import { mobilizeCardSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
@@ -93,6 +99,7 @@ export default function MobilizeGroupResourcesPanel({
 }: Props) {
   const toast = useMobilizeToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pdfProxyEndpoint = `/api/mobilize/groups/${groupId}/resources/pdf-proxy`;
   const [resources, setResources] = useState<MobilizeResourceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
@@ -164,7 +171,12 @@ export default function MobilizeGroupResourcesPanel({
     if (!data.title.trim()) return "Title is required.";
     if (type === "text" && !data.body.trim()) return "Text content is required.";
     if ((type === "link" || type === "video") && !data.url.trim()) return "URL is required.";
-    if (type === "document" && !data.url.trim()) return "Upload a document first.";
+    if (type === "document") {
+      const url = data.url.trim();
+      if (!url) return "Upload a document or paste a .pdf link.";
+      if (!isAllowedMobilizeDocumentUrl(url)) return "External links must be https and end in .pdf.";
+      if (!data.file_name.trim()) return "File name is required for documents.";
+    }
     return null;
   }
 
@@ -261,6 +273,11 @@ export default function MobilizeGroupResourcesPanel({
   }
 
   function renderFormFields(type: MobilizeResourceType, isEdit: boolean) {
+    const trimmedUrl = form.url.trim();
+    const isUploadedDocument = trimmedUrl.startsWith("/");
+    const isExternalPdfLink =
+      !isUploadedDocument && !!trimmedUrl && isAllowedMobilizeDocumentUrl(trimmedUrl);
+
     return (
       <Stack spacing={2}>
         {!isEdit ? (
@@ -313,7 +330,7 @@ export default function MobilizeGroupResourcesPanel({
           />
         ) : null}
         {type === "document" ? (
-          <Stack spacing={1}>
+          <Stack spacing={1.5}>
             <input
               ref={fileInputRef}
               type="file"
@@ -331,12 +348,56 @@ export default function MobilizeGroupResourcesPanel({
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || saving}
             >
-              {uploading ? "Uploading…" : form.url ? "Replace document" : "Upload PDF or Word"}
+              {uploading ? "Uploading…" : isUploadedDocument ? "Replace document" : "Upload PDF or Word"}
             </Button>
-            {form.file_name ? (
-              <Typography variant="body2" color="text.secondary">
-                {form.file_name}
-              </Typography>
+            {isUploadedDocument && form.file_name ? (
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }} noWrap>
+                  {form.file_name}
+                </Typography>
+                <Button
+                  size="small"
+                  color="error"
+                  onClick={() => setForm((f) => ({ ...f, url: "", file_name: "" }))}
+                  disabled={uploading || saving}
+                >
+                  Remove file
+                </Button>
+              </Stack>
+            ) : null}
+            <Typography variant="caption" color="text.secondary">
+              or link an external PDF
+            </Typography>
+            <TextField
+              label="External PDF link"
+              fullWidth
+              placeholder="https://example.com/file.pdf"
+              value={isUploadedDocument ? "" : form.url}
+              disabled={isUploadedDocument || uploading}
+              helperText={
+                isUploadedDocument
+                  ? "Remove the uploaded file to use an external link."
+                  : "Only https links ending in .pdf are accepted."
+              }
+              error={!isUploadedDocument && !!form.url.trim() && !isExternalPdfLink}
+              onChange={(e) => {
+                const url = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  url,
+                  file_name: mobilizePdfFileNameFromUrl(url) || f.file_name,
+                }));
+              }}
+            />
+            {isExternalPdfLink ? (
+              <InlinePdfPreview
+                pdfUrl={form.url.trim()}
+                fileName={form.file_name || null}
+                proxyEndpoint={pdfProxyEndpoint}
+                defaultOpen={false}
+                tone="light"
+                size="compact"
+              />
             ) : null}
           </Stack>
         ) : null}
@@ -353,17 +414,30 @@ export default function MobilizeGroupResourcesPanel({
       );
     }
     if (row.resource_type === "document" && row.url) {
+      const isPdf = isMobilizePdfUrl(row.url);
       return (
-        <Button
-          size="small"
-          sx={{ mt: 1 }}
-          href={publicAssetSrc(row.url)}
-          target="_blank"
-          rel="noopener noreferrer"
-          component="a"
-        >
-          {row.file_name ?? "Download document"}
-        </Button>
+        <Box>
+          <Button
+            size="small"
+            sx={{ mt: 1 }}
+            href={publicAssetSrc(row.url)}
+            target="_blank"
+            rel="noopener noreferrer"
+            component="a"
+          >
+            {row.file_name ?? (isPdf ? "Open PDF" : "Download document")}
+          </Button>
+          {isPdf ? (
+            <InlinePdfPreview
+              pdfUrl={row.url}
+              fileName={row.file_name}
+              proxyEndpoint={pdfProxyEndpoint}
+              defaultOpen={false}
+              tone="light"
+              size="compact"
+            />
+          ) : null}
+        </Box>
       );
     }
     if ((row.resource_type === "link" || row.resource_type === "video") && row.url) {

@@ -11,6 +11,7 @@ const COMMUNITY_CATS = new Set([
   "group_post",
   "group_comment",
   "group_reply",
+  "group_like",
   "community",
   "gathering",
   "upcoming_gatherings",
@@ -33,6 +34,9 @@ const SOCIAL_CATS = new Set([
   "social_follow",
   "member_invite",
   "auto_weekly_members",
+  "profile_update",
+  "profile_endorsements",
+  "group_invite_share",
 ]);
 
 const IMPACT_CATS = new Set(["hosted_events", "growth", "impact"]);

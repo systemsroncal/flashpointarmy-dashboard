@@ -89,6 +89,7 @@ import { SidebarYourJourney } from "./SidebarYourJourney";
 import { SidebarNestedNavList } from "./SidebarNestedNavList";
 import { ChaptersGroupsNavGroup } from "./ChaptersGroupsNavGroup";
 import { MobilizeSettingsNavGroup } from "./MobilizeSettingsNavGroup";
+import { ChapterInviteShareDialog } from "./national-overview/ChapterInviteShareDialog";
 import { TrainingNavSubmenu } from "@/components/dashboard/training/TrainingNavSubmenu";
 import {
   AvatarWithGraduateIcon,
@@ -579,6 +580,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [missionPipelineOpen, setMissionPipelineOpen] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
+  const [inviteShareOpen, setInviteShareOpen] = useState(false);
   const [liveAvatarUrl, setLiveAvatarUrl] = useState<string | null>(null);
   const [liveAvatarNonce, setLiveAvatarNonce] = useState(0);
   const pathname = usePathname();
@@ -1128,12 +1130,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {showSidebarJourney ? (
         <Box sx={{ flexShrink: 0, px: 1.5, pt: 0.5, pb: 1 }}>
           <Button
-            component={Link}
-            href="/dashboard/training"
             fullWidth
             variant="contained"
-            startIcon={<AdjustIcon />}
-            onClick={closeMobileDrawer}
+            startIcon={<GroupsIcon />}
+            onClick={() => {
+              closeMobileDrawer();
+              setInviteShareOpen(true);
+            }}
             sx={{
               fontWeight: 800,
               color: "#0a0a0a",
@@ -1142,10 +1145,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               py: 1.1,
               minHeight: 44,
               touchAction: "manipulation",
+              textTransform: "none",
               "&:hover": { bgcolor: "primary.light" },
             }}
           >
-            Get Equipped
+            Invite Friends
           </Button>
         </Box>
       ) : null}
@@ -1400,6 +1404,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         lastName={user.last_name}
         displayName={user.display_name}
         email={user.email}
+      />
+
+      <ChapterInviteShareDialog
+        open={inviteShareOpen}
+        onClose={() => setInviteShareOpen(false)}
       />
 
       <UserProfileDrawer

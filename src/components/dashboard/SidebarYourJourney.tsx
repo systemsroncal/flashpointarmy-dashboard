@@ -129,7 +129,7 @@ export function SidebarYourJourney({ snapshot }: Props) {
           mb: 1.5,
         }}
       >
-        Your Journey
+        My Journey
       </Typography>
 
       <Box

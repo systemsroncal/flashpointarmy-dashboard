@@ -118,7 +118,7 @@ export function HeaderSuperAdminProfileAvatar({
             <ListItemIcon>
               <GroupsOutlinedIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText primary="Groups" />
+            <ListItemText primary="My Groups" />
           </MenuItem>
           {SHOW_MOBILIZE_DIRECT_MESSAGES ? (
             <MenuItem

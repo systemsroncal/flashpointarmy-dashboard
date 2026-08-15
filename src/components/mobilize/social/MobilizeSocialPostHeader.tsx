@@ -168,7 +168,7 @@ export function MobilizeSocialPostHeader({
               {author.display_name}
             </MuiLink>
             {author.verified ? (
-              <VerifiedUserBadge size={size === "sm" ? 16 : 18} verifiedAt={author.verified_at} />
+              <VerifiedUserBadge size={size === "sm" ? 18 : 20} verifiedAt={author.verified_at} />
             ) : null}
           </Box>
           {!isOwn && !following ? (

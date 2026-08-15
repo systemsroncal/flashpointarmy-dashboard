@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { insertProfileUpdateActivity } from "@/lib/community/group-activity-feed";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 export async function GET() {
@@ -27,6 +28,12 @@ export async function PATCH(req: Request) {
     bio?: string;
   };
 
+  const { data: before } = await auth.admin
+    .from("profiles")
+    .select("profile_visibility, bio")
+    .eq("id", auth.userId)
+    .maybeSingle();
+
   const patch: Record<string, unknown> = {};
   if (body.profile_visibility === "public" || body.profile_visibility === "private") {
     patch.profile_visibility = body.profile_visibility;
@@ -46,5 +53,19 @@ export async function PATCH(req: Request) {
     .select("profile_visibility, bio")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const beforeVisibility = before?.profile_visibility === "private" ? "private" : "public";
+  const visibilityChanged =
+    typeof patch.profile_visibility === "string" && patch.profile_visibility !== beforeVisibility;
+  const bioChanged =
+    "bio" in patch && ((before?.bio as string | null) ?? null) !== ((data.bio as string | null) ?? null);
+
+  if (visibilityChanged || bioChanged) {
+    await insertProfileUpdateActivity({
+      supabase: auth.admin,
+      userId: auth.userId,
+    });
+  }
+
   return NextResponse.json({ settings: data });
 }

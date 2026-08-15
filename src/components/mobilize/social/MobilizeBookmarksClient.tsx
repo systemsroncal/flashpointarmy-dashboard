@@ -1,8 +1,6 @@
 "use client";
 
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
-import { MobilizeSocialHubContent } from "@/components/mobilize/social/MobilizeSocialHubContent";
-import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { BOOKMARKS_EMPTY } from "@/lib/mobilize/social/social-empty-copy";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
@@ -11,8 +9,9 @@ import {
   feedPostCommentConfig,
   feedPostReactionUrl,
 } from "@/lib/mobilize/social/feed-post-urls";
-import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { SOCIAL_HUB_LIGHT_BG } from "@/lib/mobilize/social/social-hub-surface";
+import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
+import { Box, CircularProgress, ThemeProvider, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 
 export function MobilizeBookmarksClient() {
@@ -38,23 +37,32 @@ export function MobilizeBookmarksClient() {
   }, [load]);
 
   return (
-    <Box sx={mobilizeChapterDetailRootSx}>
-      <MobilizeSocialHubLayout showRightRail={false}>
-        <MobilizeSocialHubContent tone="light">
-          <Box
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              display: "flex",
-              flexDirection: "column",
-              width: "100%",
-              maxWidth: 1180,
-              mx: "auto",
-              p: { xs: 1.5, sm: 1.5, md: 2 },
-            }}
-          >
-          <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
+    // Same light chrome as My Groups: gray container, dark type, white cards.
+    <ThemeProvider theme={mobilizePanelTheme}>
+      <Box
+        sx={{
+          bgcolor: SOCIAL_HUB_LIGHT_BG,
+          color: "text.primary",
+          borderRadius: { xs: 0, sm: 2 },
+          border: { xs: "none", sm: "1px solid rgba(0,0,0,0.06)" },
+          p: { xs: 1.5, sm: 2, md: 2.5 },
+          boxSizing: "border-box",
+          width: "100%",
+          flex: 1,
+        }}
+      >
+        <Box
+          sx={{
+            width: "100%",
+            maxWidth: 685,
+            mx: "auto",
+          }}
+        >
+          <Typography variant="h4" fontWeight={700} gutterBottom>
             My saved
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Posts you bookmarked from your feed and groups.
           </Typography>
 
           {loading ? (
@@ -62,7 +70,12 @@ export function MobilizeBookmarksClient() {
               <CircularProgress size={28} />
             </Box>
           ) : !posts.length ? (
-            <MobilizeSectionEmptyState fill layout="stacked" title={BOOKMARKS_EMPTY.title} description={BOOKMARKS_EMPTY.description} />
+            <MobilizeSectionEmptyState
+              fill
+              layout="stacked"
+              title={BOOKMARKS_EMPTY.title}
+              description={BOOKMARKS_EMPTY.description}
+            />
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {posts.map((post) => {
@@ -82,9 +95,8 @@ export function MobilizeBookmarksClient() {
               })}
             </Box>
           )}
-          </Box>
-        </MobilizeSocialHubContent>
-      </MobilizeSocialHubLayout>
-    </Box>
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 }

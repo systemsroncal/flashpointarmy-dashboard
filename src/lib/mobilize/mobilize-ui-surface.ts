@@ -3,6 +3,38 @@ import type { SxProps, Theme } from "@mui/material";
 /** @deprecated Sticky Mobilize bottom nav was removed; kept for MobilizeBottomNavBar. */
 export const MOBILIZE_BOTTOM_NAV_HEIGHT_PX = 56;
 
+/**
+ * "Create post" on group list rows when the viewer is already a member.
+ * Forced colors beat mobilizePanelTheme textPrimary overrides.
+ */
+export const mobilizeCreatePostButtonSx = {
+  flexShrink: 0,
+  textTransform: "none" as const,
+  fontWeight: 700,
+  borderRadius: "8px",
+  boxShadow: "none",
+  whiteSpace: "nowrap" as const,
+  bgcolor: "#6ecc3999",
+  backgroundColor: "#6ecc3999",
+  color: "#5d5d5d",
+  "&:hover": {
+    bgcolor: "#6ecc39cc",
+    backgroundColor: "#6ecc39cc",
+    color: "#5d5d5d",
+    boxShadow: "none",
+  },
+  "&.MuiButton-root": {
+    bgcolor: "#6ecc3999",
+    backgroundColor: "#6ecc3999",
+    color: "#5d5d5d",
+  },
+  "&.MuiButton-root:hover": {
+    bgcolor: "#6ecc39cc",
+    backgroundColor: "#6ecc39cc",
+    color: "#5d5d5d",
+  },
+} as const;
+
 /** Viewport height below dashboard main padding (toolbar offset + bottom padding). */
 export const mobilizePageViewportHeight =
   "calc(100dvh - 5.5rem - env(safe-area-inset-bottom, 0px))";

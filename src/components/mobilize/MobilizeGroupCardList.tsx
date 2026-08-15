@@ -8,6 +8,7 @@ import type { MobilizeBrowseGroupRow } from "@/components/mobilize/MobilizeGroup
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import { isMobilizeGroupListed } from "@/lib/mobilize/group-ui-labels";
 import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
+import { mobilizeCreatePostButtonSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 
@@ -31,12 +32,9 @@ const ACTION_BUTTON_SX = {
   "&.Mui-disabled": { bgcolor: "#f0f2f5", color: "rgba(0,0,0,0.4)" },
 };
 
-/** Members already in the group get the green "Create post" action. */
 const CREATE_POST_BUTTON_SX = {
-  ...ACTION_BUTTON_SX,
-  bgcolor: "#6ecc3999",
-  color: "#5d5d5d",
-  "&:hover": { bgcolor: "#6ecc39cc", boxShadow: "none" },
+  ...mobilizeCreatePostButtonSx,
+  px: 2,
 };
 
 function formatMemberCount(count: number): string {

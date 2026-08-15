@@ -27,6 +27,7 @@ import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-brow
 import type { MobilizeSubgroupBrief } from "@/lib/mobilize/chapter-subgroup";
 import { resolveMobilizeGroupStateCode } from "@/lib/mobilize/group-state-flag";
 import { mobilizeChapterCoverSrc } from "@/lib/mobilize/mobilize-chapter-cover";
+import { mobilizeCreatePostButtonSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { mobilizeGroupInitials } from "@/lib/mobilize/group-initials";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
@@ -70,12 +71,9 @@ const JOIN_ACTION_BUTTON_SX = {
   "&.Mui-disabled": { bgcolor: "#f0f2f5", color: "rgba(0,0,0,0.4)" },
 };
 
-/** Members already in the group get the green "Create post" action. */
 const CREATE_POST_BUTTON_SX = {
-  ...JOIN_ACTION_BUTTON_SX,
-  bgcolor: "#6ecc3999",
-  color: "#5d5d5d",
-  "&:hover": { bgcolor: "#6ecc39cc", boxShadow: "none" },
+  ...mobilizeCreatePostButtonSx,
+  px: 1.75,
 };
 
 const leaderPillSx = {

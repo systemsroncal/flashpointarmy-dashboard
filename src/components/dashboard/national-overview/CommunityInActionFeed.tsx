@@ -67,8 +67,12 @@ function englishCategoryLabel(row: ActivityFeedRow): string {
     group_post: "Community Activity",
     group_comment: "Community Activity",
     group_reply: "Community Activity",
+    group_like: "Community Activity",
     group_leader_post: "Leader Activity",
     social_follow: "Social Connections",
+    profile_update: "Social Connections",
+    profile_endorsements: "Social Connections",
+    group_invite_share: "Social Connections",
     impact: "Impact",
   };
   if (byCat[c]) return byCat[c];
@@ -275,10 +279,18 @@ function resolveFeedVisual(row: ActivityFeedRow): FeedVisual {
   if (key === "shield") return securityManual;
   if (key === "graduate") return graduateGold;
 
-  if (cat === "member_invite") return purpleGrowth;
-  if (cat === "social_follow") return orangeMember;
+  if (cat === "member_invite" || cat === "group_invite_share") return purpleGrowth;
+  if (cat === "social_follow" || cat === "profile_update") return orangeMember;
+  if (cat === "profile_endorsements") return starLeader;
   if (cat === "group_join") return tealCommunityUpdate;
-  if (cat === "group_post" || cat === "group_comment" || cat === "group_reply") return navyBolt;
+  if (
+    cat === "group_post" ||
+    cat === "group_comment" ||
+    cat === "group_reply" ||
+    cat === "group_like"
+  ) {
+    return navyBolt;
+  }
   if (cat === "group_leader_post") return goldLead;
   if (cat === "member" && /joined FlashPoint Army|New member registered/i.test(row.title)) {
     return purpleGrowth;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeMobilizeDocumentUrl } from "@/lib/mobilize/default-group-resources";
 import { normalizeMobilizeResourceUrl } from "@/lib/mobilize/resource-url";
 import { canManageMobilizeGroupContent, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
@@ -74,11 +75,14 @@ export async function PATCH(req: Request, ctx: Ctx) {
       if (!url) return NextResponse.json({ error: "A valid http(s) URL is required." }, { status: 400 });
       patch.url = url;
     } else if (resourceType === "document") {
-      const rawUrl = String(body.url ?? row.url ?? "").trim();
-      if (!rawUrl.startsWith("/uploads/mobilize-resources/")) {
-        return NextResponse.json({ error: "Invalid document URL." }, { status: 400 });
+      const nextUrl = normalizeMobilizeDocumentUrl(body.url ?? row.url);
+      if (!nextUrl) {
+        return NextResponse.json(
+          { error: "Upload a document or provide an https link ending in .pdf." },
+          { status: 400 }
+        );
       }
-      patch.url = rawUrl;
+      patch.url = nextUrl;
       const file_name = body.file_name != null ? String(body.file_name).trim() : String(row.file_name ?? "").trim();
       if (!file_name) return NextResponse.json({ error: "File name is required." }, { status: 400 });
       patch.file_name = file_name;

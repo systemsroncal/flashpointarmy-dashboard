@@ -190,12 +190,12 @@
     "semantic_hash": ""
   },
   "src/app/api/community/members/route.ts": {
-    "mtime": 1786743785.0204215,
+    "mtime": 1786766382.047359,
     "ast_hash": "90321592efbbe9548a5e432ad43a831f",
     "semantic_hash": ""
   },
   "src/app/api/community/members/[userId]/route.ts": {
-    "mtime": 1786743785.017403,
+    "mtime": 1786766382.1249154,
     "ast_hash": "2e5ce1952405650096a7df6adca94dcd",
     "semantic_hash": ""
   },
@@ -425,8 +425,8 @@
     "semantic_hash": ""
   },
   "src/app/api/mobilize/groups/[id]/members/[memberUserId]/route.ts": {
-    "mtime": 1786649116.480099,
-    "ast_hash": "09bc10b98d49c3fc063e14f88690d292",
+    "mtime": 1786759992.4873898,
+    "ast_hash": "1b1ee6889164b0e1972097c2c5141e36",
     "semantic_hash": ""
   },
   "src/app/api/mobilize/groups/[id]/messages/route.ts": {
@@ -435,7 +435,7 @@
     "semantic_hash": ""
   },
   "src/app/api/mobilize/groups/[id]/messages/[messageId]/route.ts": {
-    "mtime": 1786736797.9477186,
+    "mtime": 1786766382.1238906,
     "ast_hash": "c00e62af63a706a633614848ce9f63d6",
     "semantic_hash": ""
   },
@@ -445,7 +445,7 @@
     "semantic_hash": ""
   },
   "src/app/api/mobilize/nearby/route.ts": {
-    "mtime": 1786749242.3093271,
+    "mtime": 1786766382.1238906,
     "ast_hash": "ffd9523449359dacf2936a2e1ee859ef",
     "semantic_hash": ""
   },
@@ -460,8 +460,8 @@
     "semantic_hash": ""
   },
   "src/app/api/profile/avatar/route.ts": {
-    "mtime": 1785878107.1976402,
-    "ast_hash": "68e7bf3e6b8a0b576f7c5e2cabb07bf6",
+    "mtime": 1786766982.537824,
+    "ast_hash": "f44bdb19a978c822910c98c4498f01c8",
     "semantic_hash": ""
   },
   "src/app/api/profile/change-email/confirm/route.ts": {
@@ -510,7 +510,7 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/admins/AdminsPageContent.tsx": {
-    "mtime": 1786743785.0263963,
+    "mtime": 1786766382.1238906,
     "ast_hash": "bafe6afa55066de8067529d07efa5b8f",
     "semantic_hash": ""
   },
@@ -635,8 +635,8 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/gatherings/GatheringsPageContent.tsx": {
-    "mtime": 1786743785.0303957,
-    "ast_hash": "d2494d123ef59ab452636207f5f11fcb",
+    "mtime": 1786759992.5783691,
+    "ast_hash": "cab75b07a543932ace9f4b2f6c6d021b",
     "semantic_hash": ""
   },
   "src/app/dashboard/gatherings/page.tsx": {
@@ -650,7 +650,7 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/gatherings/categories/page.tsx": {
-    "mtime": 1786743785.033401,
+    "mtime": 1786766382.7697885,
     "ast_hash": "b1debf3f6cf60ee11d4f063352626079",
     "semantic_hash": ""
   },
@@ -695,7 +695,7 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/leaders/LeadersPageContent.tsx": {
-    "mtime": 1786743785.0364103,
+    "mtime": 1786766381.8930957,
     "ast_hash": "42d7a578472c15e8ee74cd2fda112f50",
     "semantic_hash": ""
   },
@@ -745,8 +745,8 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/mobilize/activities/page.tsx": {
-    "mtime": 1784765727.2988708,
-    "ast_hash": "35196f605b532bb8554e7b76f7ccb86d",
+    "mtime": 1786759992.6014426,
+    "ast_hash": "5812b14aef577da695ed91ec67cb1544",
     "semantic_hash": ""
   },
   "src/app/dashboard/mobilize/calendar/page.tsx": {
@@ -755,8 +755,8 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/mobilize/groups/[id]/GroupDetailClient.tsx": {
-    "mtime": 1786743785.040407,
-    "ast_hash": "0cce1fad36e2c4c0da48fbea11c26919",
+    "mtime": 1786766382.0387628,
+    "ast_hash": "13e5771128f2c34735f3854d95c71957",
     "semantic_hash": ""
   },
   "src/app/dashboard/mobilize/groups/[id]/page.tsx": {
@@ -765,7 +765,7 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/mobilize/map/MapPageContent.tsx": {
-    "mtime": 1786749137.9793346,
+    "mtime": 1786766382.0858977,
     "ast_hash": "90c92c530a98756ce019361f62ead1f4",
     "semantic_hash": ""
   },
@@ -775,8 +775,8 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/mobilize/my-groups/page.tsx": {
-    "mtime": 1786748519.0619206,
-    "ast_hash": "fc1eeecd430c3c21de7386d285646abf",
+    "mtime": 1786766382.1238906,
+    "ast_hash": "2b9911a40f5a7d3b9f2436b285d02774",
     "semantic_hash": ""
   },
   "src/app/dashboard/mobilize/notifications/page.tsx": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/mobilize/settings/page.tsx": {
-    "mtime": 1784337053.851766,
-    "ast_hash": "a5c219a5b336ecead34a5d1aa528b1d6",
+    "mtime": 1786759992.6263697,
+    "ast_hash": "570f2e950211a5e42fcecc55d91db5af",
     "semantic_hash": ""
   },
   "src/app/dashboard/movilization/page.tsx": {
@@ -915,7 +915,7 @@
     "semantic_hash": ""
   },
   "src/components/courses/CourseSessionPlayer.tsx": {
-    "mtime": 1786736797.921724,
+    "mtime": 1786766381.9340458,
     "ast_hash": "a8b19d72296c35eeea4b5e8317f02550",
     "semantic_hash": ""
   },
@@ -940,13 +940,13 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/CommandCenterBackdrop.tsx": {
-    "mtime": 1786736797.9427173,
+    "mtime": 1786766381.9340458,
     "ast_hash": "f015d9f01d748b94d1a4c4f963f210d3",
     "semantic_hash": ""
   },
   "src/components/dashboard/DashboardShell.tsx": {
-    "mtime": 1786746774.1944354,
-    "ast_hash": "40a9b811f8c67f07003b55faa9c1bdda",
+    "mtime": 1786766382.0052607,
+    "ast_hash": "6d783b0f4a2a2ba36d2d80eaf349d6f1",
     "semantic_hash": ""
   },
   "src/components/dashboard/DashboardTour.tsx": {
@@ -980,7 +980,7 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/NotificationMenu.tsx": {
-    "mtime": 1786746774.1964233,
+    "mtime": 1786766382.1255882,
     "ast_hash": "8d345a60263d75fb39692813650cedb3",
     "semantic_hash": ""
   },
@@ -1010,7 +1010,7 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/community/CommunitySection.tsx": {
-    "mtime": 1786743785.053422,
+    "mtime": 1786766382.1238906,
     "ast_hash": "08a8abdc728f7757fcc5ec07c448affa",
     "semantic_hash": ""
   },
@@ -1075,12 +1075,12 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/gatherings/EventsListClient.tsx": {
-    "mtime": 1786743785.057409,
+    "mtime": 1786766381.8970625,
     "ast_hash": "6ac71d9fb77cc1eb1b40c0ba61626690",
     "semantic_hash": ""
   },
   "src/components/dashboard/gatherings/GatheringDescriptionEditor.tsx": {
-    "mtime": 1786749954.402018,
+    "mtime": 1786752094.159326,
     "ast_hash": "1c51cfb5030e0527bf67c7b6aa6b9889",
     "semantic_hash": ""
   },
@@ -1100,17 +1100,17 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/national-overview/CommunityInActionFeed.tsx": {
-    "mtime": 1786649116.4970887,
-    "ast_hash": "2433669586752fc11f8b739b6a928ada",
+    "mtime": 1786766382.1238906,
+    "ast_hash": "7f63c2c5dca7881dc595ec7ddb9acda2",
     "semantic_hash": ""
   },
   "src/components/dashboard/national-overview/NationalOverview.tsx": {
-    "mtime": 1786743785.0603993,
-    "ast_hash": "d3ee599012fa1b39b1a53d2d98214ff1",
+    "mtime": 1786759992.9056838,
+    "ast_hash": "a34940932f7f37825a6637ab0d4c44b5",
     "semantic_hash": ""
   },
   "src/components/dashboard/national-overview/UsaChapterActivityMap.tsx": {
-    "mtime": 1786736797.9177268,
+    "mtime": 1786766381.9270413,
     "ast_hash": "d72ec07f584c9fc1ac87280027282c40",
     "semantic_hash": ""
   },
@@ -1125,8 +1125,8 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/notifications/NotificationsAppClient.tsx": {
-    "mtime": 1786582107.8556516,
-    "ast_hash": "c7c446a35a4d40f53fbb91b3038e5703",
+    "mtime": 1786766382.1058433,
+    "ast_hash": "c0aba1d2a464ad2e40bceb1ef6d280d5",
     "semantic_hash": ""
   },
   "src/components/dashboard/reports/ReportsChartsClient.tsx": {
@@ -1205,8 +1205,8 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeGroupsBrowseTable.tsx": {
-    "mtime": 1786749291.3585544,
-    "ast_hash": "16d65b26507d0fbf3780a7783dd1dc4f",
+    "mtime": 1786766381.8930957,
+    "ast_hash": "8b142b87ec29f2f0ea3d7a39be643679",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeMapView.tsx": {
@@ -1395,7 +1395,7 @@
     "semantic_hash": ""
   },
   "src/lib/community/training-feed.ts": {
-    "mtime": 1786736797.922719,
+    "mtime": 1786766381.9420466,
     "ast_hash": "2bfd7bcfcc288676a9f7489e04f659ac",
     "semantic_hash": ""
   },
@@ -1435,8 +1435,8 @@
     "semantic_hash": ""
   },
   "src/lib/dashboard/dashboard-tour-steps.ts": {
-    "mtime": 1786746774.2004354,
-    "ast_hash": "0af8dc728ca0e1a8feb51119fd8f8437",
+    "mtime": 1786766382.1594563,
+    "ast_hash": "850b43644f1e6c6338518fc8756f84b1",
     "semantic_hash": ""
   },
   "src/lib/dashboard/dashboard-tour-storage.ts": {
@@ -1680,7 +1680,7 @@
     "semantic_hash": ""
   },
   "src/lib/upload/validate-image.ts": {
-    "mtime": 1786736797.9457197,
+    "mtime": 1786766382.1238906,
     "ast_hash": "9d50cda3c6cf94217aa95dd7d7e216eb",
     "semantic_hash": ""
   },
@@ -2465,13 +2465,13 @@
     "semantic_hash": ""
   },
   "src/app/api/mobilize/groups/[id]/messages/image/route.ts": {
-    "mtime": 1786736797.889717,
+    "mtime": 1786766381.9140503,
     "ast_hash": "0025bcaae673274991c6fddc9da8d6f1",
     "semantic_hash": ""
   },
   "src/app/api/mobilize/groups/[id]/resources/route.ts": {
-    "mtime": 1783386557.6887777,
-    "ast_hash": "c557919e459f6101e9a75f3611c5a1f3",
+    "mtime": 1786766381.8794267,
+    "ast_hash": "f26a21b2c4e4bd27f784f8d563a04086",
     "semantic_hash": ""
   },
   "src/app/api/mobilize/groups/[id]/resources/file/route.ts": {
@@ -2480,8 +2480,8 @@
     "semantic_hash": ""
   },
   "src/app/api/mobilize/groups/[id]/resources/[resourceId]/route.ts": {
-    "mtime": 1783386557.6847942,
-    "ast_hash": "047cb71b116973e9e009d649177e88a9",
+    "mtime": 1786766382.0427618,
+    "ast_hash": "6cffa02d513cd1b0a990ed6471a3cd96",
     "semantic_hash": ""
   },
   "src/app/api/onboarding/coach-meetings/route.ts": {
@@ -2550,7 +2550,7 @@
     "semantic_hash": ""
   },
   "src/app/api/training/certificate-requests/route.ts": {
-    "mtime": 1786736797.952728,
+    "mtime": 1786766382.1249154,
     "ast_hash": "61a74fe86697a84b842145199d880409",
     "semantic_hash": ""
   },
@@ -2660,8 +2660,8 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/SidebarYourJourney.tsx": {
-    "mtime": 1783096809.1908274,
-    "ast_hash": "bd37021fa5e740bd0e7b32f7433488d2",
+    "mtime": 1786766382.1058433,
+    "ast_hash": "0aa07f1d99718217b0d23970c59a312b",
     "semantic_hash": ""
   },
   "src/components/dashboard/coach-meeting/CoachMeetingBookingForm.tsx": {
@@ -2770,7 +2770,7 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/training/TrainingNavSubmenu.tsx": {
-    "mtime": 1786736797.9337194,
+    "mtime": 1786766382.0447667,
     "ast_hash": "0e84b32d4f82ce2f1ac67457eb37974b",
     "semantic_hash": ""
   },
@@ -2785,7 +2785,7 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeAnnouncementMediaGrid.tsx": {
-    "mtime": 1786750849.6845534,
+    "mtime": 1786766382.0447667,
     "ast_hash": "4e57d292e9cbf3b0c71ee1edf5d1ba86",
     "semantic_hash": ""
   },
@@ -2800,13 +2800,13 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeContentPanel.tsx": {
-    "mtime": 1786736797.9177268,
+    "mtime": 1786766381.9270413,
     "ast_hash": "ed46b20871c3403a146de1abde7d64d4",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeContentShell.tsx": {
-    "mtime": 1786751171.3233616,
-    "ast_hash": "9a00a9c5a2910f22d82ae4a57921203d",
+    "mtime": 1786759992.997897,
+    "ast_hash": "b674f75cd9bd807153f055db18ed8a6d",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeGroupListedSwitch.tsx": {
@@ -2820,8 +2820,8 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeGroupResourcesPanel.tsx": {
-    "mtime": 1785196053.4561405,
-    "ast_hash": "fa72720b93ba62e77ce9831408eaaeaa",
+    "mtime": 1786766382.0052607,
+    "ast_hash": "879220b136c91602e45002e64946bada",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeGroupSidebarTabs.tsx": {
@@ -2840,13 +2840,13 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeSectionEmptyState.tsx": {
-    "mtime": 1786736797.980718,
+    "mtime": 1786766382.1594563,
     "ast_hash": "65db051efeab2a9b301e95bfcd8ac7b9",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeSidebarNav.tsx": {
-    "mtime": 1786736797.952728,
-    "ast_hash": "fc99a64c61bf7548d101c1677ba13dbe",
+    "mtime": 1786759993.0209057,
+    "ast_hash": "adaa4ec6718741ce9c0fb5bd05f3e0db",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeTypeDeleteDialog.tsx": {
@@ -2900,7 +2900,7 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/announcement-images.ts": {
-    "mtime": 1786736797.9457197,
+    "mtime": 1786766382.1238906,
     "ast_hash": "ed6f4194137169da992199378b1100f2",
     "semantic_hash": ""
   },
@@ -2925,8 +2925,8 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/mobilize-content-access.ts": {
-    "mtime": 1786582107.8936539,
-    "ast_hash": "fcd9230cc4272dce86bc82dbc796410c",
+    "mtime": 1786759993.1248736,
+    "ast_hash": "ec593aefb91e0ec4ada914d9da0bebe0",
     "semantic_hash": ""
   },
   "src/lib/mobilize/mobilize-empty-state-icons.ts": {
@@ -2935,8 +2935,8 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/mobilize-nav-config.ts": {
-    "mtime": 1786732579.465264,
-    "ast_hash": "3f47e1af9a39f5b47a129babf64c2bb2",
+    "mtime": 1786759993.128876,
+    "ast_hash": "09b94f67465bbba078bc409e5999a356",
     "semantic_hash": ""
   },
   "src/lib/mobilize/mobilize-resources-access.ts": {
@@ -2945,8 +2945,8 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/mobilize-ui-surface.ts": {
-    "mtime": 1786732579.467263,
-    "ast_hash": "31a7980d5f21fab7af261e620df50308",
+    "mtime": 1786766382.1249154,
+    "ast_hash": "15ac015c376c0f432d5f78b868cc6848",
     "semantic_hash": ""
   },
   "src/lib/mobilize/mobilize-wall-post-access.ts": {
@@ -2990,7 +2990,7 @@
     "semantic_hash": ""
   },
   "src/lib/onboarding/journey-progress-stats.ts": {
-    "mtime": 1786736797.92772,
+    "mtime": 1786766382.0387628,
     "ast_hash": "1351bea225f4c6a94dc50ea51dd4db02",
     "semantic_hash": ""
   },
@@ -3060,13 +3060,13 @@
     "semantic_hash": ""
   },
   "src/lib/user/format-privacy-name.ts": {
-    "mtime": 1786736797.952728,
+    "mtime": 1786766382.1249154,
     "ast_hash": "5570ae569eada436fd15ef7e8f357cdc",
     "semantic_hash": ""
   },
   "src/theme/mobilize-content-theme.ts": {
-    "mtime": 1784337054.2347672,
-    "ast_hash": "5fcfeeec2e12402e68f1f1ab4d781034",
+    "mtime": 1786759993.1488638,
+    "ast_hash": "18be4bb8653212e5a466f3c98f2b96f1",
     "semantic_hash": ""
   },
   "supabase/migrations/053_mobilize_message_images.sql": {
@@ -3165,13 +3165,13 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/people/[userId]/PersonProfilePageContent.tsx": {
-    "mtime": 1786743785.0424047,
+    "mtime": 1786766382.1249154,
     "ast_hash": "9745457897609bbc3cffbc78805124c6",
     "semantic_hash": ""
   },
   "src/components/dashboard/people/PersonProfileClient.tsx": {
-    "mtime": 1786743785.0654018,
-    "ast_hash": "b579456b46a9d17c0f7ecc9f93f6eaec",
+    "mtime": 1786759992.9828827,
+    "ast_hash": "9efed205a895d1568dbc64c7fa33033e",
     "semantic_hash": ""
   },
   "src/lib/people/person-profile-access.ts": {
@@ -3180,7 +3180,7 @@
     "semantic_hash": ""
   },
   "src/lib/people/person-profile-data.ts": {
-    "mtime": 1786743785.1164007,
+    "mtime": 1786766382.1238906,
     "ast_hash": "0e3e124b3fb514351cd916a95db1c3e2",
     "semantic_hash": ""
   },
@@ -3255,7 +3255,7 @@
     "semantic_hash": ""
   },
   "src/app/dashboard/mobilize/groups/[id]/groups/ChapterGroupsClient.tsx": {
-    "mtime": 1786749122.3484106,
+    "mtime": 1786766382.0437622,
     "ast_hash": "9668931817259db4653e592ccecd9758",
     "semantic_hash": ""
   },
@@ -3300,13 +3300,13 @@
     "semantic_hash": ""
   },
   "src/app/api/mobilize/groups/[id]/messages/[messageId]/reactions/route.ts": {
-    "mtime": 1784337053.4937677,
-    "ast_hash": "dc85536503d3afbb38e62dda437dd611",
+    "mtime": 1786766381.9340458,
+    "ast_hash": "1edbe7f7b36912ccab62e2124fe697e5",
     "semantic_hash": ""
   },
   "src/app/api/mobilize/social/profile-settings/route.ts": {
-    "mtime": 1784337053.5907838,
-    "ast_hash": "b8169051d06b5c6eaa68d492812f4913",
+    "mtime": 1786766382.1249154,
+    "ast_hash": "947d32b1ebd388f77516e2d8450e87da",
     "semantic_hash": ""
   },
   "src/app/api/mobilize/social/profiles/[userId]/follow/route.ts": {
@@ -3325,17 +3325,17 @@
     "semantic_hash": ""
   },
   "src/app/api/mobilize/social/profiles/[userId]/posts/[postId]/reactions/route.ts": {
-    "mtime": 1784337053.7227676,
-    "ast_hash": "58fe4e53ff4ecd9479e1decbbcd637a8",
+    "mtime": 1786766382.1254675,
+    "ast_hash": "6ec68762c60fad46a49feaac856aee0e",
     "semantic_hash": ""
   },
   "src/app/api/mobilize/social/profiles/[userId]/posts/route.ts": {
-    "mtime": 1786750239.803928,
-    "ast_hash": "1e2e0bd85b3b37b9745cf566321103be",
+    "mtime": 1786766382.1594563,
+    "ast_hash": "164134f6879235898746d947682caf0e",
     "semantic_hash": ""
   },
   "src/app/api/mobilize/social/profiles/[userId]/route.ts": {
-    "mtime": 1786743785.023405,
+    "mtime": 1786766382.0427618,
     "ast_hash": "4743c13f9710bc6bd1fa9c249a43fce9",
     "semantic_hash": ""
   },
@@ -3355,23 +3355,23 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeGroupFeed.tsx": {
-    "mtime": 1786743785.080398,
+    "mtime": 1786766381.9030364,
     "ast_hash": "d5c5e9d153bf2510435a3bb8a07ae865",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeMemberProfileClient.tsx": {
-    "mtime": 1786750484.8942988,
-    "ast_hash": "09f707c34282cf77451570d263453fab",
+    "mtime": 1786766382.1594563,
+    "ast_hash": "637abc39b13b6de4987ddecc7eff6079",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeSocialComments.tsx": {
-    "mtime": 1786750007.5261168,
+    "mtime": 1786766382.0427618,
     "ast_hash": "cfeb428d64a3b9aa7a75b3477d0abb57",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeSocialPostHeader.tsx": {
-    "mtime": 1786750584.996267,
-    "ast_hash": "2246206cd38a27793e7191b4917306c1",
+    "mtime": 1786766382.1255882,
+    "ast_hash": "2d6627ce1aa0cadfcad1575fbe644bd0",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeSocialReactionBar.tsx": {
@@ -3380,7 +3380,7 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/social/enrich-group-messages.ts": {
-    "mtime": 1786743785.104409,
+    "mtime": 1786766382.1254675,
     "ast_hash": "be8cc0e42218aeb43e91f283a3078ab2",
     "semantic_hash": ""
   },
@@ -3400,7 +3400,7 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/social/resolve-authors.ts": {
-    "mtime": 1786743785.1144147,
+    "mtime": 1786766382.1603281,
     "ast_hash": "b3c23ce7ce94240f60a482446fcdfc38",
     "semantic_hash": ""
   },
@@ -3435,8 +3435,8 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeProfilePageShell.tsx": {
-    "mtime": 1786743785.087397,
-    "ast_hash": "2e20a2d57a8865dd144fcbab7a27a061",
+    "mtime": 1786759993.0528834,
+    "ast_hash": "25b363bed851f5d2af764e7ed77bcac3",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeProfileSidebarCard.tsx": {
@@ -3450,7 +3450,7 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeSocialPostCard.tsx": {
-    "mtime": 1786743785.089398,
+    "mtime": 1786766382.1594563,
     "ast_hash": "265c34e19c1bf7e8669a9dd9311e4d44",
     "semantic_hash": ""
   },
@@ -3465,7 +3465,7 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/social/load-home-feed.ts": {
-    "mtime": 1786743785.1093993,
+    "mtime": 1786766382.1238906,
     "ast_hash": "34706624a92ce38659d49ff6c3c8eabc",
     "semantic_hash": ""
   },
@@ -3490,13 +3490,13 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeDialog.tsx": {
-    "mtime": 1786749797.1250098,
+    "mtime": 1786766382.1255882,
     "ast_hash": "3b2fa9fb5186a553159d66cda09a082c",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeSettingsClient.tsx": {
-    "mtime": 1786582107.8716505,
-    "ast_hash": "ff90800f9bc2b15909912e8863c3b46f",
+    "mtime": 1786759993.0088906,
+    "ast_hash": "36a54e4fcc2581c90bdf7c94c8770df9",
     "semantic_hash": ""
   },
   "src/components/mobilize/feed-ads/MobilizeFeedAdImageDropzone.tsx": {
@@ -3505,32 +3505,32 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/feed-ads/MobilizeFeedAdsCarousel.tsx": {
-    "mtime": 1786743785.0713966,
+    "mtime": 1786766382.047359,
     "ast_hash": "3838c577dac74c1f2d19d1a6ad83c03a",
     "semantic_hash": ""
   },
   "src/components/mobilize/feed-ads/MobilizeFeedAdsRail.tsx": {
-    "mtime": 1786743785.073406,
+    "mtime": 1786766382.0464733,
     "ast_hash": "e7640802c4a83b5d613c8c359ec9160d",
     "semantic_hash": ""
   },
   "src/components/mobilize/feed-ads/MobilizeFeedAdsSettingsForm.tsx": {
-    "mtime": 1786743785.0774038,
+    "mtime": 1786766382.0447667,
     "ast_hash": "55a6b329cc7b4616484b209c97eb8760",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeOwnerHomeClient.tsx": {
-    "mtime": 1786736797.9337194,
+    "mtime": 1786766382.0447667,
     "ast_hash": "61e8c154d10571d67f32c4690521d5bb",
     "semantic_hash": ""
   },
   "src/lib/mobilize/feed-ads-types.ts": {
-    "mtime": 1786743785.099394,
+    "mtime": 1786766382.0427618,
     "ast_hash": "c32fcd9db4912934597ebb9b509a2885",
     "semantic_hash": ""
   },
   "src/lib/mobilize/feed-ads.ts": {
-    "mtime": 1786743785.1013992,
+    "mtime": 1786766382.0387628,
     "ast_hash": "aa0825ba120790071b69b5a3ffd568b6",
     "semantic_hash": ""
   },
@@ -3555,12 +3555,12 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeSocialHubLayout.tsx": {
-    "mtime": 1786736797.9057207,
+    "mtime": 1786766381.9140503,
     "ast_hash": "de7eee40ecd9d7e5a157c913445ebdd1",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeSocialHubRightRail.tsx": {
-    "mtime": 1786736797.9147158,
+    "mtime": 1786766381.9260502,
     "ast_hash": "d2ecc2bf923eb5752485d1b039d84d8d",
     "semantic_hash": ""
   },
@@ -3615,22 +3615,22 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeAlertsClient.tsx": {
-    "mtime": 1786736797.9247205,
+    "mtime": 1786766382.0387628,
     "ast_hash": "ce30db04afb439bf334f652d34bbcef6",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeBookmarksClient.tsx": {
-    "mtime": 1786736797.9377213,
-    "ast_hash": "4e6fce24a5c8d292ebd5e74417d1976b",
+    "mtime": 1786766382.1058433,
+    "ast_hash": "0777d176b15cc9d441c4b0d4cce624fb",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeMessagesClient.tsx": {
-    "mtime": 1784765727.343474,
-    "ast_hash": "74e8e132a9608f8b749a7b10e20f685f",
+    "mtime": 1786759993.045964,
+    "ast_hash": "84725c852a395ac961451ca0016c3c62",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeSocialSettingsClient.tsx": {
-    "mtime": 1786736797.9177268,
+    "mtime": 1786766381.9260502,
     "ast_hash": "25713d3d5ae1421ee7f13b05d953f542",
     "semantic_hash": ""
   },
@@ -3645,7 +3645,7 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/social/load-bookmarks.ts": {
-    "mtime": 1786743785.1073947,
+    "mtime": 1786766381.8970625,
     "ast_hash": "6fe52fa01db38cbac9cdfd26480783fa",
     "semantic_hash": ""
   },
@@ -3655,17 +3655,17 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/social/load-profile-tab-feeds.ts": {
-    "mtime": 1786743785.1114013,
+    "mtime": 1786766382.0427618,
     "ast_hash": "0558897081e8e6e688aa79a472929442",
     "semantic_hash": ""
   },
   "src/lib/mobilize/social/load-social-alerts.ts": {
-    "mtime": 1786668640.2635639,
-    "ast_hash": "9cb74b68374d8f198b908bae6313f21a",
+    "mtime": 1786759993.143872,
+    "ast_hash": "6f5f14f09bcd2f800c7dccf8503c5b25",
     "semantic_hash": ""
   },
   "src/lib/mobilize/social/social-empty-copy.ts": {
-    "mtime": 1786736797.9307237,
+    "mtime": 1786766382.0427618,
     "ast_hash": "151b68fde290015af18b40bf858e57cc",
     "semantic_hash": ""
   },
@@ -3685,13 +3685,13 @@
     "semantic_hash": ""
   },
   "src/app/api/mobilize/social/profile-posts/image/route.ts": {
-    "mtime": 1786736797.9427173,
+    "mtime": 1786766382.1058433,
     "ast_hash": "b49e60d8102ebf378c6b9db88a1c91cb",
     "semantic_hash": ""
   },
   "src/components/mobilize/social/MobilizeSocialPostEditor.tsx": {
-    "mtime": 1786732579.459273,
-    "ast_hash": "38e0d2cb4b04e9e32ed36953ef726879",
+    "mtime": 1786766382.1249154,
+    "ast_hash": "70283482d87c14bcbf1d71c6963a06d1",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeBottomNav.tsx": {
@@ -3715,8 +3715,8 @@
     "semantic_hash": ""
   },
   "src/lib/mobilize/mobilize-chapters-nav-config.ts": {
-    "mtime": 1786653784.8887303,
-    "ast_hash": "151a618c63b4b0324292f14bca6fc0be",
+    "mtime": 1786759993.1228948,
+    "ast_hash": "a42f404abd26109e3160ad0526ceabee",
     "semantic_hash": ""
   },
   "src/app/api/mobilize/social/messages/recipients/route.ts": {
@@ -3780,8 +3780,8 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/HeaderSuperAdminProfileAvatar.tsx": {
-    "mtime": 1786732579.4252672,
-    "ast_hash": "72948c05d181ddb632ae47ce64813d02",
+    "mtime": 1786766382.1587315,
+    "ast_hash": "77dd414618130a9ded194e38660c9a74",
     "semantic_hash": ""
   },
   "src/components/dashboard/MissionUpdatesNavIcon.tsx": {
@@ -3795,7 +3795,7 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/SidebarNestedNavList.tsx": {
-    "mtime": 1786736797.9737194,
+    "mtime": 1786766382.1587315,
     "ast_hash": "938dd0480c3e52e238382ac9e052358b",
     "semantic_hash": ""
   },
@@ -3820,13 +3820,13 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeGroupAboutText.tsx": {
-    "mtime": 1786743785.0684006,
+    "mtime": 1786766382.7708075,
     "ast_hash": "1955f731e75d2fa9ef4c803139585581",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeGroupMembersPreview.tsx": {
-    "mtime": 1785891382.3503466,
-    "ast_hash": "fa90ebfa328cd46c8a0bbc9094eb191c",
+    "mtime": 1786759993.0058827,
+    "ast_hash": "d153a13525b7cf6f5c50798ca9db790c",
     "semantic_hash": ""
   },
   "src/lib/auth/resolve-auth-user-by-email.ts": {
@@ -3840,8 +3840,8 @@
     "semantic_hash": ""
   },
   "src/lib/community/invite-share-feed.ts": {
-    "mtime": 1785803314.9875548,
-    "ast_hash": "c1e7a931f56801c768996b566f33d9e0",
+    "mtime": 1786759993.0968914,
+    "ast_hash": "4a1adee880fb9115e1a94eeb52973825",
     "semantic_hash": ""
   },
   "src/lib/dashboard/announcement-recipients.ts": {
@@ -3965,8 +3965,8 @@
     "semantic_hash": ""
   },
   "src/app/api/profile/cover/route.ts": {
-    "mtime": 1785878107.206637,
-    "ast_hash": "37df9bbb5a3e740c80e1945e3ad20909",
+    "mtime": 1786766816.0225213,
+    "ast_hash": "0379ad8d2204986b14e3a8df8742d808",
     "semantic_hash": ""
   },
   "src/lib/user/default-profile-cover.ts": {
@@ -3987,11 +3987,6 @@
   "src/app/api/dashboard/announcements/pdf/route.ts": {
     "mtime": 1785861724.3995664,
     "ast_hash": "aaa2d61d74cf7128fae61df062c6a644",
-    "semantic_hash": ""
-  },
-  "src/components/dashboard/notifications/InlinePdfPreview.tsx": {
-    "mtime": 1785861724.543557,
-    "ast_hash": "29b178208bb4deca47d4e2e34095042b",
     "semantic_hash": ""
   },
   "src/lib/dashboard/announcement-pdf.ts": {
@@ -4170,13 +4165,13 @@
     "semantic_hash": ""
   },
   "src/lib/community/feed-tiers.ts": {
-    "mtime": 1786649116.544106,
-    "ast_hash": "97576b3a22bd0a035ef74827ebdbf439",
+    "mtime": 1786766382.1587315,
+    "ast_hash": "278b00abd101872d974b3198e2ada61f",
     "semantic_hash": ""
   },
   "src/lib/community/group-activity-feed.ts": {
-    "mtime": 1786649116.5221615,
-    "ast_hash": "ea5f388c2ad466ee4fa84a85108873c7",
+    "mtime": 1786766382.1249154,
+    "ast_hash": "1b38334134525349e35033eaf11020e4",
     "semantic_hash": ""
   },
   "supabase/migrations/088_mobilize_auto_follow_include_admins.sql": {
@@ -4210,8 +4205,8 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeGroupShareDialog.tsx": {
-    "mtime": 1786652638.4777193,
-    "ast_hash": "a22b6d7cd95fdd8c971628e4a3ae3766",
+    "mtime": 1786766381.8930957,
+    "ast_hash": "9141e51f129021fa4f9e43e5439a58dc",
     "semantic_hash": ""
   },
   "src/components/mobilize/PublicGroupJoinDialog.tsx": {
@@ -4230,8 +4225,8 @@
     "semantic_hash": ""
   },
   "src/app/api/user-notifications/route.ts": {
-    "mtime": 1786668640.1145458,
-    "ast_hash": "7f83bca05656759e12019ff1cc4340e4",
+    "mtime": 1786759992.4913898,
+    "ast_hash": "7f912e1f19d7287faf8d33aa4825f140",
     "semantic_hash": ""
   },
   "src/app/dashboard/user-notifications/page.tsx": {
@@ -4240,13 +4235,13 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/UserNotificationsMenu.tsx": {
-    "mtime": 1786747625.0422323,
-    "ast_hash": "ca93d6cb8335121de8c6f1953d647cf2",
+    "mtime": 1786766382.0062485,
+    "ast_hash": "ba28938bb186c1450a94b8f649263ffe",
     "semantic_hash": ""
   },
   "src/components/dashboard/user-notifications/UserNotificationsClient.tsx": {
-    "mtime": 1786748158.6639748,
-    "ast_hash": "5540f15cf156dd9f1f905a1e3a3949f3",
+    "mtime": 1786766382.047359,
+    "ast_hash": "c0f31ef6370c526a6491eb1451195989",
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeGroupPublishStatusSelect.tsx": {
@@ -4265,13 +4260,13 @@
     "semantic_hash": ""
   },
   "src/components/mobilize/MobilizeGroupCardList.tsx": {
-    "mtime": 1786732579.4342947,
-    "ast_hash": "47bdf5c9153fa2515141e18da618485a",
+    "mtime": 1786766381.8930957,
+    "ast_hash": "0ee055f36d5e60bce3d59943ad0f3dfe",
     "semantic_hash": ""
   },
   "src/components/user/VerifiedUserBadge.tsx": {
-    "mtime": 1786743785.0943997,
-    "ast_hash": "735862b4c6461bf110b537b256a1a793",
+    "mtime": 1786766382.1255882,
+    "ast_hash": "a4161ef548bd421b5668d10dc390f945",
     "semantic_hash": ""
   },
   "src/components/user/VerifiedUserSwitch.tsx": {
@@ -4290,8 +4285,53 @@
     "semantic_hash": ""
   },
   "src/components/dashboard/user-notifications/social-alert-ui.tsx": {
-    "mtime": 1786747550.8326652,
+    "mtime": 1786752094.201333,
     "ast_hash": "cdab4c3f8aff47b0b73ac0f3bc9327ee",
+    "semantic_hash": ""
+  },
+  "src/components/dashboard/ChaptersGroupsNavGroup.tsx": {
+    "mtime": 1786766382.0052607,
+    "ast_hash": "9643f9f021a32b5020036d588fa2d0eb",
+    "semantic_hash": ""
+  },
+  "src/components/dashboard/MobilizeSettingsNavGroup.tsx": {
+    "mtime": 1786759992.8776753,
+    "ast_hash": "3da06a291cb2a7f4d2d52d9eab771020",
+    "semantic_hash": ""
+  },
+  "src/lib/mobilize/social/follow-state-bus.ts": {
+    "mtime": 1786759993.1408846,
+    "ast_hash": "4802794f9b2eedeff38705d538959644",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/092_mobilize_social_alert_dismissed.sql": {
+    "mtime": 1786759993.1528678,
+    "ast_hash": "f27ddc9a570ca552bed3050d34e41b96",
+    "semantic_hash": ""
+  },
+  "src/lib/mobilize/default-group-resources.ts": {
+    "mtime": 1786766382.0377855,
+    "ast_hash": "3c2df66ba7e8d2b79b36266f6f113265",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/093_mobilize_default_code_of_conduct_resource.sql": {
+    "mtime": 1786766382.1594563,
+    "ast_hash": "2dc2a5c892470897e4685b473066f0d0",
+    "semantic_hash": ""
+  },
+  "src/app/api/mobilize/groups/[id]/resources/pdf-proxy/route.ts": {
+    "mtime": 1786766381.9080653,
+    "ast_hash": "81cd221cadc1a6cfec7c831b65581457",
+    "semantic_hash": ""
+  },
+  "src/components/pdf/InlinePdfPreview.tsx": {
+    "mtime": 1786766381.8214664,
+    "ast_hash": "23b0db3eb2562d47a921d61195cb4a16",
+    "semantic_hash": ""
+  },
+  "src/app/api/mobilize/groups/[id]/share/route.ts": {
+    "mtime": 1786766382.1058433,
+    "ast_hash": "d6dad5beff356869ebe688aeaa47fa42",
     "semantic_hash": ""
   }
 }

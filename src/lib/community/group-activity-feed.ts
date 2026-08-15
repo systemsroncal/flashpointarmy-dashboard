@@ -30,6 +30,13 @@ function displayHandle(
   return email.split("@")[0] || "A member";
 }
 
+/** Product copy: "Biblical Citizenship Group" (avoid double "Group"). */
+export function formatGroupFeedName(name: string): string {
+  const n = name.trim() || "a group";
+  if (/\bgroup$/i.test(n)) return n;
+  return `${n} Group`;
+}
+
 async function loadGroupMeta(
   supabase: SupabaseClient,
   groupId: string
@@ -66,6 +73,22 @@ async function loadGroupMeta(
   return { name, stateCode };
 }
 
+async function chapterStateForUser(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<string | null> {
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("primary_chapter_id")
+    .eq("id", userId)
+    .maybeSingle();
+  const chId =
+    typeof prof?.primary_chapter_id === "string" ? prof.primary_chapter_id : null;
+  if (!chId) return null;
+  const { data: ch } = await supabase.from("chapters").select("state").eq("id", chId).maybeSingle();
+  return (ch?.state as string | undefined)?.trim().toUpperCase().slice(0, 2) || null;
+}
+
 async function insertFeedRow(
   supabase: SupabaseClient,
   row: {
@@ -84,7 +107,7 @@ async function insertFeedRow(
   }
 }
 
-/** Jane joined Prayer Team – Florida */
+/** Jane joined Biblical Citizenship Group */
 export async function insertGroupJoinActivity(args: {
   supabase: SupabaseClient;
   userId: string;
@@ -98,7 +121,7 @@ export async function insertGroupJoinActivity(args: {
   const handle = displayHandle(who.first, who.last, who.email);
   await insertFeedRow(args.supabase, {
     feed_category: "group_join",
-    title: `${handle} joined ${group.name}`,
+    title: `${handle} joined ${formatGroupFeedName(group.name)}`,
     subtitle: "Community Activity",
     state_code: group.stateCode,
     icon_key: "groups",
@@ -106,7 +129,10 @@ export async function insertGroupJoinActivity(args: {
   });
 }
 
-/** John posted in Church of Champions / Robert uploaded a photo */
+/**
+ * John posted in Church of Champions Group /
+ * Robert uploaded a photo in Men's Group (when the post has 1+ images).
+ */
 export async function insertGroupPostActivity(args: {
   supabase: SupabaseClient;
   userId: string;
@@ -121,27 +147,32 @@ export async function insertGroupPostActivity(args: {
   ]);
   if (!group) return;
   const handle = displayHandle(who.first, who.last, who.email);
+  const groupName = formatGroupFeedName(group.name);
 
-  let title: string;
-  if (!args.hasText && args.hasImages) {
-    title = `${handle} uploaded a photo in ${group.name}`;
-  } else if (args.isLeader) {
-    title = `${handle} posted in ${group.name}`;
-  } else {
-    title = `${handle} posted in ${group.name}`;
+  if (args.hasImages) {
+    await insertFeedRow(args.supabase, {
+      feed_category: "group_post",
+      title: `${handle} uploaded a photo in ${groupName}`,
+      subtitle: "Community Activity",
+      state_code: group.stateCode,
+      icon_key: "bolt",
+      actor_user_id: args.userId,
+    });
+    return;
   }
 
+  const isLeader = Boolean(args.isLeader);
   await insertFeedRow(args.supabase, {
-    feed_category: args.isLeader ? "group_leader_post" : "group_post",
-    title,
-    subtitle: args.isLeader ? "Leader Activity" : "Community Activity",
+    feed_category: isLeader ? "group_leader_post" : "group_post",
+    title: `${handle} posted in ${groupName}`,
+    subtitle: isLeader ? "Leader Activity" : "Community Activity",
     state_code: group.stateCode,
-    icon_key: args.isLeader ? "megaphone" : "bolt",
+    icon_key: isLeader ? "megaphone" : "bolt",
     actor_user_id: args.userId,
   });
 }
 
-/** Maria commented in Families of Texas / David replied to a discussion */
+/** Maria commented in Families' Group / David replied to a post */
 export async function insertGroupCommentActivity(args: {
   supabase: SupabaseClient;
   userId: string;
@@ -155,14 +186,41 @@ export async function insertGroupCommentActivity(args: {
   if (!group) return;
   const handle = displayHandle(who.first, who.last, who.email);
   const title = args.isReply
-    ? `${handle} replied to a discussion in ${group.name}`
-    : `${handle} commented in ${group.name}`;
+    ? `${handle} replied to a post`
+    : `${handle} commented in ${formatGroupFeedName(group.name)}`;
 
   await insertFeedRow(args.supabase, {
     feed_category: args.isReply ? "group_reply" : "group_comment",
     title,
     subtitle: "Community Activity",
     state_code: group.stateCode,
+    icon_key: "bolt",
+    actor_user_id: args.userId,
+  });
+}
+
+/** Michael liked a post */
+export async function insertPostLikeActivity(args: {
+  supabase: SupabaseClient;
+  userId: string;
+  /** Optional group context for state pin; likes stay generic in copy. */
+  groupId?: string | null;
+}): Promise<void> {
+  const who = await loadUserDisplay(args.supabase, args.userId);
+  const handle = displayHandle(who.first, who.last, who.email);
+  let stateCode: string | null = null;
+  if (args.groupId) {
+    const group = await loadGroupMeta(args.supabase, args.groupId);
+    stateCode = group?.stateCode ?? null;
+  } else {
+    stateCode = await chapterStateForUser(args.supabase, args.userId);
+  }
+
+  await insertFeedRow(args.supabase, {
+    feed_category: "group_like",
+    title: `${handle} liked a post`,
+    subtitle: "Community Activity",
+    state_code: stateCode,
     icon_key: "bolt",
     actor_user_id: args.userId,
   });
@@ -180,23 +238,7 @@ export async function insertSocialFollowActivity(args: {
   ]);
   const who = displayHandle(follower.first, follower.last, follower.email);
   const target = displayHandle(following.first, following.last, following.email);
-
-  let stateCode: string | null = null;
-  const { data: prof } = await args.supabase
-    .from("profiles")
-    .select("primary_chapter_id")
-    .eq("id", args.followerId)
-    .maybeSingle();
-  const chId =
-    typeof prof?.primary_chapter_id === "string" ? prof.primary_chapter_id : null;
-  if (chId) {
-    const { data: ch } = await args.supabase
-      .from("chapters")
-      .select("state")
-      .eq("id", chId)
-      .maybeSingle();
-    stateCode = (ch?.state as string | undefined)?.trim().toUpperCase().slice(0, 2) || null;
-  }
+  const stateCode = await chapterStateForUser(args.supabase, args.followerId);
 
   await insertFeedRow(args.supabase, {
     feed_category: "social_follow",
@@ -205,5 +247,96 @@ export async function insertSocialFollowActivity(args: {
     state_code: stateCode,
     icon_key: "person",
     actor_user_id: args.followerId,
+  });
+}
+
+/** Jane updated profile information */
+export async function insertProfileUpdateActivity(args: {
+  supabase: SupabaseClient;
+  userId: string;
+}): Promise<void> {
+  const who = await loadUserDisplay(args.supabase, args.userId);
+  const handle = displayHandle(who.first, who.last, who.email);
+  const stateCode = await chapterStateForUser(args.supabase, args.userId);
+
+  await insertFeedRow(args.supabase, {
+    feed_category: "profile_update",
+    title: `${handle} updated profile information`,
+    subtitle: "Social Connections",
+    state_code: stateCode,
+    icon_key: "person",
+    actor_user_id: args.userId,
+  });
+}
+
+/**
+ * Robert received five profile endorsements.
+ * Fires once when distinct likers across the author's profile posts reach 5+.
+ * (Profile "likes" are the product stand-in until a dedicated endorsements table exists.)
+ */
+export async function maybeInsertProfileEndorsementMilestone(args: {
+  supabase: SupabaseClient;
+  profileOwnerId: string;
+}): Promise<void> {
+  const { data: posts } = await args.supabase
+    .from("mobilize_profile_posts")
+    .select("id")
+    .eq("author_id", args.profileOwnerId)
+    .limit(200);
+  const postIds = (posts ?? []).map((p) => p.id as string);
+  if (!postIds.length) return;
+
+  const { data: reactions } = await args.supabase
+    .from("mobilize_profile_post_reactions")
+    .select("user_id")
+    .in("post_id", postIds)
+    .neq("user_id", args.profileOwnerId);
+
+  const distinct = new Set((reactions ?? []).map((r) => r.user_id as string));
+  if (distinct.size < 5) return;
+
+  const { data: existing } = await args.supabase
+    .from("community_activity")
+    .select("id")
+    .eq("actor_user_id", args.profileOwnerId)
+    .eq("feed_category", "profile_endorsements")
+    .limit(1)
+    .maybeSingle();
+  if (existing) return;
+
+  const who = await loadUserDisplay(args.supabase, args.profileOwnerId);
+  const handle = displayHandle(who.first, who.last, who.email);
+  const stateCode = await chapterStateForUser(args.supabase, args.profileOwnerId);
+
+  await insertFeedRow(args.supabase, {
+    feed_category: "profile_endorsements",
+    title: `${handle} received five profile endorsements.`,
+    subtitle: "Social Connections",
+    state_code: stateCode,
+    icon_key: "star",
+    actor_user_id: args.profileOwnerId,
+  });
+}
+
+/** Emily invited friends to join Church Of Champions Group */
+export async function insertGroupInviteShareActivity(args: {
+  supabase: SupabaseClient;
+  userId: string;
+  groupId: string;
+}): Promise<void> {
+  const [who, group] = await Promise.all([
+    loadUserDisplay(args.supabase, args.userId),
+    loadGroupMeta(args.supabase, args.groupId),
+  ]);
+  if (!group) return;
+  const handle = displayHandle(who.first, who.last, who.email);
+
+  await insertFeedRow(args.supabase, {
+    feed_category: "group_invite_share",
+    title: `${handle} invited friends to join ${formatGroupFeedName(group.name)}`,
+    subtitle: "Social Connections",
+    state_code: group.stateCode,
+    icon_key: "celebration",
+    actor_user_id: args.userId,
   });
 }

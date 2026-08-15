@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeMobilizeDocumentUrl } from "@/lib/mobilize/default-group-resources";
 import { getMobilizeResourcesPostAccess } from "@/lib/mobilize/mobilize-resources-access";
 import { normalizeMobilizeResourceUrl } from "@/lib/mobilize/resource-url";
 import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
@@ -87,11 +88,13 @@ export async function POST(req: Request, ctx: Ctx) {
       return NextResponse.json({ error: "A valid http(s) URL is required." }, { status: 400 });
     }
   } else if (resource_type === "document") {
-    const rawUrl = String(body.url ?? "").trim();
-    if (!rawUrl.startsWith("/uploads/mobilize-resources/")) {
-      return NextResponse.json({ error: "Upload a document first." }, { status: 400 });
+    url = normalizeMobilizeDocumentUrl(body.url);
+    if (!url) {
+      return NextResponse.json(
+        { error: "Upload a document or provide an https link ending in .pdf." },
+        { status: 400 }
+      );
     }
-    url = rawUrl;
     if (!file_name) {
       return NextResponse.json({ error: "File name is required for documents." }, { status: 400 });
     }

@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  insertPostLikeActivity,
+  maybeInsertProfileEndorsementMilestone,
+} from "@/lib/community/group-activity-feed";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { canViewMobilizeProfile } from "@/lib/mobilize/social/profile-access";
 import { summarizeReactions, type ReactionType } from "@/lib/mobilize/social/reaction-summary";
@@ -34,10 +38,30 @@ export async function POST(req: Request, ctx: Ctx) {
       .eq("post_id", postId)
       .eq("user_id", auth.userId);
   } else {
+    const { data: prior } = await auth.admin
+      .from("mobilize_profile_post_reactions")
+      .select("reaction_type")
+      .eq("post_id", postId)
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+
     await auth.admin.from("mobilize_profile_post_reactions").upsert(
       { post_id: postId, user_id: auth.userId, reaction_type },
       { onConflict: "post_id,user_id" }
     );
+
+    if (!prior) {
+      await insertPostLikeActivity({
+        supabase: auth.admin,
+        userId: auth.userId,
+      });
+      if (auth.userId !== userId) {
+        await maybeInsertProfileEndorsementMilestone({
+          supabase: auth.admin,
+          profileOwnerId: userId,
+        });
+      }
+    }
   }
 
   const { data: rows } = await auth.admin

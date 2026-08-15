@@ -974,7 +974,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           <MobilizeProfilePageShell
         coverSrc={coverDisplaySrc}
         title={p.display_name}
-        titleAddon={p.verified ? <VerifiedUserBadge size={22} verifiedAt={p.verified_at} /> : null}
+        titleAddon={p.verified ? <VerifiedUserBadge size={25} verifiedAt={p.verified_at} /> : null}
         subtitle={handleLabel}
         meta={profileMeta}
         avatarSrc={avatarDisplaySrc ?? p.avatar_url}

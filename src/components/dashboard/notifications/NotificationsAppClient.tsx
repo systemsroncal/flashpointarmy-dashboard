@@ -9,7 +9,7 @@ import {
   type AnnouncementListItem,
 } from "@/lib/dashboard/announcements-types";
 import { AnnouncementTargetUsersField } from "@/components/dashboard/notifications/AnnouncementTargetUsersField";
-import { InlinePdfPreview } from "@/components/dashboard/notifications/InlinePdfPreview";
+import { InlinePdfPreview } from "@/components/pdf/InlinePdfPreview";
 import {
   ANNOUNCEMENT_PDF_MAX_BYTES,
   normalizeAnnouncementPdfUrl,
