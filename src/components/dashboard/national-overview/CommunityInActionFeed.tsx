@@ -321,6 +321,7 @@ const FEED_META_FONT_SIZE = "0.72rem";
 function MemberInviteTitle({ row }: { row: ActivityFeedRow }) {
   const title = row.title.trim();
   const match =
+    title.match(/^🎉\s+(.+?)\s+(inviting others to join!)$/) ??
     title.match(/^🎉\s+(.+?)\s+(helped grow FlashPoint Army .+)$/) ??
     title.match(/^🎉\s+(.+?)\s+(helped grow FPA Chapters .+)$/);
   if (match) {

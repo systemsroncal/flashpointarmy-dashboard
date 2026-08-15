@@ -97,13 +97,10 @@ export async function insertInviteShareActivity(args: {
   const { first, last, email } = await loadUserDisplay(args.supabase, args.userId);
   const who = displayHandle(first, last, email);
   const state = await chapterStateFromProfile(args.supabase, args.userId);
-  const via = inviteShareChannelLabel(args.channel);
-  const through =
-    args.channel === "direct_link" ? "by copying the invite link" : `through ${via}`;
 
   const { error } = await args.supabase.from("community_activity").insert({
     feed_category: "member_invite",
-    title: `🎉 ${who} helped grow FlashPoint Army ${through}!`,
+    title: `🎉 ${who} inviting others to join!`,
     subtitle: "Thank you for inviting others to join the community",
     state_code: state,
     icon_key: "celebration",
