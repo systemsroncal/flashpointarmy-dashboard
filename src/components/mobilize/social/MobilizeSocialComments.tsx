@@ -20,6 +20,7 @@ import {
   Button,
   CircularProgress,
   IconButton,
+  InputAdornment,
   Link as MuiLink,
   Popover,
   Stack,
@@ -175,12 +176,29 @@ function CommentComposer({
                 onSubmit();
               }
             }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end" sx={{ mr: 0.25, alignSelf: "center" }}>
+                  <IconButton
+                    size="small"
+                    disabled={posting}
+                    aria-label="Add emoji"
+                    onClick={(e) => setEmojiAnchor(e.currentTarget)}
+                    sx={{ color: nameMuted }}
+                  >
+                    <EmojiEmotionsOutlinedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
             sx={{
               "& .MuiOutlinedInput-root": {
                 bgcolor: composerBg,
                 borderRadius: "999px",
                 fontSize: "0.9375rem",
                 overflow: "hidden",
+                alignItems: "center",
+                pr: 0.5,
                 "& fieldset": {
                   border: "1px solid transparent",
                   borderRadius: "999px",
@@ -200,24 +218,8 @@ function CommentComposer({
               },
             }}
           />
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mt: 0.65, px: 0.75, minHeight: 28 }}
-          >
-            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
-              <IconButton
-                size="small"
-                disabled={posting}
-                aria-label="Add emoji"
-                onClick={(e) => setEmojiAnchor(e.currentTarget)}
-                sx={{ color: nameMuted }}
-              >
-                <EmojiEmotionsOutlinedIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Stack>
-            {hasDraft || posting ? (
+          {hasDraft || posting ? (
+            <Stack direction="row" justifyContent="flex-end" sx={{ mt: 0.65, px: 0.75 }}>
               <Button
                 size="small"
                 variant="contained"
@@ -234,8 +236,8 @@ function CommentComposer({
               >
                 {posting ? "…" : "Post"}
               </Button>
-            ) : null}
-          </Stack>
+            </Stack>
+          ) : null}
         </Box>
       </Box>
 
@@ -243,8 +245,8 @@ function CommentComposer({
         open={Boolean(emojiAnchor)}
         anchorEl={emojiAnchor}
         onClose={() => setEmojiAnchor(null)}
-        anchorOrigin={{ vertical: "top", horizontal: "left" }}
-        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Box sx={{ p: 1, display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 0.25 }}>
           {COMMENT_EMOJI_OPTIONS.map((emoji) => (

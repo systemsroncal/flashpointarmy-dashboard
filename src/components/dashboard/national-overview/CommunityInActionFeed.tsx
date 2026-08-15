@@ -16,7 +16,7 @@ import TrackChangesOutlined from "@mui/icons-material/TrackChangesOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import { faGraduationCap } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Box, Chip, Typography } from "@mui/material";
+import { Box, Button, Chip, CircularProgress, Typography } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { isHiddenCommunityFeedRow } from "@/lib/community/community-activity-feed";
@@ -538,7 +538,17 @@ function FeedRow({ row }: { row: ActivityFeedRow }) {
   );
 }
 
-export function CommunityInActionFeed({ items }: { items: ActivityFeedRow[] }) {
+export function CommunityInActionFeed({
+  items,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+}: {
+  items: ActivityFeedRow[];
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
+}) {
   const visible = items.filter((row) => !isHiddenCommunityFeedRow(row));
 
   if (visible.length === 0) {
@@ -554,6 +564,20 @@ export function CommunityInActionFeed({ items }: { items: ActivityFeedRow[] }) {
       {visible.map((row) => (
         <FeedRow key={row.id} row={row} />
       ))}
+      {onLoadMore && hasMore ? (
+        <Box sx={{ display: "flex", justifyContent: "center", pt: 1, pb: 0.5 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            startIcon={loadingMore ? <CircularProgress size={14} color="inherit" /> : undefined}
+            sx={{ textTransform: "none", borderRadius: 999, px: 2 }}
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </Button>
+        </Box>
+      ) : null}
     </Box>
   );
 }

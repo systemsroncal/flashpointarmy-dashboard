@@ -22,7 +22,7 @@ import {
   aggregateReferenceLeaderMemberByState,
   type CitiesDonorsJson,
 } from "@/lib/donors/aggregate-donors-by-state";
-import { loadCommunityActivityFeed, COMMUNITY_ACTIVITY_FEED_LIMIT, isHiddenCommunityFeedRow } from "@/lib/community/community-activity-feed";
+import { loadCommunityActivityFeedPage, COMMUNITY_ACTIVITY_FEED_LIMIT, isHiddenCommunityFeedRow } from "@/lib/community/community-activity-feed";
 import { CommunityInActionFeed, type ActivityFeedRow } from "./CommunityInActionFeed";
 import { getNotificationSoundEnabled } from "@/lib/notifications/notification-sound-pref";
 import { playCommunityActionSoundAlert } from "@/lib/notifications/play-community-action-sound";
@@ -154,6 +154,10 @@ export function NationalOverview({
 }) {
   const [stats, setStats] = useState(initialStats);
   const [feed, setFeed] = useState(initialFeed);
+  const [feedHasMore, setFeedHasMore] = useState(
+    initialFeed.length >= COMMUNITY_ACTIVITY_FEED_LIMIT
+  );
+  const [feedLoadingMore, setFeedLoadingMore] = useState(false);
   const [chapterRows, setChapterRows] = useState(chapters);
   /** Reference members by state (from city JSON); map fill only */
   const [referenceSplitByState, setReferenceSplitByState] = useState<
@@ -187,6 +191,8 @@ export function NationalOverview({
     setFeed(initialFeed);
     feedKnownIdsRef.current = new Set(initialFeed.map((r) => r.id));
     feedSoundReadyRef.current = false;
+    feedLimitRef.current = COMMUNITY_ACTIVITY_FEED_LIMIT;
+    setFeedHasMore(initialFeed.length >= COMMUNITY_ACTIVITY_FEED_LIMIT);
   }, [initialFeed]);
 
   useEffect(() => {
@@ -194,6 +200,11 @@ export function NationalOverview({
     if (!feedSoundReadyRef.current) {
       feedKnownIdsRef.current = new Set(ids);
       if (ids.length > 0) feedSoundReadyRef.current = true;
+      return;
+    }
+    if (feedSkipSoundRef.current) {
+      for (const id of ids) feedKnownIdsRef.current.add(id);
+      feedSkipSoundRef.current = false;
       return;
     }
     let hasNew = false;
@@ -270,8 +281,9 @@ export function NationalOverview({
       const next = (await statsRes.json()) as OverviewStatBlock;
       setStats(next);
 
-      const feedData = await loadCommunityActivityFeed(supabase);
-      setFeed(feedData);
+      const feedPage = await loadCommunityActivityFeedPage(supabase, feedLimitRef.current);
+      setFeed(feedPage.rows);
+      setFeedHasMore(feedPage.hasMore);
 
       if (popupOpenRef.current && popupStateRef.current) {
         const popup = await loadStatePopupStats(supabase, popupStateRef.current);
@@ -286,11 +298,38 @@ export function NationalOverview({
     }
   }, []);
 
+  const feedLoadingMoreRef = useRef(false);
+
+  const loadMoreFeed = useCallback(async () => {
+    if (feedLoadingMoreRef.current) return;
+    feedLoadingMoreRef.current = true;
+    setFeedLoadingMore(true);
+    const nextLimit = feedLimitRef.current + COMMUNITY_ACTIVITY_FEED_LIMIT;
+    try {
+      const page = await loadCommunityActivityFeedPage(createClient(), nextLimit);
+      feedLimitRef.current = nextLimit;
+      feedSkipSoundRef.current = true;
+      setFeed(page.rows);
+      setFeedHasMore(page.hasMore);
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[NationalOverview] load more failed", err);
+      }
+    } finally {
+      feedLoadingMoreRef.current = false;
+      setFeedLoadingMore(false);
+    }
+  }, []);
+
   const overviewReloadBusyRef = useRef(false);
   const overviewReloadQueuedRef = useRef(false);
   const realtimeOverviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedSoundReadyRef = useRef(false);
   const feedKnownIdsRef = useRef<Set<string>>(new Set());
+  /** Page size currently requested; grows by one page per "Load more". */
+  const feedLimitRef = useRef(COMMUNITY_ACTIVITY_FEED_LIMIT);
+  /** Older rows arriving from "Load more" must not trigger the new-activity chime. */
+  const feedSkipSoundRef = useRef(false);
 
   const kickReloadOverview = useCallback(async () => {
     if (overviewReloadBusyRef.current) {
@@ -355,7 +394,7 @@ export function NationalOverview({
               },
               ...prev,
             ];
-            return next.slice(0, COMMUNITY_ACTIVITY_FEED_LIMIT);
+            return next.slice(0, feedLimitRef.current);
           });
           scheduleRealtimeOverviewReload();
         }
@@ -1025,7 +1064,7 @@ export function NationalOverview({
               Community in Action
             </Typography>
             <Typography variant="caption" color="error.main" sx={{ display: "block", mb: 0.5 }}>
-              Last 25 activities · past 24 hours
+              Last {feed.length} activities · past 24 hours
             </Typography>
             <Box
               sx={{
@@ -1036,7 +1075,12 @@ export function NationalOverview({
                 ...drawerLikeScrollbarSx,
               }}
             >
-              <CommunityInActionFeed items={feed} />
+              <CommunityInActionFeed
+                items={feed}
+                hasMore={feedHasMore}
+                loadingMore={feedLoadingMore}
+                onLoadMore={loadMoreFeed}
+              />
             </Box>
           </Paper>
         </Box>

@@ -57,14 +57,17 @@ function mapFeedRows(
 }
 
 /**
- * Last {@link COMMUNITY_ACTIVITY_FEED_LIMIT} rows mixed ~70% Community Activity.
+ * One page of the feed, mixed ~70% Community Activity.
  * Prefers the past 24 hours; falls back to newest overall when the window is thin.
+ * Growing `limit` returns a superset of the previous page, so "Load more" is stable.
  */
-export async function loadCommunityActivityFeed(
-  supabase: SupabaseClient
-): Promise<CommunityActivityFeedRow[]> {
+export async function loadCommunityActivityFeedPage(
+  supabase: SupabaseClient,
+  limit: number = COMMUNITY_ACTIVITY_FEED_LIMIT
+): Promise<{ rows: CommunityActivityFeedRow[]; hasMore: boolean }> {
+  const pageLimit = Math.max(1, Math.floor(limit));
   const sinceIso = new Date(Date.now() - COMMUNITY_ACTIVITY_WINDOW_MS).toISOString();
-  const fetchLimit = COMMUNITY_ACTIVITY_FEED_LIMIT * FETCH_MULTIPLIER;
+  const fetchLimit = pageLimit * FETCH_MULTIPLIER;
 
   const { data: withinWindow } = await supabase
     .from("community_activity")
@@ -75,7 +78,7 @@ export async function loadCommunityActivityFeed(
 
   let candidates = (withinWindow ?? []).filter((r) => !isHiddenCommunityFeedRow(r));
 
-  if (candidates.length < COMMUNITY_ACTIVITY_FEED_LIMIT) {
+  if (candidates.length < pageLimit) {
     const { data: latest } = await supabase
       .from("community_activity")
       .select(feedSelect)
@@ -84,5 +87,14 @@ export async function loadCommunityActivityFeed(
     candidates = (latest ?? []).filter((r) => !isHiddenCommunityFeedRow(r));
   }
 
-  return mixCommunityActivityFeed(mapFeedRows(candidates), COMMUNITY_ACTIVITY_FEED_LIMIT);
+  const rows = mixCommunityActivityFeed(mapFeedRows(candidates), pageLimit);
+  return { rows, hasMore: candidates.length > rows.length };
+}
+
+export async function loadCommunityActivityFeed(
+  supabase: SupabaseClient,
+  limit: number = COMMUNITY_ACTIVITY_FEED_LIMIT
+): Promise<CommunityActivityFeedRow[]> {
+  const { rows } = await loadCommunityActivityFeedPage(supabase, limit);
+  return rows;
 }

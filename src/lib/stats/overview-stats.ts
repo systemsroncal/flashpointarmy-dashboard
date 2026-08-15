@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  COMMUNITY_ACTIVITY_WINDOW_MS,
+  HIDDEN_COMMUNITY_FEED_CATEGORIES,
+} from "@/lib/community/community-activity-feed";
 import { countDashboardUsersMissionsStarted } from "@/lib/onboarding/missions-started";
 import { usStateByCode } from "@/data/usStates";
 
@@ -201,11 +205,14 @@ export async function loadOverviewStats(
     }
   }
 
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const twentyFourHoursAgo = new Date(
+    Date.now() - COMMUNITY_ACTIVITY_WINDOW_MS
+  ).toISOString();
   let happeningQuery = supabase
     .from("community_activity")
     .select("id", { count: "exact", head: true })
-    .gte("created_at", twentyFourHoursAgo);
+    .gte("created_at", twentyFourHoursAgo)
+    .not("feed_category", "in", `(${[...HIDDEN_COMMUNITY_FEED_CATEGORIES].join(",")})`);
   if (stateFilter) {
     happeningQuery = happeningQuery.eq("state_code", stateFilter);
   }
