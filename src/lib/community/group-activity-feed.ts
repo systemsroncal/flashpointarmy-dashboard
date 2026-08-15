@@ -100,6 +100,21 @@ async function insertFeedRow(
     actor_user_id: string;
   }
 ): Promise<void> {
+  // DB trigger migration 094 is the source of truth. Keep this application-level
+  // fallback for environments where the migration is not applied yet, but avoid
+  // writing a duplicate when the trigger already mirrored the same action.
+  const recentCutoff = new Date(Date.now() - 10_000).toISOString();
+  const { data: existing } = await supabase
+    .from("community_activity")
+    .select("id")
+    .eq("feed_category", row.feed_category)
+    .eq("title", row.title)
+    .eq("actor_user_id", row.actor_user_id)
+    .gte("created_at", recentCutoff)
+    .limit(1)
+    .maybeSingle();
+  if (existing) return;
+
   const { error } = await supabase.from("community_activity").insert(row);
   if (error) {
     // Never block the primary Mobilize action if the public feed write fails.

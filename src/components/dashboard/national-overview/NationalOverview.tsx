@@ -7,7 +7,6 @@ import BoltOutlined from "@mui/icons-material/BoltOutlined";
 import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import GroupWorkOutlined from "@mui/icons-material/GroupWorkOutlined";
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
-import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import ShareOutlined from "@mui/icons-material/ShareOutlined";
 import { Box, Card, CardContent, Paper, Tooltip, Typography } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
@@ -18,7 +17,6 @@ import {
   isChapterStaffRole,
   isElevatedRole,
   isMemberOrLeader,
-  isSuperAdminUser,
 } from "@/lib/auth/user-roles";
 import {
   aggregateReferenceLeaderMemberByState,
@@ -425,7 +423,6 @@ export function NationalOverview({
   const statCards = useMemo(() => {
     const chapterStaff = isChapterStaffRole(viewerRoles);
     const memberLeaderOnly = isMemberOrLeader(viewerRoles) && !chapterStaff;
-    const superAdmin = isSuperAdminUser(viewerRoles);
     const adminOrSuper = isElevatedRole(viewerRoles);
 
     type StatCard = {
@@ -464,20 +461,11 @@ export function NationalOverview({
     }
 
     cards.push({
-      label: "Churches",
-      value: stats.activeChapters,
-      color: "#3b82f6",
-      icon: PlaceOutlined,
+      label: "Groups",
+      value: stats.mobilizeGroups,
+      color: "#8b5cf6",
+      icon: GroupWorkOutlined,
     });
-
-    if (superAdmin) {
-      cards.push({
-        label: "Groups",
-        value: stats.mobilizeGroups,
-        color: "#8b5cf6",
-        icon: GroupWorkOutlined,
-      });
-    }
 
     if (adminOrSuper) {
       cards.push({
