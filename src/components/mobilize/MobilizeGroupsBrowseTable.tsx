@@ -70,6 +70,14 @@ const JOIN_ACTION_BUTTON_SX = {
   "&.Mui-disabled": { bgcolor: "#f0f2f5", color: "rgba(0,0,0,0.4)" },
 };
 
+/** Members already in the group get the green "Create post" action. */
+const CREATE_POST_BUTTON_SX = {
+  ...JOIN_ACTION_BUTTON_SX,
+  bgcolor: "#6ecc3999",
+  color: "#5d5d5d",
+  "&:hover": { bgcolor: "#6ecc39cc", boxShadow: "none" },
+};
+
 const leaderPillSx = {
   flexDirection: "row" as const,
   alignItems: "center",
@@ -317,7 +325,7 @@ export default function MobilizeGroupsBrowseTable({
     const isPending = g.my_membership_status === "pending";
     if (isMember) {
       return (
-        <Button component={Link} href={detailHref} size="small" sx={JOIN_ACTION_BUTTON_SX}>
+        <Button component={Link} href={detailHref} size="small" sx={CREATE_POST_BUTTON_SX}>
           Create post
         </Button>
       );

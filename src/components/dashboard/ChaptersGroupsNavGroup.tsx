@@ -10,8 +10,8 @@ import {
 import { flashpointYellow } from "@/theme/tokens";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import FlagOutlined from "@mui/icons-material/FlagOutlined";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import MapIcon from "@mui/icons-material/Map";
 import {
   Box,
@@ -107,7 +107,7 @@ type Props = {
 };
 
 /**
- * Unified-sidebar parent for Chapters & Groups → Find Chapters / My Groups
+ * Unified-sidebar parent for Groups → Find Chapters / My Groups
  * (with an expandable list of the viewer's groups under My Groups).
  */
 export function ChaptersGroupsNavGroup({ onNavigate, disabled = false }: Props) {
@@ -182,10 +182,10 @@ export function ChaptersGroupsNavGroup({ onNavigate, disabled = false }: Props) 
           }}
         >
           <ListItemIcon sx={{ color: "rgba(255,255,255,0.5)", minWidth: 38 }}>
-            <FlagOutlined />
+            <GroupsOutlinedIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Chapters & Groups"
+            primary="Groups"
             primaryTypographyProps={{
               variant: "body2",
               fontWeight: 600,
@@ -217,10 +217,10 @@ export function ChaptersGroupsNavGroup({ onNavigate, disabled = false }: Props) 
               minWidth: 38,
             }}
           >
-            <FlagOutlined />
+            <GroupsOutlinedIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Chapters & Groups"
+            primary="Groups"
             primaryTypographyProps={{
               variant: "body2",
               fontWeight: 600,

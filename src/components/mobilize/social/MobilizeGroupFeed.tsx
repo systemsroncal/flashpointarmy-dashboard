@@ -142,9 +142,6 @@ export function MobilizeGroupFeed({
             onImageUrlsChange={onWallImagesChange}
             groupId={groupId}
             postLabel="Post"
-            postButtonBg="#6ecc3999"
-            postButtonHoverBg="#6ecc39"
-            postButtonColor="#0d0d0d"
             onPost={() => void onPost()}
             posting={posting}
             canPost={hasComposerContent()}

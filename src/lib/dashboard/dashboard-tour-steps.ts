@@ -83,7 +83,7 @@ function welcomeCopy(profile: ReturnType<typeof roleProfile>, displayName: strin
 
 const MODULE_COPY: Record<string, { title: string; description: string }> = {
   [MODULE_SLUGS.nationalOverview]: {
-    title: "National overview",
+    title: "National Map",
     description:
       "Your home page: high-level metrics, maps, and activity across the organization. Open this anytime to see the big picture.",
   },

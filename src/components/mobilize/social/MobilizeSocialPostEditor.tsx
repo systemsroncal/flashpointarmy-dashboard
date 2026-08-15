@@ -63,12 +63,6 @@ type Props = {
   showVisibility?: boolean;
   /** Group / profile feed: yellow Post button + card layout. */
   brandAccent?: boolean;
-  /** Override the Post button background (e.g. group feed uses light green). */
-  postButtonBg?: string;
-  /** Override the Post button hover background. */
-  postButtonHoverBg?: string;
-  /** Override the Post button text color. */
-  postButtonColor?: string;
   /** Replaces the visibility pill with a comments-policy select (group feed leaders). */
   commentsPolicy?: MobilizePostCommentsPolicy;
   onCommentsPolicyChange?: (policy: MobilizePostCommentsPolicy) => void;
@@ -96,9 +90,6 @@ export function MobilizeSocialPostEditor({
   canPost,
   showVisibility = true,
   brandAccent = false,
-  postButtonBg,
-  postButtonHoverBg,
-  postButtonColor,
   commentsPolicy,
   onCommentsPolicyChange,
   children,
@@ -199,11 +190,9 @@ export function MobilizeSocialPostEditor({
   const muted = isDark ? TRUTH_HUB_TEXT_MUTED : "rgba(0,0,0,0.45)";
   const textColor = isDark ? TRUTH_HUB_TEXT : "#0d0d0d";
   const useDesignAccent = brandAccent && !isDark;
-  const defaultPostBtnBg = isDark ? TRUTH_POST_PURPLE : useDesignAccent ? flashpointYellow : TRUTH_HUB_ACCENT;
-  const defaultPostBtnHoverBg = isDark ? "#4338ca" : useDesignAccent ? "#e6c200" : "#e01f45";
-  const postBtnBg = postButtonBg ?? defaultPostBtnBg;
-  const postBtnHoverBg = postButtonHoverBg ?? defaultPostBtnHoverBg;
-  const postBtnColor = postButtonColor ?? (useDesignAccent ? "#000" : "#fff");
+  const postBtnBg = isDark ? TRUTH_POST_PURPLE : useDesignAccent ? flashpointYellow : TRUTH_HUB_ACCENT;
+  const postBtnHoverBg = isDark ? "#4338ca" : useDesignAccent ? "#e6c200" : "#e01f45";
+  const postBtnColor = useDesignAccent ? "#000" : "#fff";
   const showCommentsPolicySelect = Boolean(commentsPolicy && onCommentsPolicyChange);
   const selectRadius = useDesignAccent ? "1rem" : 99;
   const pillSelectSx = {

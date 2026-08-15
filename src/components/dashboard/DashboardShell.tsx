@@ -143,7 +143,7 @@ const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
     icon: <Groups2OutlinedIcon />,
   },
   {
-    label: "Deployment",
+    label: "Deployments",
     href: MOBILIZE_ACTIVITIES_HREF,
     module: MODULE_SLUGS.movilization,
     icon: <EventAvailableOutlinedIcon />,
@@ -294,12 +294,12 @@ const PEOPLE_NAV: NavItem[] = [
 
 const NAV: NavItem[] = [
   {
-    label: "National overview",
+    label: "National Map",
     href: "/dashboard",
     module: MODULE_SLUGS.nationalOverview,
     icon: <HomeOutlinedIcon />,
   },
-  // Chapters & Groups is rendered as ChaptersGroupsNavGroup (not a flat link).
+  // Groups is rendered as ChaptersGroupsNavGroup (not a flat link).
   {
     label: "Training",
     href: "/dashboard/training",
@@ -307,7 +307,7 @@ const NAV: NavItem[] = [
     icon: <SchoolIcon />,
   },
   {
-    label: "Deployment",
+    label: "Deployments",
     href: MOBILIZE_ACTIVITIES_HREF,
     module: MODULE_SLUGS.movilization,
     icon: <EventAvailableOutlinedIcon />,
@@ -905,7 +905,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           const href = resolveNavHref(item);
           const selected = isNavItemSelected({ ...item, href }, pathname);
 
-          // After National overview → Chapters & Groups parent.
+          // After National Map → Groups parent.
           const afterOverview =
             item.href === "/dashboard" && item.module === MODULE_SLUGS.nationalOverview && canSeeMobilize ? (
               <ChaptersGroupsNavGroup
@@ -965,8 +965,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             !canAccessMobilize &&
             item.href !== "__PROFILE__"
           ) {
-            // Profile / Feed / Deployment require Mobilize access — hide when blocked.
-            // (Chapters & Groups shows disabled separately.)
+            // Profile / Feed / Deployments require Mobilize access — hide when blocked.
+            // (Groups shows disabled separately.)
             return null;
           }
 
