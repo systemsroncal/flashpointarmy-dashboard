@@ -25,6 +25,8 @@ type Props = {
   activeTab?: string;
   onTabChange?: (id: string) => void;
   headerActions?: ReactNode;
+  /** Floating controls pinned to the cover's bottom-right corner (e.g. mobile edit). */
+  coverActions?: ReactNode;
   children: ReactNode;
   /** Stretch children to fill viewport below the profile header (group detail tabs). */
   fillContent?: boolean;
@@ -52,6 +54,7 @@ export function MobilizeProfilePageShell({
   activeTab,
   onTabChange,
   headerActions,
+  coverActions,
   children,
   fillContent = false,
   unifiedContent = false,
@@ -102,6 +105,20 @@ export function MobilizeProfilePageShell({
           pointerEvents: "none",
         }}
       />
+      {coverActions ? (
+        <Box
+          sx={{
+            position: "absolute",
+            right: { xs: 8, sm: 12 },
+            top: { xs: 8, sm: 12 },
+            display: "flex",
+            gap: 0.75,
+            zIndex: 2,
+          }}
+        >
+          {coverActions}
+        </Box>
+      ) : null}
       <Box
         sx={{
           position: "absolute",
@@ -152,7 +169,7 @@ export function MobilizeProfilePageShell({
             </Box>
 
             <Box sx={{ minWidth: 0, pb: { sm: 0.5 } }}>
-              <Stack direction="row" alignItems="center" spacing={0.75} useFlexGap flexWrap="wrap">
+              <Stack direction="row" alignItems="center" spacing={0.25} useFlexGap flexWrap="wrap">
                 <Typography
                   variant="h4"
                   fontWeight={800}
@@ -291,6 +308,20 @@ export function MobilizeProfilePageShell({
                 pointerEvents: "none",
               }}
             />
+            {coverActions ? (
+              <Box
+                sx={{
+                  position: "absolute",
+                  right: { xs: 8, sm: 12 },
+                  bottom: { xs: 8, sm: 12 },
+                  display: "flex",
+                  gap: 0.75,
+                  zIndex: 2,
+                }}
+              >
+                {coverActions}
+              </Box>
+            ) : null}
           </Box>
 
           {/* Identity row: only avatar overlaps cover; title stays on white */}
@@ -339,7 +370,7 @@ export function MobilizeProfilePageShell({
                   pt: { xs: 0, md: 0.25 },
                 }}
               >
-                <Stack direction="row" alignItems="center" spacing={0.75} useFlexGap flexWrap="wrap">
+                <Stack direction="row" alignItems="center" spacing={0.25} useFlexGap flexWrap="wrap">
                   <Typography
                     variant="h5"
                     fontWeight={800}

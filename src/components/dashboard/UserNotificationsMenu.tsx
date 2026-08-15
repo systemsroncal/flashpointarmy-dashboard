@@ -1,29 +1,27 @@
 "use client";
 
 import type { SocialAlert } from "@/lib/mobilize/social/load-social-alerts";
-import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import {
   AlertAvatar,
   formatAlertTime,
 } from "@/components/dashboard/user-notifications/social-alert-ui";
+import CloseIcon from "@mui/icons-material/Close";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import {
   Badge,
   Box,
-  Button,
   CircularProgress,
   Divider,
   IconButton,
+  Link as MuiLink,
   Popover,
-  Stack,
-  ThemeProvider,
   Tooltip,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-const PREVIEW_LIMIT = 5;
+const PREVIEW_LIMIT = 40;
 const FETCH_LIMIT = 40;
 const LAST_SEEN_KEY = "fp-user-notifications-last-seen";
 
@@ -99,16 +97,32 @@ export function UserNotificationsMenu() {
     setAnchor(null);
   }
 
+  async function removeAlert(alertId: string) {
+    setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+    try {
+      const res = await fetch("/api/user-notifications", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alert_id: alertId }),
+      });
+      if (!res.ok) {
+        void load();
+      }
+    } catch {
+      void load();
+    }
+  }
+
   const preview = alerts.slice(0, PREVIEW_LIMIT);
   const seenAtOpenMs = seenAtOpen ? new Date(seenAtOpen).getTime() : null;
 
   return (
     <>
-      <Tooltip title="Notifications">
+      <Tooltip title="Profile notifications">
         <IconButton
           color="inherit"
           size="small"
-          aria-label="User notifications"
+          aria-label="Profile notifications"
           aria-haspopup="true"
           aria-expanded={open ? "true" : undefined}
           onClick={handleOpen}
@@ -128,135 +142,167 @@ export function UserNotificationsMenu() {
         slotProps={{
           paper: {
             sx: {
-              width: { xs: "min(100vw - 24px, 380px)", sm: 380 },
-              mt: 1,
-              borderRadius: 3,
-              overflow: "hidden",
-              bgcolor: "#fff",
-              color: "#0d0d0d",
-              backgroundImage: "none",
-              border: "1px solid rgba(0,0,0,0.08)",
-              boxShadow: "0 12px 32px rgba(0,0,0,0.28)",
+              width: 300,
+              maxWidth: "calc(100vw - 24px)",
+              maxHeight: 420,
+              bgcolor: "rgba(18,18,22,0.97)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255,215,0,0.12)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
             },
           },
         }}
       >
-        {/* White surface inside the dark dashboard chrome — force the light palette. */}
-        <ThemeProvider theme={mobilizePanelTheme}>
-          <Box sx={{ px: 2, pt: 1.5, pb: 1.25 }}>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography sx={{ fontWeight: 800, fontSize: "1.05rem", flex: 1 }}>
-                Notifications
-              </Typography>
-              {loading && preview.length ? <CircularProgress size={14} /> : null}
-            </Stack>
-            <Typography variant="caption" sx={{ color: "rgba(0,0,0,0.6)" }}>
-              Follows, likes, comments, and posts from people you follow
+        <Box
+          sx={{
+            px: 1.5,
+            py: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1,
+          }}
+        >
+          <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: "0.06em" }}>
+            Notifications
+          </Typography>
+          {loading && preview.length ? <CircularProgress size={12} sx={{ color: "text.secondary" }} /> : null}
+        </Box>
+        <Divider sx={{ borderColor: "rgba(255,215,0,0.1)" }} />
+        <Box
+          sx={{
+            maxHeight: 320,
+            overflow: "auto",
+            scrollbarWidth: "thin",
+            scrollbarColor: "rgba(255,215,0,0.2) rgba(0,0,0,0.2)",
+            "&::-webkit-scrollbar": { width: 5 },
+            "&::-webkit-scrollbar-thumb": {
+              background: "rgba(255,215,0,0.2)",
+              borderRadius: 3,
+            },
+            "&::-webkit-scrollbar-track": { background: "rgba(0,0,0,0.2)" },
+          }}
+        >
+          {loading && !preview.length ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+              <CircularProgress size={20} sx={{ color: "text.secondary" }} />
+            </Box>
+          ) : !preview.length ? (
+            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+              No notifications
             </Typography>
-          </Box>
-          <Divider sx={{ borderColor: "rgba(0,0,0,0.08)" }} />
-
-          <Box sx={{ maxHeight: 380, overflowY: "auto" }}>
-            {loading && !preview.length ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress size={22} />
-              </Box>
-            ) : !preview.length ? (
-              <Stack alignItems="center" spacing={0.5} sx={{ py: 4, px: 2 }}>
-                <NotificationsNoneOutlinedIcon sx={{ fontSize: 30, color: "rgba(0,0,0,0.3)" }} />
-                <Typography variant="body2" sx={{ color: "rgba(0,0,0,0.6)" }}>
-                  No notifications yet.
-                </Typography>
-              </Stack>
-            ) : (
-              <Stack divider={<Divider flexItem sx={{ borderColor: "rgba(0,0,0,0.06)" }} />}>
-                {preview.map((a) => {
-                  const isUnread =
-                    seenAtOpenMs === null || new Date(a.created_at).getTime() > seenAtOpenMs;
-                  const content = (
-                    <Stack
-                      direction="row"
-                      spacing={1.5}
-                      alignItems="center"
-                      sx={{
-                        px: 2,
-                        py: 1.25,
-                        bgcolor: isUnread ? "rgba(24,119,242,0.06)" : "transparent",
-                        transition: "background-color 0.15s ease",
-                        "&:hover": { bgcolor: isUnread ? "rgba(24,119,242,0.1)" : "rgba(0,0,0,0.04)" },
-                      }}
-                    >
-                      <AlertAvatar alert={a} size={40} />
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
+          ) : (
+            preview.map((a) => {
+              const isUnread =
+                seenAtOpenMs === null || new Date(a.created_at).getTime() > seenAtOpenMs;
+              return (
+                <Box
+                  key={a.id}
+                  sx={{
+                    display: "flex",
+                    gap: 0.5,
+                    alignItems: "flex-start",
+                    py: 1,
+                    px: 1,
+                    borderBottom: "1px solid rgba(255,255,255,0.06)",
+                    "&:last-child": { borderBottom: "none" },
+                  }}
+                >
+                  <Box sx={{ pt: 0.25, flexShrink: 0 }}>
+                    <AlertAvatar alert={a} size={32} />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0, pr: 0.5 }}>
+                    {a.href ? (
+                      <MuiLink
+                        component={Link}
+                        href={a.href}
+                        onClick={handleClose}
+                        underline="hover"
+                        sx={{
+                          display: "block",
+                          textDecoration: "none",
+                          color: "inherit",
+                          "&:hover": { color: "inherit" },
+                        }}
+                      >
                         <Typography
                           variant="body2"
-                          sx={{ lineHeight: 1.35, color: "#0d0d0d" }}
+                          sx={{
+                            fontWeight: isUnread ? 700 : 400,
+                            color: isUnread ? "common.white" : "text.secondary",
+                            fontSize: "0.82rem",
+                            lineHeight: 1.35,
+                          }}
                         >
                           <Box component="span" sx={{ fontWeight: 700 }}>
                             {a.actor.display_name}
                           </Box>{" "}
                           {a.summary}
                         </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: "rgba(0,0,0,0.6)" }}
-                          title={new Date(a.created_at).toLocaleString()}
-                        >
-                          {formatAlertTime(a.created_at)}
-                        </Typography>
-                      </Box>
-                      {isUnread ? (
-                        <Box
-                          aria-hidden
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: "50%",
-                            bgcolor: "#1877f2",
-                            flexShrink: 0,
-                          }}
-                        />
-                      ) : null}
-                    </Stack>
-                  );
-                  return a.href ? (
-                    <Box
-                      key={a.id}
-                      component={Link}
-                      href={a.href}
-                      onClick={handleClose}
-                      sx={{ textDecoration: "none", color: "inherit", display: "block" }}
+                      </MuiLink>
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: isUnread ? 700 : 400,
+                          color: isUnread ? "common.white" : "text.secondary",
+                          fontSize: "0.82rem",
+                          lineHeight: 1.35,
+                        }}
+                      >
+                        <Box component="span" sx={{ fontWeight: 700 }}>
+                          {a.actor.display_name}
+                        </Box>{" "}
+                        {a.summary}
+                      </Typography>
+                    )}
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.65rem", opacity: 0.8, display: "block", mt: 0.25 }}
+                      title={new Date(a.created_at).toLocaleString()}
+                      suppressHydrationWarning
                     >
-                      {content}
-                    </Box>
-                  ) : (
-                    <Box key={a.id}>{content}</Box>
-                  );
-                })}
-              </Stack>
-            )}
-          </Box>
-
-          <Divider sx={{ borderColor: "rgba(0,0,0,0.08)" }} />
-          <Box sx={{ p: 1.25 }}>
-            <Button
-              component={Link}
-              href="/dashboard/user-notifications"
-              fullWidth
-              onClick={handleClose}
-              sx={{
-                textTransform: "none",
-                fontWeight: 700,
-                borderRadius: 99,
-                bgcolor: "rgba(24,119,242,0.08)",
-                color: "#1877f2",
-                "&:hover": { bgcolor: "rgba(24,119,242,0.16)", color: "#1877f2" },
-              }}
-            >
-              See all
-            </Button>
-          </Box>
-        </ThemeProvider>
+                      {formatAlertTime(a.created_at)} · {new Date(a.created_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Tooltip title="Remove">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void removeAlert(a.id);
+                      }}
+                      sx={{ color: "error.main", opacity: 0.65, "&:hover": { opacity: 1 }, mt: -0.25 }}
+                      aria-label="Delete notification"
+                    >
+                      <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              );
+            })
+          )}
+        </Box>
+        <Divider sx={{ borderColor: "rgba(255,215,0,0.1)" }} />
+        <Box sx={{ px: 1.5, py: 1 }}>
+          <MuiLink
+            component={Link}
+            href="/dashboard/user-notifications"
+            onClick={handleClose}
+            underline="hover"
+            sx={{
+              display: "block",
+              textAlign: "center",
+              typography: "caption",
+              color: "text.secondary",
+              letterSpacing: "0.04em",
+              "&:hover": { color: "primary.main" },
+            }}
+          >
+            See all
+          </MuiLink>
+        </Box>
       </Popover>
     </>
   );

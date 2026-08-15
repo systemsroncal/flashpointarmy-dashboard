@@ -229,7 +229,30 @@ export async function loadMobilizeSocialAlerts(
     });
   }
 
-  return alerts
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, limit);
+  const sorted = alerts.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  // Over-fetch before filtering dismissals so the visible list still fills `limit`.
+  const candidate = sorted.slice(0, Math.min(sorted.length, Math.max(limit * 3, limit)));
+  const candidateIds = candidate.map((a) => a.id);
+  const dismissed = new Set<string>();
+  if (candidateIds.length) {
+    try {
+      const { data: dismissedRows, error } = await admin
+        .from("mobilize_social_alert_dismissed")
+        .select("alert_id")
+        .eq("user_id", viewerId)
+        .in("alert_id", candidateIds);
+      if (!error) {
+        for (const row of dismissedRows ?? []) {
+          dismissed.add(row.alert_id as string);
+        }
+      }
+    } catch {
+      /* Migration 092 may not be applied yet — show all alerts. */
+    }
+  }
+
+  return candidate.filter((a) => !dismissed.has(a.id)).slice(0, limit);
 }

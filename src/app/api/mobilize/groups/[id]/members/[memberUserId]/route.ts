@@ -1,23 +1,26 @@
 import { NextResponse } from "next/server";
 import { insertGroupJoinActivity } from "@/lib/community/group-activity-feed";
+import {
+  canChangeMobilizeGroupMemberRole,
+  canManageMobilizeGroupMembers,
+} from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string; memberUserId: string }> };
 
-async function canManageGroupMembers(
+async function loadGroupMemberAccess(
   admin: import("@supabase/supabase-js").SupabaseClient,
   groupId: string,
-  userId: string
+  userId: string,
+  roleNames: string[]
 ) {
   const { data: group } = await admin
     .from("mobilize_groups")
-    .select("created_by")
+    .select("created_by, parent_group_id")
     .eq("id", groupId)
     .maybeSingle();
-  if (!group) return { allowed: false as const, group: null };
-
-  if (group.created_by === userId) {
-    return { allowed: true as const, group };
+  if (!group) {
+    return { allowed: false as const, canChangeRole: false as const, group: null };
   }
 
   const { data: me } = await admin
@@ -28,11 +31,29 @@ async function canManageGroupMembers(
     .eq("membership_status", "approved")
     .maybeSingle();
 
-  if (me?.member_role === "leader") {
-    return { allowed: true as const, group };
+  let isChapterOwner = false;
+  if (group.parent_group_id) {
+    const { data: chapter } = await admin
+      .from("mobilize_groups")
+      .select("created_by")
+      .eq("id", group.parent_group_id)
+      .maybeSingle();
+    isChapterOwner = chapter?.created_by === userId;
   }
 
-  return { allowed: false as const, group };
+  const isGroupOwner = group.created_by === userId;
+  const allowed = canManageMobilizeGroupMembers({
+    roleNames,
+    isLeader: me?.member_role === "leader",
+    isGroupOwner,
+    isChapterOwner,
+  });
+
+  return {
+    allowed,
+    canChangeRole: canChangeMobilizeGroupMemberRole({ roleNames, isGroupOwner }),
+    group,
+  };
 }
 
 export async function DELETE(_req: Request, ctx: Ctx) {
@@ -44,7 +65,7 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "You cannot remove yourself." }, { status: 400 });
   }
 
-  const access = await canManageGroupMembers(auth.admin, id, auth.userId);
+  const access = await loadGroupMemberAccess(auth.admin, id, auth.userId, auth.roleNames);
   if (!access.allowed || !access.group) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
@@ -96,7 +117,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id, memberUserId } = await ctx.params;
 
-  const access = await canManageGroupMembers(auth.admin, id, auth.userId);
+  const access = await loadGroupMemberAccess(auth.admin, id, auth.userId, auth.roleNames);
   if (!access.allowed) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
@@ -107,6 +128,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
   };
 
   if (body.member_role === "leader" || body.member_role === "member") {
+    if (!access.canChangeRole) {
+      return NextResponse.json(
+        { error: "Only admins and the group owner can change group roles." },
+        { status: 403 }
+      );
+    }
+
     const { data: target, error: tErr } = await auth.admin
       .from("mobilize_group_members")
       .select("member_role, membership_status")

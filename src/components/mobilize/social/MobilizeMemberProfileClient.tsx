@@ -24,6 +24,10 @@ import { flashpointYellow } from "@/theme/tokens";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
 import { SHOW_MOBILIZE_DIRECT_MESSAGES } from "@/lib/mobilize/mobilize-nav-config";
+import {
+  publishFollowState,
+  subscribeFollowState,
+} from "@/lib/mobilize/social/follow-state-bus";
 import { publicAssetSrc, cacheBustAssetUrl } from "@/lib/media/public-asset-url";
 import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
 import {
@@ -170,6 +174,27 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
+  // Following from one of this member's posts must flip the header button too.
+  useEffect(
+    () =>
+      subscribeFollowState((authorId, nextFollowing) => {
+        if (authorId !== userId) return;
+        setProfile((prev) =>
+          prev && prev.is_following !== nextFollowing
+            ? {
+                ...prev,
+                is_following: nextFollowing,
+                followers_count: Math.max(
+                  0,
+                  prev.followers_count + (nextFollowing ? 1 : -1)
+                ),
+              }
+            : prev
+        );
+      }),
+    [userId]
+  );
+
   useEffect(() => {
     return subscribeProfileMediaUpdated((detail) => {
       setProfile((prev) => {
@@ -300,19 +325,9 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       const res = await fetch(`/api/mobilize/social/profiles/${userId}/follow`, { method });
       const json = (await res.json()) as { error?: string; is_following?: boolean };
       if (!res.ok) throw new Error(json.error || "Follow action failed.");
-      const nextFollowing = Boolean(json.is_following);
-      setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              is_following: nextFollowing,
-              followers_count: Math.max(
-                0,
-                prev.followers_count + (nextFollowing ? 1 : -1)
-              ),
-            }
-          : prev
-      );
+      // The page-wide subscription above applies the state and follower count,
+      // which also keeps this member's post cards in sync.
+      publishFollowState(userId, Boolean(json.is_following));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Follow action failed.");
     } finally {
@@ -525,6 +540,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     borderColor: "rgba(0,0,0,0.18)",
     bgcolor: "#fff",
     "&:hover": {
+      // Keep the label dark on the light hover fill.
+      color: "#0d0d0d",
       borderColor: "rgba(0,0,0,0.28)",
       bgcolor: "rgba(0,0,0,0.03)",
     },
@@ -549,7 +566,11 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
                 bgcolor: flashpointYellow,
                 color: "#0d0d0d",
                 borderColor: flashpointYellow,
-                "&:hover": { bgcolor: "#ffe44d", borderColor: flashpointYellow },
+                "&:hover": {
+                  bgcolor: "#ffe44d",
+                  borderColor: flashpointYellow,
+                  color: "#0d0d0d",
+                },
               }),
         }}
       >
@@ -953,7 +974,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           <MobilizeProfilePageShell
         coverSrc={coverDisplaySrc}
         title={p.display_name}
-        titleAddon={p.verified ? <VerifiedUserBadge size={20} verifiedAt={p.verified_at} /> : null}
+        titleAddon={p.verified ? <VerifiedUserBadge size={22} verifiedAt={p.verified_at} /> : null}
         subtitle={handleLabel}
         meta={profileMeta}
         avatarSrc={avatarDisplaySrc ?? p.avatar_url}

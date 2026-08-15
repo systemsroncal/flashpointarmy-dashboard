@@ -6,13 +6,16 @@ import {
   AlertAvatar,
   formatAlertTime,
 } from "@/components/dashboard/user-notifications/social-alert-ui";
+import CloseIcon from "@mui/icons-material/Close";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import {
   Box,
   CircularProgress,
+  IconButton,
   Paper,
   Stack,
   ThemeProvider,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
@@ -39,6 +42,20 @@ export function UserNotificationsClient() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function removeAlert(alertId: string) {
+    setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+    try {
+      const res = await fetch("/api/user-notifications", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alert_id: alertId }),
+      });
+      if (!res.ok) void load();
+    } catch {
+      void load();
+    }
+  }
 
   return (
     <Box sx={{ maxWidth: 720, mx: "auto", width: "100%", p: { xs: 1.5, sm: 2 } }}>
@@ -74,56 +91,86 @@ export function UserNotificationsClient() {
             </Paper>
           ) : (
             <Stack spacing={1}>
-              {alerts.map((a) => {
-                const body = (
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 1.75,
-                      borderRadius: 2,
-                      border: "1px solid rgba(0,0,0,0.08)",
-                      bgcolor: "#fff",
-                      transition: "background-color 0.15s ease, border-color 0.15s ease",
-                      "&:hover": a.href
-                        ? { bgcolor: "rgba(0,0,0,0.02)", borderColor: "rgba(0,0,0,0.16)" }
-                        : undefined,
-                    }}
-                  >
-                    <Stack direction="row" spacing={1.75} alignItems="center">
-                      <AlertAvatar alert={a} size={44} />
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
+              {alerts.map((a) => (
+                <Paper
+                  key={a.id}
+                  elevation={0}
+                  sx={{
+                    p: 1.75,
+                    borderRadius: 2,
+                    border: "1px solid rgba(0,0,0,0.08)",
+                    bgcolor: "#fff",
+                    transition: "background-color 0.15s ease, border-color 0.15s ease",
+                    "&:hover": a.href
+                      ? { bgcolor: "#f0f2f5", borderColor: "rgba(0,0,0,0.16)" }
+                      : undefined,
+                  }}
+                >
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                    {a.href ? (
+                      <Box
+                        component={Link}
+                        href={a.href}
+                        sx={{ textDecoration: "none", color: "inherit", display: "block", flexShrink: 0 }}
+                      >
+                        <AlertAvatar alert={a} size={44} />
+                      </Box>
+                    ) : (
+                      <Box sx={{ flexShrink: 0 }}>
+                        <AlertAvatar alert={a} size={44} />
+                      </Box>
+                    )}
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      {a.href ? (
+                        <Typography
+                          component={Link}
+                          href={a.href}
+                          sx={{
+                            color: "#0d0d0d",
+                            lineHeight: 1.4,
+                            textDecoration: "none",
+                            display: "block",
+                            "&:hover": { textDecoration: "underline" },
+                          }}
+                        >
+                          <Box component="span" sx={{ fontWeight: 700 }}>
+                            {a.actor.display_name}
+                          </Box>{" "}
+                          {a.summary}
+                        </Typography>
+                      ) : (
                         <Typography sx={{ color: "#0d0d0d", lineHeight: 1.4 }}>
                           <Box component="span" sx={{ fontWeight: 700 }}>
                             {a.actor.display_name}
                           </Box>{" "}
                           {a.summary}
                         </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: "rgba(0,0,0,0.6)" }}
-                          title={new Date(a.created_at).toLocaleString()}
-                        >
-                          {formatAlertTime(a.created_at)} ·{" "}
-                          {new Date(a.created_at).toLocaleString()}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Paper>
-                );
-
-                return a.href ? (
-                  <Box
-                    key={a.id}
-                    component={Link}
-                    href={a.href}
-                    sx={{ textDecoration: "none", color: "inherit", display: "block" }}
-                  >
-                    {body}
-                  </Box>
-                ) : (
-                  <Box key={a.id}>{body}</Box>
-                );
-              })}
+                      )}
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "rgba(0,0,0,0.6)" }}
+                        title={new Date(a.created_at).toLocaleString()}
+                      >
+                        {formatAlertTime(a.created_at)} · {new Date(a.created_at).toLocaleString()}
+                      </Typography>
+                    </Box>
+                    <Tooltip title="Remove">
+                      <IconButton
+                        size="small"
+                        onClick={() => void removeAlert(a.id)}
+                        aria-label="Delete notification"
+                        sx={{
+                          color: "#b91c1c",
+                          opacity: 0.7,
+                          "&:hover": { opacity: 1, bgcolor: "rgba(185,28,28,0.08)" },
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                </Paper>
+              ))}
             </Stack>
           )}
         </ThemeProvider>

@@ -19,8 +19,8 @@ export type GroupMemberPreviewRow = {
   training_graduate_badge?: TrainingGraduateBadgeRole | null;
 };
 
-function capitalizeRole(role: string): string {
-  return role === "leader" ? "Leader" : "Member";
+function leaderRoleLabel(role: string): string | null {
+  return role === "leader" ? "Leader" : null;
 }
 
 type Props = {
@@ -37,6 +37,7 @@ export function MobilizeGroupMembersPreview({ members, totalCount, groupId }: Pr
       <Stack spacing={1.25} sx={{ mb: 1.5 }}>
         {members.map((m) => {
           const name = m.display_name ?? m.email ?? m.user_id.slice(0, 8);
+          const roleLabel = leaderRoleLabel(m.member_role);
           return (
             <Stack key={m.user_id} direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
               <Box
@@ -77,21 +78,23 @@ export function MobilizeGroupMembersPreview({ members, totalCount, groupId }: Pr
               >
                 {name}
               </Typography>
-              <Box
-                sx={{
-                  flexShrink: 0,
-                  px: 1.1,
-                  py: 0.25,
-                  borderRadius: 99,
-                  bgcolor: flashpointYellow,
-                  color: "#0a0a0a",
-                  fontSize: "0.68rem",
-                  fontWeight: 800,
-                  lineHeight: 1.2,
-                }}
-              >
-                {capitalizeRole(m.member_role)}
-              </Box>
+              {roleLabel ? (
+                <Box
+                  sx={{
+                    flexShrink: 0,
+                    px: 1.1,
+                    py: 0.25,
+                    borderRadius: 99,
+                    bgcolor: flashpointYellow,
+                    color: "#0a0a0a",
+                    fontSize: "0.68rem",
+                    fontWeight: 800,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {roleLabel}
+                </Box>
+              ) : null}
             </Stack>
           );
         })}

@@ -20,7 +20,7 @@ function formatVerifiedSince(iso: string): string | null {
 }
 
 /** Blue check badge shown next to verified user names, with an X-style info popover. */
-export function VerifiedUserBadge({ size = 16, title = "Verified account", verifiedAt = null }: Props) {
+export function VerifiedUserBadge({ size = 18, title = "Verified account", verifiedAt = null }: Props) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
   const since = verifiedAt ? formatVerifiedSince(verifiedAt) : null;

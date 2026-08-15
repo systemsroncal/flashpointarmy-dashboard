@@ -414,12 +414,12 @@ export function PersonProfileClient({
             {initials}
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
-            <Stack direction="row" alignItems="center" spacing={1} useFlexGap flexWrap="wrap">
+            <Stack direction="row" alignItems="center" spacing={0.25} useFlexGap flexWrap="wrap">
               <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.15 }}>
                 {fullName}
               </Typography>
               {person.verified_at ? (
-                <VerifiedUserBadge size={22} verifiedAt={person.verified_at} />
+                <VerifiedUserBadge size={24} verifiedAt={person.verified_at} />
               ) : null}
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>

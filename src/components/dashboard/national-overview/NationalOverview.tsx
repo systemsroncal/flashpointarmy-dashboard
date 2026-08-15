@@ -546,7 +546,20 @@ export function NationalOverview({
           return (
             <Box
               key={s.label}
-              sx={{ minWidth: 0, width: "100%" }}
+              sx={{
+                minWidth: 0,
+                width: "100%",
+                // ≤445px: admin Members|Leaders card alone on the first row, centered.
+                ...(isDual
+                  ? {
+                      "@media (max-width: 445px)": {
+                        gridColumn: "1 / -1",
+                        maxWidth: 320,
+                        justifySelf: "center",
+                      },
+                    }
+                  : null),
+              }}
             >
               <Card
                 sx={{

@@ -54,10 +54,13 @@ export const mobilizePanelTheme = createTheme(flashpointTheme, {
         outlinedPrimary: {
           borderColor: flashpointBlack,
           color: flashpointBlack,
+          // Tint on hover instead of inverting to white text: buttons that set
+          // their own light background (Follow / Following / Edit group) would
+          // otherwise end up with white labels on a near-white fill.
           "&:hover": {
-            backgroundColor: flashpointBlack,
+            backgroundColor: "rgba(0,0,0,0.06)",
             borderColor: flashpointBlack,
-            color: "#ffffff",
+            color: flashpointBlack,
           },
         },
         textPrimary: {

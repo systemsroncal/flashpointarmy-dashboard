@@ -1145,7 +1145,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           Pending
         </Button>
       );
-    } else if (isApproved && !canEdit) {
+    } else if (isApproved) {
       actions.push(
         <Button
           key="joined"
@@ -1153,7 +1153,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           variant="contained"
           disableRipple
           startIcon={<HowToRegOutlinedIcon />}
-          sx={{ ...neutralBtnSx, cursor: "default", pointerEvents: "none" }}
+          sx={{
+            ...neutralBtnSx,
+            cursor: "default",
+            pointerEvents: "none",
+            // Editors get "Edit group" instead on desktop; on mobile that action
+            // moves to the pencil over the cover, so "Joined" takes this slot.
+            ...(canEdit ? { display: { xs: "inline-flex", md: "none" } } : null),
+          }}
         >
           Joined
         </Button>
@@ -1167,7 +1174,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           variant="outlined"
           startIcon={<EditIcon />}
           onClick={() => openEditGroup()}
-          sx={heroBtnSx}
+          sx={{ ...heroBtnSx, display: { xs: "none", md: "inline-flex" } }}
         >
           Edit group
         </Button>
@@ -1211,6 +1218,31 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     openEditGroup,
     joinRequest,
   ]);
+
+  /** Mobile-only pencil over the cover — desktop keeps the "Edit group" button. */
+  const profileCoverActions = useMemo(() => {
+    const canEdit = Boolean(group && (isLeader || group.created_by === me.id || isSuperAdmin));
+    if (!canEdit) return null;
+    return (
+      <Tooltip title="Edit group">
+        <IconButton
+          aria-label="Edit group"
+          onClick={() => openEditGroup()}
+          size="small"
+          sx={{
+            display: { xs: "inline-flex", md: "none" },
+            bgcolor: "#fff",
+            color: "#0d0d0d",
+            border: "1px solid rgba(0,0,0,0.12)",
+            boxShadow: "0 1px 6px rgba(0,0,0,0.25)",
+            "&:hover": { bgcolor: "#f0f2f5" },
+          }}
+        >
+          <EditIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      </Tooltip>
+    );
+  }, [group, isLeader, isSuperAdmin, me.id, openEditGroup]);
 
   const profileMeta = useMemo(() => {
     if (!group) return null;
@@ -1477,7 +1509,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   }
 
   const canEditGroup = isLeader || group.created_by === me.id || isSuperAdmin;
-  const canManageMembers = isLeader || group.created_by === me.id || isSuperAdmin;
+  const canManageMembers =
+    isLeader || group.created_by === me.id || isSuperAdmin || me.role_names.includes("admin");
+  // Appointing leaders is owner/staff territory — mirrors the server-side gate.
+  const canChangeMemberRoles =
+    isSuperAdmin || me.role_names.includes("admin") || group.created_by === me.id;
   // Matches the server-side POST /members gate: site staff, group owner, or an approved leader.
   const canAddMember = isLeader || group.created_by === me.id || isSuperAdmin || me.role_names.includes("admin");
   const showMemberContacts =
@@ -1530,6 +1566,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         avatarSrc={group.profile_image_url ?? group.cover_image_url}
         avatarFallback={group.name}
         headerActions={profileHeaderActions}
+        coverActions={profileCoverActions}
         tabs={profileTabs}
         activeTab={activeTab}
         onTabChange={(id) => {
@@ -1964,22 +2001,24 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                       <TableCell align="right">
                         {canActOnMember ? (
                           <Stack direction="row" spacing={0.25} justifyContent="flex-end">
-                            <Tooltip title="Edit group role">
-                              <IconButton
-                                size="small"
-                                aria-label="Edit group role"
-                                onClick={() =>
-                                  setMemberRoleDialog({
-                                    userId: m.user_id,
-                                    name: memberName,
-                                    role: m.member_role === "leader" ? "leader" : "member",
-                                  })
-                                }
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            {m.member_role === "member" ? (
+                            {canChangeMemberRoles ? (
+                              <Tooltip title="Edit group role">
+                                <IconButton
+                                  size="small"
+                                  aria-label="Edit group role"
+                                  onClick={() =>
+                                    setMemberRoleDialog({
+                                      userId: m.user_id,
+                                      name: memberName,
+                                      role: m.member_role === "leader" ? "leader" : "member",
+                                    })
+                                  }
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            ) : null}
+                            {canChangeMemberRoles && m.member_role === "member" ? (
                               <Tooltip title="Make leader">
                                 <IconButton
                                   size="small"

@@ -7,7 +7,6 @@ import type { MobilizeBrowseGroupRow } from "@/components/mobilize/MobilizeGroup
 import MobilizeGroupCardList from "@/components/mobilize/MobilizeGroupCardList";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
-import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 
 export default function MyGroupsPage() {
   const toast = useMobilizeToast();
@@ -59,23 +58,20 @@ export default function MyGroupsPage() {
   return (
     <Box
       sx={{
-        ...mobilizeChapterDetailRootSx,
-        // Same reading width as the home feed and profile columns.
+        // Same reading width as the home feed and profile columns. No fixed
+        // height here: the list grows and the page owns the scroll.
         width: "100%",
         maxWidth: 685,
         mx: "auto",
       }}
     >
-      <Typography variant="h4" fontWeight={700} gutterBottom sx={{ flexShrink: 0 }}>
+      <Typography variant="h4" fontWeight={700} gutterBottom>
         Groups
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Groups you belong to or lead. Open a group to view feed, events, and members.
       </Typography>
-      <MobilizeContentPanel
-        fill
-        sx={{ display: "flex", flexDirection: "column", minHeight: 0, overflowY: { lg: "auto" } }}
-      >
+      <MobilizeContentPanel>
         <MobilizeGroupCardList
           groups={rows}
           loading={loading}

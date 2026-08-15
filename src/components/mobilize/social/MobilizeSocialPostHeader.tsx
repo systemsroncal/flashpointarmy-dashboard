@@ -1,6 +1,11 @@
 "use client";
 
 import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
+import {
+  publishFollowState,
+  readFollowState,
+  subscribeFollowState,
+} from "@/lib/mobilize/social/follow-state-bus";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
@@ -47,25 +52,22 @@ function formatRelativeTime(iso: string): string {
 /** How long the "we got it" confirmation stays on screen after following. */
 const FOLLOWED_HINT_MS = 5000;
 
-const followedPop = keyframes({
-  "0%": { opacity: 0, transform: "scale(0.5) translateY(4px)" },
-  "18%": { opacity: 1, transform: "scale(1.15) translateY(0)" },
-  "32%": { transform: "scale(1)" },
-  "82%": { opacity: 1, transform: "scale(1)" },
-  "100%": { opacity: 0, transform: "scale(0.9)" },
+/** Opacity only — the transform track belongs to the nudge below. */
+const followedFade = keyframes({
+  "0%": { opacity: 0 },
+  "6%": { opacity: 1 },
+  "88%": { opacity: 1 },
+  "100%": { opacity: 0 },
 });
 
-/**
- * A feed can show several posts by the same author. Following from one of them
- * has to hide the button on the others, so headers share the result in-page.
- */
-const followedAuthorIds = new Set<string>();
-const followListeners = new Set<(authorId: string) => void>();
-
-function announceFollowed(authorId: string) {
-  followedAuthorIds.add(authorId);
-  for (const listener of followListeners) listener(authorId);
-}
+/** Small repeating tilt so the icon reads as feedback without growing. */
+const followedNudge = keyframes({
+  "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+  "20%": { transform: "translateY(-2px) rotate(-10deg)" },
+  "45%": { transform: "translateY(0) rotate(0deg)" },
+  "65%": { transform: "translateY(-1px) rotate(7deg)" },
+  "85%": { transform: "translateY(0) rotate(0deg)" },
+});
 
 const FOLLOW_BTN_SX = {
   textTransform: "none" as const,
@@ -100,25 +102,23 @@ export function MobilizeSocialPostHeader({
   // `undefined` means unknown, and guessing "not following" shows the button to
   // people who already follow the author (e.g. on their profile page).
   const [following, setFollowing] = useState(
-    author.is_following !== false || followedAuthorIds.has(author.id)
+    readFollowState(author.id) ?? author.is_following !== false
   );
   const [followBusy, setFollowBusy] = useState(false);
   const [justFollowed, setJustFollowed] = useState(false);
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setFollowing(author.is_following !== false || followedAuthorIds.has(author.id));
+    setFollowing(readFollowState(author.id) ?? author.is_following !== false);
   }, [author.id, author.is_following]);
 
-  useEffect(() => {
-    const listener = (authorId: string) => {
-      if (authorId === author.id) setFollowing(true);
-    };
-    followListeners.add(listener);
-    return () => {
-      followListeners.delete(listener);
-    };
-  }, [author.id]);
+  useEffect(
+    () =>
+      subscribeFollowState((authorId, next) => {
+        if (authorId === author.id) setFollowing(next);
+      }),
+    [author.id]
+  );
 
   useEffect(() => {
     return () => {
@@ -136,7 +136,7 @@ export function MobilizeSocialPostHeader({
       const json = (await res.json()) as { error?: string; is_following?: boolean };
       if (!res.ok) throw new Error(json.error || "Follow failed.");
       setFollowing(true);
-      announceFollowed(author.id);
+      publishFollowState(author.id, true);
       setJustFollowed(true);
       if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
       hintTimerRef.current = setTimeout(() => setJustFollowed(false), FOLLOWED_HINT_MS);
@@ -158,17 +158,19 @@ export function MobilizeSocialPostHeader({
       </Link>
       <Box sx={{ minWidth: 0, flex: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
-          <MuiLink
-            component={Link}
-            href={mobilizeMemberProfileHref(author.id)}
-            underline="hover"
-            sx={{ fontWeight: 700, color: nameColor, fontSize: size === "sm" ? "0.85rem" : "0.95rem" }}
-          >
-            {author.display_name}
-          </MuiLink>
-          {author.verified ? (
-            <VerifiedUserBadge size={size === "sm" ? 14 : 16} verifiedAt={author.verified_at} />
-          ) : null}
+          <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.25, minWidth: 0 }}>
+            <MuiLink
+              component={Link}
+              href={mobilizeMemberProfileHref(author.id)}
+              underline="hover"
+              sx={{ fontWeight: 700, color: nameColor, fontSize: size === "sm" ? "0.85rem" : "0.95rem" }}
+            >
+              {author.display_name}
+            </MuiLink>
+            {author.verified ? (
+              <VerifiedUserBadge size={size === "sm" ? 16 : 18} verifiedAt={author.verified_at} />
+            ) : null}
+          </Box>
           {!isOwn && !following ? (
             <Button
               size="small"
@@ -187,11 +189,20 @@ export function MobilizeSocialPostHeader({
                   display: "inline-flex",
                   alignItems: "center",
                   color: "#65676b",
-                  animation: `${followedPop} ${FOLLOWED_HINT_MS}ms ease-out forwards`,
+                  animation: `${followedFade} ${FOLLOWED_HINT_MS}ms ease-out forwards`,
                   "@media (prefers-reduced-motion: reduce)": { animation: "none" },
                 }}
               >
-                <ThumbUpOutlinedIcon sx={{ fontSize: size === "sm" ? 15 : 17 }} />
+                <Box
+                  sx={{
+                    display: "inline-flex",
+                    transformOrigin: "60% 80%",
+                    animation: `${followedNudge} 1.1s ease-in-out infinite`,
+                    "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+                  }}
+                >
+                  <ThumbUpOutlinedIcon sx={{ fontSize: size === "sm" ? 15 : 17 }} />
+                </Box>
               </Box>
             </Tooltip>
           ) : null}
