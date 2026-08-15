@@ -53,6 +53,7 @@ export type MobilizeBrowseGroupRow = {
   my_membership_status?: string | null;
   subgroups?: MobilizeSubgroupBrief[];
   subgroup_count?: number;
+  is_featured?: boolean | null;
 };
 
 const JOIN_ACTION_BUTTON_SX = {
@@ -565,6 +566,26 @@ export default function MobilizeGroupsBrowseTable({
                     >
                       {g.name}
                     </Typography>
+                    {g.is_featured ? (
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        sx={{
+                          display: "inline-block",
+                          mt: 0.15,
+                          px: 0.75,
+                          py: 0.1,
+                          borderRadius: 1,
+                          fontWeight: 700,
+                          fontSize: "0.65rem",
+                          letterSpacing: "0.02em",
+                          color: "#1877f2",
+                          bgcolor: "rgba(24,119,242,0.1)",
+                        }}
+                      >
+                        Featured
+                      </Typography>
+                    ) : null}
                     <Typography
                       variant="caption"
                       color="text.secondary"

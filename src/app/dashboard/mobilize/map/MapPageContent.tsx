@@ -67,6 +67,7 @@ type GroupRow = {
   profile_image_url?: string | null;
   parent_group_id?: string | null;
   parent_chapter_name?: string | null;
+  is_featured?: boolean | null;
 };
 
 type BrowseTab = "chapters" | "groups";
@@ -240,8 +241,12 @@ export default function MobilizeMapPageContent() {
     const copy = [...groups];
     if (sort === "name") copy.sort((a, b) => a.name.localeCompare(b.name));
     else copy.sort((a, b) => (a.distance_km ?? 1e9) - (b.distance_km ?? 1e9));
+    // Groups tab: FEATURED groups always rise to the top (within the chosen sort).
+    if (browseTab === "groups") {
+      copy.sort((a, b) => Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured)));
+    }
     return copy;
-  }, [groups, sort]);
+  }, [groups, sort, browseTab]);
 
   const markers = useMemo(
     () =>

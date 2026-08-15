@@ -25,6 +25,16 @@ const Editor = dynamic(() => import("@tinymce/tinymce-react").then((m) => m.Edit
 
 const TINYMCE_BASE = "/tinymce";
 
+/** Color emoji need an explicit fallback on Windows / Linux / Android. */
+const EMOJI_FONTS =
+  '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Android Emoji"';
+const BODY_FONTS = `var(--font-barlow, Barlow, Helvetica, Arial, sans-serif), ${EMOJI_FONTS}`;
+
+/** Self-hosted emoji database; explicit so it resolves under any base path. */
+const EMOJI_CONFIG = {
+  emoticons_database_url: `${TINYMCE_BASE}/plugins/emoticons/js/emojis.js`,
+} as const;
+
 type Props = {
   value: string;
   onChange: (html: string) => void;
@@ -72,10 +82,8 @@ export function GatheringDescriptionEditor({
   const isSocial = variant === "social";
   const socialDark = socialSurface === "dark";
   const init = useMemo(() => {
-    const lightBodyStyle =
-      'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.45; margin: 6px; } p { margin: 0 0 0.5em 0; } p:last-child { margin-bottom: 0; }';
-    const darkBodyStyle =
-      'body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 14px; line-height: 1.45; margin: 8px; background-color: #121212; color: #f5f5f5; } p { margin: 0 0 0.5em 0; color: #f5f5f5; } p:last-child { margin-bottom: 0; } a { color: #f5d547; }';
+    const lightBodyStyle = `body { font-family: ${BODY_FONTS}; font-size: 14px; line-height: 1.45; margin: 6px; } p { margin: 0 0 0.5em 0; } p:last-child { margin-bottom: 0; }`;
+    const darkBodyStyle = `body { font-family: ${BODY_FONTS}; font-size: 14px; line-height: 1.45; margin: 8px; background-color: #121212; color: #f5f5f5; } p { margin: 0 0 0.5em 0; color: #f5f5f5; } p:last-child { margin-bottom: 0; } a { color: #f5d547; }`;
     const darkChrome = darkSurface
       ? { skin: "oxide-dark" as const, content_css: "dark" as const, content_style: darkBodyStyle }
       : {};
@@ -219,8 +227,8 @@ export function GatheringDescriptionEditor({
     };
     if (isSocial) {
       const socialBodyStyle = socialDark
-        ? "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px; background: transparent; color: #e7e9ea; } p { margin: 0 0 0.5em 0; color: #e7e9ea; }"
-        : "body { font-family: var(--font-barlow, Barlow, Helvetica, Arial, sans-serif); font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px; background: transparent; color: #0d0d0d; } p { margin: 0 0 0.5em 0; }";
+        ? `body { font-family: ${BODY_FONTS}; font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px; background: transparent; color: #e7e9ea; } p { margin: 0 0 0.5em 0; color: #e7e9ea; }`
+        : `body { font-family: ${BODY_FONTS}; font-size: 15px; line-height: 1.5; margin: 0; padding: 10px 12px; background: transparent; color: #0d0d0d; } p { margin: 0 0 0.5em 0; }`;
       const socialChrome = socialDark
         ? { skin: "oxide-dark" as const, content_css: "dark" as const }
         : {};
@@ -243,6 +251,7 @@ export function GatheringDescriptionEditor({
         convert_urls: true,
         content_style: socialBodyStyle,
         setup: registerEditorExtras,
+        ...EMOJI_CONFIG,
         ...socialChrome,
       };
     }

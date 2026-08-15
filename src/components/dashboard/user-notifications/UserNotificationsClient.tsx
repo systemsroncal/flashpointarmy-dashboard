@@ -1,8 +1,20 @@
 "use client";
 
 import type { SocialAlert } from "@/lib/mobilize/social/load-social-alerts";
-import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { Avatar, Box, CircularProgress, Paper, Stack, Typography } from "@mui/material";
+import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
+import {
+  AlertAvatar,
+  formatAlertTime,
+} from "@/components/dashboard/user-notifications/social-alert-ui";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import {
+  Box,
+  CircularProgress,
+  Paper,
+  Stack,
+  ThemeProvider,
+  Typography,
+} from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -41,66 +53,80 @@ export function UserNotificationsClient() {
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
           <CircularProgress size={28} />
         </Box>
-      ) : !alerts.length ? (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            borderRadius: "1rem",
-            border: "1px solid rgba(0,0,0,0.08)",
-            bgcolor: "#fff",
-          }}
-        >
-          <Typography color="text.secondary">No notifications yet.</Typography>
-        </Paper>
       ) : (
-        <Stack spacing={1}>
-          {alerts.map((a) => {
-            const body = (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  bgcolor: "#fff",
-                  transition: "background-color 0.15s ease",
-                  "&:hover": a.href ? { bgcolor: "rgba(0,0,0,0.02)" } : undefined,
-                }}
-              >
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Avatar
-                    src={a.actor.avatar_url ? publicAssetSrc(a.actor.avatar_url) : undefined}
-                    sx={{ width: 44, height: 44 }}
+        // Cards are white inside the dark dashboard chrome — force the light palette
+        // so names, summaries and timestamps stay readable.
+        <ThemeProvider theme={mobilizePanelTheme}>
+          {!alerts.length ? (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                borderRadius: "1rem",
+                border: "1px solid rgba(0,0,0,0.08)",
+                bgcolor: "#fff",
+              }}
+            >
+              <Stack alignItems="center" spacing={1}>
+                <NotificationsNoneOutlinedIcon sx={{ fontSize: 34, color: "rgba(0,0,0,0.3)" }} />
+                <Typography sx={{ color: "rgba(0,0,0,0.6)" }}>No notifications yet.</Typography>
+              </Stack>
+            </Paper>
+          ) : (
+            <Stack spacing={1}>
+              {alerts.map((a) => {
+                const body = (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 1.75,
+                      borderRadius: 2,
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      bgcolor: "#fff",
+                      transition: "background-color 0.15s ease, border-color 0.15s ease",
+                      "&:hover": a.href
+                        ? { bgcolor: "rgba(0,0,0,0.02)", borderColor: "rgba(0,0,0,0.16)" }
+                        : undefined,
+                    }}
                   >
-                    {a.actor.display_name.slice(0, 1)}
-                  </Avatar>
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography fontWeight={700} noWrap>
-                      {a.actor.display_name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {a.summary} · {new Date(a.created_at).toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Paper>
-            );
+                    <Stack direction="row" spacing={1.75} alignItems="center">
+                      <AlertAvatar alert={a} size={44} />
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography sx={{ color: "#0d0d0d", lineHeight: 1.4 }}>
+                          <Box component="span" sx={{ fontWeight: 700 }}>
+                            {a.actor.display_name}
+                          </Box>{" "}
+                          {a.summary}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "rgba(0,0,0,0.6)" }}
+                          title={new Date(a.created_at).toLocaleString()}
+                        >
+                          {formatAlertTime(a.created_at)} ·{" "}
+                          {new Date(a.created_at).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Paper>
+                );
 
-            return a.href ? (
-              <Box
-                key={a.id}
-                component={Link}
-                href={a.href}
-                sx={{ textDecoration: "none", color: "inherit", display: "block" }}
-              >
-                {body}
-              </Box>
-            ) : (
-              <Box key={a.id}>{body}</Box>
-            );
-          })}
-        </Stack>
+                return a.href ? (
+                  <Box
+                    key={a.id}
+                    component={Link}
+                    href={a.href}
+                    sx={{ textDecoration: "none", color: "inherit", display: "block" }}
+                  >
+                    {body}
+                  </Box>
+                ) : (
+                  <Box key={a.id}>{body}</Box>
+                );
+              })}
+            </Stack>
+          )}
+        </ThemeProvider>
       )}
     </Box>
   );

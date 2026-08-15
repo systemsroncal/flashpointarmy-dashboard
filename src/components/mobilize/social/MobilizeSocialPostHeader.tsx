@@ -3,10 +3,12 @@
 import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
-import { Avatar, Box, Button, Chip, Link as MuiLink, Typography } from "@mui/material";
+import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
+import { Avatar, Box, Button, Chip, Link as MuiLink, Tooltip, Typography } from "@mui/material";
+import { keyframes } from "@mui/system";
 import Link from "next/link";
 import { flashpointYellow } from "@/theme/tokens";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type MobilizeSocialAuthor = {
   id: string;
@@ -15,6 +17,7 @@ export type MobilizeSocialAuthor = {
   avatar_url: string | null;
   verified?: boolean;
   verified_at?: string | null;
+  /** Undefined when the feed was loaded without viewer context (follow state unknown). */
   is_following?: boolean;
 };
 
@@ -39,6 +42,29 @@ function formatRelativeTime(iso: string): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d`;
   return d.toLocaleDateString();
+}
+
+/** How long the "we got it" confirmation stays on screen after following. */
+const FOLLOWED_HINT_MS = 5000;
+
+const followedPop = keyframes({
+  "0%": { opacity: 0, transform: "scale(0.5) translateY(4px)" },
+  "18%": { opacity: 1, transform: "scale(1.15) translateY(0)" },
+  "32%": { transform: "scale(1)" },
+  "82%": { opacity: 1, transform: "scale(1)" },
+  "100%": { opacity: 0, transform: "scale(0.9)" },
+});
+
+/**
+ * A feed can show several posts by the same author. Following from one of them
+ * has to hide the button on the others, so headers share the result in-page.
+ */
+const followedAuthorIds = new Set<string>();
+const followListeners = new Set<(authorId: string) => void>();
+
+function announceFollowed(authorId: string) {
+  followedAuthorIds.add(authorId);
+  for (const listener of followListeners) listener(authorId);
 }
 
 const FOLLOW_BTN_SX = {
@@ -70,12 +96,35 @@ export function MobilizeSocialPostHeader({
   const nameColor = isDark ? "#e7e9ea" : "#111";
   const metaColor = isDark ? "#8b98a5" : "#6b7280";
   const isOwn = Boolean(viewerUserId && viewerUserId === author.id);
-  const [following, setFollowing] = useState(Boolean(author.is_following));
+  // Only offer Follow when the feed told us the viewer is *not* following yet.
+  // `undefined` means unknown, and guessing "not following" shows the button to
+  // people who already follow the author (e.g. on their profile page).
+  const [following, setFollowing] = useState(
+    author.is_following !== false || followedAuthorIds.has(author.id)
+  );
   const [followBusy, setFollowBusy] = useState(false);
+  const [justFollowed, setJustFollowed] = useState(false);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setFollowing(Boolean(author.is_following));
+    setFollowing(author.is_following !== false || followedAuthorIds.has(author.id));
   }, [author.id, author.is_following]);
+
+  useEffect(() => {
+    const listener = (authorId: string) => {
+      if (authorId === author.id) setFollowing(true);
+    };
+    followListeners.add(listener);
+    return () => {
+      followListeners.delete(listener);
+    };
+  }, [author.id]);
+
+  useEffect(() => {
+    return () => {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    };
+  }, []);
 
   async function followAuthor() {
     if (isOwn || following || followBusy) return;
@@ -87,6 +136,10 @@ export function MobilizeSocialPostHeader({
       const json = (await res.json()) as { error?: string; is_following?: boolean };
       if (!res.ok) throw new Error(json.error || "Follow failed.");
       setFollowing(true);
+      announceFollowed(author.id);
+      setJustFollowed(true);
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      hintTimerRef.current = setTimeout(() => setJustFollowed(false), FOLLOWED_HINT_MS);
     } finally {
       setFollowBusy(false);
     }
@@ -125,6 +178,22 @@ export function MobilizeSocialPostHeader({
             >
               {followBusy ? "…" : "Follow"}
             </Button>
+          ) : justFollowed ? (
+            <Tooltip title={`You're now following ${author.display_name}`}>
+              <Box
+                role="status"
+                aria-label="Now following"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  color: "#65676b",
+                  animation: `${followedPop} ${FOLLOWED_HINT_MS}ms ease-out forwards`,
+                  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+                }}
+              >
+                <ThumbUpOutlinedIcon sx={{ fontSize: size === "sm" ? 15 : 17 }} />
+              </Box>
+            </Tooltip>
           ) : null}
           {roleLabel ? (
             <Chip

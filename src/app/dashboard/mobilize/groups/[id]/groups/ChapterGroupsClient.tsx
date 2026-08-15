@@ -181,8 +181,11 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return groups;
-    return groups.filter((g) => g.name.toLowerCase().includes(q));
+    const list = q ? groups.filter((g) => g.name.toLowerCase().includes(q)) : [...groups];
+    // Featured groups first, then the rest in the same relative order.
+    return list.sort(
+      (a, b) => Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured))
+    );
   }, [groups, search]);
 
   const isSuperAdmin = me.role_names.includes("super_admin");

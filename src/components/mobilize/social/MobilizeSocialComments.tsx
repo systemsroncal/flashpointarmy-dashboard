@@ -253,6 +253,7 @@ function CommentComposer({
               size="small"
               onClick={() => insertEmoji(emoji)}
               aria-label={`Insert ${emoji}`}
+              className="fp-emoji-text"
               sx={{ fontSize: "1.15rem" }}
             >
               {emoji}

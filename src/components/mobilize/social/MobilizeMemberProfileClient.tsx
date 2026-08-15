@@ -495,6 +495,17 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   if (!profile) return null;
 
   const p = profile;
+
+  /**
+   * Posts here belong to the profile owner, so the header's follow state is the
+   * source of truth — without this the card would offer "Follow" to someone who
+   * already follows them (and would go stale after toggling follow above).
+   */
+  const withFollowState = (post: ProfilePost): ProfilePost =>
+    post.author.id === p.id
+      ? { ...post, author: { ...post.author, is_following: p.is_following } }
+      : post;
+
   const handleLabel = formatHandle(p.handle);
   const locationLabel = [p.city, p.state].filter(Boolean).join(", ");
   const locked = Boolean(p.is_private_locked);
@@ -685,7 +696,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       {posts.map((post) => (
         <MobilizeSocialPostCard
           key={post.id}
-          post={post}
+          post={withFollowState(post)}
           canComment
           commentConfig={feedPostCommentConfig(post)}
           reactionUrl={feedPostReactionUrl(post)}
@@ -777,7 +788,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         {items.map((post) => (
           <MobilizeSocialPostCard
             key={post.id}
-            post={post}
+            post={withFollowState(post)}
             canComment
             commentConfig={feedPostCommentConfig(post)}
             reactionUrl={feedPostReactionUrl(post)}

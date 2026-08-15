@@ -1,17 +1,22 @@
 "use client";
 
 import type { SocialAlert } from "@/lib/mobilize/social/load-social-alerts";
-import { publicAssetSrc } from "@/lib/media/public-asset-url";
+import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
+import {
+  AlertAvatar,
+  formatAlertTime,
+} from "@/components/dashboard/user-notifications/social-alert-ui";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import {
-  Avatar,
   Badge,
   Box,
   Button,
+  CircularProgress,
   Divider,
   IconButton,
   Popover,
   Stack,
+  ThemeProvider,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -43,6 +48,8 @@ export function UserNotificationsMenu() {
   const [alerts, setAlerts] = useState<SocialAlert[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
+  // Frozen when the popover opens so rows stay highlighted while it is on screen.
+  const [seenAtOpen, setSeenAtOpen] = useState<string | null>(null);
   const open = Boolean(anchor);
 
   useEffect(() => {
@@ -81,6 +88,7 @@ export function UserNotificationsMenu() {
 
   function handleOpen(e: React.MouseEvent<HTMLElement>) {
     setAnchor(e.currentTarget);
+    setSeenAtOpen(lastSeen);
     const now = new Date().toISOString();
     writeLastSeen(now);
     setLastSeen(now);
@@ -92,6 +100,7 @@ export function UserNotificationsMenu() {
   }
 
   const preview = alerts.slice(0, PREVIEW_LIMIT);
+  const seenAtOpenMs = seenAtOpen ? new Date(seenAtOpen).getTime() : null;
 
   return (
     <>
@@ -119,105 +128,135 @@ export function UserNotificationsMenu() {
         slotProps={{
           paper: {
             sx: {
-              width: { xs: "min(100vw - 24px, 360px)", sm: 360 },
+              width: { xs: "min(100vw - 24px, 380px)", sm: 380 },
               mt: 1,
-              borderRadius: 2,
+              borderRadius: 3,
               overflow: "hidden",
               bgcolor: "#fff",
               color: "#0d0d0d",
+              backgroundImage: "none",
+              border: "1px solid rgba(0,0,0,0.08)",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.28)",
             },
           },
         }}
       >
-        <Box sx={{ px: 1.75, py: 1.25 }}>
-          <Typography fontWeight={800} sx={{ fontSize: "0.95rem" }}>
-            Notifications
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Follows, likes, comments, and posts from people you follow
-          </Typography>
-        </Box>
-        <Divider />
-
-        <Box sx={{ maxHeight: 360, overflowY: "auto" }}>
-          {loading && !preview.length ? (
-            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-              Loading…
-            </Typography>
-          ) : !preview.length ? (
-            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-              No notifications yet.
-            </Typography>
-          ) : (
-            <Stack divider={<Divider flexItem />}>
-              {preview.map((a) => {
-                const content = (
-                  <Stack
-                    direction="row"
-                    spacing={1.25}
-                    alignItems="flex-start"
-                    sx={{
-                      px: 1.75,
-                      py: 1.25,
-                      "&:hover": { bgcolor: "rgba(0,0,0,0.04)" },
-                    }}
-                  >
-                    <Avatar
-                      src={a.actor.avatar_url ? publicAssetSrc(a.actor.avatar_url) : undefined}
-                      sx={{ width: 36, height: 36 }}
-                    >
-                      {a.actor.display_name.slice(0, 1)}
-                    </Avatar>
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography variant="body2" sx={{ lineHeight: 1.35 }}>
-                        <Box component="span" fontWeight={700}>
-                          {a.actor.display_name}
-                        </Box>{" "}
-                        {a.summary}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(a.created_at).toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                );
-                return a.href ? (
-                  <Box
-                    key={a.id}
-                    component={Link}
-                    href={a.href}
-                    onClick={handleClose}
-                    sx={{ textDecoration: "none", color: "inherit", display: "block" }}
-                  >
-                    {content}
-                  </Box>
-                ) : (
-                  <Box key={a.id}>{content}</Box>
-                );
-              })}
+        {/* White surface inside the dark dashboard chrome — force the light palette. */}
+        <ThemeProvider theme={mobilizePanelTheme}>
+          <Box sx={{ px: 2, pt: 1.5, pb: 1.25 }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography sx={{ fontWeight: 800, fontSize: "1.05rem", flex: 1 }}>
+                Notifications
+              </Typography>
+              {loading && preview.length ? <CircularProgress size={14} /> : null}
             </Stack>
-          )}
-        </Box>
+            <Typography variant="caption" sx={{ color: "rgba(0,0,0,0.6)" }}>
+              Follows, likes, comments, and posts from people you follow
+            </Typography>
+          </Box>
+          <Divider sx={{ borderColor: "rgba(0,0,0,0.08)" }} />
 
-        <Divider />
-        <Box sx={{ p: 1.25 }}>
-          <Button
-            component={Link}
-            href="/dashboard/user-notifications"
-            fullWidth
-            onClick={handleClose}
-            sx={{
-              textTransform: "none",
-              fontWeight: 700,
-              borderRadius: 99,
-              bgcolor: "rgba(0,0,0,0.04)",
-              color: "#0d0d0d",
-              "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
-            }}
-          >
-            See all
-          </Button>
-        </Box>
+          <Box sx={{ maxHeight: 380, overflowY: "auto" }}>
+            {loading && !preview.length ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                <CircularProgress size={22} />
+              </Box>
+            ) : !preview.length ? (
+              <Stack alignItems="center" spacing={0.5} sx={{ py: 4, px: 2 }}>
+                <NotificationsNoneOutlinedIcon sx={{ fontSize: 30, color: "rgba(0,0,0,0.3)" }} />
+                <Typography variant="body2" sx={{ color: "rgba(0,0,0,0.6)" }}>
+                  No notifications yet.
+                </Typography>
+              </Stack>
+            ) : (
+              <Stack divider={<Divider flexItem sx={{ borderColor: "rgba(0,0,0,0.06)" }} />}>
+                {preview.map((a) => {
+                  const isUnread =
+                    seenAtOpenMs === null || new Date(a.created_at).getTime() > seenAtOpenMs;
+                  const content = (
+                    <Stack
+                      direction="row"
+                      spacing={1.5}
+                      alignItems="center"
+                      sx={{
+                        px: 2,
+                        py: 1.25,
+                        bgcolor: isUnread ? "rgba(24,119,242,0.06)" : "transparent",
+                        transition: "background-color 0.15s ease",
+                        "&:hover": { bgcolor: isUnread ? "rgba(24,119,242,0.1)" : "rgba(0,0,0,0.04)" },
+                      }}
+                    >
+                      <AlertAvatar alert={a} size={40} />
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ lineHeight: 1.35, color: "#0d0d0d" }}
+                        >
+                          <Box component="span" sx={{ fontWeight: 700 }}>
+                            {a.actor.display_name}
+                          </Box>{" "}
+                          {a.summary}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "rgba(0,0,0,0.6)" }}
+                          title={new Date(a.created_at).toLocaleString()}
+                        >
+                          {formatAlertTime(a.created_at)}
+                        </Typography>
+                      </Box>
+                      {isUnread ? (
+                        <Box
+                          aria-hidden
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            bgcolor: "#1877f2",
+                            flexShrink: 0,
+                          }}
+                        />
+                      ) : null}
+                    </Stack>
+                  );
+                  return a.href ? (
+                    <Box
+                      key={a.id}
+                      component={Link}
+                      href={a.href}
+                      onClick={handleClose}
+                      sx={{ textDecoration: "none", color: "inherit", display: "block" }}
+                    >
+                      {content}
+                    </Box>
+                  ) : (
+                    <Box key={a.id}>{content}</Box>
+                  );
+                })}
+              </Stack>
+            )}
+          </Box>
+
+          <Divider sx={{ borderColor: "rgba(0,0,0,0.08)" }} />
+          <Box sx={{ p: 1.25 }}>
+            <Button
+              component={Link}
+              href="/dashboard/user-notifications"
+              fullWidth
+              onClick={handleClose}
+              sx={{
+                textTransform: "none",
+                fontWeight: 700,
+                borderRadius: 99,
+                bgcolor: "rgba(24,119,242,0.08)",
+                color: "#1877f2",
+                "&:hover": { bgcolor: "rgba(24,119,242,0.16)", color: "#1877f2" },
+              }}
+            >
+              See all
+            </Button>
+          </Box>
+        </ThemeProvider>
       </Popover>
     </>
   );

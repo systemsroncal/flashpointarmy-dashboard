@@ -236,6 +236,29 @@ body {
   pointer-events: auto !important;
 }
 
+/* TinyMCE popups (emoji picker, link dialog) are portaled to <body>. MUI modals sit at
+   1300, so lift the TinyMCE aux layer above them or the picker opens behind the dialog. */
+.tox.tox-tinymce-aux,
+.tox .tox-dialog-wrap {
+  z-index: 1500 !important;
+}
+
+/* Emoji font fallbacks so picker and inserted characters render in color on
+   Windows / Linux / Android, not as monochrome boxes. */
+.tox .tox-emoji-item,
+.tox .tox-collection__item-icon,
+.fp-emoji-text {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji", "Android Emoji", "EmojiSymbols", sans-serif;
+}
+
+/* iOS Safari zooms the page when a focused input is under 16px; the emoji search
+   field is smaller, which also breaks the dialog position on phones. */
+.tox .tox-dialog input[type="text"],
+.tox .tox-textfield {
+  font-size: 16px !important;
+}
+
 /* Plyr inside dialog: give the root a stable width (embed sizing comes from Plyr). */
 .event-video-plyr-mount .plyr {
   width: 100%;

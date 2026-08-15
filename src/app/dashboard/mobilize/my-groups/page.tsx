@@ -57,7 +57,15 @@ export default function MyGroupsPage() {
   }, []);
 
   return (
-    <Box sx={mobilizeChapterDetailRootSx}>
+    <Box
+      sx={{
+        ...mobilizeChapterDetailRootSx,
+        // Same reading width as the home feed and profile columns.
+        width: "100%",
+        maxWidth: 685,
+        mx: "auto",
+      }}
+    >
       <Typography variant="h4" fontWeight={700} gutterBottom sx={{ flexShrink: 0 }}>
         Groups
       </Typography>

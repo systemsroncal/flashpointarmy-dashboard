@@ -19,6 +19,7 @@ type GroupRow = {
   created_by?: string;
   parent_group_id?: string | null;
   parent_chapter_name?: string | null;
+  is_featured?: boolean | null;
   distance_km?: number;
 };
 
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
   let query = auth.admin
     .from("mobilize_groups")
     .select(
-      "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, profile_image_url, wall_post_policy, created_at, created_by, parent_group_id"
+      "id, name, group_type, description, address, latitude, longitude, visibility, cover_image_url, profile_image_url, wall_post_policy, created_at, created_by, parent_group_id, is_featured"
     )
     .eq("visibility", "public")
     .eq("publish_status", "published");

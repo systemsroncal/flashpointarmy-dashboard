@@ -30,7 +30,7 @@ export async function GET(req: Request, ctx: Ctx) {
 
   const postIds = (rows ?? []).map((r) => r.id as string);
   const [authors, { data: reactions }, { data: comments }] = await Promise.all([
-    resolveMobilizeAuthors(auth.admin, [userId]),
+    resolveMobilizeAuthors(auth.admin, [userId], { viewerId: auth.userId }),
     postIds.length
       ? auth.admin
           .from("mobilize_profile_post_reactions")
