@@ -1,5 +1,7 @@
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { applyMobilizeGroupOwnerAndLeaders } from "@/lib/mobilize/sync-group-leaders";
+import { approvePendingMembersForOpenGroup } from "@/lib/mobilize/join-group-membership";
+import { syncEnrollmentWithListedVisibility } from "@/lib/mobilize/chapter-subgroup";
 import { NextResponse } from "next/server";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
@@ -45,7 +47,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (auth instanceof NextResponse) return auth;
   const { id } = await ctx.params;
 
-  const { data: group } = await auth.admin.from("mobilize_groups").select("created_by").eq("id", id).maybeSingle();
+  const { data: group } = await auth.admin
+    .from("mobilize_groups")
+    .select("created_by, visibility, enrollment_mode")
+    .eq("id", id)
+    .maybeSingle();
   if (!group) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   const roleNames = await loadUserRoleNames(auth.admin, auth.userId);
@@ -151,6 +157,17 @@ export async function PATCH(req: Request, ctx: Ctx) {
     patch.enrollment_mode = mode;
   }
 
+  const nextVisibility =
+    "visibility" in patch ? String(patch.visibility) : String(group.visibility ?? "public");
+  const nextEnrollment =
+    "enrollment_mode" in patch
+      ? String(patch.enrollment_mode)
+      : String(group.enrollment_mode ?? "request_to_join");
+  const syncedEnrollment = syncEnrollmentWithListedVisibility(nextVisibility, nextEnrollment);
+  if (syncedEnrollment !== nextEnrollment) {
+    patch.enrollment_mode = syncedEnrollment;
+  }
+
   if (isSuperAdmin && "parent_group_id" in body) {
     const rawParent = body.parent_group_id;
     const parentId =
@@ -186,14 +203,18 @@ export async function PATCH(req: Request, ctx: Ctx) {
       s == null || String(s).trim() === "" ? null : String(s).trim();
   }
   if ("is_featured" in patch) {
-    const { data: current } = await auth.admin
-      .from("mobilize_groups")
-      .select("parent_group_id")
-      .eq("id", id)
-      .maybeSingle();
-    // Only subgroups can be featured; chapters cannot.
-    patch.is_featured =
-      current?.parent_group_id != null ? patch.is_featured === true : false;
+    if (!isSuperAdmin) {
+      delete patch.is_featured;
+    } else {
+      const { data: current } = await auth.admin
+        .from("mobilize_groups")
+        .select("parent_group_id")
+        .eq("id", id)
+        .maybeSingle();
+      // Only subgroups can be featured; chapters cannot.
+      patch.is_featured =
+        current?.parent_group_id != null ? patch.is_featured === true : false;
+    }
   }
   if ("publish_status" in patch) {
     patch.publish_status = patch.publish_status === "draft" ? "draft" : "published";
@@ -215,6 +236,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const { data, error } = await auth.admin.from("mobilize_groups").update(patch).eq("id", id).select("*").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await approvePendingMembersForOpenGroup(auth.admin, {
+    id,
+    visibility: String(data.visibility ?? nextVisibility),
+    enrollment_mode: String(data.enrollment_mode ?? syncedEnrollment),
+  });
   return NextResponse.json({ group: data });
 }
 

@@ -16,6 +16,7 @@ import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import EmojiEmotionsOutlinedIcon from "@mui/icons-material/EmojiEmotionsOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import {
   Avatar,
@@ -41,7 +42,10 @@ const DESIGN_EDITOR_BORDER = "rgba(0, 108, 231, 0.28)";
 
 export type MobilizePostCommentsPolicy = "everyone" | "leaders_only";
 
-type EditorHandle = { execCommand: (cmd: string) => void };
+type EditorHandle = {
+  execCommand: (cmd: string) => void;
+  insertContent: (html: string) => void;
+};
 
 type Props = {
   value: string;
@@ -179,6 +183,22 @@ export function MobilizeSocialPostEditor({
 
   function removeImage(index: number) {
     onImageUrlsChange?.(imageUrls.filter((_, i) => i !== index));
+  }
+
+  function insertVideoEmbed() {
+    if (disabled || posting) return;
+    const promptRaw =
+      typeof window !== "undefined"
+        ? window.prompt("Paste video URL (YouTube, Vimeo, or direct MP4/WebM):")
+        : null;
+    if (!promptRaw?.trim()) return;
+    const safe = promptRaw.trim().replace(/\]/g, "%5D");
+    const ed = editorRef.current;
+    if (ed?.insertContent) {
+      ed.insertContent(`<p>[fpa_video]${safe}[/fpa_video]</p><p><br></p>`);
+      return;
+    }
+    onChange(`${value}<p>[fpa_video]${safe}[/fpa_video]</p>`);
   }
 
   // TRUTH_ICON is tuned for the dark hub; on white surfaces it washes out.
@@ -415,6 +435,19 @@ export function MobilizeSocialPostEditor({
                 sx={footerIconSx}
               >
                 <EmojiEmotionsOutlinedIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Add video">
+            <span>
+              <IconButton
+                size="small"
+                disabled={disabled || posting}
+                onClick={insertVideoEmbed}
+                sx={footerIconSx}
+                aria-label="Add video"
+              >
+                <VideocamOutlinedIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>

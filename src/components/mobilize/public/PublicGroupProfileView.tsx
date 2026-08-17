@@ -22,6 +22,7 @@ export type PublicGroupProfileData = {
   address: string | null;
   schedule_meeting: string | null;
   enrollment_mode: string | null;
+  visibility?: string | null;
   cover_image_url: string | null;
   parent_chapter_name: string | null;
   region_code?: string | null;
@@ -273,6 +274,7 @@ export function PublicGroupProfileView({ group }: { group: PublicGroupProfileDat
           <PublicGroupActionBar
             groupId={group.id}
             enrollmentMode={group.enrollment_mode}
+            visibility={group.visibility}
           />
         </Box>
 

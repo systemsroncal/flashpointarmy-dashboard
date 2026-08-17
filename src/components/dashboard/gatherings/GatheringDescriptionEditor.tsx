@@ -49,8 +49,11 @@ type Props = {
   variant?: "default" | "social";
   /** Chrome for `variant="social"`. */
   socialSurface?: "dark" | "light";
-  /** Called when TinyMCE initializes (social footer: emoji picker). */
-  onEditorInit?: (editor: { execCommand: (cmd: string) => void }) => void;
+  /** Called when TinyMCE initializes (social footer: emoji / video insert). */
+  onEditorInit?: (editor: {
+    execCommand: (cmd: string) => void;
+    insertContent: (html: string) => void;
+  }) => void;
   /** Helper line under the editor when `showHelper` is true (replaces the default English hint). */
   helperText?: string;
   /** Adds a “Video” toolbar control that inserts a Plyr-ready embed block (YouTube, Vimeo, MP4, etc.). */

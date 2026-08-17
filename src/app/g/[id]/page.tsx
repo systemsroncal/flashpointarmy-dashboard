@@ -115,6 +115,7 @@ export default async function PublicMobilizeGroupPage({ params }: Props) {
     address: group.address,
     schedule_meeting: group.schedule_meeting,
     enrollment_mode: group.enrollment_mode,
+    visibility: group.visibility,
     cover_image_url: group.cover_image_url,
     parent_chapter_name: parentChapterName,
     region_code: group.region_code ?? null,

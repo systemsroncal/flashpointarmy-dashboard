@@ -7,6 +7,7 @@ import { PublicGroupJoinDialog } from "@/components/mobilize/PublicGroupJoinDial
 import {
   enrollmentAcceptsNewMembers,
   enrollmentModeLabel,
+  groupJoinAutoApproves,
 } from "@/lib/mobilize/chapter-subgroup";
 import { mobilizeJoinGroupButtonSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { createClient } from "@/utils/supabase/client";
@@ -16,9 +17,10 @@ type MembershipUi = "guest" | "checking" | "member" | "pending" | "closed";
 type Props = {
   groupId: string;
   enrollmentMode: string | null | undefined;
+  visibility?: string | null;
 };
 
-export function PublicGroupActionBar({ groupId, enrollmentMode }: Props) {
+export function PublicGroupActionBar({ groupId, enrollmentMode, visibility }: Props) {
   const [busy, setBusy] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [membershipUi, setMembershipUi] = useState<MembershipUi>("checking");
@@ -26,8 +28,9 @@ export function PublicGroupActionBar({ groupId, enrollmentMode }: Props) {
 
   const accepting = enrollmentAcceptsNewMembers(enrollmentMode);
   const label = enrollmentModeLabel(enrollmentMode);
+  const autoJoin = groupJoinAutoApproves({ enrollment_mode: enrollmentMode, visibility });
   const statusText = accepting
-    ? enrollmentMode === "open_signup"
+    ? autoJoin
       ? "Group is open."
       : "Request to join available."
     : enrollmentMode === "auto_closed"

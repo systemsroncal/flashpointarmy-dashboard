@@ -1,6 +1,7 @@
 "use client";
 
 import { MobilizeAnnouncementMediaGrid } from "@/components/mobilize/MobilizeAnnouncementMediaGrid";
+import { findAllVideoMarkers } from "@/components/dashboard/notifications/announcement-video-markers";
 import { MobilizeCollapsiblePostBody } from "@/components/mobilize/social/MobilizeCollapsiblePostBody";
 import { MobilizeFeedHtml } from "@/components/mobilize/social/MobilizeFeedHtml";
 import { MobilizeSocialComments } from "@/components/mobilize/social/MobilizeSocialComments";
@@ -78,6 +79,16 @@ export function MobilizeSocialPostCard({
   const [bookmarkBusy, setBookmarkBusy] = useState(false);
 
   const bookmarkRef = bookmarkRefFromPost(post);
+  const hasEmbeddedVideo = findAllVideoMarkers(post.content_html ?? "").length > 0;
+
+  const feedBody = (
+    <MobilizeFeedHtml
+      html={post.content_html}
+      plain={post.content}
+      sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
+    />
+  );
+  const feedMedia = <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />;
 
   async function toggleBookmark() {
     if (!bookmarkRef) return;
@@ -201,17 +212,14 @@ export function MobilizeSocialPostCard({
           <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
         ) : null}
         <Box sx={{ mt: isGroupFeedCard || isGroupFeedList ? 0 : 1.25 }}>
-          <MobilizeCollapsiblePostBody
-            surface={surface}
-            text={
-              <MobilizeFeedHtml
-                html={post.content_html}
-                plain={post.content}
-                sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
-              />
-            }
-            media={<MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />}
-          />
+          {hasEmbeddedVideo ? (
+            <Box>
+              {feedBody}
+              {feedMedia}
+            </Box>
+          ) : (
+            <MobilizeCollapsiblePostBody surface={surface} text={feedBody} media={feedMedia} />
+          )}
         </Box>
         <Stack
           direction="row"

@@ -8,6 +8,7 @@ import {
   loadMobilizeGroupCreatorPolicy,
 } from "@/lib/mobilize/mobilize-roles";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
+import { syncEnrollmentWithListedVisibility } from "@/lib/mobilize/chapter-subgroup";
 import { createClient } from "@/utils/supabase/server";
 
 export async function GET(req: Request) {
@@ -248,7 +249,7 @@ export async function POST(req: Request) {
       : null;
 
   const enrollmentRaw = String(body.enrollment_mode ?? "").trim();
-  const enrollment_mode =
+  let enrollment_mode =
     enrollmentRaw === "open_signup" ||
     enrollmentRaw === "closed" ||
     enrollmentRaw === "request_to_join"
@@ -256,13 +257,15 @@ export async function POST(req: Request) {
       : visibility === "public"
         ? "open_signup"
         : "request_to_join";
+  enrollment_mode = syncEnrollmentWithListedVisibility(visibility, enrollment_mode);
 
   const schedule_meeting =
     body.schedule_meeting != null && String(body.schedule_meeting).trim()
       ? String(body.schedule_meeting).trim()
       : null;
 
-  const is_featured = parent_group_id ? body.is_featured === true : false;
+  const is_featured =
+    parent_group_id && roleNames.includes("super_admin") && body.is_featured === true;
   const publish_status = body.publish_status === "draft" ? "draft" : "published";
 
   const row = {

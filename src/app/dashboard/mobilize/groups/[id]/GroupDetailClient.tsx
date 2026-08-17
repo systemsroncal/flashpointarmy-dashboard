@@ -73,6 +73,7 @@ import { MOBILIZE_EVENT_TYPES, MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/const
 import {
   enrollmentModeLabel,
   enrollmentAcceptsNewMembers,
+  groupJoinAutoApproves,
   type MobilizeEnrollmentMode,
 } from "@/lib/mobilize/chapter-subgroup";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
@@ -983,10 +984,10 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
           profile_image_url: profileImage,
           wall_post_policy: editForm.wall_post_policy,
           resources_post_policy: editForm.resources_post_policy,
-          is_featured: editForm.is_featured === true,
           publish_status: editForm.publish_status,
           ...(isSuperAdmin
             ? {
+                is_featured: editForm.is_featured === true,
                 created_by: editForm.created_by,
                 leader_user_ids: leaderIds,
                 ...(editForm.parent_group_id
@@ -1340,7 +1341,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     let visibilityCopy: string;
     if (!isListed) {
       visibilityCopy = "This group is unlisted. You need an invite link to find it.";
-    } else if (mode === "open_signup") {
+    } else if (groupJoinAutoApproves({ enrollment_mode: mode, visibility: group.visibility })) {
       visibilityCopy = "Anyone can find this group and join instantly. No approval is required.";
     } else if (mode === "request_to_join" || !mode) {
       visibilityCopy =
@@ -2575,10 +2576,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 setEditForm((f) => ({
                   ...f,
                   visibility: mobilizeGroupListingVisibilityFromListed(listed),
+                  enrollment_mode:
+                    listed && f.enrollment_mode === "request_to_join"
+                      ? "open_signup"
+                      : f.enrollment_mode,
                 }))
               }
             />
-            {group?.parent_group_id ? (
+            {group?.parent_group_id && isSuperAdmin ? (
               <MobilizeGroupListedSwitch
                 listed={editForm.is_featured}
                 disabled={editSaving}

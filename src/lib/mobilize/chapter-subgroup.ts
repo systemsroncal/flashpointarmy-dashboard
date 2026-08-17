@@ -33,6 +33,28 @@ export function enrollmentAutoApproves(mode: string | null | undefined): boolean
   return mode === "open_signup";
 }
 
+/** Listed/public groups always auto-join; closed groups never do. */
+export function groupJoinAutoApproves(group: {
+  enrollment_mode?: string | null;
+  visibility?: string | null;
+}): boolean {
+  const mode = String(group.enrollment_mode ?? "request_to_join");
+  if (mode === "closed" || mode === "auto_closed") return false;
+  if (mode === "open_signup") return true;
+  return Boolean(group.visibility) && group.visibility !== "private";
+}
+
+/** Listed/public + request-to-join is a contradictory pair — treat as open signup. */
+export function syncEnrollmentWithListedVisibility(
+  visibility: string,
+  enrollmentMode: string
+): string {
+  if (visibility !== "private" && enrollmentMode === "request_to_join") {
+    return "open_signup";
+  }
+  return enrollmentMode;
+}
+
 export type MobilizeSubgroupBrief = {
   id: string;
   name: string;

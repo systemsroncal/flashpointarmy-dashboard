@@ -48,6 +48,7 @@ import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import {
   enrollmentModeLabel,
+  groupJoinAutoApproves,
   type MobilizeEnrollmentMode,
 } from "@/lib/mobilize/chapter-subgroup";
 import { MOBILIZE_GROUP_TYPES } from "@/lib/mobilize/constants";
@@ -377,8 +378,8 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
           event_create_policy: form.event_create_policy,
           wall_post_policy: form.wall_post_policy,
           resources_post_policy: form.resources_post_policy,
-          is_featured: form.is_featured === true,
           publish_status: form.publish_status,
+          ...(isSuperAdmin ? { is_featured: form.is_featured === true } : {}),
         }),
       });
       const json = await res.json();
@@ -611,7 +612,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                       onClick={() => void joinGroup(g.id)}
                       sx={{ alignSelf: "flex-start", ...mobilizeJoinGroupButtonSx }}
                     >
-                      {g.enrollment_mode === "open_signup" ? "Join group" : "Request to join"}
+                      {groupJoinAutoApproves(g) ? "Join group" : "Request to join"}
                     </Button>
                   ) : null}
                   {canAddMemberToGroup(g) ? (
@@ -770,7 +771,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                               onClick={() => void joinGroup(g.id)}
                               sx={mobilizeJoinGroupButtonSx}
                             >
-                              {g.enrollment_mode === "open_signup" ? "Join group" : "Request to join"}
+                              {groupJoinAutoApproves(g) ? "Join group" : "Request to join"}
                             </Button>
                           )}
                           {canAddMemberToGroup(g) ? (
@@ -1121,17 +1122,23 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                 setForm((f) => ({
                   ...f,
                   visibility: mobilizeGroupListingVisibilityFromListed(listed),
+                  enrollment_mode:
+                    listed && f.enrollment_mode === "request_to_join"
+                      ? "open_signup"
+                      : f.enrollment_mode,
                 }))
               }
             />
-            <MobilizeGroupListedSwitch
-              listed={form.is_featured}
-              disabled={saving}
-              label="Featured"
-              listedHint="Shown under every chapter's Groups list (same group, not copied)."
-              unlistedHint="Only listed under its own chapter."
-              onListedChange={(featured) => setForm((f) => ({ ...f, is_featured: featured }))}
-            />
+            {isSuperAdmin ? (
+              <MobilizeGroupListedSwitch
+                listed={form.is_featured}
+                disabled={saving}
+                label="Featured"
+                listedHint="Shown under every chapter's Groups list (same group, not copied)."
+                unlistedHint="Only listed under its own chapter."
+                onListedChange={(featured) => setForm((f) => ({ ...f, is_featured: featured }))}
+              />
+            ) : null}
             <FormControl fullWidth>
               <InputLabel id="ecp-new">Who can create events</InputLabel>
               <Select

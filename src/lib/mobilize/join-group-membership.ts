@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { insertGroupJoinActivity } from "@/lib/community/group-activity-feed";
 import {
   enrollmentAcceptsNewMembers,
-  enrollmentAutoApproves,
+  groupJoinAutoApproves,
 } from "@/lib/mobilize/chapter-subgroup";
 import { applyMobilizeAutoCloseInactive } from "@/lib/mobilize/apply-auto-close";
 
@@ -54,7 +54,7 @@ export async function joinMobilizeGroupAsMember(
     };
   }
 
-  const membership_status = enrollmentAutoApproves(enrollmentMode) ? "approved" : "pending";
+  const membership_status = groupJoinAutoApproves(group) ? "approved" : "pending";
 
   const { data: existing } = await admin
     .from("mobilize_group_members")
@@ -147,4 +147,17 @@ export async function joinMobilizeGroupAsMember(
     alreadyMember: false,
     alreadyPending: membership_status === "pending",
   };
+}
+
+/** When a group becomes listed/public (or open signup), pending requests become members. */
+export async function approvePendingMembersForOpenGroup(
+  admin: SupabaseClient,
+  group: { id: string; visibility?: string | null; enrollment_mode?: string | null }
+): Promise<void> {
+  if (!groupJoinAutoApproves(group)) return;
+  await admin
+    .from("mobilize_group_members")
+    .update({ membership_status: "approved" })
+    .eq("group_id", group.id)
+    .eq("membership_status", "pending");
 }

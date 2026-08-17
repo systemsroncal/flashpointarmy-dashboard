@@ -1,3 +1,4 @@
+import { announcementPlainTextPreview } from "@/components/dashboard/notifications/announcement-video-markers";
 import DOMPurify from "isomorphic-dompurify";
 
 const FEED_HTML_OPTIONS = {
@@ -11,7 +12,8 @@ export function sanitizeFeedHtml(raw: string): string {
 
 /** Plain-text fallback for notifications, search, and legacy plain content fields. */
 export function plainTextFromHtml(html: string): string {
-  const stripped = DOMPurify.sanitize(html, { ALLOWED_TAGS: [] });
+  const withoutVideo = announcementPlainTextPreview(html);
+  const stripped = DOMPurify.sanitize(withoutVideo, { ALLOWED_TAGS: [] });
   return stripped.replace(/\s+/g, " ").trim();
 }
 

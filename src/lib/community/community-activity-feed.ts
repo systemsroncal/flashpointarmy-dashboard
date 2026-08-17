@@ -3,7 +3,11 @@ import { mixCommunityActivityFeed } from "@/lib/community/feed-tiers";
 
 export const COMMUNITY_ACTIVITY_FEED_LIMIT = 25;
 
+/** Prefer recent rows in Community in Action (display window). */
 export const COMMUNITY_ACTIVITY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Happening Now counter on National Map — full 48 hours. */
+export const HAPPENING_NOW_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 /** Auto-generated share aggregate rows (removed from product). */
 export const HIDDEN_COMMUNITY_FEED_CATEGORIES = new Set(["auto_shares_today"]);
