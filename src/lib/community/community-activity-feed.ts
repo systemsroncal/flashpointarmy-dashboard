@@ -3,11 +3,11 @@ import { mixCommunityActivityFeed } from "@/lib/community/feed-tiers";
 
 export const COMMUNITY_ACTIVITY_FEED_LIMIT = 25;
 
-/** Prefer recent rows in Community in Action (display window). */
-export const COMMUNITY_ACTIVITY_WINDOW_MS = 24 * 60 * 60 * 1000;
+/** Happening Now + Community in Action share the same lookback window. */
+export const COMMUNITY_ACTIVITY_WINDOW_MS = 48 * 60 * 60 * 1000;
 
-/** Happening Now counter on National Map — full 48 hours. */
-export const HAPPENING_NOW_WINDOW_MS = 48 * 60 * 60 * 1000;
+/** @deprecated Prefer COMMUNITY_ACTIVITY_WINDOW_MS — same 48h window. */
+export const HAPPENING_NOW_WINDOW_MS = COMMUNITY_ACTIVITY_WINDOW_MS;
 
 /** Auto-generated share aggregate rows (removed from product). */
 export const HIDDEN_COMMUNITY_FEED_CATEGORIES = new Set(["auto_shares_today"]);
@@ -62,7 +62,7 @@ function mapFeedRows(
 
 /**
  * One page of the feed, mixed ~70% Community Activity.
- * Prefers the past 24 hours; falls back to newest overall when the window is thin.
+ * Only includes the past {@link COMMUNITY_ACTIVITY_WINDOW_MS} (48 hours).
  * Growing `limit` returns a superset of the previous page, so "Load more" is stable.
  */
 export async function loadCommunityActivityFeedPage(
@@ -73,26 +73,27 @@ export async function loadCommunityActivityFeedPage(
   const sinceIso = new Date(Date.now() - COMMUNITY_ACTIVITY_WINDOW_MS).toISOString();
   const fetchLimit = pageLimit * FETCH_MULTIPLIER;
 
-  const { data: withinWindow } = await supabase
+  let query = supabase
     .from("community_activity")
     .select(feedSelect)
     .gte("created_at", sinceIso)
     .order("created_at", { ascending: false })
     .limit(fetchLimit);
 
-  let candidates = (withinWindow ?? []).filter((r) => !isHiddenCommunityFeedRow(r));
-
-  if (candidates.length < pageLimit) {
-    const { data: latest } = await supabase
-      .from("community_activity")
-      .select(feedSelect)
-      .order("created_at", { ascending: false })
-      .limit(fetchLimit);
-    candidates = (latest ?? []).filter((r) => !isHiddenCommunityFeedRow(r));
+  if (HIDDEN_COMMUNITY_FEED_CATEGORIES.size > 0) {
+    query = query.not(
+      "feed_category",
+      "in",
+      `(${[...HIDDEN_COMMUNITY_FEED_CATEGORIES].join(",")})`
+    );
   }
 
+  const { data: withinWindow } = await query;
+  const candidates = (withinWindow ?? []).filter((r) => !isHiddenCommunityFeedRow(r));
   const rows = mixCommunityActivityFeed(mapFeedRows(candidates), pageLimit);
-  return { rows, hasMore: candidates.length > rows.length };
+  // More rows exist in the window than this page is showing.
+  const hasMore = candidates.length > rows.length;
+  return { rows, hasMore };
 }
 
 export async function loadCommunityActivityFeed(

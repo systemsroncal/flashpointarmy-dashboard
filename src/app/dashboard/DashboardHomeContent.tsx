@@ -9,7 +9,7 @@ import {
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
 import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
-import { loadCommunityActivityFeed } from "@/lib/community/community-activity-feed";
+import { loadCommunityActivityFeedPage } from "@/lib/community/community-activity-feed";
 import {
   isMemberOnboardingAudience,
   loadMemberOnboardingSnapshot,
@@ -76,11 +76,15 @@ export default async function DashboardHomeContent() {
     };
   }
 
-  let feed: Awaited<ReturnType<typeof loadCommunityActivityFeed>> = [];
+  let feed: Awaited<ReturnType<typeof loadCommunityActivityFeedPage>>["rows"] = [];
+  let feedHasMore = false;
   try {
-    feed = await loadCommunityActivityFeed(supabase);
+    const page = await loadCommunityActivityFeedPage(supabase);
+    feed = page.rows;
+    feedHasMore = page.hasMore;
   } catch {
     feed = [];
+    feedHasMore = false;
   }
 
   let chapters: { id: string; name: string; state: string }[] = [];
@@ -109,6 +113,7 @@ export default async function DashboardHomeContent() {
     <NationalOverview
       initialStats={stats}
       initialFeed={feed}
+      initialFeedHasMore={feedHasMore}
       chapters={chapters}
       memberOnboarding={memberOnboarding}
       viewerRoles={roleNames}

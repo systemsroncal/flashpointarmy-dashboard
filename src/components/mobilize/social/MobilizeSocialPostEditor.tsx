@@ -2,6 +2,8 @@
 
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
+import { VideoEmbedDialog } from "@/components/mobilize/social/VideoEmbedDialog";
+import { trimTrailingFeedHtml } from "@/lib/mobilize/social/sanitize-feed-html";
 import { MAX_MOBILIZE_ANNOUNCEMENT_IMAGES } from "@/lib/mobilize/announcement-images";
 import { DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS } from "@/lib/mobilize/image-upload-limits";
 import {
@@ -45,6 +47,11 @@ export type MobilizePostCommentsPolicy = "everyone" | "leaders_only";
 type EditorHandle = {
   execCommand: (cmd: string) => void;
   insertContent: (html: string) => void;
+  focus?: (skipFocus?: boolean) => void;
+  selection?: {
+    getBookmark?: (type?: number, normalized?: boolean) => unknown;
+    moveToBookmark?: (bookmark: unknown) => void;
+  };
 };
 
 type Props = {
@@ -61,7 +68,7 @@ type Props = {
   postLabel?: string;
   /** Header under the visibility / comments pill. */
   headingLabel?: string;
-  onPost?: () => void;
+  onPost?: (preparedHtml: string) => void | Promise<void>;
   posting?: boolean;
   canPost?: boolean;
   showVisibility?: boolean;
@@ -104,6 +111,9 @@ export function MobilizeSocialPostEditor({
   const editorRef = useRef<EditorHandle | null>(null);
   const [uploading, setUploading] = useState(false);
   const [maxImages, setMaxImages] = useState(MAX_MOBILIZE_ANNOUNCEMENT_IMAGES);
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [videoDialogUrl, setVideoDialogUrl] = useState("");
+  const videoBookmarkRef = useRef<unknown>(null);
   const visibilityLabel = "Post to public";
 
   useEffect(() => {
@@ -185,20 +195,72 @@ export function MobilizeSocialPostEditor({
     onImageUrlsChange?.(imageUrls.filter((_, i) => i !== index));
   }
 
-  function insertVideoEmbed() {
-    if (disabled || posting) return;
-    const promptRaw =
-      typeof window !== "undefined"
-        ? window.prompt("Paste video URL (YouTube, Vimeo, or direct MP4/WebM):")
-        : null;
-    if (!promptRaw?.trim()) return;
-    const safe = promptRaw.trim().replace(/\]/g, "%5D");
-    const ed = editorRef.current;
-    if (ed?.insertContent) {
-      ed.insertContent(`<p>[fpa_video]${safe}[/fpa_video]</p><p><br></p>`);
-      return;
+  /** The dialog steals focus, so remember where the caret (or selected poster) was. */
+  function rememberEditorSelection() {
+    try {
+      videoBookmarkRef.current = editorRef.current?.selection?.getBookmark?.(2, true) ?? null;
+    } catch {
+      videoBookmarkRef.current = null;
     }
-    onChange(`${value}<p>[fpa_video]${safe}[/fpa_video]</p>`);
+  }
+
+  function restoreEditorSelection() {
+    const ed = editorRef.current;
+    if (!ed) return;
+    try {
+      ed.focus?.(false);
+      if (videoBookmarkRef.current) ed.selection?.moveToBookmark?.(videoBookmarkRef.current);
+    } catch {
+      /* selection restore is best-effort */
+    }
+  }
+
+  function openVideoDialog() {
+    if (disabled || posting) return;
+    rememberEditorSelection();
+    setVideoDialogUrl("");
+    setVideoDialogOpen(true);
+  }
+
+  /** Clicking a poster selects it in TinyMCE, so inserting/deleting replaces that block. */
+  const handleVideoBlockClick = useCallback(
+    (url: string) => {
+      if (disabled || posting) return;
+      rememberEditorSelection();
+      setVideoDialogUrl(url);
+      setVideoDialogOpen(true);
+    },
+    [disabled, posting]
+  );
+
+  function applyVideoUrl(url: string) {
+    const safe = url.trim().replace(/\]/g, "%5D");
+    const ed = editorRef.current;
+    const replacing = Boolean(videoDialogUrl);
+    if (ed?.insertContent) {
+      restoreEditorSelection();
+      ed.insertContent(
+        replacing
+          ? `<p>[fpa_video]${safe}[/fpa_video]</p>`
+          : `<p>[fpa_video]${safe}[/fpa_video]</p><p><br></p>`
+      );
+    } else {
+      onChange(`${value}<p>[fpa_video]${safe}[/fpa_video]</p>`);
+    }
+    setVideoDialogOpen(false);
+  }
+
+  function handlePostClick() {
+    if (!onPost) return;
+    const prepared = trimTrailingFeedHtml(value);
+    if (prepared !== value) onChange(prepared);
+    void onPost(prepared);
+  }
+
+  function removeSelectedVideo() {
+    restoreEditorSelection();
+    editorRef.current?.execCommand("Delete");
+    setVideoDialogOpen(false);
   }
 
   // TRUTH_ICON is tuned for the dark hub; on white surfaces it washes out.
@@ -342,6 +404,8 @@ export function MobilizeSocialPostEditor({
         showHelper={false}
         variant="social"
         socialSurface={surface}
+        videoBlockPreview
+        onVideoBlockClick={handleVideoBlockClick}
         onEditorInit={(ed) => {
           editorRef.current = ed;
         }}
@@ -443,7 +507,7 @@ export function MobilizeSocialPostEditor({
               <IconButton
                 size="small"
                 disabled={disabled || posting}
-                onClick={insertVideoEmbed}
+                onClick={openVideoDialog}
                 sx={footerIconSx}
                 aria-label="Add video"
               >
@@ -463,7 +527,7 @@ export function MobilizeSocialPostEditor({
             <Button
               variant="contained"
               disabled={posting || !postEnabled || charsLeft < 0}
-              onClick={onPost}
+              onClick={handlePostClick}
               sx={{
                 borderRadius: 99,
                 textTransform: "none",
@@ -565,7 +629,22 @@ export function MobilizeSocialPostEditor({
     </Box>
   );
 
-  const body = useDesignAccent ? designBody : legacyBody;
+  const videoDialog = (
+    <VideoEmbedDialog
+      open={videoDialogOpen}
+      initialUrl={videoDialogUrl}
+      onClose={() => setVideoDialogOpen(false)}
+      onSubmit={applyVideoUrl}
+      onRemove={removeSelectedVideo}
+    />
+  );
+
+  const body = (
+    <>
+      {useDesignAccent ? designBody : legacyBody}
+      {videoDialog}
+    </>
+  );
 
   if (!isDark) {
     return <ThemeProvider theme={mobilizePanelTheme}>{body}</ThemeProvider>;

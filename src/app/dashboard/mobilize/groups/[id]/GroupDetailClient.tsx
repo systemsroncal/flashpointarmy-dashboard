@@ -573,8 +573,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     return isLeader || isSuperAdmin;
   }
 
-  async function postWall() {
-    const plain = wallHtml.replace(/<[^>]+>/g, "").trim();
+  async function postWall(preparedHtml?: string) {
+    const html = preparedHtml ?? wallHtml;
+    const plain = html.replace(/<[^>]+>/g, "").trim();
     if (!plain && !wallImages.length) return;
     setWallPosting(true);
     try {
@@ -583,7 +584,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         comments_policy?: string;
         image_urls?: string[];
       } = {
-        content_html: wallHtml,
+        content_html: html,
         image_urls: wallImages,
       };
       if (isLeader) body.comments_policy = leaderCommentsPolicy;
@@ -625,8 +626,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     }
   }
 
-  async function saveMessageEdit() {
+  async function saveMessageEdit(preparedHtml?: string) {
     if (!msgEdit) return;
+    const content_html = preparedHtml ?? msgEdit.content_html;
     setWallPosting(true);
     try {
       const res = await fetch(`/api/mobilize/groups/${groupId}/messages/${msgEdit.id}`, {
@@ -635,11 +637,11 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         body: JSON.stringify(
           isLeader || isSuperAdmin
             ? {
-                content_html: msgEdit.content_html,
+                content_html,
                 image_urls: msgEdit.image_urls,
                 comments_policy: msgEdit.comments_policy,
               }
-            : { content_html: msgEdit.content_html, image_urls: msgEdit.image_urls }
+            : { content_html, image_urls: msgEdit.image_urls }
         ),
       });
       const json = await res.json();
@@ -2694,7 +2696,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 }
                 showVisibility={false}
                 postLabel="Save"
-                onPost={() => void saveMessageEdit()}
+                onPost={(html) => void saveMessageEdit(html)}
                 posting={wallPosting}
                 canPost={
                   Boolean(msgEdit.content_html.replace(/<[^>]+>/g, "").trim()) ||

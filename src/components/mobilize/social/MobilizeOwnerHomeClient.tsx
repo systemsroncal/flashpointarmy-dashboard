@@ -88,15 +88,16 @@ export function MobilizeOwnerHomeClient() {
     void load();
   }, [load]);
 
-  async function publishPost() {
-    const plain = composerHtml.replace(/<[^>]+>/g, "").trim();
+  async function publishPost(preparedHtml?: string) {
+    const html = preparedHtml ?? composerHtml;
+    const plain = html.replace(/<[^>]+>/g, "").trim();
     if (!plain && !composerImages.length) return;
     setPosting(true);
     try {
       const res = await fetch(`/api/mobilize/social/profiles/${me.id}/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content_html: composerHtml, image_urls: composerImages }),
+        body: JSON.stringify({ content_html: html, image_urls: composerImages }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Post failed.");
@@ -116,9 +117,10 @@ export function MobilizeOwnerHomeClient() {
     setEditPostImages(post.image_urls ?? []);
   }
 
-  async function saveEditPost() {
+  async function saveEditPost(preparedHtml?: string) {
     if (!editPostTarget) return;
-    const plain = editPostHtml.replace(/<[^>]+>/g, "").trim();
+    const html = preparedHtml ?? editPostHtml;
+    const plain = html.replace(/<[^>]+>/g, "").trim();
     if (!plain && !editPostImages.length) return;
     setEditPostSaving(true);
     try {
@@ -129,7 +131,7 @@ export function MobilizeOwnerHomeClient() {
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content_html: editPostHtml, image_urls: editPostImages }),
+            body: JSON.stringify({ content_html: html, image_urls: editPostImages }),
           }
         );
       } else if (
@@ -142,7 +144,7 @@ export function MobilizeOwnerHomeClient() {
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content_html: editPostHtml, image_urls: editPostImages }),
+            body: JSON.stringify({ content_html: html, image_urls: editPostImages }),
           }
         );
       } else {
@@ -256,7 +258,7 @@ export function MobilizeOwnerHomeClient() {
                   imageUrls={composerImages}
                   onImageUrlsChange={setComposerImages}
                   postLabel="Post"
-                  onPost={() => void publishPost()}
+                  onPost={(html) => void publishPost(html)}
                   posting={posting}
                   canPost={canPost}
                 />
@@ -416,7 +418,7 @@ export function MobilizeOwnerHomeClient() {
                   editPostTarget.kind === "group_message" ? editPostTarget.group_id : undefined
                 }
                 postLabel="Save"
-                onPost={() => void saveEditPost()}
+                onPost={(html) => void saveEditPost(html)}
                 posting={editPostSaving}
                 canPost={
                   Boolean(editPostHtml.replace(/<[^>]+>/g, "").trim()) || editPostImages.length > 0

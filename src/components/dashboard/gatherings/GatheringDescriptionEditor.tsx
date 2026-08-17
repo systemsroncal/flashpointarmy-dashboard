@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  VIDEO_BLOCK_CLASS,
+  VIDEO_BLOCK_CONTENT_STYLE,
+  shortcodesToVideoBlocks,
+  videoBlocksToShortcodes,
+} from "@/lib/media/video-embed-blocks";
 import { Box, InputLabel, Typography } from "@mui/material";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
@@ -58,6 +64,10 @@ type Props = {
   helperText?: string;
   /** Adds a “Video” toolbar control that inserts a Plyr-ready embed block (YouTube, Vimeo, MP4, etc.). */
   videoEmbedButton?: boolean;
+  /** Shows video shortcodes as a non-editable poster block instead of raw `[fpa_video]` text. */
+  videoBlockPreview?: boolean;
+  /** Called with the current URL when the author clicks a poster block (block stays selected). */
+  onVideoBlockClick?: (url: string) => void;
   /**
    * When set, enables TinyMCE Image (upload to this endpoint or paste an HTTPS URL).
    * Endpoint must accept multipart `file` and return `{ location: string }`.
@@ -79,6 +89,8 @@ export function GatheringDescriptionEditor({
   onEditorInit,
   helperText,
   videoEmbedButton = false,
+  videoBlockPreview = false,
+  onVideoBlockClick,
   imageUploadEndpoint,
   darkSurface = false,
 }: Props) {
@@ -92,15 +104,16 @@ export function GatheringDescriptionEditor({
       : {};
     const videoToolbar = videoEmbedButton ? " | fplyrvideo" : "";
     const imageToolbar = imageUploadEndpoint ? " | image" : "";
-    const videoSchema = videoEmbedButton
-      ? {
-          extended_valid_elements:
-            "div[class|data-video-url|data-mce-bogus|contenteditable|id|style],span[class|style|data-mce-bogus]",
-          verify_html: false,
-          code_dialog_width: 900,
-          code_dialog_height: 560,
-        }
-      : {};
+    const videoSchema =
+      videoEmbedButton || videoBlockPreview
+        ? {
+            extended_valid_elements:
+              "div[class|data-video-url|data-mce-bogus|contenteditable|id|style],span[class|style|data-mce-bogus],img[class|src|alt|style]",
+            verify_html: false,
+            code_dialog_width: 900,
+            code_dialog_height: 560,
+          }
+        : {};
     const imageUploadConfig = imageUploadEndpoint
       ? {
           images_upload_handler: async (blobInfo: { blob: () => Blob; filename: () => string }) => {
@@ -125,6 +138,7 @@ export function GatheringDescriptionEditor({
       execCommand: (cmd: string) => void;
       getBody: () => HTMLElement;
       dom: { select: (selector: string, scope?: HTMLElement) => HTMLElement[] };
+      selection?: { select: (node: Node) => void };
       on: (event: string, cb: (...args: unknown[]) => void) => void;
       notificationManager?: {
         open: (spec: {
@@ -198,6 +212,28 @@ export function GatheringDescriptionEditor({
     const registerEditorExtras = (raw: unknown) => {
       const ed = raw as TinyEditor;
       onEditorInit?.(ed);
+      if (videoBlockPreview) {
+        ed.on("BeforeSetContent", (...args: unknown[]) => {
+          const e = args[0] as { content?: string } | undefined;
+          if (e && typeof e.content === "string") {
+            e.content = shortcodesToVideoBlocks(e.content);
+          }
+        });
+        ed.on("GetContent", (...args: unknown[]) => {
+          const e = args[0] as { content?: string; format?: string } | undefined;
+          if (e && e.format !== "text" && typeof e.content === "string") {
+            e.content = videoBlocksToShortcodes(e.content);
+          }
+        });
+        ed.on("click", (...args: unknown[]) => {
+          const e = args[0] as { target?: EventTarget | null } | undefined;
+          const target = e?.target as HTMLElement | null | undefined;
+          const block = target?.closest?.(`.${VIDEO_BLOCK_CLASS}`) as HTMLElement | null;
+          if (!block) return;
+          ed.selection?.select(block);
+          onVideoBlockClick?.(block.getAttribute("data-video-url") ?? "");
+        });
+      }
       if (videoEmbedButton) {
         ed.ui.registry.addButton("fplyrvideo", {
           text: "Video",
@@ -235,6 +271,9 @@ export function GatheringDescriptionEditor({
       const socialChrome = socialDark
         ? { skin: "oxide-dark" as const, content_css: "dark" as const }
         : {};
+      const socialContentStyle = videoBlockPreview
+        ? `${socialBodyStyle}\n${VIDEO_BLOCK_CONTENT_STYLE}`
+        : socialBodyStyle;
       return {
         height: 96,
         base_url: TINYMCE_BASE,
@@ -252,9 +291,10 @@ export function GatheringDescriptionEditor({
         paste_data_images: false,
         relative_urls: false,
         convert_urls: true,
-        content_style: socialBodyStyle,
+        content_style: socialContentStyle,
         setup: registerEditorExtras,
         ...EMOJI_CONFIG,
+        ...videoSchema,
         ...socialChrome,
       };
     }
@@ -322,7 +362,17 @@ export function GatheringDescriptionEditor({
       ...imageUploadConfig,
       ...darkChrome,
     };
-  }, [compact, videoEmbedButton, imageUploadEndpoint, darkSurface, isSocial, socialDark, onEditorInit]);
+  }, [
+    compact,
+    videoEmbedButton,
+    videoBlockPreview,
+    onVideoBlockClick,
+    imageUploadEndpoint,
+    darkSurface,
+    isSocial,
+    socialDark,
+    onEditorInit,
+  ]);
 
   const defaultHelper =
     "Self-hosted TinyMCE (GPL). HTML is saved to the database. For images, use the Image button (upload or HTTPS URL).";

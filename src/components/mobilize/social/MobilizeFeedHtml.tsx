@@ -3,6 +3,7 @@
 import { findAllVideoMarkers } from "@/components/dashboard/notifications/announcement-video-markers";
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { resolveVideoForPlyr } from "@/lib/media/resolve-plyr-video";
+import { trimTrailingFeedHtml } from "@/lib/mobilize/social/sanitize-feed-html";
 import DOMPurify from "isomorphic-dompurify";
 import { Box, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -60,7 +61,7 @@ function HtmlFragment({
 }
 
 export function MobilizeFeedHtml({ html, plain, sx }: Props) {
-  const rawHtml = typeof html === "string" ? html.trim() : "";
+  const rawHtml = typeof html === "string" ? trimTrailingFeedHtml(html.trim()) : "";
   const parts = useMemo(() => (rawHtml ? splitParts(rawHtml) : []), [rawHtml]);
 
   if (parts.length > 0) {
@@ -91,6 +92,7 @@ export function MobilizeFeedHtml({ html, plain, sx }: Props) {
                     initialSeconds={0}
                     onPersistSeconds={() => {}}
                     autoplayMuted={false}
+                    showProgressHint={false}
                   />
                 </Box>
               );

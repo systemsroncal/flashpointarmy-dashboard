@@ -42,7 +42,7 @@ type Props = {
   onWallImagesChange: (urls: string[]) => void;
   leaderCommentsPolicy: "everyone" | "leaders_only";
   onLeaderCommentsPolicyChange: (v: "everyone" | "leaders_only") => void;
-  onPost: () => Promise<void>;
+  onPost: (preparedHtml: string) => Promise<void>;
   onEdit?: (post: EnrichedGroupMessage) => void;
   onDelete?: (post: EnrichedGroupMessage) => void;
   onPin?: (post: EnrichedGroupMessage, pin: boolean) => void;
@@ -142,7 +142,7 @@ export function MobilizeGroupFeed({
             onImageUrlsChange={onWallImagesChange}
             groupId={groupId}
             postLabel="Post"
-            onPost={() => void onPost()}
+            onPost={(html) => void onPost(html)}
             posting={posting}
             canPost={hasComposerContent()}
           />

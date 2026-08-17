@@ -142,21 +142,21 @@ function StatCountWithExactTooltip({
 export function NationalOverview({
   initialStats,
   initialFeed,
+  initialFeedHasMore = false,
   chapters,
   memberOnboarding = null,
   viewerRoles = [],
 }: {
   initialStats: OverviewStatBlock;
   initialFeed: ActivityFeedRow[];
+  initialFeedHasMore?: boolean;
   chapters: ChapterRow[];
   memberOnboarding?: MemberOnboardingSnapshot | null;
   viewerRoles?: string[];
 }) {
   const [stats, setStats] = useState(initialStats);
   const [feed, setFeed] = useState(initialFeed);
-  const [feedHasMore, setFeedHasMore] = useState(
-    initialFeed.length >= COMMUNITY_ACTIVITY_FEED_LIMIT
-  );
+  const [feedHasMore, setFeedHasMore] = useState(initialFeedHasMore);
   const [feedLoadingMore, setFeedLoadingMore] = useState(false);
   const [chapterRows, setChapterRows] = useState(chapters);
   /** Reference members by state (from city JSON); map fill only */
@@ -192,8 +192,8 @@ export function NationalOverview({
     feedKnownIdsRef.current = new Set(initialFeed.map((r) => r.id));
     feedSoundReadyRef.current = false;
     feedLimitRef.current = COMMUNITY_ACTIVITY_FEED_LIMIT;
-    setFeedHasMore(initialFeed.length >= COMMUNITY_ACTIVITY_FEED_LIMIT);
-  }, [initialFeed]);
+    setFeedHasMore(initialFeedHasMore);
+  }, [initialFeed, initialFeedHasMore]);
 
   useEffect(() => {
     const ids = feed.map((r) => r.id);
@@ -1064,7 +1064,7 @@ export function NationalOverview({
               Community in Action
             </Typography>
             <Typography variant="caption" color="error.main" sx={{ display: "block", mb: 0.5 }}>
-              Last {feed.length} activities · past 24 hours
+              Last {feed.length} activities · past 48 hours
             </Typography>
             <Box
               sx={{
