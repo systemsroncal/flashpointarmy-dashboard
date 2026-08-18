@@ -302,8 +302,10 @@ export function WelcomeVideoPopup() {
                   borderRadius: 99,
                   px: 3,
                   py: 1,
-                  bgcolor: "#1a1a2e",
-                  "&:hover": { bgcolor: "#16213e" },
+                  bgcolor: "#fff",
+                  color: "#000",
+                  border: "1px solid rgba(0,0,0,0.15)",
+                  "&:hover": { bgcolor: "#f0f0f0" },
                 }}
               >
                 Update Profile
