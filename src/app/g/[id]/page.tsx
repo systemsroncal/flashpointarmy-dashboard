@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   PublicGroupProfileView,
@@ -7,6 +8,52 @@ import { applyMobilizeAutoCloseInactive } from "@/lib/mobilize/apply-auto-close"
 import { createAdminClient } from "@/utils/supabase/admin";
 
 type Props = { params: Promise<{ id: string }> };
+
+const DEFAULT_META_IMAGE = "https://fparmychapters.com/wp-content/uploads/2026/04/Metaimg-FP-army.png";
+
+async function fetchGroupForMetadata(id: string) {
+  const admin = createAdminClient();
+  const groupSelect = "id, name, description, parent_group_id, publish_status";
+
+  let { data: group } = await admin.from("mobilize_groups").select(groupSelect).eq("id", id).maybeSingle();
+
+  if (!group) {
+    const bySlug = await admin.from("mobilize_groups").select(groupSelect).eq("public_slug", id).maybeSingle();
+    group = bySlug.data;
+  }
+
+  return group;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const group = await fetchGroupForMetadata(id);
+
+  if (!group || group.parent_group_id == null || group.publish_status === "draft") {
+    return {};
+  }
+
+  const title = `Join ${group.name} group`;
+  const description = group.description
+    ? group.description.substring(0, 160)
+    : undefined;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [DEFAULT_META_IMAGE],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [DEFAULT_META_IMAGE],
+    },
+  };
+}
 
 export default async function PublicMobilizeGroupPage({ params }: Props) {
   const { id } = await params;

@@ -259,7 +259,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
       <DialogContent sx={{ bgcolor: "#fff", color: "#000" }}>
         <Typography variant="body2" sx={{ mb: 2, color: "rgba(0,0,0,0.65)" }}>
           {mode === "register"
-            ? "Create your member account. We’ll assign you to the nearest church by ZIP and add you to this group."
+            ? "Create your account to join this group. Join thousands of Patriots in your city that are part of The Flash Point Army."
             : "Sign in with your existing account. You’ll be added to this group if you aren’t already a member."}
         </Typography>
 
@@ -319,7 +319,6 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                   value={zipCode}
                   onChange={(e) => setZipCode(e.target.value)}
                   autoComplete="postal-code"
-                  helperText="Used to assign you to the nearest church (chapter)."
                   sx={fieldSx}
                 />
               </>
