@@ -189,7 +189,7 @@ export function WelcomeVideoPopup() {
         paper: {
           sx: {
             overflow: "visible",
-            maxWidth: "min(720px, 100vw - 32px)",
+            maxWidth: "min(936px, 100vw - 32px)",
             transform: "none",
             bgcolor: "#fff",
             color: "#000",
@@ -199,22 +199,6 @@ export function WelcomeVideoPopup() {
     >
       {!videoFinished ? (
         <>
-          <DialogTitle
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              pr: 1,
-              fontWeight: 800,
-            }}
-          >
-            <Typography component="span" variant="subtitle1" sx={{ fontWeight: 800 }}>
-              Welcome to FlashPoint Army
-            </Typography>
-            <IconButton edge="end" onClick={handleClose} aria-label="Close">
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
           <DialogContent sx={{ pt: 0, overflow: "visible" }}>
             <div
               ref={mountRef}
@@ -302,10 +286,10 @@ export function WelcomeVideoPopup() {
                   borderRadius: 99,
                   px: 3,
                   py: 1,
-                  bgcolor: "#fff",
-                  color: "#000",
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  "&:hover": { bgcolor: "#f0f0f0" },
+                  bgcolor: "#000",
+                  color: "#fff",
+                  border: "1px solid #000",
+                  "&:hover": { bgcolor: "#222" },
                 }}
               >
                 Update Profile
