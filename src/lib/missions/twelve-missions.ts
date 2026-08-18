@@ -99,6 +99,8 @@ export const MISSION_PHASES: MissionPhase[] = [
           "Pray regularly for your nation, elected officials, schools, churches and communities. Prayer becomes a measurable mission.",
         icon: faHandsPraying,
         difficulty: "beginner",
+        url: "/dashboard/mobilize/groups/6f2441f0-6c5e-4904-958d-071ef35f63b0",
+        linkLabel: "Join The War Room",
       },
     ],
   },
@@ -111,6 +113,16 @@ export const MISSION_PHASES: MissionPhase[] = [
     missions: [
       {
         number: 5,
+        title: "Join Your Local Chapter",
+        description:
+          "Approved leaders will begin launching local chapters across the country. As they become available, you'll be able to join a group, volunteer, participate in local gatherings, support community initiatives, and grow alongside other believers.",
+        icon: faUserGroup,
+        difficulty: "beginner",
+        url: "/dashboard/mobilize/map",
+        linkLabel: "Join groups",
+      },
+      {
+        number: 6,
         title: "Contact Your Lawmakers",
         description:
           "Make your voice count. Send emails, letters, or make phone calls regarding important legislation through action alerts by ACT for America.",
@@ -120,7 +132,7 @@ export const MISSION_PHASES: MissionPhase[] = [
         linkLabel: "Start Now",
       },
       {
-        number: 6,
+        number: 7,
         title: "Become a Biblical Citizenship Coach",
         description: "Now it makes sense. Not before.",
         icon: faChalkboardUser,
@@ -128,7 +140,7 @@ export const MISSION_PHASES: MissionPhase[] = [
         url: "https://www.patriotacademy.com/coach/flashpointarmy",
       },
       {
-        number: 7,
+        number: 8,
         title: "Support Election Integrity",
         description:
           "Serve as a poll worker, poll watcher (where permitted), or volunteer in lawful voter education efforts.",
@@ -146,7 +158,7 @@ export const MISSION_PHASES: MissionPhase[] = [
     headerBg: "#6b5420",
     missions: [
       {
-        number: 8,
+        number: 9,
         title: "Become a Federal Chaplain",
         description:
           "Bring hope and biblical values to your local community by becoming a certified chaplain through NSCA.",
@@ -155,7 +167,7 @@ export const MISSION_PHASES: MissionPhase[] = [
         url: "https://www.nsca.global/certification",
       },
       {
-        number: 9,
+        number: 10,
         title: "Display America's Foundations",
         description:
           "Bring faith back to the Public Square. Help advance projects that promote America's biblical heritage, including Ten Commandments displays, monuments, educational initiatives through Restoring Faith in America.",
@@ -172,15 +184,6 @@ export const MISSION_PHASES: MissionPhase[] = [
     difficulty: "advanced",
     headerBg: "#525252",
     missions: [
-      {
-        number: 10,
-        title: "Join Your Local Chapter",
-        description:
-          "Over the next few weeks, approved leaders will begin launching local chapters across the country. As they become available, you'll be able to join a chapter, volunteer, participate in local gatherings, support community initiatives, and grow alongside other believers.",
-        icon: faUserGroup,
-        difficulty: "advanced",
-        comingSoon: true,
-      },
       {
         number: 11,
         title: "Encourage Biblical Leaders",

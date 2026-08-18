@@ -1,6 +1,7 @@
 import { MobilizeContentShell } from "@/components/mobilize/MobilizeContentShell";
 import { MobilizeNotificationsSoundWatcher } from "@/components/mobilize/MobilizeNotificationsSoundWatcher";
 import { MobilizeToastProvider } from "@/components/mobilize/MobilizeToastProvider";
+import { WelcomeVideoPopup } from "@/components/mobilize/WelcomeVideoPopup";
 import { canAccessMobilizeModule, loadUserRoleNames } from "@/lib/auth/user-roles";
 import {
   normalizeChaptersViewerRoles,
@@ -38,6 +39,7 @@ export default async function MobilizeLayout({ children }: { children: React.Rea
   return (
     <MobilizeToastProvider>
       <MobilizeNotificationsSoundWatcher />
+      <WelcomeVideoPopup />
       <Suspense fallback={null}>
         <MobilizeContentShell>{children}</MobilizeContentShell>
       </Suspense>

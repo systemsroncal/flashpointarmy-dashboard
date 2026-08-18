@@ -9,7 +9,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 
 type Props = { params: Promise<{ id: string }> };
 
-const DEFAULT_META_IMAGE = "https://fparmychapters.com/wp-content/uploads/2026/04/Metaimg-FP-army.png";
+const DEFAULT_META_IMAGE = "https://fparmychapters.com/wp-content/uploads/2026/08/MetaIMG-Join-Group.jpg";
 
 async function fetchGroupForMetadata(id: string) {
   const admin = createAdminClient();
