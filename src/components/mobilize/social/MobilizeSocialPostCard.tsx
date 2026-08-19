@@ -89,6 +89,9 @@ export function MobilizeSocialPostCard({
     />
   );
   const feedMedia = <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />;
+  const hasRealImages = Boolean(
+    post.image_urls?.filter((u) => typeof u === "string" && u.trim().length > 0).length
+  );
 
   async function toggleBookmark() {
     if (!bookmarkRef) return;
@@ -218,7 +221,7 @@ export function MobilizeSocialPostCard({
               {feedMedia}
             </Box>
           ) : (
-            <MobilizeCollapsiblePostBody surface={surface} text={feedBody} media={feedMedia} plain={post.content} hasImages={Boolean(post.image_urls?.length)} />
+            <MobilizeCollapsiblePostBody surface={surface} text={feedBody} media={feedMedia} plain={post.content} hasImages={hasRealImages} />
           )}
         </Box>
         <Stack

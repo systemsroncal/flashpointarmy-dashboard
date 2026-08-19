@@ -3,35 +3,27 @@
 import { Box, Button } from "@mui/material";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
-/** If total text is under this (text-only), show everything. */
+/** Character threshold — text-only posts at or below this show everything. */
 const FULL_THRESHOLD = 450;
-/** Approximate line height in px for measuring 1 line. */
-const LINE_HEIGHT_PX = 24;
-/** Number of lines to show for text-only posts that need clamping. */
-const TEXT_CLAMP_LINES = 3;
+/** Collapsed max-height in px for text-only posts > 450 chars. */
+const TEXT_CLAMP_HEIGHT = 170;
+/** Collapsed max-height in px for image posts (≈ 1 line of text). */
+const IMAGE_CLAMP_HEIGHT = 28;
 
 type Props = {
-  /** Post text block. */
   text: ReactNode;
-  /** Post media (images) — never collapsed, always fully visible. */
   media?: ReactNode;
-  /** Match post card surface for the fade overlay. */
   surface?: "light" | "dark";
-  /** Plain text string used for character-count logic. */
   plain?: string;
-  /** Whether the post actually has images/videos. */
   hasImages?: boolean;
 };
 
 /**
- * Smart collapsible post body using height-based clamping.
+ * Smart collapsible post body.
  *
- * - Text-only posts ≤ 450 chars → show everything (no clamp).
- * - Text-only posts > 450 chars → clamp at 3 lines + More / Less.
- * - Posts with images → always clamp at 1 line + More / Less.
- *
- * Uses height measurement instead of webkitLineClamp so it works
- * with block-level children (Box, Stack, etc.).
+ * - Posts with images  → clamp text to 1 line + "More" / "Less", images always visible.
+ * - Text-only ≤ 450 chars → show everything (no toggle).
+ * - Text-only > 450 chars  → clamp at 170px + "Read more" / "Read less".
  */
 export function MobilizeCollapsiblePostBody({
   text,
@@ -43,19 +35,19 @@ export function MobilizeCollapsiblePostBody({
   const fullText = (plain ?? "").trim();
   const charCount = fullText.length;
 
-  // Text-only posts short enough → no clamp
+  // Text-only posts short enough → no clamp at all
   const skipClamp = !hasImages && charCount > 0 && charCount <= FULL_THRESHOLD;
+
+  // No text content → no clamp
+  const noText = charCount === 0;
 
   const [expanded, setExpanded] = useState(false);
   const [needsCollapse, setNeedsCollapse] = useState(false);
-  const [collapsedHeight, setCollapsedHeight] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const fullHeightRef = useRef<number | null>(null);
-  const measuredRef = useRef(false);
 
-  // Measure heights after render to determine if collapse is needed
+  // Measure after render to determine if collapse is needed
   useEffect(() => {
-    if (skipClamp) {
+    if (skipClamp || noText) {
       setNeedsCollapse(false);
       return;
     }
@@ -63,43 +55,41 @@ export function MobilizeCollapsiblePostBody({
     const el = containerRef.current;
     if (!el) return;
 
-    // Allow layout to settle, then measure
     const raf = requestAnimationFrame(() => {
-      // Measure full height
-      const prevMaxHeight = el.style.maxHeight;
+      // Temporarily remove clamp to measure full height
+      const prevMax = el.style.maxHeight;
       const prevOverflow = el.style.overflow;
-
       el.style.transition = "none";
       el.style.maxHeight = "none";
       el.style.overflow = "visible";
 
       const full = el.scrollHeight;
 
-      // Determine collapsed height:
-      // - Image posts: 1 line
-      // - Text-only long posts: 3 lines
-      const lines = hasImages ? 1 : TEXT_CLAMP_LINES;
-      const target = lines * LINE_HEIGHT_PX;
-
-      // Restore
-      el.style.maxHeight = prevMaxHeight;
+      el.style.maxHeight = prevMax;
       el.style.overflow = prevOverflow;
       el.style.transition = "";
 
-      fullHeightRef.current = full;
-      setCollapsedHeight(target);
-      setNeedsCollapse(full > target + 4);
-      measuredRef.current = true;
+      const collapsedHeight = hasImages ? IMAGE_CLAMP_HEIGHT : TEXT_CLAMP_HEIGHT;
+      setNeedsCollapse(full > collapsedHeight + 4);
     });
 
     return () => cancelAnimationFrame(raf);
-  }, [skipClamp, text, hasImages]);
+  }, [skipClamp, noText, text, hasImages]);
+
+  // Collapsed height value
+  const collapsedHeight = hasImages ? IMAGE_CLAMP_HEIGHT : TEXT_CLAMP_HEIGHT;
 
   const fadeTo = surface === "dark" ? "#0b0c16" : "#fff";
 
   const toggle = useCallback(() => {
     setExpanded((v) => !v);
   }, []);
+
+  // Determine button labels: "More"/"Less" for image posts, "Read more"/"Read less" for text-only
+  const moreLabel = hasImages ? "More" : "Read more";
+  const lessLabel = hasImages ? "Less" : "Read less";
+
+  const shouldCollapse = !skipClamp && !noText && needsCollapse;
 
   return (
     <Box>
@@ -109,16 +99,17 @@ export function MobilizeCollapsiblePostBody({
           position: "relative",
           overflow: "hidden",
           maxHeight:
-            skipClamp || !needsCollapse || expanded
+            !shouldCollapse || expanded
               ? "none"
-              : collapsedHeight ?? "none",
-          transition: needsCollapse && !skipClamp
+              : collapsedHeight,
+          transition: shouldCollapse
             ? "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)"
             : "none",
         }}
       >
         {text}
-        {!skipClamp && needsCollapse && !expanded ? (
+        {/* Gradient fade when collapsed */}
+        {shouldCollapse && !expanded ? (
           <Box
             sx={{
               pointerEvents: "none",
@@ -132,7 +123,8 @@ export function MobilizeCollapsiblePostBody({
           />
         ) : null}
       </Box>
-      {needsCollapse && !skipClamp ? (
+      {/* Toggle button */}
+      {shouldCollapse ? (
         <Button
           size="small"
           onClick={toggle}
@@ -152,9 +144,10 @@ export function MobilizeCollapsiblePostBody({
             },
           }}
         >
-          {expanded ? "Less" : "More"}
+          {expanded ? lessLabel : moreLabel}
         </Button>
       ) : null}
+      {/* Media renders BELOW text, always visible */}
       {media ? <Box sx={{ mt: 1.25 }}>{media}</Box> : null}
     </Box>
   );
