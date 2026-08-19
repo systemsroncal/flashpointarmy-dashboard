@@ -27,6 +27,8 @@ import {
   TextField,
   ThemeProvider,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import EmojiEmotionsOutlinedIcon from "@mui/icons-material/EmojiEmotionsOutlined";
 import Link from "next/link";
@@ -643,10 +645,18 @@ export function MobilizeSocialComments({
 
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
   const avatarFallback = viewerDisplayName?.trim() || "?";
-  const topComments = comments.slice(0, DEFAULT_VISIBLE_COMMENTS);
-  const restComments =
-    comments.length > DEFAULT_VISIBLE_COMMENTS ? comments.slice(DEFAULT_VISIBLE_COMMENTS) : [];
+
+  // On mobile (stacked columns), show all comments expanded.
+  // On desktop, show first 2 with expand/collapse.
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
+
+  const topComments = isDesktop ? comments.slice(0, DEFAULT_VISIBLE_COMMENTS) : [];
+  const restComments = isDesktop && comments.length > DEFAULT_VISIBLE_COMMENTS
+    ? comments.slice(DEFAULT_VISIBLE_COMMENTS)
+    : [];
   const hiddenCount = restComments.length;
+  const mobileComments = !isDesktop ? comments : [];
 
   const replyComposer = (
     <CommentComposer
@@ -698,6 +708,29 @@ export function MobilizeSocialComments({
           No comments yet. Start the conversation.
         </Typography>
       ) : null}
+      {/* Mobile: all comments rendered inline, no collapse */}
+      {mobileComments.map((c) => (
+        <CommentItem
+          key={c.id}
+          node={c}
+          commentReactionUrl={commentReactionUrl}
+          canComment={canComment}
+          onReply={(id, name) => {
+            setReplyParentId(id);
+            setReplyToName(name);
+            setCommentsExpanded(true);
+          }}
+          replyParentId={replyParentId}
+          replyComposer={replyComposer}
+          depth={0}
+          light={light}
+          viewerUserId={viewerUserId}
+          viewerIsSuperAdmin={viewerIsSuperAdmin}
+          deleting={deletingId === c.id}
+          onDelete={(id) => void deleteComment(id)}
+        />
+      ))}
+      {/* Desktop: first 2 always visible */}
       {topComments.map((c) => (
         <CommentItem
           key={c.id}
@@ -752,7 +785,7 @@ export function MobilizeSocialComments({
           </Box>
         </Box>
       ) : null}
-      {!loading && hiddenCount > 0 ? (
+      {!loading && isDesktop && hiddenCount > 0 ? (
         <Button
           size="small"
           onClick={() => setCommentsExpanded((v) => !v)}
