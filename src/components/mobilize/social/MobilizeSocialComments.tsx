@@ -641,15 +641,15 @@ export function MobilizeSocialComments({
     }
   }
 
-  if (!open) return null;
-
-  const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
-  const avatarFallback = viewerDisplayName?.trim() || "?";
-
   // On mobile (stacked columns), show all comments expanded.
   // On desktop, show first 2 with expand/collapse.
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
+
+  if (!open) return null;
+
+  const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
+  const avatarFallback = viewerDisplayName?.trim() || "?";
 
   const topComments = isDesktop ? comments.slice(0, DEFAULT_VISIBLE_COMMENTS) : [];
   const restComments = isDesktop && comments.length > DEFAULT_VISIBLE_COMMENTS

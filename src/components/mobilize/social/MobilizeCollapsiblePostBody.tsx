@@ -5,14 +5,12 @@ import {
   useClampAccordion,
 } from "@/lib/mobilize/social/use-clamp-accordion";
 import { Box, Button } from "@mui/material";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
-/** Max characters shown when a text-only post is clamped. */
+/** Characters shown when collapsed. */
 const TEXT_CLAMP_CHARS = 300;
-/** If the full text is under this threshold (text-only), show everything. */
+/** If total text is under this (text-only), show everything. */
 const TEXT_FULL_THRESHOLD = 450;
-/** Lines of text to show when the post also has images. */
-const IMAGE_TEXT_LINES = 1;
 
 type Props = {
   /** Post text block. */
@@ -30,30 +28,19 @@ type Props = {
 /**
  * Smart collapsible post body.
  *
- * - Text-only posts: if full text ≤ 450 chars show everything (no clamp);
- *   otherwise clamp to ~300 chars / 5 lines.
- * - Posts with images: show only 1 line of text + More / Less.
+ * - Posts with images: always clamp to 1 line + More / Less.
+ * - Text-only posts ≤ 450 chars → show everything (no clamp).
+ * - Text-only posts > 450 chars → clamp at ~300 chars / 1 line + More / Less.
  */
 export function MobilizeCollapsiblePostBody({ text, media, surface = "light", plain, hasImages = false }: Props) {
   const fullCharCount = (plain ?? "").length;
 
-  // For text-only posts that are short enough, skip the clamp entirely
+  // Text-only posts short enough → no clamp at all
   const skipClamp = !hasImages && fullCharCount > 0 && fullCharCount <= TEXT_FULL_THRESHOLD;
 
-  // Number of lines to clamp: 1 when images present, otherwise 5
-  const lineCount = hasImages ? IMAGE_TEXT_LINES : 5;
-  const accordion = useClampAccordion(skipClamp ? 9999 : lineCount);
+  // For clamping: use 1 line (works for both image and long-text posts)
+  const accordion = useClampAccordion(skipClamp ? 9999 : 1);
   const fadeTo = surface === "dark" ? "#0b0c16" : "#fff";
-
-  const clampSx = useMemo(
-    () =>
-      ({
-        display: "-webkit-box",
-        WebkitLineClamp: lineCount,
-        WebkitBoxOrient: "vertical",
-      }) as const,
-    [lineCount],
-  );
 
   return (
     <Box>
@@ -66,7 +53,13 @@ export function MobilizeCollapsiblePostBody({ text, media, surface = "light", pl
           maxHeight: skipClamp ? "none" : accordion.maxHeight ?? "none",
           transition:
             accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
-          ...(accordion.showClamp ? clampSx : {}),
+          ...(accordion.showClamp
+            ? {
+                display: "-webkit-box",
+                WebkitLineClamp: 1,
+                WebkitBoxOrient: "vertical",
+              }
+            : {}),
         }}
       >
         {text}
