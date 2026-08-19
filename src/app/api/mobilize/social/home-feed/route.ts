@@ -7,7 +7,8 @@ export async function GET(req: Request) {
   if (auth instanceof NextResponse) return auth;
 
   const url = new URL(req.url);
-  const limit = Math.min(60, Math.max(1, Number(url.searchParams.get("limit") || 40)));
+  const limit = Math.min(60, Math.max(1, Number(url.searchParams.get("limit") || 10)));
+  const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
   const scopeParam = url.searchParams.get("scope");
   const scope =
     scopeParam === "following" || scopeParam === "groups" || scopeParam === "recommended"
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
       : "for_you";
 
   try {
-    const feed = await loadMobilizeHomeFeed(auth.admin, auth.userId, limit, scope);
+    const feed = await loadMobilizeHomeFeed(auth.admin, auth.userId, limit, scope, offset);
     return NextResponse.json(feed);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to load feed.";

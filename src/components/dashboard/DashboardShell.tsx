@@ -79,6 +79,7 @@ import { createClient } from "@/utils/supabase/client";
 import { UserNotificationsMenu } from "./UserNotificationsMenu";
 import { MissionUpdatesNavIcon } from "./MissionUpdatesNavIcon";
 import { MobilizeVideoCamIcon } from "@/components/mobilize/MobilizeVideoCamIcon";
+import { WelcomeVideoPopup } from "@/components/mobilize/WelcomeVideoPopup";
 import { MissionUpdatesUnreadProvider } from "./MissionUpdatesUnreadProvider";
 import { HeaderSuperAdminProfileAvatar } from "./HeaderSuperAdminProfileAvatar";
 import { GlobalContainerShareItemListener } from "./GlobalContainerShareItemListener";
@@ -301,6 +302,12 @@ const NAV: NavItem[] = [
     module: MODULE_SLUGS.nationalOverview,
     icon: <HomeOutlinedIcon />,
   },
+  {
+    label: "Feed",
+    href: MOBILIZE_HOME_HREF,
+    module: MODULE_SLUGS.movilization,
+    icon: <DashboardOutlinedIcon />,
+  },
   // Groups is rendered as ChaptersGroupsNavGroup (not a flat link).
   {
     label: "Training",
@@ -325,12 +332,6 @@ const NAV: NavItem[] = [
     href: "/dashboard/notifications",
     module: MODULE_SLUGS.communications,
     icon: <CampaignIcon />,
-  },
-  {
-    label: "Feed",
-    href: MOBILIZE_HOME_HREF,
-    module: MODULE_SLUGS.movilization,
-    icon: <DashboardOutlinedIcon />,
   },
   {
     label: "Profile",
@@ -1320,11 +1321,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           ) : null}
           <Box sx={{ flexGrow: 1 }} />
           <RoleWelcomeVideoPrompt />
-          {isMobilize ? (
-            <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
-              <MobilizeVideoCamIcon />
-            </Box>
-          ) : null}
+          <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
+            <MobilizeVideoCamIcon />
+          </Box>
           <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
             <DashboardTourHelpButton />
           </Box>
@@ -1427,6 +1426,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         onEditModeChange={setProfileEditMode}
       />
       <GlobalContainerShareItemListener />
+      <WelcomeVideoPopup />
     </Box>
     </MissionUpdatesUnreadProvider>
     </DashboardPresenceProvider>

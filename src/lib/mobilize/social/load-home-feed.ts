@@ -12,13 +12,15 @@ export type HomeFeedResult = {
   mode: "following" | "recommended";
   recommendations: RecommendedUser[];
   scope: HomeFeedScope;
+  hasMore: boolean;
 };
 
 export async function loadMobilizeHomeFeed(
   admin: SupabaseClient,
   viewerId: string,
-  limit = 40,
-  scope: HomeFeedScope = "for_you"
+  limit = 10,
+  scope: HomeFeedScope = "for_you",
+  offset = 0
 ): Promise<HomeFeedResult> {
   const { data: memberships } = await admin
     .from("mobilize_group_members")
@@ -35,17 +37,20 @@ export async function loadMobilizeHomeFeed(
 
   const followingIds = [...new Set((followRows ?? []).map((r) => r.following_id as string))];
 
+  // Fetch one extra beyond limit to detect hasMore
+  const fetchLimit = limit + offset + 1;
+
   const [groupMessages, profilePosts, recommendations] = await Promise.all([
     scope === "following" || scope === "recommended"
       ? Promise.resolve([])
-      : loadGroupMessages(admin, viewerId, groupIds, limit, scope === "for_you"),
+      : loadGroupMessages(admin, viewerId, groupIds, fetchLimit, scope === "for_you"),
     scope === "groups"
       ? Promise.resolve([])
       : scope === "following"
-        ? loadProfilePosts(admin, viewerId, followingIds, limit, false)
+        ? loadProfilePosts(admin, viewerId, followingIds, fetchLimit, false)
         : scope === "recommended"
-          ? loadRecommendedPosts(admin, viewerId, groupIds, followingIds, limit)
-          : loadForYouProfilePosts(admin, viewerId, groupIds, followingIds, limit),
+          ? loadRecommendedPosts(admin, viewerId, groupIds, followingIds, fetchLimit)
+          : loadForYouProfilePosts(admin, viewerId, groupIds, followingIds, fetchLimit),
     loadRecommendations(admin, viewerId, groupIds, followingIds),
   ]);
 
@@ -62,22 +67,25 @@ export async function loadMobilizeHomeFeed(
     );
   }
 
-  const posts = merged.slice(0, limit);
+  const hasMore = merged.length > offset + limit;
+  const posts = merged.slice(offset, offset + limit);
   const mode =
     followingIds.length > 0 || (groupIds.length > 0 && groupMessages.length > 0)
       ? "following"
       : "recommended";
 
   if (posts.length || scope !== "for_you") {
-    return { posts, mode, recommendations, scope };
+    return { posts, mode, recommendations, scope, hasMore };
   }
 
-  const fallbackGroupMessages = await loadGroupMessages(admin, viewerId, groupIds, limit, true);
+  const fallbackGroupMessages = await loadGroupMessages(admin, viewerId, groupIds, fetchLimit, true);
+  const fallbackHasMore = fallbackGroupMessages.length > offset + limit;
   return {
-    posts: fallbackGroupMessages.slice(0, limit),
+    posts: fallbackGroupMessages.slice(offset, offset + limit),
     mode: "recommended",
     recommendations,
     scope,
+    hasMore: fallbackHasMore,
   };
 }
 

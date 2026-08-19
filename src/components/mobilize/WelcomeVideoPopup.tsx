@@ -191,9 +191,10 @@ export function WelcomeVideoPopup() {
     <Dialog
       open={open}
       onClose={(_e, reason) => {
-        // Prevent closing via backdrop click or Escape key.
-        // Dialog can only be dismissed through the Continue / Update Profile buttons after the video ends.
-        void reason;
+        // Allow backdrop click only after video finishes; Escape always blocked.
+        if (reason === "backdropClick" && videoFinished) {
+          setOpen(false);
+        }
       }}
       maxWidth="md"
       fullWidth

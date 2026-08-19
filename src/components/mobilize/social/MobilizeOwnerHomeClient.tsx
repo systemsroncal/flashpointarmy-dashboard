@@ -32,7 +32,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const HOME_TABS = [
   { id: "for_you", label: "For you" },
@@ -58,6 +58,10 @@ export function MobilizeOwnerHomeClient() {
   const isSuperAdmin = me.role_names.includes("super_admin");
   const [posts, setPosts] = useState<UnifiedFeedPost[]>([]);
   const [activeTab, setActiveTab] = useState<HomeTabId>("for_you");
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const offsetRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [composerHtml, setComposerHtml] = useState("");
@@ -70,14 +74,27 @@ export function MobilizeOwnerHomeClient() {
   const [editPostImages, setEditPostImages] = useState<string[]>([]);
   const [editPostSaving, setEditPostSaving] = useState(false);
 
-  const load = useCallback(async (opts?: { silent?: boolean }) => {
+  const PAGE_SIZE = 10;
+
+  const load = useCallback(async (opts?: { silent?: boolean; append?: boolean }) => {
+    if (!opts?.append) {
+      offsetRef.current = 0;
+    }
     if (!opts?.silent) setLoading(true);
     setError(null);
     try {
-      const feedRes = await fetch(`/api/mobilize/social/home-feed?scope=${activeTab}`);
+      const offset = opts?.append ? offsetRef.current : 0;
+      const feedRes = await fetch(`/api/mobilize/social/home-feed?scope=${activeTab}&limit=${PAGE_SIZE}&offset=${offset}`);
       const feedJson = await feedRes.json();
       if (!feedRes.ok) throw new Error(feedJson.error || "Failed to load feed.");
-      setPosts((feedJson.posts ?? []) as UnifiedFeedPost[]);
+      const newPosts = (feedJson.posts ?? []) as UnifiedFeedPost[];
+      if (opts?.append) {
+        setPosts((prev) => [...prev, ...newPosts]);
+      } else {
+        setPosts(newPosts);
+      }
+      setHasMore(Boolean(feedJson.hasMore));
+      offsetRef.current = offset + newPosts.length;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load home.");
       setPosts([]);
@@ -89,6 +106,23 @@ export function MobilizeOwnerHomeClient() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMore && !loading && !loadingMore) {
+          setLoadingMore(true);
+          void load({ silent: true, append: true }).finally(() => setLoadingMore(false));
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, load]);
 
   async function publishPost(preparedHtml?: string) {
     const html = preparedHtml ?? composerHtml;
@@ -353,6 +387,12 @@ export function MobilizeOwnerHomeClient() {
                       />
                     );
                   })}
+                  {/* Infinite scroll sentinel */}
+                  {hasMore && posts.length > 0 ? (
+                    <Box ref={sentinelRef} sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                      {loadingMore ? <CircularProgress size={22} /> : null}
+                    </Box>
+                  ) : null}
                 </Box>
               )}
             </Box>
