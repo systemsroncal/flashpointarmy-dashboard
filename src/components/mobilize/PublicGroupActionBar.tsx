@@ -73,6 +73,8 @@ export function PublicGroupActionBar({ groupId, enrollmentMode, visibility }: Pr
           } else {
             setMembershipUi("member");
           }
+          // Redirect logged-in users to the dashboard group profile
+          window.location.href = `/dashboard/mobilize/groups/${groupId}`;
           return;
         }
 
@@ -97,6 +99,8 @@ export function PublicGroupActionBar({ groupId, enrollmentMode, visibility }: Pr
   function onJoined(status: "approved" | "pending") {
     setMembershipUi(status === "pending" ? "pending" : "member");
     setError(null);
+    // Redirect to the group profile in the dashboard
+    window.location.href = `/dashboard/mobilize/groups/${groupId}`;
   }
 
   const memberLabel =
