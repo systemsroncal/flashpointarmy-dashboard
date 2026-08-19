@@ -191,15 +191,16 @@ export function WelcomeVideoPopup() {
             overflow: "visible",
             maxWidth: "min(936px, 100vw - 32px)",
             transform: "none",
-            bgcolor: "#fff",
+            bgcolor: videoFinished ? "#fff" : "transparent",
             color: "#000",
+            boxShadow: videoFinished ? undefined : "none",
           },
         },
       }}
     >
       {!videoFinished ? (
         <>
-          <DialogContent sx={{ pt: 0, overflow: "visible" }}>
+          <DialogContent sx={{ p: 0, overflow: "visible" }}>
             <div
               ref={mountRef}
               className="welcome-video-plyr-mount"
