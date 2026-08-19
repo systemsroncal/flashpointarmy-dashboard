@@ -271,7 +271,7 @@ export function WelcomeVideoPopup() {
               Welcome to FlashPoint Army Chapters.
             </Typography>
             <Typography variant="body2" sx={{ mb: 3, fontWeight: 600 }}>
-              — Gene Bailey & Teri
+              — Gene and Teri Bailey
             </Typography>
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
