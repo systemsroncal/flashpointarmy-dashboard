@@ -190,12 +190,7 @@ export function WelcomeVideoPopup() {
   return (
     <Dialog
       open={open}
-      onClose={(_e, reason) => {
-        // Allow backdrop click only after video finishes; Escape always blocked.
-        if (reason === "backdropClick" && videoFinished) {
-          setOpen(false);
-        }
-      }}
+      onClose={() => setOpen(false)}
       maxWidth="md"
       fullWidth
       disableEnforceFocus
