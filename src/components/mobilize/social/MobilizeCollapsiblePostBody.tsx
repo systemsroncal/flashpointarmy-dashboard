@@ -1,16 +1,14 @@
 "use client";
 
-import {
-  CLAMP_ACCORDION_TRANSITION,
-  useClampAccordion,
-} from "@/lib/mobilize/social/use-clamp-accordion";
 import { Box, Button } from "@mui/material";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
-/** Characters shown when collapsed. */
-const TEXT_CLAMP_CHARS = 300;
 /** If total text is under this (text-only), show everything. */
-const TEXT_FULL_THRESHOLD = 450;
+const FULL_THRESHOLD = 450;
+/** Approximate line height in px for measuring 1 line. */
+const LINE_HEIGHT_PX = 24;
+/** Number of lines to show for text-only posts that need clamping. */
+const TEXT_CLAMP_LINES = 3;
 
 type Props = {
   /** Post text block. */
@@ -26,44 +24,101 @@ type Props = {
 };
 
 /**
- * Smart collapsible post body.
+ * Smart collapsible post body using height-based clamping.
  *
- * - Posts with images: always clamp to 1 line + More / Less.
  * - Text-only posts ≤ 450 chars → show everything (no clamp).
- * - Text-only posts > 450 chars → clamp at ~300 chars / 1 line + More / Less.
+ * - Text-only posts > 450 chars → clamp at 3 lines + More / Less.
+ * - Posts with images → always clamp at 1 line + More / Less.
+ *
+ * Uses height measurement instead of webkitLineClamp so it works
+ * with block-level children (Box, Stack, etc.).
  */
-export function MobilizeCollapsiblePostBody({ text, media, surface = "light", plain, hasImages = false }: Props) {
-  const fullCharCount = (plain ?? "").length;
+export function MobilizeCollapsiblePostBody({
+  text,
+  media,
+  surface = "light",
+  plain,
+  hasImages = false,
+}: Props) {
+  const fullText = (plain ?? "").trim();
+  const charCount = fullText.length;
 
-  // Text-only posts short enough → no clamp at all
-  const skipClamp = !hasImages && fullCharCount > 0 && fullCharCount <= TEXT_FULL_THRESHOLD;
+  // Text-only posts short enough → no clamp
+  const skipClamp = !hasImages && charCount > 0 && charCount <= FULL_THRESHOLD;
 
-  // For clamping: use 1 line (works for both image and long-text posts)
-  const accordion = useClampAccordion(skipClamp ? 9999 : 1);
+  const [expanded, setExpanded] = useState(false);
+  const [needsCollapse, setNeedsCollapse] = useState(false);
+  const [collapsedHeight, setCollapsedHeight] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const fullHeightRef = useRef<number | null>(null);
+  const measuredRef = useRef(false);
+
+  // Measure heights after render to determine if collapse is needed
+  useEffect(() => {
+    if (skipClamp) {
+      setNeedsCollapse(false);
+      return;
+    }
+
+    const el = containerRef.current;
+    if (!el) return;
+
+    // Allow layout to settle, then measure
+    const raf = requestAnimationFrame(() => {
+      // Measure full height
+      const prevMaxHeight = el.style.maxHeight;
+      const prevOverflow = el.style.overflow;
+
+      el.style.transition = "none";
+      el.style.maxHeight = "none";
+      el.style.overflow = "visible";
+
+      const full = el.scrollHeight;
+
+      // Determine collapsed height:
+      // - Image posts: 1 line
+      // - Text-only long posts: 3 lines
+      const lines = hasImages ? 1 : TEXT_CLAMP_LINES;
+      const target = lines * LINE_HEIGHT_PX;
+
+      // Restore
+      el.style.maxHeight = prevMaxHeight;
+      el.style.overflow = prevOverflow;
+      el.style.transition = "";
+
+      fullHeightRef.current = full;
+      setCollapsedHeight(target);
+      setNeedsCollapse(full > target + 4);
+      measuredRef.current = true;
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [skipClamp, text, hasImages]);
+
   const fadeTo = surface === "dark" ? "#0b0c16" : "#fff";
+
+  const toggle = useCallback(() => {
+    setExpanded((v) => !v);
+  }, []);
 
   return (
     <Box>
       <Box
-        ref={accordion.ref}
-        onTransitionEnd={accordion.onTransitionEnd}
+        ref={containerRef}
         sx={{
           position: "relative",
           overflow: "hidden",
-          maxHeight: skipClamp ? "none" : accordion.maxHeight ?? "none",
-          transition:
-            accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
-          ...(accordion.showClamp
-            ? {
-                display: "-webkit-box",
-                WebkitLineClamp: 1,
-                WebkitBoxOrient: "vertical",
-              }
-            : {}),
+          maxHeight:
+            skipClamp || !needsCollapse || expanded
+              ? "none"
+              : collapsedHeight ?? "none",
+          transition: needsCollapse && !skipClamp
+            ? "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)"
+            : "none",
         }}
       >
         {text}
-        {accordion.showClamp ? (
+        {!skipClamp && needsCollapse && !expanded ? (
           <Box
             sx={{
               pointerEvents: "none",
@@ -77,10 +132,10 @@ export function MobilizeCollapsiblePostBody({ text, media, surface = "light", pl
           />
         ) : null}
       </Box>
-      {accordion.needsCollapse && !skipClamp ? (
+      {needsCollapse && !skipClamp ? (
         <Button
           size="small"
-          onClick={accordion.toggle}
+          onClick={toggle}
           sx={{
             mt: 0.5,
             px: 0,
@@ -97,7 +152,7 @@ export function MobilizeCollapsiblePostBody({ text, media, surface = "light", pl
             },
           }}
         >
-          {accordion.expanded ? "Less" : "More"}
+          {expanded ? "Less" : "More"}
         </Button>
       ) : null}
       {media ? <Box sx={{ mt: 1.25 }}>{media}</Box> : null}

@@ -239,8 +239,8 @@ async function loadProfilePosts(
 }
 
 /**
- * "Recommended" tab: combines posts from all groups the user belongs to
- * plus profile posts from co-members they don't yet follow.
+ * "Recommended" tab: shows posts from users the viewer does NOT follow
+ * and posts from groups the viewer has NOT joined.
  */
 async function loadRecommendedPosts(
   admin: SupabaseClient,
@@ -251,30 +251,39 @@ async function loadRecommendedPosts(
 ): Promise<UnifiedFeedPost[]> {
   const followingSet = new Set(followingIds);
   followingSet.add(viewerId);
+  const memberGroupSet = new Set(groupIds);
 
-  // Group messages from all groups the user belongs to
-  const groupMessages = await loadGroupMessages(admin, viewerId, groupIds, limit, true);
+  // --- 1. Profile posts from users NOT followed ---
+  // Find active users the viewer hasn't followed yet
+  const { data: nonFollowedProfiles } = await admin
+    .from("profiles")
+    .select("id")
+    .neq("id", viewerId)
+    .limit(200);
 
-  // Profile posts from co-members the user hasn't followed yet
-  let candidateIds: string[] = [];
-  if (groupIds.length) {
-    const { data: coMembers } = await admin
-      .from("mobilize_group_members")
-      .select("user_id")
-      .in("group_id", groupIds)
-      .eq("membership_status", "approved")
-      .neq("user_id", viewerId)
-      .limit(80);
+  const nonFollowedIds = (nonFollowedProfiles ?? [])
+    .map((p) => p.id as string)
+    .filter((id) => !followingSet.has(id))
+    .slice(0, 40);
 
-    for (const row of coMembers ?? []) {
-      const uid = row.user_id as string;
-      if (!followingSet.has(uid)) candidateIds.push(uid);
-    }
-  }
-  candidateIds = [...new Set(candidateIds)].slice(0, 30);
+  const profilePosts = nonFollowedIds.length
+    ? await loadProfilePosts(admin, viewerId, nonFollowedIds, limit, false)
+    : [];
 
-  const profilePosts = candidateIds.length
-    ? await loadProfilePosts(admin, viewerId, candidateIds, limit, false)
+  // --- 2. Group messages from groups NOT joined ---
+  // Find groups the viewer is not a member of
+  const { data: allGroups } = await admin
+    .from("mobilize_groups")
+    .select("id")
+    .limit(100);
+
+  const unjoinedGroupIds = (allGroups ?? [])
+    .map((g) => g.id as string)
+    .filter((id) => !memberGroupSet.has(id))
+    .slice(0, 30);
+
+  const groupMessages = unjoinedGroupIds.length
+    ? await loadGroupMessages(admin, viewerId, unjoinedGroupIds, limit, true)
     : [];
 
   const merged = [...groupMessages, ...profilePosts].sort(
