@@ -5,7 +5,7 @@ import { resolveMobilizeAuthors } from "@/lib/mobilize/social/resolve-authors";
 import { summarizeReactions, type ReactionType } from "@/lib/mobilize/social/reaction-summary";
 import { isFollowingUser } from "@/lib/mobilize/social/profile-access";
 
-export type HomeFeedScope = "for_you" | "following" | "groups";
+export type HomeFeedScope = "for_you" | "following" | "groups" | "recommended";
 
 export type HomeFeedResult = {
   posts: UnifiedFeedPost[];
@@ -36,14 +36,16 @@ export async function loadMobilizeHomeFeed(
   const followingIds = [...new Set((followRows ?? []).map((r) => r.following_id as string))];
 
   const [groupMessages, profilePosts, recommendations] = await Promise.all([
-    scope === "following"
+    scope === "following" || scope === "recommended"
       ? Promise.resolve([])
       : loadGroupMessages(admin, viewerId, groupIds, limit, scope === "for_you"),
     scope === "groups"
       ? Promise.resolve([])
       : scope === "following"
         ? loadProfilePosts(admin, viewerId, followingIds, limit, false)
-        : loadForYouProfilePosts(admin, viewerId, groupIds, followingIds, limit),
+        : scope === "recommended"
+          ? loadRecommendedPosts(admin, viewerId, groupIds, followingIds, limit)
+          : loadForYouProfilePosts(admin, viewerId, groupIds, followingIds, limit),
     loadRecommendations(admin, viewerId, groupIds, followingIds),
   ]);
 
@@ -51,6 +53,8 @@ export async function loadMobilizeHomeFeed(
   if (scope === "groups") {
     merged = groupMessages;
   } else if (scope === "following") {
+    merged = profilePosts;
+  } else if (scope === "recommended") {
     merged = profilePosts;
   } else {
     merged = [...groupMessages, ...profilePosts].sort(
@@ -232,6 +236,52 @@ async function loadProfilePosts(
       post_id: id,
     };
   });
+}
+
+/**
+ * "Recommended" tab: combines posts from all groups the user belongs to
+ * plus profile posts from co-members they don't yet follow.
+ */
+async function loadRecommendedPosts(
+  admin: SupabaseClient,
+  viewerId: string,
+  groupIds: string[],
+  followingIds: string[],
+  limit: number
+): Promise<UnifiedFeedPost[]> {
+  const followingSet = new Set(followingIds);
+  followingSet.add(viewerId);
+
+  // Group messages from all groups the user belongs to
+  const groupMessages = await loadGroupMessages(admin, viewerId, groupIds, limit, true);
+
+  // Profile posts from co-members the user hasn't followed yet
+  let candidateIds: string[] = [];
+  if (groupIds.length) {
+    const { data: coMembers } = await admin
+      .from("mobilize_group_members")
+      .select("user_id")
+      .in("group_id", groupIds)
+      .eq("membership_status", "approved")
+      .neq("user_id", viewerId)
+      .limit(80);
+
+    for (const row of coMembers ?? []) {
+      const uid = row.user_id as string;
+      if (!followingSet.has(uid)) candidateIds.push(uid);
+    }
+  }
+  candidateIds = [...new Set(candidateIds)].slice(0, 30);
+
+  const profilePosts = candidateIds.length
+    ? await loadProfilePosts(admin, viewerId, candidateIds, limit, false)
+    : [];
+
+  const merged = [...groupMessages, ...profilePosts].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  return merged.slice(0, limit);
 }
 
 async function loadRecommendations(

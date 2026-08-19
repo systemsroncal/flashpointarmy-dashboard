@@ -78,6 +78,7 @@ import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/client";
 import { UserNotificationsMenu } from "./UserNotificationsMenu";
 import { MissionUpdatesNavIcon } from "./MissionUpdatesNavIcon";
+import { MobilizeVideoCamIcon } from "@/components/mobilize/MobilizeVideoCamIcon";
 import { MissionUpdatesUnreadProvider } from "./MissionUpdatesUnreadProvider";
 import { HeaderSuperAdminProfileAvatar } from "./HeaderSuperAdminProfileAvatar";
 import { GlobalContainerShareItemListener } from "./GlobalContainerShareItemListener";
@@ -1319,6 +1320,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           ) : null}
           <Box sx={{ flexGrow: 1 }} />
           <RoleWelcomeVideoPrompt />
+          {isMobilize ? (
+            <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
+              <MobilizeVideoCamIcon />
+            </Box>
+          ) : null}
           <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
             <DashboardTourHelpButton />
           </Box>

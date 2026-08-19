@@ -10,7 +10,9 @@ export async function GET(req: Request) {
   const limit = Math.min(60, Math.max(1, Number(url.searchParams.get("limit") || 40)));
   const scopeParam = url.searchParams.get("scope");
   const scope =
-    scopeParam === "following" || scopeParam === "groups" ? scopeParam : "for_you";
+    scopeParam === "following" || scopeParam === "groups" || scopeParam === "recommended"
+      ? scopeParam
+      : "for_you";
 
   try {
     const feed = await loadMobilizeHomeFeed(auth.admin, auth.userId, limit, scope);

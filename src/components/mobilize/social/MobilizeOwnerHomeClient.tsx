@@ -38,12 +38,14 @@ const HOME_TABS = [
   { id: "for_you", label: "For you" },
   { id: "following", label: "Following" },
   { id: "groups", label: "Groups" },
+  { id: "recommended", label: "Recommended" },
 ] as const;
 
 /** Home feed composer: keep code, hide UI until we re-enable out-of-group posting. */
 const SHOW_HOME_COMPOSER = false;
 
 type HomeTabId = (typeof HOME_TABS)[number]["id"];
+// Ensure "recommended" is recognized as a valid scope for the API call.
 
 function canManageHomePost(post: UnifiedFeedPost, viewerId: string, roleNames: string[]) {
   if (post.author.id === viewerId) return true;

@@ -2,7 +2,7 @@ export type SocialEmptyCopy = { title: string; description: string };
 
 export const SOCIAL_EMPTY_DEFAULT_TITLE = "Nothing to see here yet";
 
-export const HOME_FEED_EMPTY: Record<"for_you" | "following" | "groups", SocialEmptyCopy> = {
+export const HOME_FEED_EMPTY: Record<"for_you" | "following" | "groups" | "recommended", SocialEmptyCopy> = {
   for_you: {
     title: SOCIAL_EMPTY_DEFAULT_TITLE,
     description:
@@ -15,6 +15,10 @@ export const HOME_FEED_EMPTY: Record<"for_you" | "following" | "groups", SocialE
   groups: {
     title: "No group posts yet",
     description: "Posts from groups you belong to will appear here. Join a group to get started.",
+  },
+  recommended: {
+    title: "Nothing to recommend yet",
+    description: "Join groups and follow members to see recommended posts from your network.",
   },
 };
 

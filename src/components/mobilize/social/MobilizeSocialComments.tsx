@@ -772,8 +772,7 @@ export function MobilizeSocialComments({
               color: light ? "#3a3a3a" : "#d0d2d6",
             },
           }}
-        >
-          {commentsExpanded ? "Read less" : "More comments"}
+        >           {commentsExpanded ? "Less comments" : "More comments"}
         </Button>
       ) : null}
       {canComment && !replyParentId ? (
