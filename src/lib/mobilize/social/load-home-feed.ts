@@ -262,33 +262,69 @@ async function loadRecommendedPosts(
   const memberGroupSet = new Set(groupIds);
 
   // --- 1. Profile posts from users NOT followed ---
-  // Find active users the viewer hasn't followed yet
-  const { data: nonFollowedProfiles } = await admin
-    .from("profiles")
-    .select("id")
-    .neq("id", viewerId)
-    .limit(200);
+  // Query profile posts directly (bypass visibility filter for Discover)
+  const { data: profileRows } = await admin
+    .from("mobilize_profile_posts")
+    .select("id, author_id, content, content_html, image_urls, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit * 3);
 
-  const nonFollowedIds = (nonFollowedProfiles ?? [])
-    .map((p) => p.id as string)
-    .filter((id) => !followingSet.has(id))
-    .slice(0, 40);
+  const nonFollowedProfilePosts = (profileRows ?? []).filter(
+    (r) => !followingSet.has(r.author_id as string) && r.author_id !== viewerId
+  );
 
-  const profilePosts = nonFollowedIds.length
-    ? await loadProfilePosts(admin, viewerId, nonFollowedIds, limit, false)
-    : [];
+  // Enrich profile posts
+  let profilePosts: UnifiedFeedPost[] = [];
+  if (nonFollowedProfilePosts.length) {
+    const postIds = nonFollowedProfilePosts.map((r) => r.id as string);
+    const authorIds = [...new Set(nonFollowedProfilePosts.map((r) => r.author_id as string))];
+    const [authors, { data: reactions }, { data: comments }] = await Promise.all([
+      resolveMobilizeAuthors(admin, authorIds, { viewerId }),
+      admin.from("mobilize_profile_post_reactions").select("post_id, user_id, reaction_type").in("post_id", postIds),
+      admin.from("mobilize_profile_post_comments").select("post_id").in("post_id", postIds),
+    ]);
+    const reactionsByPost = new Map<string, { reaction_type: string }[]>();
+    const viewerByPost = new Map<string, ReactionType>();
+    for (const r of reactions ?? []) {
+      const pid = r.post_id as string;
+      const list = reactionsByPost.get(pid) ?? [];
+      list.push({ reaction_type: r.reaction_type as string });
+      reactionsByPost.set(pid, list);
+      if (r.user_id === viewerId) viewerByPost.set(pid, r.reaction_type as ReactionType);
+    }
+    const commentCount = new Map<string, number>();
+    for (const c of comments ?? []) {
+      const pid = c.post_id as string;
+      commentCount.set(pid, (commentCount.get(pid) ?? 0) + 1);
+    }
+    profilePosts = nonFollowedProfilePosts.map((row) => {
+      const id = row.id as string;
+      const authorId = row.author_id as string;
+      return {
+        id: `pp-${id}`,
+        kind: "profile_post" as const,
+        created_at: row.created_at as string,
+        author: authors.get(authorId)!,
+        content: row.content as string,
+        content_html: (row.content_html as string | null) ?? null,
+        image_urls: (row.image_urls as string[]) ?? [],
+        reactions: summarizeReactions(reactionsByPost.get(id) ?? [], viewerByPost.get(id) ?? null),
+        comment_count: commentCount.get(id) ?? 0,
+        profile_user_id: authorId,
+        post_id: id,
+      };
+    });
+  }
 
   // --- 2. Group messages from groups NOT joined ---
-  // Find groups the viewer is not a member of
   const { data: allGroups } = await admin
     .from("mobilize_groups")
     .select("id")
-    .limit(100);
+    .limit(200);
 
   const unjoinedGroupIds = (allGroups ?? [])
     .map((g) => g.id as string)
-    .filter((id) => !memberGroupSet.has(id))
-    .slice(0, 30);
+    .filter((id) => !memberGroupSet.has(id));
 
   const groupMessages = unjoinedGroupIds.length
     ? await loadGroupMessages(admin, viewerId, unjoinedGroupIds, limit, true)

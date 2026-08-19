@@ -4,6 +4,7 @@ import { MobilizeContentTabBar } from "@/components/mobilize/social/MobilizeCont
 import { MobilizeSocialHubContent } from "@/components/mobilize/social/MobilizeSocialHubContent";
 import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
+import { DiscoverJoinGroupButton } from "@/components/mobilize/social/DiscoverJoinGroupButton";
 import { MobilizeSocialPostEditor } from "@/components/mobilize/social/MobilizeSocialPostEditor";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
@@ -355,6 +356,8 @@ export function MobilizeOwnerHomeClient() {
                         showGroupBadge
                         surface="light"
                         layout="groupFeedCard"
+                        hideReactionBar={activeTab === "recommended"}
+                        groupJoinButton={activeTab === "recommended" && post.group ? <DiscoverJoinGroupButton groupId={post.group.id} /> : undefined}
                         viewerAvatarUrl={me.avatar_url}
                         viewerDisplayName={me.display_name ?? me.email}
                         viewerUserId={me.id}

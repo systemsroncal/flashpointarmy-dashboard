@@ -49,6 +49,10 @@ type Props = {
   viewerIsSuperAdmin?: boolean;
   /** Shows the "Pinned Post" banner above the author row. */
   pinned?: boolean;
+  /** Hides the reaction bar + comments (for Discover tab posts). */
+  hideReactionBar?: boolean;
+  /** Renders a "Join Group" button next to the group badge. */
+  groupJoinButton?: React.ReactNode;
 };
 
 export function MobilizeSocialPostCard({
@@ -67,6 +71,8 @@ export function MobilizeSocialPostCard({
   viewerUserId,
   viewerIsSuperAdmin = false,
   pinned = false,
+  hideReactionBar = false,
+  groupJoinButton,
 }: Props) {
   const isDark = surface === "dark";
   const isGroupFeedList = layout === "groupFeedList";
@@ -197,19 +203,22 @@ export function MobilizeSocialPostCard({
           viewerUserId={viewerUserId}
         />
         {showGroupBadge && post.group ? (
-          <Typography variant="caption" sx={{ display: "block", mt: 0.5, color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}>
-            in{" "}
-            <Link
-              href={mobilizeGroupDetailHref(post.group.id, "announcements")}
-              style={{
-                color: isDark ? "#6eb5ff" : "#1565c0",
-                textDecoration: "none",
-                fontWeight: 600,
-              }}
-            >
-              {post.group.name}
-            </Link>
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+            <Typography variant="caption" sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}>
+              in{" "}
+              <Link
+                href={mobilizeGroupDetailHref(post.group.id, "announcements")}
+                style={{
+                  color: isDark ? "#6eb5ff" : "#1565c0",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
+                {post.group.name}
+              </Link>
+            </Typography>
+            {groupJoinButton ?? null}
+          </Box>
         ) : null}
         {post.comments_policy === "leaders_only" ? (
           <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
@@ -224,63 +233,67 @@ export function MobilizeSocialPostCard({
             <MobilizeCollapsiblePostBody surface={surface} text={feedBody} media={feedMedia} plain={post.content} hasImages={hasRealImages} />
           )}
         </Box>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          gap={1}
-          sx={{
-            mt: 1.25,
-            pt: 1,
-            borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
-          }}
-        >
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <MobilizeSocialReactionBar
-              reactions={reactions}
-              commentCount={commentCount}
-              onToggleLike={() => void setReaction(reactions.viewer_reaction === "like" ? null : "like")}
-              onToggleLove={() => void setReaction(reactions.viewer_reaction === "love" ? null : "love")}
-              onToggleComments={() => setCommentsOpen((v) => !v)}
-              commentsOpen={commentsOpen}
-              disabled={reacting}
+        {!hideReactionBar ? (
+          <>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              gap={1}
+              sx={{
+                mt: 1.25,
+                pt: 1,
+                borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+              }}
+            >
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <MobilizeSocialReactionBar
+                  reactions={reactions}
+                  commentCount={commentCount}
+                  onToggleLike={() => void setReaction(reactions.viewer_reaction === "like" ? null : "like")}
+                  onToggleLove={() => void setReaction(reactions.viewer_reaction === "love" ? null : "love")}
+                  onToggleComments={() => setCommentsOpen((v) => !v)}
+                  commentsOpen={commentsOpen}
+                  disabled={reacting}
+                  tone={surface}
+                  embedded
+                />
+              </Box>
+              <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flexShrink: 0, ml: "auto" }}>
+                {manageActions}
+                {bookmarkRef ? (
+                  <Tooltip title={bookmarked ? "Unsave" : "Save"}>
+                    <IconButton
+                      size="small"
+                      onClick={() => void toggleBookmark()}
+                      disabled={bookmarkBusy}
+                      aria-label={bookmarked ? "Unsave post" : "Save post"}
+                      sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
+                    >
+                      {bookmarked ? (
+                        <BookmarkIcon fontSize="small" color={isDark ? "inherit" : "primary"} />
+                      ) : (
+                        <BookmarkBorderOutlinedIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+              </Stack>
+            </Stack>
+            <MobilizeSocialComments
+              open={commentsOpen}
+              canComment={canComment}
+              commentsUrl={commentConfig.commentsUrl}
+              commentReactionUrl={commentConfig.commentReactionUrl}
+              onCountChange={setCommentCount}
               tone={surface}
-              embedded
+              viewerAvatarUrl={viewerAvatarUrl}
+              viewerDisplayName={viewerDisplayName}
+              viewerUserId={viewerUserId}
+              viewerIsSuperAdmin={viewerIsSuperAdmin}
             />
-          </Box>
-          <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flexShrink: 0, ml: "auto" }}>
-            {manageActions}
-            {bookmarkRef ? (
-              <Tooltip title={bookmarked ? "Unsave" : "Save"}>
-                <IconButton
-                  size="small"
-                  onClick={() => void toggleBookmark()}
-                  disabled={bookmarkBusy}
-                  aria-label={bookmarked ? "Unsave post" : "Save post"}
-                  sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
-                >
-                  {bookmarked ? (
-                    <BookmarkIcon fontSize="small" color={isDark ? "inherit" : "primary"} />
-                  ) : (
-                    <BookmarkBorderOutlinedIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Tooltip>
-            ) : null}
-          </Stack>
-        </Stack>
-        <MobilizeSocialComments
-          open={commentsOpen}
-          canComment={canComment}
-          commentsUrl={commentConfig.commentsUrl}
-          commentReactionUrl={commentConfig.commentReactionUrl}
-          onCountChange={setCommentCount}
-          tone={surface}
-          viewerAvatarUrl={viewerAvatarUrl}
-          viewerDisplayName={viewerDisplayName}
-          viewerUserId={viewerUserId}
-          viewerIsSuperAdmin={viewerIsSuperAdmin}
-        />
+          </>
+        ) : null}
       </CardContent>
     </Card>
   );
