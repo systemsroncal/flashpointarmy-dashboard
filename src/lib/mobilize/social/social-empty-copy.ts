@@ -17,8 +17,8 @@ export const HOME_FEED_EMPTY: Record<"for_you" | "following" | "groups" | "recom
     description: "Posts from groups you belong to will appear here. Join a group to get started.",
   },
   recommended: {
-    title: "Nothing to recommend yet",
-    description: "Join groups and follow members to see recommended posts from your network.",
+    title: "Nothing to discover yet",
+    description: "Join groups and follow members to see posts from outside your network.",
   },
 };
 
