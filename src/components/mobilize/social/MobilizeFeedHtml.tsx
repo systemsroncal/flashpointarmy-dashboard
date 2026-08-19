@@ -33,6 +33,18 @@ function splitParts(html: string): Part[] {
   return parts;
 }
 
+function addTargetBlankToExternalLinks(html: string): string {
+  // Add target="_blank" rel="noopener noreferrer" to <a> tags with http/https href
+  return html.replace(
+    /<a\b([^>]*?)href="(https?:\/\/[^"']+)"([^>]*?)>/gi,
+    (_match, before, href, after) => {
+      // Skip if target already set
+      if (/target\s*=\s*["']_blank["']/i.test(before + after)) return _match;
+      return `<a${before}href="${href}"${after} target="_blank" rel="noopener noreferrer">`;
+    },
+  );
+}
+
 function HtmlFragment({
   html,
   sx,
@@ -40,8 +52,12 @@ function HtmlFragment({
   html: string;
   sx?: SxProps<Theme>;
 }) {
-  const safe = DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
-  if (!safe.trim()) return null;
+  const safe = DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    ADD_ATTR: ["target", "rel"],
+  });
+  const withTarget = addTargetBlankToExternalLinks(safe);
+  if (!withTarget.trim()) return null;
   return (
     <Box
       className="mobilize-feed-html"
@@ -55,7 +71,7 @@ function HtmlFragment({
         "& img": { maxWidth: "100%", height: "auto", borderRadius: 1 },
         ...sx,
       }}
-      dangerouslySetInnerHTML={{ __html: safe }}
+      dangerouslySetInnerHTML={{ __html: withTarget }}
     />
   );
 }
