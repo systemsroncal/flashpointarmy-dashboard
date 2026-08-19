@@ -23,6 +23,8 @@ type Props = {
   surface?: "light" | "dark";
   /** Plain text string used for character-count logic. */
   plain?: string;
+  /** Whether the post actually has images/videos. */
+  hasImages?: boolean;
 };
 
 /**
@@ -32,15 +34,14 @@ type Props = {
  *   otherwise clamp to ~300 chars / 5 lines.
  * - Posts with images: show only 1 line of text + More / Less.
  */
-export function MobilizeCollapsiblePostBody({ text, media, surface = "light", plain }: Props) {
-  const hasMedia = Boolean(media);
+export function MobilizeCollapsiblePostBody({ text, media, surface = "light", plain, hasImages = false }: Props) {
   const fullCharCount = (plain ?? "").length;
 
   // For text-only posts that are short enough, skip the clamp entirely
-  const skipClamp = !hasMedia && fullCharCount > 0 && fullCharCount <= TEXT_FULL_THRESHOLD;
+  const skipClamp = !hasImages && fullCharCount > 0 && fullCharCount <= TEXT_FULL_THRESHOLD;
 
   // Number of lines to clamp: 1 when images present, otherwise 5
-  const lineCount = hasMedia ? IMAGE_TEXT_LINES : 5;
+  const lineCount = hasImages ? IMAGE_TEXT_LINES : 5;
   const accordion = useClampAccordion(skipClamp ? 9999 : lineCount);
   const fadeTo = surface === "dark" ? "#0b0c16" : "#fff";
 

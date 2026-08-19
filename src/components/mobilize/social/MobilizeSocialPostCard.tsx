@@ -218,7 +218,7 @@ export function MobilizeSocialPostCard({
               {feedMedia}
             </Box>
           ) : (
-            <MobilizeCollapsiblePostBody surface={surface} text={feedBody} media={feedMedia} plain={post.content} />
+            <MobilizeCollapsiblePostBody surface={surface} text={feedBody} media={feedMedia} plain={post.content} hasImages={Boolean(post.image_urls?.length)} />
           )}
         </Box>
         <Stack
