@@ -7,8 +7,8 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 const FULL_THRESHOLD = 450;
 /** Collapsed max-height in px for text-only posts > 450 chars. */
 const TEXT_CLAMP_HEIGHT = 170;
-/** Collapsed max-height in px for image posts (≈ 1 line of text). */
-const IMAGE_CLAMP_HEIGHT = 28;
+/** Collapsed max-height in px for image posts (heading + ~2 lines of text). */
+const IMAGE_CLAMP_HEIGHT = 60;
 
 type Props = {
   text: ReactNode;
