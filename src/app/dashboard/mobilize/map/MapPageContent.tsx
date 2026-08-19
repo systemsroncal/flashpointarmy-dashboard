@@ -372,8 +372,22 @@ export default function MobilizeMapPageContent() {
             Chapters
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720, lineHeight: 1.55 }}>
-            Find FlashPoint Army chapters and groups near you. Browse the map, open a chapter to explore its groups, or
-            jump directly into a group feed.
+            <b>New to Chapters &amp; Groups?</b>
+            <br />
+            Click here to watch a short video and learn how everything works.{' '}
+            <Box
+              component="span"
+              onClick={() => window.dispatchEvent(new Event('fp-reopen-video-popup'))}
+              sx={{
+                fontWeight: 700,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                color: 'text.primary',
+                '&:hover': { opacity: 0.7 },
+              }}
+            >
+              WATCH VIDEO NOW
+            </Box>
           </Typography>
         </Box>
         {canCreateGroup ? (
