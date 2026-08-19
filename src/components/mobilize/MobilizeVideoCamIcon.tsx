@@ -46,6 +46,9 @@ export function MobilizeVideoCamIcon() {
         color="inherit"
         size="small"
         aria-label="Watch Video About Chapters & Groups"
+        onClick={() => {
+          window.dispatchEvent(new Event("fp-reopen-video-popup"));
+        }}
       >
         <VideocamOutlinedIcon />
       </IconButton>

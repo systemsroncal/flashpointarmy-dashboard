@@ -79,6 +79,16 @@ export function WelcomeVideoPopup() {
     }
   }, []);
 
+  // Listen for external trigger (e.g. video cam icon in header)
+  useEffect(() => {
+    const handler = () => {
+      setVideoFinished(false);
+      setOpen(true);
+    };
+    window.addEventListener("fp-reopen-video-popup", handler);
+    return () => window.removeEventListener("fp-reopen-video-popup", handler);
+  }, []);
+
   const handleVideoEnd = useCallback(() => {
     setVideoFinished(true);
   }, []);
