@@ -448,9 +448,23 @@ export function NationalOverview({
     setPopupState(code);
     setPopupOpen(true);
     setPopupData(null);
-    const supabase = createClient();
-    const data = await loadStatePopupStats(supabase, code);
-    setPopupData(data);
+    try {
+      const supabase = createClient();
+      const data = await loadStatePopupStats(supabase, code);
+      setPopupData(data);
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[NationalOverview] state popup failed", err);
+      }
+      setPopupData({
+        state: code,
+        churches: 0,
+        registeredMembers: 0,
+        upcomingEvents: 0,
+        newestChurchName: "—",
+        newestChurchCity: "—",
+      });
+    }
   }
 
   function closeStatePopup() {

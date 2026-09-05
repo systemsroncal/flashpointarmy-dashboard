@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  albersUsaGeographicLerpIsSafe,
+  isAlbersUsaSafeCenter,
+} from "@/lib/maps/albers-usa-map-view";
 import { US_STATES_GEO_URL } from "@/lib/maps/us-states-geo";
 import { getStateCentroid } from "@/lib/reports/us-city-coordinates";
 import AddIcon from "@mui/icons-material/Add";
@@ -141,18 +145,31 @@ export function UsaChapterActivityMap({
 
   const animateMapView = useCallback((target: MapView, duration = 480) => {
     if (animateFrameRef.current != null) cancelAnimationFrame(animateFrameRef.current);
-    const start = mapViewRef.current;
+    const from = mapViewRef.current;
+    const safeTarget: MapView = {
+      zoom: target.zoom,
+      center: isAlbersUsaSafeCenter(target.center) ? target.center : DEFAULT_MAP_VIEW.center,
+    };
+    const lerpCenters = albersUsaGeographicLerpIsSafe(from.center, safeTarget.center);
+    const start: MapView = lerpCenters
+      ? from
+      : { zoom: from.zoom, center: safeTarget.center };
+    if (!lerpCenters) {
+      setMapView(start);
+    }
     const startTime = performance.now();
 
     const step = (now: number) => {
       const t = Math.min(1, (now - startTime) / duration);
       const ease = t * (2 - t);
       const next: MapView = {
-        zoom: start.zoom + (target.zoom - start.zoom) * ease,
-        center: [
-          start.center[0] + (target.center[0] - start.center[0]) * ease,
-          start.center[1] + (target.center[1] - start.center[1]) * ease,
-        ],
+        zoom: start.zoom + (safeTarget.zoom - start.zoom) * ease,
+        center: lerpCenters
+          ? [
+              start.center[0] + (safeTarget.center[0] - start.center[0]) * ease,
+              start.center[1] + (safeTarget.center[1] - start.center[1]) * ease,
+            ]
+          : safeTarget.center,
       };
       setMapView(next);
       if (t < 1) {
@@ -199,7 +216,9 @@ export function UsaChapterActivityMap({
   const handleMoveEnd = useCallback(
     (pos: { coordinates: [number, number]; zoom: number }) => {
       if (animateFrameRef.current != null) return;
-      setMapView({ zoom: pos.zoom, center: pos.coordinates });
+      const coords = pos.coordinates;
+      if (!coords || !isAlbersUsaSafeCenter(coords)) return;
+      setMapView({ zoom: pos.zoom, center: coords });
     },
     []
   );
@@ -377,7 +396,11 @@ export function UsaChapterActivityMap({
               >
                 <ZoomableGroup
                   zoom={mapView.zoom}
-                  center={mapView.center}
+                  center={
+                    isAlbersUsaSafeCenter(mapView.center)
+                      ? mapView.center
+                      : DEFAULT_MAP_VIEW.center
+                  }
                   minZoom={0.5}
                   maxZoom={8}
                   onMoveEnd={handleMoveEnd}
