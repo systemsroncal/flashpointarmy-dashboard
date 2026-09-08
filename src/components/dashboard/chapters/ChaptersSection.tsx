@@ -369,17 +369,17 @@ export function ChaptersSection({
       const toRemove = baseline.filter((id) => !current.includes(id));
       const toAdd = current.filter((id) => !baseline.includes(id));
 
-      for (const uid of toRemove) {
-        await supabase
-          .from("chapter_leaders")
-          .delete()
-          .eq("chapter_id", editRow.id)
-          .eq("user_id", uid);
-      }
-      if (toAdd.length > 0) {
-        await supabase.from("chapter_leaders").insert(
-          toAdd.map((uid) => ({ chapter_id: editRow.id, user_id: uid }))
-        );
+      if (toAdd.length > 0 || toRemove.length > 0) {
+        const syncRes = await fetch(`/api/chapters/${editRow.id}/sync-leaders`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ addUserIds: toAdd, removeUserIds: toRemove }),
+        });
+        if (!syncRes.ok) {
+          const syncJson = (await syncRes.json().catch(() => ({}))) as { error?: string };
+          console.error("[chapters] sync-leaders failed:", syncJson.error || syncRes.status);
+          return;
+        }
       }
 
       for (const uid of toAdd) {
@@ -441,9 +441,15 @@ export function ChaptersSection({
       .single();
     if (error || !inserted) return;
     if (showLeadersColumn && createLeaders.length > 0) {
-      await supabase.from("chapter_leaders").insert(
-        createLeaders.map((uid) => ({ chapter_id: inserted.id, user_id: uid }))
-      );
+      const syncRes = await fetch(`/api/chapters/${inserted.id}/sync-leaders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addUserIds: createLeaders, removeUserIds: [] }),
+      });
+      if (!syncRes.ok) {
+        const syncJson = (await syncRes.json().catch(() => ({}))) as { error?: string };
+        console.error("[chapters] sync-leaders (create) failed:", syncJson.error || syncRes.status);
+      }
       for (const uid of createLeaders) {
         void fetch("/api/email/local-leader-assigned", {
           method: "POST",

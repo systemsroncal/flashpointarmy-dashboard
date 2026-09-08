@@ -17,7 +17,7 @@ import Link from "next/link";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 
 const VIDEO_URL = "https://www.youtube.com/watch?v=VFWP0skZljg";
-const COOKIE_NAME = "fp_welcome_video_seen";
+const STORAGE_KEY = "fp_welcome_video_seen";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 type PlyrLike = {
@@ -45,16 +45,47 @@ const plyrControls = [
 
 function getCookie(name: string): boolean {
   if (typeof document === "undefined") return false;
-  return document.cookie.split(";").some((c) => c.trim().startsWith(`${name}=`));
+  return document.cookie.split(";").some((c) => c.trim().startsWith(`${name}=1`));
 }
 
 function setCookie(name: string, maxAge: number) {
-  document.cookie = `${name}=1; path=/; max-age=${maxAge}; SameSite=Lax`;
+  const secure =
+    typeof window !== "undefined" && window.location.protocol === "https:"
+      ? "; Secure"
+      : "";
+  document.cookie = `${name}=1; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
+}
+
+function hasSeenWelcomeVideo(): boolean {
+  if (typeof window === "undefined") return true;
+  if (getCookie(STORAGE_KEY)) return true;
+  try {
+    if (window.localStorage.getItem(STORAGE_KEY) === "1") {
+      // Rehydrate cookie if only localStorage survived (common on some mobile browsers).
+      setCookie(STORAGE_KEY, COOKIE_MAX_AGE);
+      return true;
+    }
+  } catch {
+    // private mode / blocked storage
+  }
+  return false;
+}
+
+function markWelcomeVideoSeen() {
+  setCookie(STORAGE_KEY, COOKIE_MAX_AGE);
+  try {
+    window.localStorage.setItem(STORAGE_KEY, "1");
+  } catch {
+    // private mode / blocked storage
+  }
 }
 
 function extractYoutubeId(url: string): string | null {
   try {
     const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) {
+      return u.pathname.replace(/^\//, "") || null;
+    }
     return u.searchParams.get("v");
   } catch {
     return null;
@@ -69,12 +100,14 @@ export function WelcomeVideoPopup() {
   const [videoFinished, setVideoFinished] = useState(false);
   const mountRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlyrLike | null>(null);
+  const seenRef = useRef(false);
 
   const profileHref = `/dashboard/mobilize/profile/${me.id}`;
 
-  // Check cookie on mount and show popup only once
+  // Auto-open only once (cookie + localStorage). Manual reopen still allowed.
   useEffect(() => {
-    if (!getCookie(COOKIE_NAME)) {
+    seenRef.current = hasSeenWelcomeVideo();
+    if (!seenRef.current) {
       setOpen(true);
     }
   }, []);
@@ -93,19 +126,27 @@ export function WelcomeVideoPopup() {
     setVideoFinished(true);
   }, []);
 
+  const destroyPlayer = useCallback(() => {
+    playerRef.current?.destroy();
+    playerRef.current = null;
+    const m = mountRef.current;
+    if (m) m.innerHTML = "";
+  }, []);
+
+  const handleClose = useCallback(() => {
+    markWelcomeVideoSeen();
+    seenRef.current = true;
+    setOpen(false);
+    setVideoFinished(false);
+    destroyPlayer();
+  }, [destroyPlayer]);
+
   // Initialize Plyr when dialog opens
   useEffect(() => {
     if (!open || videoFinished) return;
 
     let cancelled = false;
     let rafId = 0;
-
-    const destroy = () => {
-      playerRef.current?.destroy();
-      playerRef.current = null;
-      const m = mountRef.current;
-      if (m) m.innerHTML = "";
-    };
 
     const init = () => {
       const mount = mountRef.current;
@@ -114,7 +155,7 @@ export function WelcomeVideoPopup() {
       const videoId = extractYoutubeId(VIDEO_URL);
       if (!videoId) return;
 
-      destroy();
+      destroyPlayer();
       const root = createYouTubeRoot(videoId);
       mount.appendChild(root);
 
@@ -161,36 +202,23 @@ export function WelcomeVideoPopup() {
       cancelled = true;
       clearTimeout(timeoutId);
       if (rafId) cancelAnimationFrame(rafId);
-      destroy();
+      destroyPlayer();
     };
-  }, [open, videoFinished, handleVideoEnd]);
+  }, [open, videoFinished, handleVideoEnd, destroyPlayer]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      playerRef.current?.destroy();
-      playerRef.current = null;
+      destroyPlayer();
     };
-  }, []);
-
-  function handleClose() {
-    setCookie(COOKIE_NAME, COOKIE_MAX_AGE);
-    setOpen(false);
-    playerRef.current?.destroy();
-    playerRef.current = null;
-  }
-
-  function handleDismissAfterVideo() {
-    setCookie(COOKIE_NAME, COOKIE_MAX_AGE);
-    setOpen(false);
-  }
+  }, [destroyPlayer]);
 
   if (!open) return null;
 
   return (
     <Dialog
       open={open}
-      onClose={() => setOpen(false)}
+      onClose={handleClose}
       maxWidth="md"
       fullWidth
       disableEnforceFocus
@@ -200,6 +228,7 @@ export function WelcomeVideoPopup() {
           sx: {
             overflow: "visible",
             maxWidth: "min(936px, 100vw - 32px)",
+            mx: { xs: 1, sm: 2 },
             transform: "none",
             bgcolor: videoFinished ? "#fff" : "transparent",
             color: "#000",
@@ -209,20 +238,35 @@ export function WelcomeVideoPopup() {
       }}
     >
       {!videoFinished ? (
-        <>
-          <DialogContent sx={{ p: 0, overflow: "visible" }}>
-            <div
-              ref={mountRef}
-              className="welcome-video-plyr-mount"
-              style={{
-                width: "100%",
-                minHeight: 320,
-                aspectRatio: "16 / 9",
-                maxHeight: "70vh",
-              }}
-            />
-          </DialogContent>
-        </>
+        <DialogContent sx={{ p: 0, overflow: "visible", position: "relative" }}>
+          <IconButton
+            onClick={handleClose}
+            aria-label="Close welcome video"
+            sx={{
+              position: "absolute",
+              top: { xs: 4, sm: 8 },
+              right: { xs: 4, sm: 8 },
+              zIndex: 2,
+              bgcolor: "rgba(0,0,0,0.55)",
+              color: "#fff",
+              width: { xs: 40, sm: 36 },
+              height: { xs: 40, sm: 36 },
+              "&:hover": { bgcolor: "rgba(0,0,0,0.75)" },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <Box
+            ref={mountRef}
+            className="welcome-video-plyr-mount"
+            sx={{
+              width: "100%",
+              minHeight: { xs: 200, sm: 320 },
+              aspectRatio: "16 / 9",
+              maxHeight: { xs: "55vh", sm: "70vh" },
+            }}
+          />
+        </DialogContent>
       ) : (
         <>
           <DialogTitle
@@ -234,10 +278,10 @@ export function WelcomeVideoPopup() {
               pb: 0,
             }}
           >
-            <Typography component="span" variant="h6" sx={{ fontWeight: 800 }}>
+            <Typography component="span" variant="h6" sx={{ fontWeight: 800, pr: 1 }}>
               🚨 One More Important Step Before You Continue
             </Typography>
-            <IconButton edge="end" onClick={handleDismissAfterVideo} aria-label="Close">
+            <IconButton edge="end" onClick={handleClose} aria-label="Close">
               <CloseIcon />
             </IconButton>
           </DialogTitle>
@@ -289,7 +333,7 @@ export function WelcomeVideoPopup() {
                 component={Link}
                 href={profileHref}
                 variant="contained"
-                onClick={handleDismissAfterVideo}
+                onClick={handleClose}
                 endIcon={<OpenInNewIcon />}
                 sx={{
                   textTransform: "none",
@@ -307,7 +351,7 @@ export function WelcomeVideoPopup() {
               </Button>
               <Button
                 variant="outlined"
-                onClick={handleDismissAfterVideo}
+                onClick={handleClose}
                 sx={{
                   textTransform: "none",
                   fontWeight: 700,

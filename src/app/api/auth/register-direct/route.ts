@@ -8,7 +8,6 @@ import {
 import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 import { joinMobilizeGroupAsMember } from "@/lib/mobilize/join-group-membership";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { hashOtp, normalizeEmail, OTP_PURPOSE_REGISTER } from "@/lib/auth/email-otp";
 
 type RegisterPayload = {
   email?: string;
@@ -20,7 +19,6 @@ type RegisterPayload = {
   gender?: string;
   dateOfBirth?: string;
   joinGroupId?: string;
-  otp?: string;
 };
 
 function normalizeGender(raw: string | undefined): "male" | "female" | null {
@@ -43,18 +41,17 @@ function normalizeDateOfBirth(raw: string | undefined): string | null {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as RegisterPayload;
-    const email = normalizeEmail(body.email || "");
+    const email = (body.email || "").trim().toLowerCase();
     const password = (body.password || "").trim();
     const firstName = (body.firstName || "").trim();
     const lastName = (body.lastName || "").trim();
     const phone = (body.phone || "").trim() || null;
     const zipCode = (body.zipCode || "").trim();
     const joinGroupId = (body.joinGroupId || "").trim() || null;
-    const otp = (body.otp || "").trim();
     const gender = normalizeGender(body.gender);
     const dateOfBirth = normalizeDateOfBirth(body.dateOfBirth);
 
-    if (!email || !password || !firstName || !lastName || !otp) {
+    if (!email || !password || !firstName || !lastName) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
     if (password.length < 6) {
@@ -62,7 +59,7 @@ export async function POST(req: Request) {
     }
     if (!zipCode || zipCode.replace(/\D/g, "").length < 5) {
       return NextResponse.json(
-        { error: "ZIP code is required to assign your chapter." },
+        { error: "Enter a valid 5-digit ZIP code so we can assign your nearest chapter." },
         { status: 400 }
       );
     }
@@ -75,6 +72,7 @@ export async function POST(req: Request) {
 
     const supabase = createAdminClient();
 
+    // Chapter is always auto-assigned from ZIP (clients cannot pick a chapter).
     const nearest = await findNearestChapterByZip(supabase, zipCode);
     if (!nearest?.id) {
       return NextResponse.json(
@@ -86,36 +84,6 @@ export async function POST(req: Request) {
       );
     }
     const primaryChapterId = nearest.id;
-
-    const nowIso = new Date().toISOString();
-    const { data: otpRow, error: otpErr } = await supabase
-      .from("email_otp_codes")
-      .select("id, otp_hash, attempts, max_attempts, expires_at")
-      .eq("email", email)
-      .eq("purpose", OTP_PURPOSE_REGISTER)
-      .is("consumed_at", null)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (otpErr || !otpRow) {
-      return NextResponse.json({ error: "No active verification code found." }, { status: 400 });
-    }
-    if (otpRow.expires_at < nowIso) {
-      return NextResponse.json({ error: "Verification code expired. Request a new one." }, { status: 400 });
-    }
-    if (otpRow.attempts >= otpRow.max_attempts) {
-      return NextResponse.json({ error: "Too many attempts. Request a new code." }, { status: 429 });
-    }
-
-    const expectedHash = hashOtp(email, OTP_PURPOSE_REGISTER, otp);
-    if (expectedHash !== otpRow.otp_hash) {
-      await supabase
-        .from("email_otp_codes")
-        .update({ attempts: otpRow.attempts + 1 })
-        .eq("id", otpRow.id);
-      return NextResponse.json({ error: "Invalid verification code." }, { status: 400 });
-    }
 
     if (await isEmailInUse(supabase, email)) {
       return NextResponse.json({ error: "This email is already registered." }, { status: 409 });
@@ -141,7 +109,7 @@ export async function POST(req: Request) {
 
     const roleFix = await ensureMemberRoleIfUserHasNoRoles(supabase, created.user.id);
     if (roleFix.error) {
-      console.error("[register-with-otp] ensureMemberRoleIfUserHasNoRoles:", roleFix.error);
+      console.error("[register-direct] ensureMemberRoleIfUserHasNoRoles:", roleFix.error);
     }
 
     const displayName = `${firstName} ${lastName}`.trim();
@@ -156,10 +124,10 @@ export async function POST(req: Request) {
       mailing: { address_line: null, city: null, state: null, zip_code: zipCode },
     });
     if (mirror.error) {
-      console.error("[register-with-otp] ensureDashboardUserMirror:", mirror.error);
+      console.error("[register-direct] ensureDashboardUserMirror:", mirror.error);
     }
 
-    await supabase
+    const { error: profileErr } = await supabase
       .from("profiles")
       .update({
         first_name: firstName,
@@ -172,6 +140,9 @@ export async function POST(req: Request) {
         date_of_birth: dateOfBirth,
       })
       .eq("id", created.user.id);
+    if (profileErr) {
+      console.error("[register-direct] profiles update:", profileErr.message);
+    }
 
     await applyMobilizeAutoFollowForUser(supabase, created.user.id);
 
@@ -182,16 +153,11 @@ export async function POST(req: Request) {
         userId: created.user.id,
       });
       if (!joinResult.ok) {
-        console.error("[register-with-otp] joinMobilizeGroupAsMember:", joinResult.error);
+        console.error("[register-direct] joinMobilizeGroupAsMember:", joinResult.error);
       } else {
         joinMembership = joinResult.membership;
       }
     }
-
-    await supabase
-      .from("email_otp_codes")
-      .update({ consumed_at: new Date().toISOString() })
-      .eq("id", otpRow.id);
 
     return NextResponse.json({
       ok: true,

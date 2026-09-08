@@ -1,4 +1,5 @@
 import { chunkIdsForInQuery, listAllDashboardUsers } from "@/lib/admin/dashboard-user-queries";
+import { countDistinctLocalLeaders } from "@/lib/chapters/ensure-local-leader-role";
 import { includeReferenceInOverviewStatTotals } from "@/lib/config/reference-overview-stats";
 import type { CitiesDonorsJson } from "@/lib/donors/aggregate-donors-by-state";
 import {
@@ -101,7 +102,7 @@ export async function loadPeopleOverviewStats(admin: SupabaseClient): Promise<Pe
   const [members, localLeaders, admins, subAdmins, superAdmins, users, reference] =
     await Promise.all([
       countUsersWithRole(admin, "member"),
-      countUsersWithRole(admin, "local_leader"),
+      countDistinctLocalLeaders(admin),
       countUsersWithRole(admin, "admin"),
       countUsersWithRole(admin, "sub_admin"),
       countUsersWithRole(admin, "super_admin"),

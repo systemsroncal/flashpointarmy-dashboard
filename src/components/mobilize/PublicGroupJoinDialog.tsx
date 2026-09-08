@@ -8,12 +8,15 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
   Link as MuiLink,
+  MenuItem,
+  Select,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import { useOtpResendCooldown } from "@/hooks/useOtpResendCooldown";
 import { useState } from "react";
 
 type Mode = "register" | "signin";
@@ -33,13 +36,11 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
+  const [gender, setGender] = useState<"" | "male" | "female">("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const resendCooldown = useOtpResendCooldown();
 
   function resetFeedback() {
     setError(null);
@@ -49,24 +50,6 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
   function switchMode(next: Mode) {
     setMode(next);
     resetFeedback();
-    setOtpSent(false);
-    setOtpCode("");
-  }
-
-  async function requestRegistrationOtp(): Promise<boolean> {
-    const res = await fetch("/api/auth/send-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim() }),
-    });
-    const data = (await res.json()) as { error?: string };
-    if (!res.ok) {
-      setError(data.error || "Could not send verification code.");
-      if (res.status === 429) resendCooldown.startCooldown();
-      return false;
-    }
-    resendCooldown.startCooldown();
-    return true;
   }
 
   async function joinCurrentGroup(): Promise<"approved" | "pending"> {
@@ -131,19 +114,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
     }
     setLoading(true);
     try {
-      if (!otpSent) {
-        const ok = await requestRegistrationOtp();
-        if (!ok) return;
-        setOtpSent(true);
-        setMessage("Verification code sent. Check your inbox and enter the OTP below.");
-        return;
-      }
-      if (otpCode.trim().length < 6) {
-        setError("Enter the 6-digit verification code.");
-        return;
-      }
-
-      const res = await fetch("/api/auth/register-with-otp", {
+      const res = await fetch("/api/auth/register-direct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,8 +124,9 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
           lastName: ln,
           phone: phone.trim() || undefined,
           zipCode: zip,
+          gender: gender || undefined,
+          dateOfBirth: dateOfBirth || undefined,
           joinGroupId: groupId,
-          otp: otpCode.trim(),
         }),
       });
       const data = (await res.json()) as {
@@ -179,7 +151,6 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
 
       const status =
         data.membership?.membership_status === "pending" ? "pending" : "approved";
-      // Ensure membership even if register join failed silently
       try {
         await joinCurrentGroup();
       } catch {
@@ -191,26 +162,6 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
       setError(err instanceof Error ? err.message : "Could not complete registration.");
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleResendOtp() {
-    if (!resendCooldown.canResend) return;
-    resetFeedback();
-    const em = email.trim();
-    if (!em || !em.includes("@")) {
-      setError("Enter a valid email address.");
-      return;
-    }
-    setResendLoading(true);
-    try {
-      const ok = await requestRegistrationOtp();
-      if (ok) {
-        setOtpCode("");
-        setMessage("Verification code sent again. Check your inbox.");
-      }
-    } finally {
-      setResendLoading(false);
     }
   }
 
@@ -259,8 +210,8 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
       <DialogContent sx={{ bgcolor: "#fff", color: "#000" }}>
         <Typography variant="body2" sx={{ mb: 2, color: "rgba(0,0,0,0.65)" }}>
           {mode === "register"
-            ? "Create your account to join this group. Join thousands of Patriots in your city that are part of The Flash Point Army."
-            : "Sign in with your existing account. You’ll be added to this group if you aren’t already a member."}
+            ? "Create your account to join this group. Join thousands of Patriots in your city that are part of The Flash Point Army. Your chapter is assigned automatically from your ZIP code."
+            : "Sign in with your existing account. You'll be added to this group if you aren't already a member."}
         </Typography>
 
         {error ? (
@@ -319,8 +270,34 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                   value={zipCode}
                   onChange={(e) => setZipCode(e.target.value)}
                   autoComplete="postal-code"
+                  helperText="Nearest chapter is assigned automatically."
                   sx={fieldSx}
                 />
+                <TextField
+                  label="Date of birth"
+                  type="date"
+                  fullWidth
+                  size="small"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={fieldSx}
+                />
+                <FormControl fullWidth size="small" sx={fieldSx}>
+                  <InputLabel id="join-gender-label">Gender</InputLabel>
+                  <Select
+                    labelId="join-gender-label"
+                    label="Gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as "" | "male" | "female")}
+                  >
+                    <MenuItem value="">
+                      <em>Not set</em>
+                    </MenuItem>
+                    <MenuItem value="male">Male</MenuItem>
+                    <MenuItem value="female">Female</MenuItem>
+                  </Select>
+                </FormControl>
               </>
             ) : null}
             <TextField
@@ -345,48 +322,12 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
               autoComplete={mode === "register" ? "new-password" : "current-password"}
               sx={fieldSx}
             />
-            {mode === "register" && otpSent ? (
-              <>
-                <TextField
-                  label="Verification code"
-                  required
-                  fullWidth
-                  size="small"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                  inputProps={{ inputMode: "numeric", maxLength: 8 }}
-                  sx={fieldSx}
-                />
-                <Button
-                  type="button"
-                  size="small"
-                  disabled={!resendCooldown.canResend || resendLoading}
-                  onClick={() => void handleResendOtp()}
-                  sx={{
-                    alignSelf: "flex-start",
-                    textTransform: "none",
-                    color: "#000",
-                    fontWeight: 600,
-                  }}
-                >
-                  {resendLoading
-                    ? "Sending…"
-                    : resendCooldown.canResend
-                      ? "Resend code"
-                      : `Resend in ${resendCooldown.formatCountdown(resendCooldown.secondsLeft)}`}
-                </Button>
-              </>
-            ) : null}
 
             <Button type="submit" variant="contained" disabled={loading} sx={submitBtnSx}>
               {loading ? (
                 <CircularProgress size={22} color="inherit" />
               ) : mode === "register" ? (
-                otpSent ? (
-                  "Create account & join"
-                ) : (
-                  "Send verification code"
-                )
+                "Create account & join"
               ) : (
                 "Sign in"
               )}

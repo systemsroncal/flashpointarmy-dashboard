@@ -3,6 +3,7 @@ import {
   HAPPENING_NOW_WINDOW_MS,
   HIDDEN_COMMUNITY_FEED_CATEGORIES,
 } from "@/lib/community/community-activity-feed";
+import { countDistinctLocalLeaders } from "@/lib/chapters/ensure-local-leader-role";
 import { countDashboardUsersMissionsStarted } from "@/lib/onboarding/missions-started";
 import { usStateByCode } from "@/data/usStates";
 
@@ -154,11 +155,6 @@ export async function loadOverviewStats(
     .select("id")
     .eq("name", "member")
     .maybeSingle();
-  const { data: leaderRole } = await supabase
-    .from("roles")
-    .select("id")
-    .eq("name", "local_leader")
-    .maybeSingle();
 
   let membersEngaged = 0;
   let localLeaders = 0;
@@ -181,13 +177,8 @@ export async function loadOverviewStats(
         membersEngaged = new Set((ur ?? []).map((r: { user_id: string }) => r.user_id)).size;
       }
     }
-    if (chapterIds.length > 0) {
-      const { data: cl } = await supabase
-        .from("chapter_leaders")
-        .select("user_id")
-        .in("chapter_id", chapterIds);
-      localLeaders = new Set((cl ?? []).map((r: { user_id: string }) => r.user_id)).size;
-    }
+    localLeaders =
+      chapterIds.length > 0 ? await countDistinctLocalLeaders(supabase, { chapterIds }) : 0;
   } else {
     if (memberRole) {
       const { count } = await supabase
@@ -196,13 +187,7 @@ export async function loadOverviewStats(
         .eq("role_id", memberRole.id as string);
       membersEngaged = count ?? 0;
     }
-    if (leaderRole) {
-      const { count } = await supabase
-        .from("user_roles")
-        .select("user_id", { count: "exact", head: true })
-        .eq("role_id", leaderRole.id as string);
-      localLeaders = count ?? 0;
-    }
+    localLeaders = await countDistinctLocalLeaders(supabase);
   }
 
   const happeningSince = new Date(Date.now() - HAPPENING_NOW_WINDOW_MS).toISOString();
@@ -356,7 +341,8 @@ export async function loadStatePopupStats(supabase: SupabaseClient, stateCode: s
   }
 
   // Also include leaders explicitly assigned to chapters in this state, even if
-  // their profile.state is not set.
+  // their profile.state is not set — and leaders with local_leader role whose
+  // primary chapter is in this state.
   if (chapterIds.length > 0) {
     const { data: cl } = await supabase
       .from("chapter_leaders")
@@ -364,6 +350,24 @@ export async function loadStatePopupStats(supabase: SupabaseClient, stateCode: s
       .in("chapter_id", chapterIds);
     for (const r of cl ?? []) {
       if (r.user_id) leaderIds.add(r.user_id as string);
+    }
+
+    if (localLeaderRole) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id")
+        .in("primary_chapter_id", chapterIds);
+      const chapterUserIds = (profs ?? []).map((p: { id: string }) => p.id);
+      if (chapterUserIds.length > 0) {
+        const { data: ll } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role_id", localLeaderRole.id as string)
+          .in("user_id", chapterUserIds);
+        for (const r of ll ?? []) {
+          if (r.user_id) leaderIds.add(r.user_id as string);
+        }
+      }
     }
   }
 

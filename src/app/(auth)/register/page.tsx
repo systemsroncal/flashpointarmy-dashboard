@@ -1,29 +1,24 @@
 "use client";
 
 import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
-import { useOtpResendCooldown } from "@/hooks/useOtpResendCooldown";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
 import { authFloatingTextFieldSx } from "@/components/auth/authFieldStyles";
+import { signInViaApi } from "@/lib/auth/sign-in-api";
 import { createClient } from "@/utils/supabase/client";
 import {
-  Autocomplete,
   Box,
   Button,
-  CircularProgress,
+  FormControl,
+  InputLabel,
   Link as MuiLink,
+  MenuItem,
+  Select,
   TextField,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-
-type ChapterOption = {
-  id: string;
-  name: string;
-  state: string;
-  city: string | null;
-};
+import { useState } from "react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,130 +27,48 @@ export default function RegisterPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-  const [chapter, setChapter] = useState<ChapterOption | null>(null);
-  const [chapters, setChapters] = useState<ChapterOption[]>([]);
-  const [chaptersLoading, setChaptersLoading] = useState(true);
-  const [chaptersError, setChaptersError] = useState<string | null>(null);
+  const [zipCode, setZipCode] = useState("");
+  const [gender, setGender] = useState<"" | "male" | "female">("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const resendCooldown = useOtpResendCooldown();
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setChaptersLoading(true);
-      setChaptersError(null);
-      const supabase = createClient();
-      const { data, error: qErr } = await supabase
-        .from("chapters")
-        .select("id, name, state, city")
-        .order("name");
-      if (cancelled) return;
-      if (qErr) {
-        setChaptersError(qErr.message);
-        setChapters([]);
-      } else {
-        setChapters((data ?? []) as ChapterOption[]);
-      }
-      setChaptersLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const chapterFieldSx = useMemo(
-    () => ({
-      ...authFloatingTextFieldSx,
-      "& .MuiAutocomplete-popupIndicator": { color: "#000000" },
-      "& .MuiAutocomplete-clearIndicator": { color: "#000000" },
-    }),
-    []
-  );
-
-  async function requestRegistrationOtp(): Promise<boolean> {
-    const res = await fetch("/api/auth/send-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim() }),
-    });
-    const data = (await res.json()) as { error?: string };
-    if (!res.ok) {
-      setError(data.error || "Could not send verification code.");
-      if (res.status === 429) resendCooldown.startCooldown();
-      return false;
-    }
-    resendCooldown.startCooldown();
-    return true;
-  }
-
-  async function handleResendOtp() {
-    if (!resendCooldown.canResend) return;
-    setError(null);
-    setMessage(null);
-    const em = email.trim();
-    if (!em || !em.includes("@")) {
-      setError("Enter a valid email address.");
-      return;
-    }
-    setResendLoading(true);
-    try {
-      const ok = await requestRegistrationOtp();
-      if (ok) {
-        setOtpCode("");
-        setMessage("Verification code sent again. Check your inbox.");
-      }
-    } finally {
-      setResendLoading(false);
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setMessage(null);
-    setLoading(true);
+
     const fn = firstName.trim();
     const ln = lastName.trim();
+    const zip = zipCode.trim();
     if (!fn || !ln) {
       setError("First name and last name are required.");
-      setLoading(false);
       return;
     }
-    if (!chapter) {
-      setError("Please select a chapter.");
-      setLoading(false);
+    if (!zip || zip.replace(/\D/g, "").length < 5) {
+      setError("Enter a valid 5-digit ZIP code.");
       return;
     }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      if (!otpSent) {
-        const ok = await requestRegistrationOtp();
-        if (!ok) return;
-        setOtpSent(true);
-        setMessage("Verification code sent. Check your inbox and enter the OTP below.");
-        return;
-      }
-
-      if (otpCode.trim().length < 6) {
-        setError("Enter the 6-digit verification code.");
-        return;
-      }
-
-      const res = await fetch("/api/auth/register-with-otp", {
+      const res = await fetch("/api/auth/register-direct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           password,
           firstName: fn,
           lastName: ln,
           phone: phone.trim() || undefined,
-          primaryChapterId: chapter.id,
-          otp: otpCode.trim(),
+          zipCode: zip,
+          gender: gender || undefined,
+          dateOfBirth: dateOfBirth || undefined,
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -164,8 +77,25 @@ export default function RegisterPage() {
         return;
       }
 
-      setMessage("Account created successfully. You can now sign in.");
-      setTimeout(() => router.push("/login"), 1500);
+      const signIn = await signInViaApi(email.trim(), password);
+      if (!signIn.ok) {
+        setMessage("Account created. Please sign in to continue.");
+        setTimeout(() => router.push("/login"), 1200);
+        return;
+      }
+
+      const {
+        data: { session },
+      } = await createClient().auth.getSession();
+      if (session) {
+        await fetch("/api/auth/session-start", { method: "POST", credentials: "include" });
+      }
+
+      setMessage("Account created. Redirecting…");
+      router.refresh();
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not complete registration.");
     } finally {
       setLoading(false);
     }
@@ -182,6 +112,18 @@ export default function RegisterPage() {
           p: 3,
         }}
       >
+        <Typography
+          sx={{
+            color: authGrayText,
+            fontSize: "0.85rem",
+            mb: 2,
+            lineHeight: 1.5,
+          }}
+        >
+          Create your account. Your chapter is assigned automatically from your ZIP code. Default
+          role is Member.
+        </Typography>
+
         <Box component="form" onSubmit={handleSubmit} noValidate>
           <TextField
             id="reg-first"
@@ -218,58 +160,57 @@ export default function RegisterPage() {
             autoComplete="tel"
             sx={authFloatingTextFieldSx}
           />
-          <Autocomplete
-            id="reg-chapter"
-            options={chapters}
-            loading={chaptersLoading}
-            value={chapter}
-            onChange={(_, v) => setChapter(v)}
-            getOptionLabel={(o) =>
-              o.city ? `${o.name} — ${o.city}, ${o.state}` : `${o.name} (${o.state})`
-            }
-            filterOptions={(opts, state) => {
-              const q = state.inputValue.trim().toLowerCase();
-              if (!q) return opts;
-              return opts.filter((o) => {
-                const blob = `${o.name} ${o.state} ${o.city ?? ""}`.toLowerCase();
-                return blob.includes(q);
-              });
+          <TextField
+            id="reg-zip"
+            name="zipCode"
+            label="ZIP code"
+            variant="outlined"
+            fullWidth
+            required
+            value={zipCode}
+            onChange={(e) => setZipCode(e.target.value)}
+            autoComplete="postal-code"
+            helperText="We assign the nearest chapter to this ZIP."
+            sx={{
+              ...authFloatingTextFieldSx,
+              "& .MuiFormHelperText-root": { color: authGrayText, fontSize: "0.7rem" },
             }}
-            isOptionEqualToValue={(a, b) => a.id === b.id}
-            sx={{ width: "100%" }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                name="chapter"
-                label="Chapter"
-                variant="outlined"
-                required
-                sx={chapterFieldSx}
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {chaptersLoading ? (
-                        <CircularProgress color="inherit" size={20} sx={{ mr: 1 }} />
-                      ) : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
-              />
-            )}
           />
-          {chaptersError ? (
-            <Typography variant="caption" sx={{ display: "block", color: "error.main", mb: 1 }}>
-              Could not load chapters: {chaptersError}. If you are the admin, run migration
-              008_dashboard_users_names_chapter.sql (anon read on chapters).
-            </Typography>
-          ) : null}
-          {!chaptersLoading && !chaptersError && chapters.length === 0 ? (
-            <Typography variant="caption" sx={{ display: "block", color: "warning.main", mb: 1 }}>
-              No chapters in the database yet. Add chapters in the dashboard before signing up.
-            </Typography>
-          ) : null}
+          <TextField
+            id="reg-dob"
+            name="dateOfBirth"
+            label="Date of birth"
+            type="date"
+            variant="outlined"
+            fullWidth
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={authFloatingTextFieldSx}
+          />
+          <FormControl fullWidth sx={{ ...authFloatingTextFieldSx, mb: 2 }}>
+            <InputLabel id="reg-gender-label" sx={{ color: "rgba(0,0,0,0.65)" }}>
+              Gender
+            </InputLabel>
+            <Select
+              labelId="reg-gender-label"
+              id="reg-gender"
+              label="Gender"
+              value={gender}
+              onChange={(e) => setGender(e.target.value as "" | "male" | "female")}
+              sx={{
+                color: "#000",
+                bgcolor: "#fff",
+                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(0,0,0,0.23)" },
+              }}
+            >
+              <MenuItem value="">
+                <em>Not set</em>
+              </MenuItem>
+              <MenuItem value="male">Male</MenuItem>
+              <MenuItem value="female">Female</MenuItem>
+            </Select>
+          </FormControl>
           <TextField
             id="reg-email"
             name="email"
@@ -280,58 +221,9 @@ export default function RegisterPage() {
             fullWidth
             autoComplete="email"
             value={email}
-            onChange={(e) => {
-              const next = e.target.value;
-              if (otpSent && next.trim().toLowerCase() !== email.trim().toLowerCase()) {
-                setOtpSent(false);
-                setOtpCode("");
-                resendCooldown.clearCooldown();
-              }
-              setEmail(next);
-            }}
+            onChange={(e) => setEmail(e.target.value)}
             sx={authFloatingTextFieldSx}
           />
-          {otpSent ? (
-            <Box sx={{ mb: 2 }}>
-              <TextField
-                id="reg-otp"
-                name="otp"
-                label="Verification code"
-                variant="outlined"
-                required
-                fullWidth
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                helperText="Enter the 6-digit code sent to your email."
-                sx={{
-                  ...authFloatingTextFieldSx,
-                  mb: 0.5,
-                  "& .MuiFormHelperText-root": { color: authGrayText, fontSize: "0.7rem" },
-                }}
-              />
-              <Button
-                type="button"
-                variant="text"
-                size="small"
-                disabled={resendLoading || loading || !email.trim() || !resendCooldown.canResend}
-                onClick={() => void handleResendOtp()}
-                sx={{
-                  p: 0,
-                  minWidth: 0,
-                  textTransform: "none",
-                  color: authYellow,
-                  fontSize: "0.8rem",
-                  "&:disabled": { color: authGrayText },
-                }}
-              >
-                {resendLoading
-                  ? "Sending…"
-                  : resendCooldown.canResend
-                    ? "Resend verification email"
-                    : `Resend verification email (${resendCooldown.formatCountdown(resendCooldown.secondsLeft)})`}
-              </Button>
-            </Box>
-          ) : null}
           <TextField
             id="reg-password"
             name="password"
@@ -343,7 +235,7 @@ export default function RegisterPage() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            helperText="At least 6 characters (Supabase default)"
+            helperText="At least 6 characters"
             sx={{
               ...authFloatingTextFieldSx,
               "& .MuiFormHelperText-root": { color: authGrayText, fontSize: "0.7rem" },
@@ -364,9 +256,7 @@ export default function RegisterPage() {
           <Button
             type="submit"
             fullWidth
-            disabled={
-              loading || chaptersLoading || !!chaptersError || chapters.length === 0
-            }
+            disabled={loading}
             sx={{
               mt: 1,
               py: 1.25,
@@ -388,7 +278,7 @@ export default function RegisterPage() {
               },
             }}
           >
-            {loading ? "Please wait…" : otpSent ? "Verify OTP & Create account" : "Register"}
+            {loading ? "Please wait…" : "Create account"}
           </Button>
         </Box>
 
@@ -405,7 +295,7 @@ export default function RegisterPage() {
             "&:hover": { color: authYellow },
           }}
         >
-          Back to Sign In
+          Already registered? Sign in
         </MuiLink>
       </Box>
     </ArmyAuthShell>

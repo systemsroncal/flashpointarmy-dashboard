@@ -1,7 +1,6 @@
 "use client";
 
 import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
-import { LoginSignInHighlight, showLoginSignInHighlight } from "@/components/auth/LoginSignInHighlight";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
 import { PasswordTextField } from "@/components/auth/PasswordTextField";
 import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles";
@@ -12,9 +11,6 @@ import { Alert, Box, Button, Link as MuiLink, TextField, Typography } from "@mui
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-
-/** Set to `true` to show “New here? Create account” on the login page again. */
-const SHOW_LOGIN_REGISTER_INVITE = false;
 
 function LoginForm() {
   const router = useRouter();
@@ -66,7 +62,6 @@ function LoginForm() {
   return (
     <ArmyAuthShell>
       <AuthFormBrandHeader />
-      <LoginSignInHighlight autoShow={!passwordUpdated} />
       <Box
         id="login-form-panel"
         sx={{
@@ -163,26 +158,6 @@ function LoginForm() {
             }}
           >
             <MuiLink
-              component="button"
-              type="button"
-              underline="always"
-              onClick={() => void showLoginSignInHighlight()}
-              sx={{
-                color: authYellow,
-                fontWeight: 600,
-                fontSize: "inherit",
-                verticalAlign: "inherit",
-                border: "none",
-                bgcolor: "transparent",
-                cursor: "pointer",
-                p: 0,
-                "&:hover": { opacity: 0.9 },
-              }}
-            >
-              First time signing in?
-            </MuiLink>
-            {" · "}
-            <MuiLink
               component={Link}
               href="/forgot-password"
               underline="always"
@@ -197,25 +172,39 @@ function LoginForm() {
           </Typography>
         </Box>
 
-        {SHOW_LOGIN_REGISTER_INVITE ? (
+        <Box sx={{ mt: 2, textAlign: "center" }}>
           <Typography
             sx={{
-              mt: 1.5,
-              textAlign: "center",
               color: authGrayText,
-              fontSize: "0.75rem",
+              fontSize: "0.8rem",
+              mb: 1,
             }}
           >
-            New here?{" "}
-            <MuiLink
-              component={Link}
-              href="/register"
-              sx={{ color: authGrayText, "&:hover": { color: authYellow } }}
-            >
-              Create account
-            </MuiLink>
+            Don&apos;t have an account?
           </Typography>
-        ) : null}
+          <Button
+            component={Link}
+            href="/register"
+            fullWidth
+            sx={{
+              py: 1.1,
+              border: `1px solid ${authYellow}`,
+              borderRadius: "6px",
+              color: "#000000",
+              bgcolor: authYellow,
+              fontWeight: 700,
+              textTransform: "none",
+              fontSize: "0.95rem",
+              letterSpacing: "0.06em",
+              "&:hover": {
+                bgcolor: "#e6c200",
+                borderColor: "#e6c200",
+              },
+            }}
+          >
+            SIGN UP
+          </Button>
+        </Box>
       </Box>
     </ArmyAuthShell>
   );
