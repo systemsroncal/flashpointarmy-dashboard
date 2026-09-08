@@ -2,20 +2,10 @@
 
 import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
-import { authFloatingTextFieldSx } from "@/components/auth/authFieldStyles";
+import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles";
 import { signInViaApi } from "@/lib/auth/sign-in-api";
 import { createClient } from "@/utils/supabase/client";
-import {
-  Box,
-  Button,
-  FormControl,
-  InputLabel,
-  Link as MuiLink,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Link as MuiLink, MenuItem, TextField, Typography } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -116,7 +106,7 @@ export default function RegisterPage() {
           sx={{
             color: authGrayText,
             fontSize: "0.85rem",
-            mb: 2,
+            mb: 2.5,
             lineHeight: 1.5,
           }}
         >
@@ -125,122 +115,175 @@ export default function RegisterPage() {
         </Typography>
 
         <Box component="form" onSubmit={handleSubmit} noValidate>
-          <TextField
-            id="reg-first"
-            name="firstName"
-            label="First name"
-            variant="outlined"
-            fullWidth
-            required
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            autoComplete="given-name"
-            sx={authFloatingTextFieldSx}
-          />
-          <TextField
-            id="reg-last"
-            name="lastName"
-            label="Last name"
-            variant="outlined"
-            fullWidth
-            required
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            autoComplete="family-name"
-            sx={authFloatingTextFieldSx}
-          />
-          <TextField
-            id="reg-phone"
-            name="phone"
-            label="Phone (optional)"
-            variant="outlined"
-            fullWidth
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            autoComplete="tel"
-            sx={authFloatingTextFieldSx}
-          />
-          <TextField
-            id="reg-zip"
-            name="zipCode"
-            label="ZIP code"
-            variant="outlined"
-            fullWidth
-            required
-            value={zipCode}
-            onChange={(e) => setZipCode(e.target.value)}
-            autoComplete="postal-code"
-            helperText="We assign the nearest chapter to this ZIP."
-            sx={{
-              ...authFloatingTextFieldSx,
-              "& .MuiFormHelperText-root": { color: authGrayText, fontSize: "0.7rem" },
-            }}
-          />
-          <TextField
-            id="reg-dob"
-            name="dateOfBirth"
-            label="Date of birth"
-            type="date"
-            variant="outlined"
-            fullWidth
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={authFloatingTextFieldSx}
-          />
-          <FormControl fullWidth sx={{ ...authFloatingTextFieldSx, mb: 2 }}>
-            <InputLabel id="reg-gender-label" sx={{ color: "rgba(0,0,0,0.65)" }}>
+          <Box>
+            <Typography component="label" htmlFor="reg-first" sx={authLabelSx}>
+              First name *
+            </Typography>
+            <TextField
+              id="reg-first"
+              name="firstName"
+              required
+              fullWidth
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              autoComplete="given-name"
+              sx={authTextFieldSx}
+              inputProps={{ "aria-label": "First name" }}
+            />
+          </Box>
+
+          <Box>
+            <Typography component="label" htmlFor="reg-last" sx={authLabelSx}>
+              Last name *
+            </Typography>
+            <TextField
+              id="reg-last"
+              name="lastName"
+              required
+              fullWidth
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              autoComplete="family-name"
+              sx={authTextFieldSx}
+              inputProps={{ "aria-label": "Last name" }}
+            />
+          </Box>
+
+          <Box>
+            <Typography component="label" htmlFor="reg-phone" sx={authLabelSx}>
+              Phone (optional)
+            </Typography>
+            <TextField
+              id="reg-phone"
+              name="phone"
+              fullWidth
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
+              sx={authTextFieldSx}
+              inputProps={{ "aria-label": "Phone" }}
+            />
+          </Box>
+
+          <Box>
+            <Typography component="label" htmlFor="reg-zip" sx={authLabelSx}>
+              ZIP code *
+            </Typography>
+            <TextField
+              id="reg-zip"
+              name="zipCode"
+              required
+              fullWidth
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
+              autoComplete="postal-code"
+              helperText="We assign the nearest chapter to this ZIP."
+              sx={{
+                ...authTextFieldSx,
+                mb: 2,
+                "& .MuiFormHelperText-root": {
+                  color: authGrayText,
+                  fontSize: "0.7rem",
+                  mx: 0,
+                  mt: 0.75,
+                },
+              }}
+              inputProps={{ "aria-label": "ZIP code" }}
+            />
+          </Box>
+
+          <Box>
+            <Typography component="label" htmlFor="reg-dob" sx={authLabelSx}>
+              Date of birth
+            </Typography>
+            <TextField
+              id="reg-dob"
+              name="dateOfBirth"
+              type="date"
+              fullWidth
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              sx={{
+                ...authTextFieldSx,
+                "& .MuiInputBase-input": {
+                  colorScheme: "light",
+                },
+              }}
+              inputProps={{ "aria-label": "Date of birth" }}
+            />
+          </Box>
+
+          <Box>
+            <Typography component="label" htmlFor="reg-gender" sx={authLabelSx}>
               Gender
-            </InputLabel>
-            <Select
-              labelId="reg-gender-label"
+            </Typography>
+            <TextField
               id="reg-gender"
-              label="Gender"
+              name="gender"
+              select
+              fullWidth
               value={gender}
               onChange={(e) => setGender(e.target.value as "" | "male" | "female")}
               sx={{
-                color: "#000",
-                bgcolor: "#fff",
-                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(0,0,0,0.23)" },
+                ...authTextFieldSx,
+                "& .MuiSelect-select": {
+                  py: 1.5,
+                },
               }}
+              inputProps={{ "aria-label": "Gender" }}
             >
               <MenuItem value="">
                 <em>Not set</em>
               </MenuItem>
               <MenuItem value="male">Male</MenuItem>
               <MenuItem value="female">Female</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            id="reg-email"
-            name="email"
-            label="Email address"
-            variant="outlined"
-            type="email"
-            required
-            fullWidth
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            sx={authFloatingTextFieldSx}
-          />
-          <TextField
-            id="reg-password"
-            name="password"
-            label="Password"
-            variant="outlined"
-            type="password"
-            required
-            fullWidth
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            helperText="At least 6 characters"
-            sx={{
-              ...authFloatingTextFieldSx,
-              "& .MuiFormHelperText-root": { color: authGrayText, fontSize: "0.7rem" },
-            }}
-          />
+            </TextField>
+          </Box>
+
+          <Box>
+            <Typography component="label" htmlFor="reg-email" sx={authLabelSx}>
+              Email address *
+            </Typography>
+            <TextField
+              id="reg-email"
+              name="email"
+              type="email"
+              required
+              fullWidth
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              sx={authTextFieldSx}
+              inputProps={{ "aria-label": "Email address" }}
+            />
+          </Box>
+
+          <Box>
+            <Typography component="label" htmlFor="reg-password" sx={authLabelSx}>
+              Password *
+            </Typography>
+            <TextField
+              id="reg-password"
+              name="password"
+              type="password"
+              required
+              fullWidth
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              helperText="At least 6 characters"
+              sx={{
+                ...authTextFieldSx,
+                "& .MuiFormHelperText-root": {
+                  color: authGrayText,
+                  fontSize: "0.7rem",
+                  mx: 0,
+                  mt: 0.75,
+                },
+              }}
+              inputProps={{ "aria-label": "Password" }}
+            />
+          </Box>
 
           {error ? (
             <Typography color="error" variant="body2" sx={{ mb: 1 }}>
