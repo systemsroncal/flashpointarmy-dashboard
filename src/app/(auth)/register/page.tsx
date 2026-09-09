@@ -3,6 +3,7 @@
 import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
 import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles";
+import { PasswordTextField } from "@/components/auth/PasswordTextField";
 import { US_STATES } from "@/data/usStates";
 import { signInViaApi } from "@/lib/auth/sign-in-api";
 import { createClient } from "@/utils/supabase/client";
@@ -10,6 +11,28 @@ import { Box, Button, Link as MuiLink, MenuItem, TextField, Typography } from "@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+/** Match default outlined TextField height for selects (no floating label). */
+const authSelectSx = {
+  ...authTextFieldSx,
+  "& .MuiOutlinedInput-root": {
+    bgcolor: "#ffffff",
+    color: "#000000",
+    borderRadius: "6px",
+    fontSize: "1rem",
+    minHeight: 56,
+    "& fieldset": { border: "none" },
+    "&:hover fieldset": { border: "none" },
+    "&.Mui-focused fieldset": { border: "none" },
+  },
+  "& .MuiSelect-select": {
+    display: "flex",
+    alignItems: "center",
+    py: "16.5px",
+    minHeight: "1.4375em !important",
+    boxSizing: "content-box",
+  },
+} as const;
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -123,18 +146,6 @@ export default function RegisterPage() {
           p: 3,
         }}
       >
-        <Typography
-          sx={{
-            color: authGrayText,
-            fontSize: "0.85rem",
-            mb: 2.5,
-            lineHeight: 1.5,
-          }}
-        >
-          Create your account. Your chapter is assigned automatically from your ZIP code. Default
-          role is Member.
-        </Typography>
-
         <Box
           component="form"
           onSubmit={handleSubmit}
@@ -238,8 +249,7 @@ export default function RegisterPage() {
               value={state}
               onChange={(e) => setState(e.target.value)}
               sx={{
-                ...authTextFieldSx,
-                "& .MuiSelect-select": { py: 1.5 },
+                ...authSelectSx,
                 "& .MuiSelect-select.MuiSelect-select": {
                   color: state ? "#000" : "#9ca3af",
                 },
@@ -311,12 +321,7 @@ export default function RegisterPage() {
               fullWidth
               value={gender}
               onChange={(e) => setGender(e.target.value as "" | "male" | "female")}
-              sx={{
-                ...authTextFieldSx,
-                "& .MuiSelect-select": {
-                  py: 1.5,
-                },
-              }}
+              sx={authSelectSx}
               inputProps={{ "aria-label": "Gender" }}
             >
               <MenuItem value="">
@@ -341,27 +346,17 @@ export default function RegisterPage() {
             inputProps={{ "aria-label": "Email address" }}
           />
 
-          <TextField
+          <PasswordTextField
             id="reg-password"
             name="password"
-            type="password"
+            label="Password"
             placeholder="Password *"
-            required
-            fullWidth
+            placeholderOnly
+            authStyled
             autoComplete="new-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
             helperText="At least 6 characters"
-            sx={{
-              ...authTextFieldSx,
-              "& .MuiFormHelperText-root": {
-                color: authGrayText,
-                fontSize: "0.7rem",
-                mx: 0,
-                mt: 0.75,
-              },
-            }}
-            inputProps={{ "aria-label": "Password" }}
           />
 
           {error ? (

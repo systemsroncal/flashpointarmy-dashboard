@@ -25,6 +25,9 @@ type PasswordTextFieldProps = {
   required?: boolean;
   /** Use white auth form styling (login / reset pages). */
   authStyled?: boolean;
+  /** With authStyled: no label above; show `placeholder` inside the field. */
+  placeholderOnly?: boolean;
+  placeholder?: string;
   sx?: SxProps<Theme>;
 };
 
@@ -38,9 +41,22 @@ export function PasswordTextField({
   helperText,
   required = true,
   authStyled = false,
+  placeholderOnly = false,
+  placeholder,
   sx,
 }: PasswordTextFieldProps) {
   const [visible, setVisible] = useState(false);
+
+  const authFieldSx = {
+    ...authTextFieldSx,
+    "& .MuiIconButton-root": {
+      color: "#374151",
+      bgcolor: "rgba(0,0,0,0.06)",
+      mr: 0.25,
+      "&:hover": { color: "#111", bgcolor: "rgba(0,0,0,0.12)" },
+    },
+    ...(sx && typeof sx === "object" && !Array.isArray(sx) ? sx : {}),
+  } as SxProps<Theme>;
 
   const field = (
     <TextField
@@ -52,20 +68,9 @@ export function PasswordTextField({
       autoComplete={autoComplete}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      label={authStyled ? undefined : label}
-      sx={
-        authStyled
-          ? {
-              ...authTextFieldSx,
-              "& .MuiIconButton-root": {
-                color: "#374151",
-                bgcolor: "rgba(0,0,0,0.06)",
-                mr: 0.25,
-                "&:hover": { color: "#111", bgcolor: "rgba(0,0,0,0.12)" },
-              },
-            }
-          : sx
-      }
+      label={authStyled || placeholderOnly ? undefined : label}
+      placeholder={placeholderOnly ? placeholder ?? label : undefined}
+      sx={authStyled || placeholderOnly ? authFieldSx : sx}
       inputProps={{ "aria-label": label }}
       InputProps={{
         endAdornment: (
@@ -93,6 +98,22 @@ export function PasswordTextField({
         {field}
         {helperText ? (
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+            {helperText}
+          </Typography>
+        ) : null}
+      </Box>
+    );
+  }
+
+  if (placeholderOnly) {
+    return (
+      <Box>
+        {field}
+        {helperText ? (
+          <Typography
+            component="p"
+            sx={{ color: "#9ca3af", fontSize: "0.7rem", lineHeight: 1.45, mt: -1, mb: 1.5, mx: 0 }}
+          >
             {helperText}
           </Typography>
         ) : null}
