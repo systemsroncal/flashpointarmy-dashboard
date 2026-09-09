@@ -274,17 +274,7 @@ export default function RegisterPage() {
               value={zipCode}
               onChange={(e) => setZipCode(e.target.value)}
               autoComplete="postal-code"
-              helperText="We assign the nearest chapter to this ZIP."
-              sx={{
-                ...authTextFieldSx,
-                mb: 2,
-                "& .MuiFormHelperText-root": {
-                  color: authGrayText,
-                  fontSize: "0.7rem",
-                  mx: 0,
-                  mt: 0.75,
-                },
-              }}
+              sx={authTextFieldSx}
               inputProps={{ "aria-label": "ZIP code" }}
             />
           </Box>
