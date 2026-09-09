@@ -1517,8 +1517,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   // Appointing leaders is owner/staff territory — mirrors the server-side gate.
   const canChangeMemberRoles =
     isSuperAdmin || me.role_names.includes("admin") || group.created_by === me.id;
-  // Matches the server-side POST /members gate: site staff, group owner, or an approved leader.
-  const canAddMember = isLeader || group.created_by === me.id || isSuperAdmin || me.role_names.includes("admin");
+  // Matches canAddMobilizeGroupMembers: site staff or group owner only (not group leaders).
+  const canAddMember =
+    group.created_by === me.id || isSuperAdmin || me.role_names.includes("admin");
   const showMemberContacts =
     canViewMemberContacts ||
     isSuperAdmin ||
@@ -2309,7 +2310,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         <DialogContent>
           <Typography>
             Promote <strong>{promoteLeaderConfirm?.name}</strong> to group leader? They will be able to
-            manage members, settings, and content according to group policies.
+            approve join requests, remove members, and manage content according to group policies.
+            Only owners and admins can add members directly.
           </Typography>
         </DialogContent>
         <DialogActions>

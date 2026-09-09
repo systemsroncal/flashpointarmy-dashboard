@@ -28,18 +28,35 @@ export type AutoFollowSyncEvent = {
   };
 };
 
+/**
+ * Make a newly created (or promoted) user follow every Mobilize auto-follow
+ * whitelist target from settings. Idempotent. Prefer after member role +
+ * dashboard_users mirror exist.
+ */
 export async function applyMobilizeAutoFollowForUser(
   admin: SupabaseClient,
   followerId: string
 ): Promise<{ created: number; error?: string }> {
+  if (!followerId) return { created: 0, error: "Missing follower id." };
+
   const { data: targets, error: tErr } = await admin
     .from("mobilize_auto_follow_targets")
     .select("user_id");
   if (tErr) return { created: 0, error: tErr.message };
 
-  const followingIds = ((targets ?? []) as { user_id: string }[])
+  const rawTargetIds = ((targets ?? []) as { user_id: string }[])
     .map((t) => t.user_id)
-    .filter((id) => id !== followerId);
+    .filter((id) => id && id !== followerId);
+  if (!rawTargetIds.length) return { created: 0 };
+
+  // Same guard as the SQL RPC: only follow targets that exist in dashboard_users.
+  const { data: validRows, error: vErr } = await admin
+    .from("dashboard_users")
+    .select("id")
+    .in("id", rawTargetIds);
+  if (vErr) return { created: 0, error: vErr.message };
+
+  const followingIds = ((validRows ?? []) as { id: string }[]).map((r) => r.id);
   if (!followingIds.length) return { created: 0 };
 
   const rows = followingIds.map((following_id) => ({
@@ -49,7 +66,19 @@ export async function applyMobilizeAutoFollowForUser(
   const { error } = await admin
     .from("mobilize_user_follows")
     .upsert(rows, { onConflict: "follower_id,following_id", ignoreDuplicates: true });
-  if (error) return { created: 0, error: error.message };
+
+  if (error) {
+    // Fallback to DB RPC (role-gated, security definer) if direct upsert fails.
+    const { data: rpcCount, error: rpcErr } = await admin.rpc(
+      "apply_mobilize_auto_follow_for_user",
+      { p_follower_id: followerId }
+    );
+    if (rpcErr) {
+      return { created: 0, error: `${error.message}; rpc: ${rpcErr.message}` };
+    }
+    return { created: typeof rpcCount === "number" ? rpcCount : 0 };
+  }
+
   return { created: rows.length };
 }
 

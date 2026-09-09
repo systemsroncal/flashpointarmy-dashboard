@@ -193,15 +193,14 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
   const canEditChapter =
     Boolean(chapter) && (isSuperAdmin || chapter?.created_by === me.id);
 
-  // Matches canManageMobilizeGroupMembers on the server: site staff, group owner,
-  // chapter owner, or an approved leader of this group may add members directly.
+  // Matches canAddMobilizeGroupMembers: site staff, group owner, or chapter owner
+  // (group leaders cannot add members).
   function canAddMemberToGroup(g: GroupRow) {
     return (
       isSuperAdmin ||
       me.role_names.includes("admin") ||
       g.created_by === me.id ||
-      chapter?.created_by === me.id ||
-      (g.leaders ?? []).some((l) => l.user_id === me.id)
+      chapter?.created_by === me.id
     );
   }
 

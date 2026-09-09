@@ -15,6 +15,9 @@ type RegisterPayload = {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  streetAddress?: string;
+  city?: string;
+  state?: string;
   zipCode?: string;
   gender?: string;
   dateOfBirth?: string;
@@ -46,6 +49,10 @@ export async function POST(req: Request) {
     const firstName = (body.firstName || "").trim();
     const lastName = (body.lastName || "").trim();
     const phone = (body.phone || "").trim() || null;
+    const streetAddress = (body.streetAddress || "").trim() || null;
+    const city = (body.city || "").trim() || null;
+    const stateRaw = (body.state || "").trim().toUpperCase();
+    const state = /^[A-Z]{2}$/.test(stateRaw) ? stateRaw : null;
     const zipCode = (body.zipCode || "").trim();
     const joinGroupId = (body.joinGroupId || "").trim() || null;
     const gender = normalizeGender(body.gender);
@@ -98,6 +105,9 @@ export async function POST(req: Request) {
         last_name: lastName,
         primary_chapter_id: primaryChapterId,
         phone,
+        address_line: streetAddress,
+        city,
+        state,
         zip_code: zipCode,
         gender,
         date_of_birth: dateOfBirth,
@@ -121,7 +131,12 @@ export async function POST(req: Request) {
       displayName,
       primaryChapterId,
       phone,
-      mailing: { address_line: null, city: null, state: null, zip_code: zipCode },
+      mailing: {
+        address_line: streetAddress,
+        city,
+        state,
+        zip_code: zipCode,
+      },
     });
     if (mirror.error) {
       console.error("[register-direct] ensureDashboardUserMirror:", mirror.error);
@@ -135,6 +150,9 @@ export async function POST(req: Request) {
         display_name: displayName,
         primary_chapter_id: primaryChapterId,
         phone,
+        address_line: streetAddress,
+        city,
+        state,
         zip_code: zipCode,
         gender,
         date_of_birth: dateOfBirth,
@@ -144,7 +162,11 @@ export async function POST(req: Request) {
       console.error("[register-direct] profiles update:", profileErr.message);
     }
 
-    await applyMobilizeAutoFollowForUser(supabase, created.user.id);
+    await applyMobilizeAutoFollowForUser(supabase, created.user.id).then((af) => {
+      if (af.error) {
+        console.error("[register-direct] applyMobilizeAutoFollowForUser:", af.error);
+      }
+    });
 
     let joinMembership: Record<string, unknown> | null = null;
     if (joinGroupId) {

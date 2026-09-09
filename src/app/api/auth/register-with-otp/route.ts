@@ -173,7 +173,11 @@ export async function POST(req: Request) {
       })
       .eq("id", created.user.id);
 
-    await applyMobilizeAutoFollowForUser(supabase, created.user.id);
+    await applyMobilizeAutoFollowForUser(supabase, created.user.id).then((af) => {
+      if (af.error) {
+        console.error("[register-with-otp] applyMobilizeAutoFollowForUser:", af.error);
+      }
+    });
 
     let joinMembership: Record<string, unknown> | null = null;
     if (joinGroupId) {

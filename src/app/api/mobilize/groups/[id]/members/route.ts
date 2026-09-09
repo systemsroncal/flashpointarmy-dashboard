@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { insertGroupJoinActivity } from "@/lib/community/group-activity-feed";
 import { loadTrainingGraduateBadgesForUsers } from "@/lib/courses/course-completion";
-import { canManageMobilizeGroupMembers, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
+import { canAddMobilizeGroupMembers, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -146,12 +146,13 @@ export async function GET(_req: Request, ctx: Ctx) {
  * POST /api/mobilize/groups/[id]/members
  * Body: { userIds?: string[], emails?: string[], userId?: string, member_role?: "member" | "leader" }
  *
- * Group leaders, the group owner, the parent chapter owner, and site staff
- * (admin / super_admin) may add dashboard users directly — one at a time or in
- * bulk, by user id and/or comma-separated emails. Added rows are inserted (or
- * upgraded) with membership_status = "approved", avoiding the self-join RLS
- * path which only allows pending self-inserts. Users who are already approved
- * members and emails that match no dashboard user are skipped and reported.
+ * Group owner, parent chapter owner, and site staff (admin / super_admin) may
+ * add dashboard users directly — one at a time or in bulk, by user id and/or
+ * comma-separated emails. Group leaders cannot add members. Added rows are
+ * inserted (or upgraded) with membership_status = "approved", avoiding the
+ * self-join RLS path which only allows pending self-inserts. Users who are
+ * already approved members and emails that match no dashboard user are skipped
+ * and reported.
  */
 export async function POST(req: Request, ctx: Ctx) {
   const auth = await requireMobilizeRead();
@@ -210,14 +211,6 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Group not found." }, { status: 404 });
   }
 
-  const { data: meMember } = await auth.admin
-    .from("mobilize_group_members")
-    .select("member_role, membership_status")
-    .eq("group_id", id)
-    .eq("user_id", auth.userId)
-    .maybeSingle();
-  const isApprovedLeader =
-    meMember?.membership_status === "approved" && meMember?.member_role === "leader";
   const isGroupOwner = group.created_by === auth.userId;
 
   let isChapterOwner = false;
@@ -230,14 +223,16 @@ export async function POST(req: Request, ctx: Ctx) {
     isChapterOwner = chapter?.created_by === auth.userId;
   }
 
-  const allowed = canManageMobilizeGroupMembers({
+  const allowed = canAddMobilizeGroupMembers({
     roleNames: auth.roleNames,
-    isLeader: isApprovedLeader,
     isGroupOwner,
     isChapterOwner,
   });
   if (!allowed) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Only group owners and admins can add members." },
+      { status: 403 }
+    );
   }
 
   // Resolve emails to dashboard user ids (case-insensitive, trimmed).

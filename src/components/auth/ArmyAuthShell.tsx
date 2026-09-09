@@ -14,7 +14,17 @@ import type { ReactNode } from "react";
 const grayText = "#d1d5db";
 const yellow = flashpointYellow;
 
-export function ArmyAuthShell({ children }: { children: ReactNode }) {
+export function ArmyAuthShell({
+  children,
+  hideHeadline = false,
+  contentMaxWidth = 400,
+}: {
+  children: ReactNode;
+  /** Hide the left “BE WHO GOD CALLED YOU TO BE.” headline (e.g. register). */
+  hideHeadline?: boolean;
+  /** Max width of the centered form column (px). */
+  contentMaxWidth?: number;
+}) {
   return (
     <Box
       sx={{
@@ -72,47 +82,49 @@ export function ArmyAuthShell({ children }: { children: ReactNode }) {
           py: { xs: 3, md: 0 },
         }}
       >
-        <Box
-          sx={{
-            textAlign: "left",
-            color: yellow,
-            flexShrink: 0,
-            width: "100%",
-            maxWidth: { xs: "100%", sm: 420, md: 480 },
-            mb: { xs: 3, md: 0 },
-            pr: { md: 2 },
-            position: { md: "absolute" },
-            left: { md: "2%" },
-            top: { md: "50%" },
-            transform: { md: "translateY(-50%)" },
-            lineHeight: 1.12,
-            display: { xs: "none", md: "block" },
-          }}
-        >
-          <Typography
-            component="h1"
+        {!hideHeadline ? (
+          <Box
             sx={{
-              fontWeight: 800,
-              textTransform: "uppercase",
+              textAlign: "left",
+              color: yellow,
+              flexShrink: 0,
+              width: "100%",
+              maxWidth: { xs: "100%", sm: 420, md: 480 },
+              mb: { xs: 3, md: 0 },
+              pr: { md: 2 },
+              position: { md: "absolute" },
+              left: { md: "2%" },
+              top: { md: "50%" },
+              transform: { md: "translateY(-50%)" },
               lineHeight: 1.12,
-              fontSize: {
-                xs: "clamp(1.2rem, 5.2vw, 1.65rem)",
-                sm: "clamp(1.45rem, 3.8vw, 2.1rem)",
-                md: "4vw",
-                lg: "55px",
-                xl: "75px",
-              },
-              letterSpacing: { xs: "0.02em", md: "0.04em" },
+              display: { xs: "none", md: "block" },
             }}
           >
-            BE WHO <br /> GOD CALLED <br />YOU TO BE.
-          </Typography>
-        </Box>
+            <Typography
+              component="h1"
+              sx={{
+                fontWeight: 800,
+                textTransform: "uppercase",
+                lineHeight: 1.12,
+                fontSize: {
+                  xs: "clamp(1.2rem, 5.2vw, 1.65rem)",
+                  sm: "clamp(1.45rem, 3.8vw, 2.1rem)",
+                  md: "4vw",
+                  lg: "55px",
+                  xl: "75px",
+                },
+                letterSpacing: { xs: "0.02em", md: "0.04em" },
+              }}
+            >
+              BE WHO <br /> GOD CALLED <br />YOU TO BE.
+            </Typography>
+          </Box>
+        ) : null}
 
         <Box
           sx={{
             width: "100%",
-            maxWidth: 400,
+            maxWidth: contentMaxWidth,
             mx: "auto",
             position: "relative",
             zIndex: 2,

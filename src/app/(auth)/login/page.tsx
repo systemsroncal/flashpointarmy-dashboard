@@ -128,20 +128,21 @@ function LoginForm() {
               py: 1.25,
               border: `1px solid ${authYellow}`,
               borderRadius: "6px",
-              color: authYellow,
-              bgcolor: "transparent",
+              color: "#000000",
+              bgcolor: authYellow,
               fontWeight: 700,
               textTransform: "none",
               fontSize: "0.95rem",
               letterSpacing: "0.06em",
               "&:hover": {
-                bgcolor: authYellow,
-                color: "#000000",
+                bgcolor: "#e6c200",
+                borderColor: "#e6c200",
               },
               "&:disabled": {
                 opacity: 0.55,
                 borderColor: authYellow,
-                color: authYellow,
+                bgcolor: authYellow,
+                color: "#000000",
               },
             }}
           >
@@ -190,15 +191,15 @@ function LoginForm() {
               py: 1.1,
               border: `1px solid ${authYellow}`,
               borderRadius: "6px",
-              color: "#000000",
-              bgcolor: authYellow,
+              color: authYellow,
+              bgcolor: "transparent",
               fontWeight: 700,
               textTransform: "none",
               fontSize: "0.95rem",
               letterSpacing: "0.06em",
               "&:hover": {
-                bgcolor: "#e6c200",
-                borderColor: "#e6c200",
+                bgcolor: authYellow,
+                color: "#000000",
               },
             }}
           >
