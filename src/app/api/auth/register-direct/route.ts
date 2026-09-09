@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isEmailInUse } from "@/lib/auth/email-in-use";
 import { findNearestChapterByZip } from "@/lib/chapters/find-nearest-chapter-by-zip";
+import { usStateByCode } from "@/data/usStates";
 import {
   ensureDashboardUserMirror,
   ensureMemberRoleIfUserHasNoRoles,
@@ -49,10 +50,10 @@ export async function POST(req: Request) {
     const firstName = (body.firstName || "").trim();
     const lastName = (body.lastName || "").trim();
     const phone = (body.phone || "").trim() || null;
-    const streetAddress = (body.streetAddress || "").trim() || null;
-    const city = (body.city || "").trim() || null;
+    const streetAddress = (body.streetAddress || "").trim();
+    const city = (body.city || "").trim();
     const stateRaw = (body.state || "").trim().toUpperCase();
-    const state = /^[A-Z]{2}$/.test(stateRaw) ? stateRaw : null;
+    const state = usStateByCode(stateRaw)?.code ?? null;
     const zipCode = (body.zipCode || "").trim();
     const joinGroupId = (body.joinGroupId || "").trim() || null;
     const gender = normalizeGender(body.gender);
@@ -63,6 +64,15 @@ export async function POST(req: Request) {
     }
     if (password.length < 6) {
       return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
+    }
+    if (!streetAddress) {
+      return NextResponse.json({ error: "Street address is required." }, { status: 400 });
+    }
+    if (!city) {
+      return NextResponse.json({ error: "City is required." }, { status: 400 });
+    }
+    if (!state) {
+      return NextResponse.json({ error: "Select a valid US state." }, { status: 400 });
     }
     if (!zipCode || zipCode.replace(/\D/g, "").length < 5) {
       return NextResponse.json(

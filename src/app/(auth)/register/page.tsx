@@ -35,9 +35,23 @@ export default function RegisterPage() {
 
     const fn = firstName.trim();
     const ln = lastName.trim();
+    const street = streetAddress.trim();
+    const cityVal = city.trim();
     const zip = zipCode.trim();
     if (!fn || !ln) {
       setError("First name and last name are required.");
+      return;
+    }
+    if (!street) {
+      setError("Street address is required.");
+      return;
+    }
+    if (!cityVal) {
+      setError("City is required.");
+      return;
+    }
+    if (!state) {
+      setError("State is required.");
       return;
     }
     if (!zip || zip.replace(/\D/g, "").length < 5) {
@@ -60,9 +74,9 @@ export default function RegisterPage() {
           firstName: fn,
           lastName: ln,
           phone: phone.trim() || undefined,
-          streetAddress: streetAddress.trim() || undefined,
-          city: city.trim() || undefined,
-          state: state || undefined,
+          streetAddress: street,
+          city: cityVal,
+          state,
           zipCode: zip,
           gender: gender || undefined,
           dateOfBirth: dateOfBirth || undefined,
@@ -168,92 +182,112 @@ export default function RegisterPage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             autoComplete="tel"
-            sx={authTextFieldSx}
+            sx={{
+              ...authTextFieldSx,
+              "@media (min-width: 768px)": { gridColumn: "1 / -1" },
+            }}
             inputProps={{ "aria-label": "Phone" }}
           />
 
           <TextField
             id="reg-street"
             name="streetAddress"
-            placeholder="Street address (optional)"
+            placeholder="Street address *"
+            required
             fullWidth
             value={streetAddress}
             onChange={(e) => setStreetAddress(e.target.value)}
             autoComplete="street-address"
-            sx={authTextFieldSx}
+            sx={{
+              ...authTextFieldSx,
+              "@media (min-width: 768px)": { gridColumn: "1 / -1" },
+            }}
             inputProps={{ "aria-label": "Street address" }}
           />
 
-          <TextField
-            id="reg-city"
-            name="city"
-            placeholder="City (optional)"
-            fullWidth
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            autoComplete="address-level2"
-            sx={authTextFieldSx}
-            inputProps={{ "aria-label": "City" }}
-          />
-
-          <TextField
-            id="reg-state"
-            name="state"
-            select
-            fullWidth
-            value={state}
-            onChange={(e) => setState(e.target.value)}
+          <Box
             sx={{
-              ...authTextFieldSx,
-              "& .MuiSelect-select": { py: 1.5 },
-              "& .MuiSelect-select.MuiSelect-select": {
-                color: state ? "#000" : "#9ca3af",
+              display: "grid",
+              gridTemplateColumns: "1fr",
+              columnGap: 1.5,
+              "@media (min-width: 768px)": {
+                gridColumn: "1 / -1",
+                gridTemplateColumns: "1fr 1fr 1fr",
               },
             }}
-            SelectProps={{
-              displayEmpty: true,
-              renderValue: (selected) => {
-                const code = String(selected ?? "");
-                if (!code) return "State (optional)";
-                const opt = US_STATES.find((s) => s.code === code);
-                return opt ? `${opt.name} (${opt.code})` : code;
-              },
-            }}
-            inputProps={{ "aria-label": "State" }}
           >
-            <MenuItem value="">
-              <em>State (optional)</em>
-            </MenuItem>
-            {US_STATES.map((s) => (
-              <MenuItem key={s.code} value={s.code}>
-                {s.name} ({s.code})
-              </MenuItem>
-            ))}
-          </TextField>
+            <TextField
+              id="reg-city"
+              name="city"
+              placeholder="City *"
+              required
+              fullWidth
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              autoComplete="address-level2"
+              sx={authTextFieldSx}
+              inputProps={{ "aria-label": "City" }}
+            />
 
-          <TextField
-            id="reg-zip"
-            name="zipCode"
-            placeholder="ZIP code *"
-            required
-            fullWidth
-            value={zipCode}
-            onChange={(e) => setZipCode(e.target.value)}
-            autoComplete="postal-code"
-            helperText="We assign the nearest chapter to this ZIP."
-            sx={{
-              ...authTextFieldSx,
-              mb: 2,
-              "@media (min-width: 768px)": { gridColumn: "1 / -1" },
-              "& .MuiFormHelperText-root": {
-                color: authGrayText,
-                fontSize: "0.7rem",
-                mx: 0,
-                mt: 0.75,
-              },
-            }}
-            inputProps={{ "aria-label": "ZIP code" }}
-          />
+            <TextField
+              id="reg-state"
+              name="state"
+              select
+              required
+              fullWidth
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              sx={{
+                ...authTextFieldSx,
+                "& .MuiSelect-select": { py: 1.5 },
+                "& .MuiSelect-select.MuiSelect-select": {
+                  color: state ? "#000" : "#9ca3af",
+                },
+              }}
+              SelectProps={{
+                displayEmpty: true,
+                renderValue: (selected) => {
+                  const code = String(selected ?? "");
+                  if (!code) return "State *";
+                  const opt = US_STATES.find((s) => s.code === code);
+                  return opt ? `${opt.name} (${opt.code})` : code;
+                },
+              }}
+              inputProps={{ "aria-label": "State" }}
+            >
+              <MenuItem value="">
+                <em>State *</em>
+              </MenuItem>
+              {US_STATES.map((s) => (
+                <MenuItem key={s.code} value={s.code}>
+                  {s.name} ({s.code})
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              id="reg-zip"
+              name="zipCode"
+              placeholder="ZIP code *"
+              required
+              fullWidth
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
+              autoComplete="postal-code"
+              helperText="We assign the nearest chapter to this ZIP."
+              sx={{
+                ...authTextFieldSx,
+                mb: 2,
+                "& .MuiFormHelperText-root": {
+                  color: authGrayText,
+                  fontSize: "0.7rem",
+                  mx: 0,
+                  mt: 0.75,
+                },
+              }}
+              inputProps={{ "aria-label": "ZIP code" }}
+            />
+          </Box>
 
           <Box>
             <Typography component="label" htmlFor="reg-dob" sx={authLabelSx}>
