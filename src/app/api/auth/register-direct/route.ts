@@ -6,9 +6,16 @@ import {
   ensureDashboardUserMirror,
   ensureMemberRoleIfUserHasNoRoles,
 } from "@/lib/import/dashboard-user-mirror";
+import { consumeRateLimit } from "@/lib/http/in-memory-rate-limit";
 import { applyMobilizeAutoFollowForUser } from "@/lib/mobilize/auto-follow";
 import { joinMobilizeGroupAsMember } from "@/lib/mobilize/join-group-membership";
 import { createAdminClient } from "@/utils/supabase/admin";
+
+function clientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  const first = forwarded?.split(",")[0]?.trim();
+  return first || req.headers.get("x-real-ip")?.trim() || "unknown";
+}
 
 type RegisterPayload = {
   email?: string;
@@ -44,13 +51,21 @@ function normalizeDateOfBirth(raw: string | undefined): string | null {
 
 export async function POST(req: Request) {
   try {
+    const limited = consumeRateLimit(`register-direct:${clientIp(req)}`, 8, 60_000);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Too many registration attempts. Please wait and try again." },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } }
+      );
+    }
+
     const body = (await req.json()) as RegisterPayload;
     const email = (body.email || "").trim().toLowerCase();
     const password = (body.password || "").trim();
     const firstName = (body.firstName || "").trim();
     const lastName = (body.lastName || "").trim();
     const phone = (body.phone || "").trim() || null;
-    const streetAddress = (body.streetAddress || "").trim();
+    const streetAddress = (body.streetAddress || "").trim() || null;
     const city = (body.city || "").trim();
     const stateRaw = (body.state || "").trim().toUpperCase();
     const state = usStateByCode(stateRaw)?.code ?? null;
@@ -65,8 +80,8 @@ export async function POST(req: Request) {
     if (password.length < 6) {
       return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
     }
-    if (!streetAddress) {
-      return NextResponse.json({ error: "Street address is required." }, { status: 400 });
+    if (!phone || phone.replace(/\D/g, "").length < 10) {
+      return NextResponse.json({ error: "Enter a valid 10-digit phone number." }, { status: 400 });
     }
     if (!city) {
       return NextResponse.json({ error: "City is required." }, { status: 400 });

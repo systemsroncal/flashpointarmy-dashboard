@@ -4,35 +4,17 @@ import { AuthFormBrandHeader } from "@/components/auth/AuthFormBrandHeader";
 import { ArmyAuthShell, authGrayText, authYellow } from "@/components/auth/ArmyAuthShell";
 import { authLabelSx, authTextFieldSx } from "@/components/auth/authFieldStyles";
 import { PasswordTextField } from "@/components/auth/PasswordTextField";
-import { US_STATES } from "@/data/usStates";
+import { UsStateSearchAutocomplete } from "@/components/forms/UsStateSearchAutocomplete";
 import { signInViaApi } from "@/lib/auth/sign-in-api";
 import { createClient } from "@/utils/supabase/client";
-import { Box, Button, Link as MuiLink, MenuItem, TextField, Typography } from "@mui/material";
+import ArrowForward from "@mui/icons-material/ArrowForward";
+import VerifiedUser from "@mui/icons-material/VerifiedUser";
+import { Box, Button, Link as MuiLink, TextField, Typography } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-/** Match default outlined TextField height for selects (no floating label). */
-const authSelectSx = {
-  ...authTextFieldSx,
-  "& .MuiOutlinedInput-root": {
-    bgcolor: "#ffffff",
-    color: "#000000",
-    borderRadius: "6px",
-    fontSize: "1rem",
-    minHeight: 56,
-    "& fieldset": { border: "none" },
-    "&:hover fieldset": { border: "none" },
-    "&.Mui-focused fieldset": { border: "none" },
-  },
-  "& .MuiSelect-select": {
-    display: "flex",
-    alignItems: "center",
-    py: "16.5px",
-    minHeight: "1.4375em !important",
-    boxSizing: "content-box",
-  },
-} as const;
+const fullRowSx = { gridColumn: "1 / -1" } as const;
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -41,12 +23,9 @@ export default function RegisterPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-  const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
-  const [gender, setGender] = useState<"" | "male" | "female">("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -58,15 +37,19 @@ export default function RegisterPage() {
 
     const fn = firstName.trim();
     const ln = lastName.trim();
-    const street = streetAddress.trim();
+    const phoneVal = phone.trim();
     const cityVal = city.trim();
     const zip = zipCode.trim();
     if (!fn || !ln) {
       setError("First name and last name are required.");
       return;
     }
-    if (!street) {
-      setError("Street address is required.");
+    if (!email.trim() || !email.includes("@")) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (phoneVal.replace(/\D/g, "").length < 10) {
+      setError("Enter a valid 10-digit phone number.");
       return;
     }
     if (!cityVal) {
@@ -96,13 +79,10 @@ export default function RegisterPage() {
           password,
           firstName: fn,
           lastName: ln,
-          phone: phone.trim() || undefined,
-          streetAddress: street,
+          phone: phoneVal,
           city: cityVal,
           state,
           zipCode: zip,
-          gender: gender || undefined,
-          dateOfBirth: dateOfBirth || undefined,
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -146,6 +126,33 @@ export default function RegisterPage() {
           p: 3,
         }}
       >
+        <Typography
+          component="h1"
+          sx={{
+            color: authYellow,
+            fontWeight: 700,
+            fontSize: { xs: "1.35rem", sm: "1.5rem" },
+            letterSpacing: "0.02em",
+            lineHeight: 1.25,
+            mb: 0.75,
+            textWrap: "balance",
+          }}
+        >
+          Join FlashPoint Army
+        </Typography>
+        <Typography
+          sx={{
+            color: authGrayText,
+            fontSize: "0.9rem",
+            lineHeight: 1.55,
+            mb: 2.5,
+            maxWidth: "65ch",
+          }}
+        >
+          Create your free account and connect with believers across America. It takes less than a
+          minute.
+        </Typography>
+
         <Box
           component="form"
           onSubmit={handleSubmit}
@@ -159,224 +166,182 @@ export default function RegisterPage() {
             },
           }}
         >
-          <TextField
-            id="reg-first"
-            name="firstName"
-            placeholder="First name *"
-            required
-            fullWidth
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            autoComplete="given-name"
-            sx={authTextFieldSx}
-            inputProps={{ "aria-label": "First name" }}
-          />
+          <Box>
+            <Typography component="label" htmlFor="reg-first" sx={authLabelSx}>
+              First Name
+            </Typography>
+            <TextField
+              id="reg-first"
+              name="firstName"
+              required
+              fullWidth
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              autoComplete="given-name"
+              sx={authTextFieldSx}
+              inputProps={{ "aria-label": "First Name" }}
+            />
+          </Box>
 
-          <TextField
-            id="reg-last"
-            name="lastName"
-            placeholder="Last name *"
-            required
-            fullWidth
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            autoComplete="family-name"
-            sx={authTextFieldSx}
-            inputProps={{ "aria-label": "Last name" }}
-          />
+          <Box>
+            <Typography component="label" htmlFor="reg-last" sx={authLabelSx}>
+              Last Name
+            </Typography>
+            <TextField
+              id="reg-last"
+              name="lastName"
+              required
+              fullWidth
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              autoComplete="family-name"
+              sx={authTextFieldSx}
+              inputProps={{ "aria-label": "Last Name" }}
+            />
+          </Box>
 
-          <TextField
-            id="reg-phone"
-            name="phone"
-            placeholder="Phone (optional)"
-            fullWidth
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            autoComplete="tel"
-            sx={{
-              ...authTextFieldSx,
-              "@media (min-width: 768px)": { gridColumn: "1 / -1" },
-            }}
-            inputProps={{ "aria-label": "Phone" }}
-          />
+          <Box>
+            <Typography component="label" htmlFor="reg-email" sx={authLabelSx}>
+              Email address
+            </Typography>
+            <TextField
+              id="reg-email"
+              name="email"
+              type="email"
+              required
+              fullWidth
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              sx={authTextFieldSx}
+              inputProps={{ "aria-label": "Email address" }}
+            />
+          </Box>
 
-          <TextField
-            id="reg-street"
-            name="streetAddress"
-            placeholder="Street address *"
-            required
-            fullWidth
-            value={streetAddress}
-            onChange={(e) => setStreetAddress(e.target.value)}
-            autoComplete="street-address"
-            sx={{
-              ...authTextFieldSx,
-              "@media (min-width: 768px)": { gridColumn: "1 / -1" },
-            }}
-            inputProps={{ "aria-label": "Street address" }}
-          />
+          <Box>
+            <Typography component="label" htmlFor="reg-phone" sx={authLabelSx}>
+              Phone
+            </Typography>
+            <TextField
+              id="reg-phone"
+              name="phone"
+              type="tel"
+              required
+              fullWidth
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
+              sx={authTextFieldSx}
+              inputProps={{ "aria-label": "Phone", inputMode: "tel" }}
+            />
+          </Box>
+
+          <Box sx={{ ...fullRowSx, mb: 1.25, mt: 0.25 }}>
+            <Typography
+              component="h2"
+              sx={{
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: "1rem",
+                mb: 0.5,
+              }}
+            >
+              Help us connect you locally
+            </Typography>
+            <Typography
+              sx={{
+                color: authGrayText,
+                fontSize: "0.82rem",
+                lineHeight: 1.55,
+                maxWidth: "65ch",
+              }}
+            >
+              Your City, State and ZIP help us show activity, groups, and opportunities in your
+              area.
+            </Typography>
+          </Box>
 
           <Box
             sx={{
+              ...fullRowSx,
               display: "grid",
               gridTemplateColumns: "1fr",
               columnGap: 1.5,
               "@media (min-width: 768px)": {
-                gridColumn: "1 / -1",
-                gridTemplateColumns: "1fr 1fr 1fr",
+                gridTemplateColumns: "1.4fr 1.2fr 0.9fr",
               },
             }}
           >
-            <TextField
-              id="reg-city"
-              name="city"
-              placeholder="City *"
-              required
-              fullWidth
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              autoComplete="address-level2"
-              sx={authTextFieldSx}
-              inputProps={{ "aria-label": "City" }}
-            />
+            <Box>
+              <Typography component="label" htmlFor="reg-city" sx={authLabelSx}>
+                City
+              </Typography>
+              <TextField
+                id="reg-city"
+                name="city"
+                required
+                fullWidth
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                autoComplete="address-level2"
+                sx={authTextFieldSx}
+                inputProps={{ "aria-label": "City" }}
+              />
+            </Box>
 
-            <TextField
-              id="reg-state"
-              name="state"
-              select
-              required
-              fullWidth
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              sx={{
-                ...authSelectSx,
-                "& .MuiSelect-select.MuiSelect-select": {
-                  color: state ? "#000" : "#9ca3af",
-                },
-              }}
-              SelectProps={{
-                displayEmpty: true,
-                renderValue: (selected) => {
-                  const code = String(selected ?? "");
-                  if (!code) return "State *";
-                  const opt = US_STATES.find((s) => s.code === code);
-                  return opt ? `${opt.name} (${opt.code})` : code;
-                },
-              }}
-              inputProps={{ "aria-label": "State" }}
-            >
-              <MenuItem value="">
-                <em>State *</em>
-              </MenuItem>
-              {US_STATES.map((s) => (
-                <MenuItem key={s.code} value={s.code}>
-                  {s.name} ({s.code})
-                </MenuItem>
-              ))}
-            </TextField>
+            <Box>
+              <Typography component="label" htmlFor="reg-state" sx={authLabelSx}>
+                State
+              </Typography>
+              <UsStateSearchAutocomplete
+                id="reg-state"
+                name="state"
+                label="State"
+                required
+                authStyled
+                valueCode={state}
+                onSelectCode={setState}
+              />
+            </Box>
 
-            <TextField
-              id="reg-zip"
-              name="zipCode"
-              placeholder="ZIP code *"
-              required
-              fullWidth
-              value={zipCode}
-              onChange={(e) => setZipCode(e.target.value)}
-              autoComplete="postal-code"
-              sx={authTextFieldSx}
-              inputProps={{ "aria-label": "ZIP code" }}
-            />
+            <Box>
+              <Typography component="label" htmlFor="reg-zip" sx={authLabelSx}>
+                ZIP
+              </Typography>
+              <TextField
+                id="reg-zip"
+                name="zipCode"
+                required
+                fullWidth
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                autoComplete="postal-code"
+                sx={authTextFieldSx}
+                inputProps={{ "aria-label": "ZIP", inputMode: "numeric" }}
+              />
+            </Box>
           </Box>
 
-          <Box>
-            <Typography component="label" htmlFor="reg-dob" sx={authLabelSx}>
-              Date of birth
-            </Typography>
-            <TextField
-              id="reg-dob"
-              name="dateOfBirth"
-              type="date"
-              fullWidth
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-              sx={{
-                ...authTextFieldSx,
-                "& .MuiInputBase-input": {
-                  colorScheme: "light",
-                },
-              }}
-              inputProps={{ "aria-label": "Date of birth" }}
+          <Box sx={fullRowSx}>
+            <PasswordTextField
+              id="reg-password"
+              name="password"
+              label="Password"
+              authStyled
+              autoComplete="new-password"
+              value={password}
+              onChange={setPassword}
+              helperText="At least 6 characters. Tap the eye icon to show or hide what you type."
             />
           </Box>
-
-          <Box>
-            <Typography component="label" htmlFor="reg-gender" sx={authLabelSx}>
-              Gender
-            </Typography>
-            <TextField
-              id="reg-gender"
-              name="gender"
-              select
-              fullWidth
-              value={gender}
-              onChange={(e) => setGender(e.target.value as "" | "male" | "female")}
-              sx={authSelectSx}
-              inputProps={{ "aria-label": "Gender" }}
-            >
-              <MenuItem value="">
-                <em>Not set</em>
-              </MenuItem>
-              <MenuItem value="male">Male</MenuItem>
-              <MenuItem value="female">Female</MenuItem>
-            </TextField>
-          </Box>
-
-          <TextField
-            id="reg-email"
-            name="email"
-            type="email"
-            placeholder="Email address *"
-            required
-            fullWidth
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            sx={authTextFieldSx}
-            inputProps={{ "aria-label": "Email address" }}
-          />
-
-          <PasswordTextField
-            id="reg-password"
-            name="password"
-            label="Password"
-            placeholder="Password *"
-            placeholderOnly
-            authStyled
-            autoComplete="new-password"
-            value={password}
-            onChange={setPassword}
-            helperText="At least 6 characters"
-          />
 
           {error ? (
-            <Typography
-              color="error"
-              variant="body2"
-              sx={{ mb: 1, "@media (min-width: 768px)": { gridColumn: "1 / -1" } }}
-            >
+            <Typography color="error" variant="body2" sx={{ mb: 1, ...fullRowSx }} role="alert">
               {error}
             </Typography>
           ) : null}
           {message ? (
-            <Typography
-              variant="body2"
-              sx={{
-                color: authYellow,
-                mb: 1,
-                "@media (min-width: 768px)": { gridColumn: "1 / -1" },
-              }}
-            >
+            <Typography variant="body2" sx={{ color: authYellow, mb: 1, ...fullRowSx }} role="status">
               {message}
             </Typography>
           ) : null}
@@ -385,8 +350,9 @@ export default function RegisterPage() {
             type="submit"
             fullWidth
             disabled={loading}
+            endIcon={<ArrowForward />}
             sx={{
-              mt: 1,
+              mt: 0.5,
               py: 1.25,
               border: `1px solid ${authYellow}`,
               borderRadius: "6px",
@@ -394,8 +360,9 @@ export default function RegisterPage() {
               bgcolor: authYellow,
               fontWeight: 700,
               textTransform: "none",
-              fontSize: "1rem",
-              "@media (min-width: 768px)": { gridColumn: "1 / -1" },
+              fontSize: "0.95rem",
+              letterSpacing: "0.04em",
+              ...fullRowSx,
               "&:hover": {
                 bgcolor: "#e6c200",
                 borderColor: "#e6c200",
@@ -408,8 +375,33 @@ export default function RegisterPage() {
               },
             }}
           >
-            {loading ? "Please wait…" : "Create account"}
+            {loading ? "Please wait…" : "Join the Movement"}
           </Button>
+
+          <Box
+            sx={{
+              ...fullRowSx,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 1,
+              mt: 1.5,
+            }}
+          >
+            <VerifiedUser
+              aria-hidden
+              sx={{ color: "#22c55e", fontSize: 20, flexShrink: 0, mt: "1px" }}
+            />
+            <Typography
+              sx={{
+                color: authGrayText,
+                fontSize: "0.78rem",
+                lineHeight: 1.5,
+              }}
+            >
+              Your information is kept private and is never displayed publicly without your
+              permission.
+            </Typography>
+          </Box>
         </Box>
 
         <MuiLink

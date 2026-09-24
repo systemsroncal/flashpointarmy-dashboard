@@ -1,5 +1,6 @@
 "use client";
 
+import { authTextFieldSx } from "@/components/auth/authFieldStyles";
 import {
   filterUsStatesByQuery,
   US_STATES,
@@ -14,12 +15,21 @@ export function UsStateSearchAutocomplete({
   disabled,
   label = "State (optional)",
   size = "small",
+  required = false,
+  authStyled = false,
+  id,
+  name,
 }: {
   valueCode: string;
   onSelectCode: (code: string) => void;
   disabled?: boolean;
   label?: string;
   size?: "small" | "medium";
+  required?: boolean;
+  /** White auth-form field (external label, no floating MUI label). */
+  authStyled?: boolean;
+  id?: string;
+  name?: string;
 }) {
   const selected = usStateByCode(valueCode) ?? null;
   return (
@@ -28,15 +38,27 @@ export function UsStateSearchAutocomplete({
       value={selected}
       onChange={(_, v) => onSelectCode(v?.code ?? "")}
       disabled={disabled}
-      size={size}
+      size={authStyled ? "medium" : size}
       fullWidth
       clearOnEscape
       selectOnFocus
       handleHomeEndKeys
+      autoHighlight
       getOptionLabel={(o) => `${o.name} (${o.code})`}
       isOptionEqualToValue={(a, b) => a.id === b.id}
       filterOptions={(opts, state) => filterUsStatesByQuery(opts, state.inputValue)}
       noOptionsText="No state matches your search"
+      slotProps={{
+        paper: {
+          sx: authStyled
+            ? {
+                bgcolor: "#ffffff",
+                color: "#000000",
+                "& .MuiAutocomplete-option": { color: "#000000" },
+              }
+            : undefined,
+        },
+      }}
       renderOption={(props, option) => {
         const { key, ...optionProps } = props;
         return (
@@ -53,8 +75,17 @@ export function UsStateSearchAutocomplete({
       renderInput={(params) => (
         <TextField
           {...params}
-          label={label}
-          placeholder="Search by name or 2-letter code…"
+          id={id}
+          name={name}
+          required={required}
+          label={authStyled ? undefined : label}
+          placeholder={authStyled ? "" : "Search by name or 2-letter code…"}
+          sx={authStyled ? authTextFieldSx : undefined}
+          inputProps={{
+            ...params.inputProps,
+            "aria-label": label,
+            autoComplete: "address-level1",
+          }}
         />
       )}
     />
