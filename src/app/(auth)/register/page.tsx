@@ -149,8 +149,13 @@ export default function RegisterPage() {
             maxWidth: "65ch",
           }}
         >
-          Create your free account and connect with believers across America. It takes less than a
-          minute.
+          Create your FREE account, launch nationwide campaigns, organize and mobilize your teams,
+          access Biblical Citizenship training, and connect with fellow believers in Christ across
+          America.
+          <br />
+          Your Command Center is ready.
+          <br />
+          <b>Get started in less than 60 seconds!</b>
         </Typography>
 
         <Box
