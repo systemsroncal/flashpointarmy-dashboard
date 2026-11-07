@@ -417,6 +417,12 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   }, [groupId]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
     (async () => {
       setLoading(true);
       try {
@@ -1580,6 +1586,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         tabsInContent
         fillContent
         unifiedContent
+        scrollWithHeader
       >
       <Box sx={{ ...mobilizeGroupFeedContentScrollSx, width: "100%", bgcolor: "transparent" }}>
       {activeTab === "announcements" && !canViewContent ? (

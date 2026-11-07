@@ -1268,9 +1268,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           zIndex: (t) => t.zIndex.drawer + 1,
           bgcolor: "rgba(12,12,14,0.88)",
           backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
           borderBottom: "1px solid rgba(255,215,0,0.12)",
           width: { xs: "100%", md: `calc(100% - ${appBarShift}px)` },
           ml: { md: `${appBarShift}px` },
+          transform: "translate3d(0, 0, 0)",
+          WebkitTransform: "translate3d(0, 0, 0)",
+          willChange: "transform",
           transition: theme.transitions.create(["width", "margin"], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,

@@ -42,9 +42,12 @@ export function MobilizeContentTabBar({
         borderBottom: isDark ? `1px solid ${TRUTH_HUB_BORDER}` : "1px solid rgba(0,0,0,0.08)",
         overflowX: "auto",
         flexShrink: 0,
-        position: isDark ? "sticky" : undefined,
-        top: isDark ? 57 : undefined,
-        zIndex: isDark ? 2 : undefined,
+        position: "sticky",
+        top: isDark ? 57 : 48,
+        zIndex: 10,
+        WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "none",
+        "&::-webkit-scrollbar": { display: "none" },
       }}
     >
       {tabs.map((t) => {
