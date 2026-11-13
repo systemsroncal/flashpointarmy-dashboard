@@ -275,7 +275,7 @@ export function MobilizeProfilePageShell({
         <Box
           sx={{
             borderRadius: { xs: 0, sm: 2 },
-            overflow: "visible",
+            overflow: "hidden",
             bgcolor: "#fff",
             border: { xs: "none", sm: "1px solid rgba(0,0,0,0.08)" },
             mb: unifiedContent ? 0 : 1.5,
@@ -286,15 +286,7 @@ export function MobilizeProfilePageShell({
           }}
         >
           {/* Cover — no title overlay (Facebook-style) */}
-          <Box
-            sx={{
-              position: "relative",
-              bgcolor: "#1a2744",
-              borderTopLeftRadius: { sm: 8 },
-              borderTopRightRadius: { sm: 8 },
-              overflow: "hidden",
-            }}
-          >
+          <Box sx={{ position: "relative", bgcolor: "#1a2744" }}>
             <Box
               component="img"
               key={coverSrc}
