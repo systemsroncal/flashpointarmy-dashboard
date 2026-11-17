@@ -239,8 +239,8 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setMissionUpdateSoundEnabled(getMissionUpdateSoundEnabled());
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const res = await fetch("/api/dashboard/announcements", { cache: "no-store" });
       const data = (await res.json()) as { announcements?: AnnouncementListItem[]; error?: string };
@@ -249,7 +249,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     } catch (e) {
       setSnack({ message: e instanceof Error ? e.message : "Error", severity: "error" });
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
@@ -439,6 +439,9 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   };
 
   const setRead = async (id: string, read: boolean) => {
+    const snapshot = items;
+    const readAt = read ? new Date().toISOString() : null;
+    setItems((list) => list.map((r) => (r.id === id ? { ...r, read_at: readAt } : r)));
     try {
       const res = await fetch(`/api/dashboard/announcements/${id}/read`, {
         method: "POST",
@@ -447,8 +450,11 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Could not update read state.");
-      await load();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("mission-updates-unread-changed"));
+      }
     } catch (e) {
+      setItems(snapshot);
       setSnack({ message: e instanceof Error ? e.message : "Error", severity: "error" });
     }
   };

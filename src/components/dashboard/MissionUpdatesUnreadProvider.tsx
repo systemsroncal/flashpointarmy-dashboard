@@ -41,6 +41,12 @@ export function MissionUpdatesUnreadProvider({ children }: { children: React.Rea
   }, [load]);
 
   useEffect(() => {
+    const onReadChanged = () => void load();
+    window.addEventListener("mission-updates-unread-changed", onReadChanged);
+    return () => window.removeEventListener("mission-updates-unread-changed", onReadChanged);
+  }, [load]);
+
+  useEffect(() => {
     const t = setInterval(() => void load(), POLL_MS);
     return () => clearInterval(t);
   }, [load]);

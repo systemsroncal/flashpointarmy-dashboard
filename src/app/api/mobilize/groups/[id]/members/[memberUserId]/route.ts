@@ -56,13 +56,75 @@ async function loadGroupMemberAccess(
   };
 }
 
+async function deleteApprovedGroupMember(
+  admin: import("@supabase/supabase-js").SupabaseClient,
+  groupId: string,
+  memberUserId: string
+) {
+  const { data: target, error: tErr } = await admin
+    .from("mobilize_group_members")
+    .select("member_role, membership_status")
+    .eq("group_id", groupId)
+    .eq("user_id", memberUserId)
+    .maybeSingle();
+
+  if (tErr || !target) {
+    return { error: "Member not found.", status: 404 as const };
+  }
+
+  if (target.member_role === "leader" && target.membership_status === "approved") {
+    const { data: all } = await admin
+      .from("mobilize_group_members")
+      .select("user_id, member_role")
+      .eq("group_id", groupId)
+      .eq("membership_status", "approved");
+
+    const leaderCount =
+      all?.filter((r: { member_role: string }) => r.member_role === "leader").length ?? 0;
+    if (leaderCount <= 1) {
+      return {
+        error: "Cannot remove the last group leader. Promote another leader first.",
+        status: 400 as const,
+      };
+    }
+  }
+
+  const { error } = await admin
+    .from("mobilize_group_members")
+    .delete()
+    .eq("group_id", groupId)
+    .eq("user_id", memberUserId);
+
+  if (error) return { error: error.message, status: 500 as const };
+  return { ok: true as const };
+}
+
 export async function DELETE(_req: Request, ctx: Ctx) {
   const auth = await requireMobilizeRead();
   if (auth instanceof NextResponse) return auth;
   const { id, memberUserId } = await ctx.params;
 
   if (memberUserId === auth.userId) {
-    return NextResponse.json({ error: "You cannot remove yourself." }, { status: 400 });
+    const { data: group, error: gErr } = await auth.admin
+      .from("mobilize_groups")
+      .select("created_by")
+      .eq("id", id)
+      .maybeSingle();
+    if (gErr || !group) {
+      return NextResponse.json({ error: "Group not found." }, { status: 404 });
+    }
+    if (group.created_by === auth.userId) {
+      return NextResponse.json(
+        { error: "Group owners must transfer ownership before leaving." },
+        { status: 400 }
+      );
+    }
+
+    const result = await deleteApprovedGroupMember(auth.admin, id, auth.userId);
+    if ("error" in result && !("ok" in result)) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    return NextResponse.json({ ok: true });
   }
 
   const access = await loadGroupMemberAccess(auth.admin, id, auth.userId, auth.roleNames);
@@ -74,41 +136,10 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Cannot remove the primary group owner." }, { status: 400 });
   }
 
-  const { data: target, error: tErr } = await auth.admin
-    .from("mobilize_group_members")
-    .select("member_role, membership_status")
-    .eq("group_id", id)
-    .eq("user_id", memberUserId)
-    .maybeSingle();
-
-  if (tErr || !target) {
-    return NextResponse.json({ error: "Member not found." }, { status: 404 });
+  const result = await deleteApprovedGroupMember(auth.admin, id, memberUserId);
+  if ("error" in result && !("ok" in result)) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
-
-  if (target.member_role === "leader" && target.membership_status === "approved") {
-    const { data: all } = await auth.admin
-      .from("mobilize_group_members")
-      .select("user_id, member_role")
-      .eq("group_id", id)
-      .eq("membership_status", "approved");
-
-    const leaderCount =
-      all?.filter((r: { member_role: string }) => r.member_role === "leader").length ?? 0;
-    if (leaderCount <= 1) {
-      return NextResponse.json(
-        { error: "Cannot remove the last group leader. Promote another leader first." },
-        { status: 400 }
-      );
-    }
-  }
-
-  const { error } = await auth.admin
-    .from("mobilize_group_members")
-    .delete()
-    .eq("group_id", id)
-    .eq("user_id", memberUserId);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
