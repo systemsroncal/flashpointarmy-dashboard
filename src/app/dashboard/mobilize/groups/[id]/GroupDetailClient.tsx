@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { MobilizeAddMemberDialog } from "@/components/mobilize/MobilizeAddMemberDialog";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
+import { MobilizeLeaveGroupButton } from "@/components/mobilize/MobilizeLeaveGroupButton";
 import {
   Autocomplete,
   Box,
@@ -1155,6 +1156,22 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         </Button>
       );
     } else if (isApproved) {
+      const isOwner = group?.created_by === me.id;
+      if (!isOwner) {
+        actions.push(
+          <MobilizeLeaveGroupButton
+            key="leave"
+            groupId={groupId}
+            userId={me.id}
+            groupName={group?.name}
+            appearance="hero"
+            onLeft={async () => {
+              toast("You left this group.", "success");
+              await loadGroup();
+            }}
+          />
+        );
+      }
       actions.push(
         <Button
           key="joined"
@@ -1226,6 +1243,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     me.id,
     openEditGroup,
     joinRequest,
+    loadGroup,
+    toast,
+    groupId,
   ]);
 
   /** Mobile-only pencil over the cover — desktop keeps the "Edit group" button. */

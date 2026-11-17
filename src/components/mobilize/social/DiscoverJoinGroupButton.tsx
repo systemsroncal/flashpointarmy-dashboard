@@ -1,15 +1,50 @@
 "use client";
 
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
-import { Button, CircularProgress } from "@mui/material";
-import { useState } from "react";
+import { Button, CircularProgress, Stack } from "@mui/material";
+import { useEffect, useState } from "react";
+import { MobilizeLeaveGroupButton } from "@/components/mobilize/MobilizeLeaveGroupButton";
+import { useDashboardUser } from "@/contexts/DashboardUserContext";
 
 type Props = {
   groupId: string;
 };
 
+type JoinUi = "checking" | "idle" | "loading" | "joined" | "pending";
+
 export function DiscoverJoinGroupButton({ groupId }: Props) {
-  const [status, setStatus] = useState<"idle" | "loading" | "joined">("idle");
+  const me = useDashboardUser();
+  const [status, setStatus] = useState<JoinUi>("checking");
+
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/mobilize/groups/${groupId}`);
+        const json = (await res.json()) as {
+          group?: { created_by?: string };
+          membership?: { membership_status?: string };
+        };
+        if (cancelled) return;
+        if (!res.ok) {
+          setStatus("idle");
+          return;
+        }
+        setIsOwner(json.group?.created_by === me.id);
+        const st = json.membership?.membership_status;
+        if (st === "approved") setStatus("joined");
+        else if (st === "pending") setStatus("pending");
+        else setStatus("idle");
+      } catch {
+        if (!cancelled) setStatus("idle");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [groupId, me.id]);
 
   async function handleJoin() {
     setStatus("loading");
@@ -22,14 +57,57 @@ export function DiscoverJoinGroupButton({ groupId }: Props) {
         alreadyPending?: boolean;
       };
       if (res.ok || json.alreadyMember || json.alreadyPending) {
-        setStatus("joined");
+        const st = json.membership?.membership_status;
+        setStatus(st === "pending" || json.alreadyPending ? "pending" : "joined");
+      } else {
+        setStatus("idle");
       }
     } catch {
-      // silently fail
+      setStatus("idle");
     }
   }
 
+  const joinedPill = (
+    <Button
+      size="small"
+      variant="outlined"
+      disabled
+      sx={{
+        textTransform: "none",
+        fontWeight: 600,
+        fontSize: "0.7rem",
+        borderRadius: 99,
+        minHeight: 0,
+        py: 0,
+        px: 1,
+        borderColor: "rgba(0,0,0,0.18)",
+        color: "rgba(0,0,0,0.55)",
+      }}
+    >
+      Joined
+    </Button>
+  );
+
   if (status === "joined") {
+    return (
+      <Stack direction="row" spacing={0.5} alignItems="center" onClick={(e) => e.stopPropagation()}>
+        {!isOwner ? (
+          <MobilizeLeaveGroupButton
+            groupId={groupId}
+            userId={me.id}
+            appearance="compact"
+            onLeft={() => {
+              setIsOwner(false);
+              setStatus("idle");
+            }}
+          />
+        ) : null}
+        {joinedPill}
+      </Stack>
+    );
+  }
+
+  if (status === "pending") {
     return (
       <Button
         size="small"
@@ -47,7 +125,7 @@ export function DiscoverJoinGroupButton({ groupId }: Props) {
           color: "rgba(0,0,0,0.55)",
         }}
       >
-        Joined
+        Pending
       </Button>
     );
   }
@@ -56,8 +134,14 @@ export function DiscoverJoinGroupButton({ groupId }: Props) {
     <Button
       size="small"
       variant="outlined"
-      startIcon={status === "loading" ? <CircularProgress size={12} /> : <PersonAddAlt1Icon sx={{ fontSize: 14 }} />}
-      disabled={status === "loading"}
+      startIcon={
+        status === "loading" || status === "checking" ? (
+          <CircularProgress size={12} />
+        ) : (
+          <PersonAddAlt1Icon sx={{ fontSize: 14 }} />
+        )
+      }
+      disabled={status === "loading" || status === "checking"}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
