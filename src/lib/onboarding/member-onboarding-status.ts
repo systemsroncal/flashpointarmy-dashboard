@@ -30,7 +30,7 @@ export function isMemberOnboardingAudience(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "member" || n === "local_leader");
 }
 
-/** Admins and super admins see Your Journey in the sidebar with all steps completed. */
+/** Mission briefing / snapshot helpers for admin accounts (not sidebar My Journey). */
 export function isAdminJourneySidebarAudience(roleNames: string[]): boolean {
   return roleNames.some((n) => n === "admin" || n === "super_admin");
 }
@@ -51,12 +51,15 @@ export function createAdminCompletedJourneySnapshot(): MemberOnboardingSnapshot 
   };
 }
 
+const JOURNEY_SIDEBAR_STAFF_ROLES = new Set(["super_admin", "admin", "sub_admin"]);
+
 export function shouldShowSidebarYourJourney(
   roleNames: string[],
   snapshot: MemberOnboardingSnapshot | null | undefined
 ): boolean {
   if (!snapshot) return false;
-  return isMemberOnboardingAudience(roleNames) || isAdminJourneySidebarAudience(roleNames);
+  if (roleNames.some((n) => JOURNEY_SIDEBAR_STAFF_ROLES.has(n))) return false;
+  return isMemberOnboardingAudience(roleNames);
 }
 
 export function resolveCoachMeetingStepStatus(

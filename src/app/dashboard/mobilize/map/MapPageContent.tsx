@@ -369,7 +369,7 @@ export default function MobilizeMapPageContent() {
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2} sx={{ mb: 2, flexShrink: 0 }}>
         <Box>
           <Typography variant="h4" fontWeight={700}>
-            Chapters
+            Chapters&apos; Groups
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720, lineHeight: 1.55 }}>
             <b>New to Chapters &amp; Groups?</b>
@@ -408,8 +408,8 @@ export default function MobilizeMapPageContent() {
         onChange={(_, v: BrowseTab) => setBrowseTab(v)}
         sx={{ mb: 2, minHeight: 40, flexShrink: 0 }}
       >
-        <Tab value="chapters" label="Chapters" sx={{ textTransform: "none", fontWeight: 700, minHeight: 40 }} />
-        <Tab value="groups" label="Groups" sx={{ textTransform: "none", fontWeight: 700, minHeight: 40 }} />
+        <Tab value="chapters" label="Select Your Chapter" sx={{ textTransform: "none", fontWeight: 700, minHeight: 40 }} />
+        <Tab value="groups" label="All Groups" sx={{ textTransform: "none", fontWeight: 700, minHeight: 40 }} />
       </Tabs>
       {SHOW_SEARCH_ORIGIN ? (
       <Stack direction={{ xs: "column", lg: "row" }} spacing={1} sx={{ mb: 2 }} alignItems={{ lg: "center" }}>
@@ -496,20 +496,22 @@ export default function MobilizeMapPageContent() {
           onChange={(e) => setSearch(e.target.value)}
           sx={{ minWidth: 200 }}
         />
-        <FormControl size="small" sx={{ minWidth: 140 }}>
-          <InputLabel id="sort-label">Sort</InputLabel>
-          <Select
-            labelId="sort-label"
-            label="Sort"
-            value={sort}
-            onChange={(e) => setSort(e.target.value as "name" | "distance")}
-          >
-            <MenuItem value="name">Name</MenuItem>
-            <MenuItem value="distance" disabled={!searchOrigin}>
-              Distance
-            </MenuItem>
-          </Select>
-        </FormControl>
+        {browseTab !== "groups" ? (
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel id="sort-label">Sort</InputLabel>
+            <Select
+              labelId="sort-label"
+              label="Sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as "name" | "distance")}
+            >
+              <MenuItem value="name">Name</MenuItem>
+              <MenuItem value="distance" disabled={!searchOrigin}>
+                Distance
+              </MenuItem>
+            </Select>
+          </FormControl>
+        ) : null}
       </Stack>
 
       <Box
@@ -524,7 +526,9 @@ export default function MobilizeMapPageContent() {
       >
         <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", ...mobilizeFlexFillSx }}>
           <Typography variant="subtitle2" sx={{ mb: 1, flexShrink: 0 }}>
-            {browseTab === "groups" ? `Groups (${sorted.length})` : `Chapters (${sorted.length})`}
+            {browseTab === "groups"
+              ? `All Groups (${sorted.length})`
+              : `Select Your Chapter (${sorted.length})`}
           </Typography>
           <MobilizeGroupsBrowseTable
             groups={sorted}

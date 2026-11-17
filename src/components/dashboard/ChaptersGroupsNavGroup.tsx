@@ -107,7 +107,7 @@ type Props = {
 };
 
 /**
- * Unified-sidebar parent for Groups → Find Chapters / My Groups
+ * Unified-sidebar parent for Chapters' Groups → Find Groups / My Groups
  * (with an expandable list of the viewer's groups under My Groups).
  */
 export function ChaptersGroupsNavGroup({ onNavigate, disabled = false }: Props) {
@@ -185,7 +185,7 @@ export function ChaptersGroupsNavGroup({ onNavigate, disabled = false }: Props) 
             <GroupsOutlinedIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Groups"
+            primary="Chapters' Groups"
             primaryTypographyProps={{
               variant: "body2",
               fontWeight: 600,
@@ -220,7 +220,7 @@ export function ChaptersGroupsNavGroup({ onNavigate, disabled = false }: Props) 
             <GroupsOutlinedIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Groups"
+            primary="Chapters' Groups"
             primaryTypographyProps={{
               variant: "body2",
               fontWeight: 600,
@@ -256,7 +256,7 @@ export function ChaptersGroupsNavGroup({ onNavigate, disabled = false }: Props) 
                 <MapIcon sx={{ fontSize: 20 }} />
               </ListItemIcon>
               <ListItemText
-                primary="Find Chapters"
+                primary="Find Groups"
                 primaryTypographyProps={{
                   variant: "body2",
                   fontWeight: 600,

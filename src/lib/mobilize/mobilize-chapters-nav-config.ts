@@ -26,8 +26,8 @@ export function mobilizeChaptersNavItems(
   const items: MobilizeChaptersNavItem[] = [
     {
       key: "chapter",
-      label: "Chapter",
-      shortLabel: "Chapter",
+      label: "Find Groups",
+      shortLabel: "Find",
       href: MOBILIZE_CHAPTERS_HREF,
     },
     {
