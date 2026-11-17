@@ -63,6 +63,7 @@ import {
 } from "@/lib/mobilize/group-ui-labels";
 import {
   mobilizeChapterDetailRootSx,
+  mobilizeCreatePostButtonSx,
   mobilizeJoinGroupButtonSx,
   mobilizeTableContainerSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
@@ -601,6 +602,16 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                   useFlexGap
                   sx={{ mt: { xs: 0.25, sm: 0.5 } }}
                 >
+                  {g.my_membership_status === "approved" ? (
+                    <Button
+                      component={Link}
+                      href={detailHref}
+                      size="small"
+                      sx={{ alignSelf: "flex-start", ...mobilizeCreatePostButtonSx }}
+                    >
+                      CREATE POST
+                    </Button>
+                  ) : null}
                   {g.my_membership_status !== "approved" &&
                   g.enrollment_mode !== "closed" &&
                   g.enrollment_mode !== "auto_closed" ? (
@@ -757,7 +768,14 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
                           {st === "approved" ? (
-                            <Chip size="small" label="Joined" color="success" variant="outlined" />
+                            <Button
+                              component={Link}
+                              href={`/dashboard/mobilize/groups/${g.id}`}
+                              size="small"
+                              sx={mobilizeCreatePostButtonSx}
+                            >
+                              CREATE POST
+                            </Button>
                           ) : st === "pending" ? (
                             <Chip size="small" label="Pending" color="warning" variant="outlined" />
                           ) : g.enrollment_mode === "closed" || g.enrollment_mode === "auto_closed" ? (
