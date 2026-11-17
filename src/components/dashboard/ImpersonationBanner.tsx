@@ -83,12 +83,12 @@ export function ImpersonationBanner() {
             {busy ? (
               <CircularProgress size={16} color="inherit" />
             ) : (
-              `Regresar como ${status.adminDisplayName}`
+              `Return as ${status.adminDisplayName}`
             )}
           </Button>
         }
       >
-        Estás conectado como <strong>{status.targetDisplayName}</strong>
+        You are viewing as <strong>{status.targetDisplayName}</strong>
         {error ? (
           <Box component="span" sx={{ display: "block", mt: 0.5, color: "#ffcdd2", fontSize: "0.8125rem" }}>
             {error}

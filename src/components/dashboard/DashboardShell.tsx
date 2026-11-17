@@ -135,7 +135,7 @@ const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
     icon: <HomeOutlinedIcon />,
   },
   {
-    label: "Find Chapters",
+    label: "Find Groups",
     href: `${MOBILIZE_PREFIX}/map`,
     module: MODULE_SLUGS.movilization,
     icon: <MapIcon />,
@@ -632,6 +632,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       pathname.startsWith(`${MOBILIZE_PREFIX}/social-settings`));
 
   useEffect(() => {
+    if (desktop) setDesktopDrawerOpen(true);
+  }, [desktop]);
+
+  useEffect(() => {
     /** Keep dashboard left sidebar open on Mobilize social hub pages (home, messages, etc.). */
     if (onMobilizeSocialHubPage || onMobilizeProfilePage) {
       if (desktop) setDesktopDrawerOpen(true);
@@ -840,7 +844,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <Box sx={{ flexShrink: 0, px: 1.25, pt: 1.25, pb: 1.25 }}>
+      <Box sx={{ flexShrink: 0, px: 1.25, pt: { xs: 1, md: 1.25 }, pb: { xs: 1, md: 1.25 } }}>
         <Box
           sx={{
             display: "flex",
@@ -855,6 +859,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             data-tour="sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             sx={{
+              display: { xs: "inline-flex", md: "none" },
               color: "primary.main",
               alignSelf: { xs: "center", md: "flex-start" },
               mb: { xs: 0, md: 1.5 },
@@ -873,12 +878,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               flex: { xs: 1, md: "none" },
               width: { xs: "auto", md: "100%" },
               minWidth: 0,
-              height: { xs: 40, md: 52 },
+              height: { xs: 52, md: 56 },
               borderRadius: 1.5,
               overflow: "hidden",
               bgcolor: "rgba(0,0,0,0.35)",
-              px: 0.75,
-              py: 0.5,
+              px: { xs: 1, md: 0.75 },
+              py: { xs: 0.65, md: 0.5 },
               boxSizing: "border-box",
             }}
           >
@@ -1292,23 +1297,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             >
               <MenuIcon />
             </IconButton>
-          ) : !desktopDrawerOpen ? (
-            <IconButton
-              color="inherit"
-              edge="start"
-              onClick={() => setDesktopDrawerOpen(true)}
-              aria-label="Show sidebar"
-              size="small"
-            >
-              <MenuIcon />
-            </IconButton>
           ) : null}
           {!desktop ? (
             <Box
               sx={{
                 position: "relative",
-                width: 140,
-                height: 32,
+                width: 168,
+                height: 40,
                 flexShrink: 0,
                 ml: -0.5,
               }}
