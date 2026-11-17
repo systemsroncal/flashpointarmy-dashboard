@@ -73,6 +73,23 @@ function emptyExtras(): MobilizeGroupBrowseExtras {
 /**
  * Adds member_count, leader display names, leader avatars/names, and current user's membership status per group.
  */
+async function loadApprovedMemberCounts(
+  admin: SupabaseClient,
+  groupIds: string[]
+): Promise<Map<string, number>> {
+  const counts = await Promise.all(
+    groupIds.map(async (groupId) => {
+      const { count, error } = await admin
+        .from("mobilize_group_members")
+        .select("id", { count: "exact", head: true })
+        .eq("group_id", groupId)
+        .eq("membership_status", "approved");
+      return [groupId, error ? 0 : count ?? 0] as const;
+    })
+  );
+  return new Map(counts);
+}
+
 export async function enrichMobilizeGroupsBrowse(
   admin: SupabaseClient,
   groups: { id: string }[],
@@ -128,14 +145,29 @@ export async function enrichMobilizeGroupsBrowse(
     };
   };
 
+  const memberCounts = await loadApprovedMemberCounts(admin, ids);
+
   const { data: rows, error } = await admin
     .from("mobilize_group_members")
     .select("group_id, user_id, member_role, membership_status")
     .in("group_id", ids);
 
-  if (error || !rows?.length) {
+  if (error) {
     for (const id of ids) {
-      out.set(id, withSubgroups(emptyExtras(), id));
+      out.set(
+        id,
+        withSubgroups({ ...emptyExtras(), member_count: memberCounts.get(id) ?? 0 }, id)
+      );
+    }
+    return out;
+  }
+
+  if (!rows?.length) {
+    for (const id of ids) {
+      out.set(
+        id,
+        withSubgroups({ ...emptyExtras(), member_count: memberCounts.get(id) ?? 0 }, id)
+      );
     }
     return out;
   }
@@ -196,6 +228,7 @@ export async function enrichMobilizeGroupsBrowse(
   for (const id of ids) {
     const list = byGroup.get(id) ?? [];
     const approved = list.filter((m) => m.membership_status === "approved");
+    const member_count = memberCounts.get(id) ?? approved.length;
     const leaderMembers = approved.filter((m) => m.member_role === "leader");
     const leaders: MobilizeGroupLeaderBrief[] = leaderMembers.map((m) => {
       const uid = m.user_id as string;
@@ -217,7 +250,7 @@ export async function enrichMobilizeGroupsBrowse(
       id,
       withSubgroups(
         {
-          member_count: approved.length,
+          member_count,
           leader_names: leaderNames,
           leaders,
           my_membership_status: mine ? (mine.membership_status as string) : null,

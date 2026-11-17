@@ -844,7 +844,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <Box sx={{ flexShrink: 0, px: 1.25, pt: { xs: 1, md: 1.25 }, pb: { xs: 1, md: 1.25 } }}>
+      <Box sx={{ flexShrink: 0, px: 1.25, pt: { xs: 0.75, md: 1.25 }, pb: { xs: 0.75, md: 1.25 } }}>
         <Box
           sx={{
             display: "flex",
@@ -874,16 +874,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </IconButton>
           <Box
             sx={{
+              display: { xs: "none", md: "block" },
               position: "relative",
               flex: { xs: 1, md: "none" },
               width: { xs: "auto", md: "100%" },
               minWidth: 0,
-              height: { xs: 52, md: 56 },
+              height: { xs: 52, md: 60 },
               borderRadius: 1.5,
               overflow: "hidden",
               bgcolor: "rgba(0,0,0,0.35)",
               px: { xs: 1, md: 0.75 },
-              py: { xs: 0.65, md: 0.5 },
+              py: { xs: 0.65, md: 0.35 },
               boxSizing: "border-box",
             }}
           >
@@ -1287,7 +1288,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           }),
         }}
       >
-        <Toolbar variant="dense" sx={{ minHeight: 48, gap: 1, position: "relative" }}>
+        <Toolbar
+          variant="dense"
+          sx={{ minHeight: { xs: 52, md: 48 }, py: { xs: 0.35, md: 0 }, gap: 1, position: "relative" }}
+        >
           {!desktop ? (
             <IconButton
               color="inherit"
@@ -1302,8 +1306,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <Box
               sx={{
                 position: "relative",
-                width: 168,
-                height: 40,
+                width: 220,
+                height: 50,
                 flexShrink: 0,
                 ml: -0.5,
               }}
@@ -1312,7 +1316,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 src={DASHBOARD_DRAWER_LOGO}
                 alt="FlashPoint"
                 fill
-                sizes="140px"
+                sizes="220px"
                 style={{ objectFit: "contain", objectPosition: "left center" }}
                 priority
                 unoptimized
@@ -1358,8 +1362,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 },
               }
             : {
+                width: "80vw",
+                maxWidth: "80vw",
                 [`& .MuiDrawer-paper`]: {
                   ...drawerPaperSx(theme),
+                  width: "80vw",
+                  maxWidth: "80vw",
                   top: maintenanceTop,
                   ...drawerViewportHeightCss(maintenanceTop),
                   touchAction: "pan-y",
