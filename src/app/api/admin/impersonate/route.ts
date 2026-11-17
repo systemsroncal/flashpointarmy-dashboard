@@ -10,7 +10,7 @@ import {
 } from "@/lib/auth/session-policy";
 import {
   loadProfileDisplayName,
-  snapshotAuthCookies,
+  snapshotAdminSession,
   writeImpersonationSession,
 } from "@/lib/auth/impersonation-session";
 
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
 
   let backup;
   try {
-    backup = await snapshotAuthCookies();
+    backup = await snapshotAdminSession(callerClient);
   } catch (e) {
     return NextResponse.json(
       {
