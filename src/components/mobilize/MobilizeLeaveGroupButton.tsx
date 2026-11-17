@@ -23,7 +23,6 @@ export type MobilizeLeaveGroupButtonProps = {
   appearance?: "hero" | "compact";
   disabled?: boolean;
   disabledReason?: string;
-  sx?: SxProps<Theme>;
 };
 
 const COMPACT_SX: SxProps<Theme> = {
@@ -47,7 +46,6 @@ export function MobilizeLeaveGroupButton({
   appearance = "compact",
   disabled,
   disabledReason,
-  sx,
 }: MobilizeLeaveGroupButtonProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -71,22 +69,24 @@ export function MobilizeLeaveGroupButton({
     }
   }
 
-  const heroSx: SxProps<Theme> = {
-    borderRadius: { xs: "10px", md: 99 },
-    textTransform: "none",
-    fontWeight: 700,
-    minHeight: { xs: 40, md: 36 },
-    flex: { xs: "1 1 0", md: "0 0 auto" },
-    color: "#b71c1c",
-    borderColor: "rgba(211,47,47,0.4)",
-    bgcolor: "#fff",
-    "&:hover": {
-      color: "#b71c1c",
-      borderColor: "rgba(211,47,47,0.65)",
-      bgcolor: "rgba(211,47,47,0.06)",
-    },
-    ...sx,
-  };
+  const buttonSx: SxProps<Theme> =
+    appearance === "hero"
+      ? {
+          borderRadius: { xs: "10px", md: 99 },
+          textTransform: "none",
+          fontWeight: 700,
+          minHeight: { xs: 40, md: 36 },
+          flex: { xs: "1 1 0", md: "0 0 auto" },
+          color: "#b71c1c",
+          borderColor: "rgba(211,47,47,0.4)",
+          bgcolor: "#fff",
+          "&:hover": {
+            color: "#b71c1c",
+            borderColor: "rgba(211,47,47,0.65)",
+            bgcolor: "rgba(211,47,47,0.06)",
+          },
+        }
+      : COMPACT_SX;
 
   const button = (
     <Button
@@ -102,7 +102,7 @@ export function MobilizeLeaveGroupButton({
         )
       }
       onClick={() => setConfirmOpen(true)}
-      sx={appearance === "hero" ? heroSx : { ...COMPACT_SX, ...sx }}
+      sx={buttonSx}
     >
       Leave group
     </Button>
