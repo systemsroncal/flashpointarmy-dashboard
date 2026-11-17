@@ -8,6 +8,11 @@ import {
   SESSION_STARTED_COOKIE,
   sessionStartedCookieOptions,
 } from "@/lib/auth/session-policy";
+import {
+  loadProfileDisplayName,
+  snapshotAuthCookies,
+  writeImpersonationSession,
+} from "@/lib/auth/impersonation-session";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -26,8 +31,8 @@ const UUID_RE =
  *     gets a full 24h policy window (otherwise middleware would still see the
  *     super_admin's older "session started at" and could mark it stale).
  *
- * The super_admin loses their own session on the same response. They can
- * return to their account by signing out and signing back in normally.
+ * The prior super_admin session is encrypted in an httpOnly cookie so
+ * POST /api/admin/impersonate/end can restore it without another login.
  */
 export async function POST(req: Request) {
   const authResult = await requireApiAuth();
@@ -95,6 +100,26 @@ export async function POST(req: Request) {
   }
   const tokenHash = linkData.properties.hashed_token;
 
+  let backup;
+  try {
+    backup = await snapshotAuthCookies();
+  } catch (e) {
+    return NextResponse.json(
+      {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Could not snapshot the administrator session for impersonation.",
+      },
+      { status: 503 }
+    );
+  }
+
+  const [adminDisplayName, targetDisplayName] = await Promise.all([
+    loadProfileDisplayName(admin, caller.id, caller.email),
+    loadProfileDisplayName(admin, userId, targetEmail),
+  ]);
+
   /** Consume the token via the SSR client so cookies are written on the response. */
   const ssrClient = await createServerClient();
   const { error: verifyErr } = await ssrClient.auth.verifyOtp({
@@ -121,6 +146,23 @@ export async function POST(req: Request) {
     String(Date.now()),
     sessionStartedCookieOptions()
   );
+
+  try {
+    await writeImpersonationSession(
+      {
+        adminUserId: caller.id,
+        targetUserId: userId,
+        adminDisplayName,
+        targetDisplayName,
+      },
+      backup
+    );
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Could not store impersonation backup." },
+      { status: 503 }
+    );
+  }
 
   return NextResponse.json({
     ok: true,

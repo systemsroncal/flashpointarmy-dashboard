@@ -77,6 +77,7 @@ import { DashboardPresenceProvider } from "@/contexts/DashboardPresenceContext";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/client";
 import { UserNotificationsMenu } from "./UserNotificationsMenu";
+import { ImpersonationBanner } from "@/components/dashboard/ImpersonationBanner";
 import { MissionUpdatesNavIcon } from "./MissionUpdatesNavIcon";
 import { MobilizeVideoCamIcon } from "@/components/mobilize/MobilizeVideoCamIcon";
 import { WelcomeVideoPopup } from "@/components/mobilize/WelcomeVideoPopup";
@@ -1393,6 +1394,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         }}
       >
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <ImpersonationBanner />
           {children}
         </Box>
         <PoweredByDreamsAnimation
