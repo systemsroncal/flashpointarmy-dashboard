@@ -91,7 +91,6 @@ export default function MobilizeMapPageContent() {
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [manualSearchAddress, setManualSearchAddress] = useState("");
   const [manualPos, setManualPos] = useState<{ lat: number; lng: number } | null>(null);
-  const [sort, setSort] = useState<"name" | "distance">("name");
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [recenterNonce, setRecenterNonce] = useState(0);
@@ -239,14 +238,12 @@ export default function MobilizeMapPageContent() {
 
   const sorted = useMemo(() => {
     const copy = [...groups];
-    if (sort === "name") copy.sort((a, b) => a.name.localeCompare(b.name));
-    else copy.sort((a, b) => (a.distance_km ?? 1e9) - (b.distance_km ?? 1e9));
-    // Groups tab: FEATURED groups always rise to the top (within the chosen sort).
+    copy.sort((a, b) => a.name.localeCompare(b.name));
     if (browseTab === "groups") {
       copy.sort((a, b) => Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured)));
     }
     return copy;
-  }, [groups, sort, browseTab]);
+  }, [groups, browseTab]);
 
   const markers = useMemo(
     () =>
@@ -496,22 +493,6 @@ export default function MobilizeMapPageContent() {
           onChange={(e) => setSearch(e.target.value)}
           sx={{ minWidth: 200 }}
         />
-        {browseTab !== "groups" ? (
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel id="sort-label">Sort</InputLabel>
-            <Select
-              labelId="sort-label"
-              label="Sort"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as "name" | "distance")}
-            >
-              <MenuItem value="name">Name</MenuItem>
-              <MenuItem value="distance" disabled={!searchOrigin}>
-                Distance
-              </MenuItem>
-            </Select>
-          </FormControl>
-        ) : null}
       </Stack>
 
       <Box

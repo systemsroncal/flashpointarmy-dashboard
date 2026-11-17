@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/utils/supabase/server";
 import { decryptEmailSecret, encryptEmailSecret } from "@/lib/mail/email-secrets-crypto";
 import {
   SESSION_STARTED_COOKIE,
@@ -8,6 +10,8 @@ import {
 export const IMPERSONATION_META_COOKIE = "fp_impersonation_meta";
 export const IMPERSONATION_BACKUP_COOKIE = "fp_impersonation_backup";
 
+const BACKUP_COOKIE_CHUNK_BYTES = 3500;
+
 export type ImpersonationMeta = {
   adminUserId: string;
   targetUserId: string;
@@ -15,11 +19,20 @@ export type ImpersonationMeta = {
   targetDisplayName: string;
 };
 
-type ImpersonationBackupPayload = {
+type ImpersonationBackupPayloadV2 = {
+  v: 2;
+  access_token: string;
+  refresh_token: string;
+  sessionStartedAt: string | null;
+};
+
+type ImpersonationBackupPayloadV1 = {
   v: 1;
   cookies: { name: string; value: string }[];
   sessionStartedAt: string | null;
 };
+
+export type ImpersonationBackupPayload = ImpersonationBackupPayloadV2 | ImpersonationBackupPayloadV1;
 
 function impersonationCryptoPassphrase(): string {
   const key =
@@ -39,6 +52,10 @@ export function impersonationMetaCookieOptions() {
     ...sessionStartedCookieOptions(),
     maxAge: 60 * 60 * 8,
   };
+}
+
+function backupCookieOptions() {
+  return impersonationMetaCookieOptions();
 }
 
 export function readImpersonationMeta(raw: string | undefined): ImpersonationMeta | null {
@@ -64,41 +81,103 @@ export async function readImpersonationMetaFromStore(): Promise<ImpersonationMet
   return readImpersonationMeta(cookieStore.get(IMPERSONATION_META_COOKIE)?.value);
 }
 
+function encryptBackupPayload(backup: ImpersonationBackupPayload): string[] {
+  const encrypted = encryptEmailSecret(JSON.stringify(backup), impersonationCryptoPassphrase());
+  if (encrypted.length <= BACKUP_COOKIE_CHUNK_BYTES) return [encrypted];
+  const chunks: string[] = [];
+  for (let i = 0; i < encrypted.length; i += BACKUP_COOKIE_CHUNK_BYTES) {
+    chunks.push(encrypted.slice(i, i + BACKUP_COOKIE_CHUNK_BYTES));
+  }
+  return chunks;
+}
+
+function readEncryptedBackupBlob(cookieStore: Awaited<ReturnType<typeof cookies>>): string | null {
+  const multi = cookieStore.get("fp_impersonation_backup_n")?.value;
+  if (multi) {
+    const count = Number(multi);
+    if (Number.isFinite(count) && count > 0) {
+      let blob = "";
+      for (let i = 0; i < count; i += 1) {
+        const part = cookieStore.get(`fp_impersonation_backup_${i}`)?.value;
+        if (!part) return null;
+        blob += part;
+      }
+      return blob;
+    }
+  }
+  return cookieStore.get(IMPERSONATION_BACKUP_COOKIE)?.value ?? null;
+}
+
 export async function writeImpersonationSession(
   meta: ImpersonationMeta,
   backup: ImpersonationBackupPayload
 ): Promise<void> {
   const cookieStore = await cookies();
-  const encrypted = encryptEmailSecret(JSON.stringify(backup), impersonationCryptoPassphrase());
-  cookieStore.set(IMPERSONATION_META_COOKIE, JSON.stringify(meta), impersonationMetaCookieOptions());
-  cookieStore.set(IMPERSONATION_BACKUP_COOKIE, encrypted, impersonationMetaCookieOptions());
+  const chunks = encryptBackupPayload(backup);
+  const opts = backupCookieOptions();
+  const clear = { ...opts, maxAge: 0 };
+
+  for (const c of cookieStore.getAll()) {
+    if (
+      c.name === IMPERSONATION_BACKUP_COOKIE ||
+      c.name === "fp_impersonation_backup_n" ||
+      c.name.startsWith("fp_impersonation_backup_")
+    ) {
+      cookieStore.set(c.name, "", clear);
+    }
+  }
+
+  cookieStore.set(IMPERSONATION_META_COOKIE, JSON.stringify(meta), opts);
+
+  if (chunks.length === 1) {
+    cookieStore.set(IMPERSONATION_BACKUP_COOKIE, chunks[0], opts);
+    return;
+  }
+
+  cookieStore.set("fp_impersonation_backup_n", String(chunks.length), opts);
+  chunks.forEach((chunk, i) => {
+    cookieStore.set(`fp_impersonation_backup_${i}`, chunk, opts);
+  });
 }
 
 export async function readImpersonationBackup(): Promise<ImpersonationBackupPayload | null> {
   const cookieStore = await cookies();
-  const blob = cookieStore.get(IMPERSONATION_BACKUP_COOKIE)?.value;
+  const blob = readEncryptedBackupBlob(cookieStore);
   if (!blob) return null;
   try {
     const plain = decryptEmailSecret(blob, impersonationCryptoPassphrase());
     const parsed = JSON.parse(plain) as ImpersonationBackupPayload;
-    if (parsed?.v !== 1 || !Array.isArray(parsed.cookies)) return null;
-    return parsed;
+    if (parsed?.v === 2) {
+      if (!parsed.refresh_token?.trim() || !parsed.access_token?.trim()) return null;
+      return parsed;
+    }
+    if (parsed?.v === 1 && Array.isArray(parsed.cookies)) return parsed;
+    return null;
   } catch {
     return null;
   }
 }
 
-export async function snapshotAuthCookies(): Promise<ImpersonationBackupPayload> {
+/** Compact admin session snapshot (avoids oversized cookie blobs from full cookie dumps). */
+export async function snapshotAdminSession(supabase: SupabaseClient): Promise<ImpersonationBackupPayloadV2> {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error || !session?.refresh_token || !session.access_token) {
+    throw new Error("No active administrator session to back up for impersonation.");
+  }
   const cookieStore = await cookies();
   const sessionStartedAt = cookieStore.get(SESSION_STARTED_COOKIE)?.value ?? null;
   return {
-    v: 1,
-    cookies: cookieStore.getAll().map((c) => ({ name: c.name, value: c.value })),
+    v: 2,
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
     sessionStartedAt,
   };
 }
 
-export async function restoreImpersonationBackup(backup: ImpersonationBackupPayload): Promise<void> {
+async function restoreLegacyCookieBackup(backup: ImpersonationBackupPayloadV1): Promise<void> {
   const cookieStore = await cookies();
   const clearOpts = { ...sessionStartedCookieOptions(), maxAge: 0 };
   const baseOpts = sessionStartedCookieOptions();
@@ -118,15 +197,42 @@ export async function restoreImpersonationBackup(backup: ImpersonationBackupPayl
   }
 }
 
+export async function restoreImpersonationBackup(backup: ImpersonationBackupPayload): Promise<void> {
+  if (backup.v === 2) {
+    const ssrClient = await createServerClient();
+    const { error } = await ssrClient.auth.setSession({
+      access_token: backup.access_token,
+      refresh_token: backup.refresh_token,
+    });
+    if (error) {
+      throw new Error(error.message || "Could not restore administrator session.");
+    }
+    const cookieStore = await cookies();
+    if (backup.sessionStartedAt) {
+      cookieStore.set(SESSION_STARTED_COOKIE, backup.sessionStartedAt, sessionStartedCookieOptions());
+    } else {
+      cookieStore.set(SESSION_STARTED_COOKIE, String(Date.now()), sessionStartedCookieOptions());
+    }
+    return;
+  }
+  await restoreLegacyCookieBackup(backup);
+}
+
 export async function clearImpersonationCookies(): Promise<void> {
   const cookieStore = await cookies();
   const cleared = sessionStartedCookieOptions();
   cookieStore.set(IMPERSONATION_META_COOKIE, "", { ...cleared, maxAge: 0 });
   cookieStore.set(IMPERSONATION_BACKUP_COOKIE, "", { ...cleared, maxAge: 0 });
+  cookieStore.set("fp_impersonation_backup_n", "", { ...cleared, maxAge: 0 });
+  for (const c of cookieStore.getAll()) {
+    if (c.name.startsWith("fp_impersonation_backup_")) {
+      cookieStore.set(c.name, "", { ...cleared, maxAge: 0 });
+    }
+  }
 }
 
 export async function loadProfileDisplayName(
-  admin: import("@supabase/supabase-js").SupabaseClient,
+  admin: SupabaseClient,
   userId: string,
   emailFallback?: string | null
 ): Promise<string> {
