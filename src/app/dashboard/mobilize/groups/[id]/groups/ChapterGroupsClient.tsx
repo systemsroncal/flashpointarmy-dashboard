@@ -71,6 +71,13 @@ import { publicAssetSrc } from "@/lib/media/public-asset-url";
 
 type ViewMode = "grid" | "list";
 
+const chapterGroupsCreatePostButtonSx = {
+  ...mobilizeCreatePostButtonSx,
+  borderRadius: "2rem",
+  pl: "0.5rem",
+  pr: "0.5rem",
+} as const;
+
 type ChapterRow = {
   id: string;
   name: string;
@@ -607,7 +614,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                       component={Link}
                       href={detailHref}
                       size="small"
-                      sx={{ alignSelf: "flex-start", ...mobilizeCreatePostButtonSx }}
+                      sx={{ alignSelf: "flex-start", ...chapterGroupsCreatePostButtonSx }}
                     >
                       CREATE POST
                     </Button>
@@ -772,7 +779,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                               component={Link}
                               href={`/dashboard/mobilize/groups/${g.id}`}
                               size="small"
-                              sx={mobilizeCreatePostButtonSx}
+                              sx={chapterGroupsCreatePostButtonSx}
                             >
                               CREATE POST
                             </Button>
