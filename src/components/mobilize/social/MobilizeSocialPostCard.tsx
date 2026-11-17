@@ -20,9 +20,22 @@ import { mobilizeGroupFeedPostCardSx } from "@/lib/mobilize/mobilize-ui-surface"
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import PushPinIcon from "@mui/icons-material/PushPin";
-import { Box, Button, Card, CardContent, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { applyReactionToggle } from "@/lib/mobilize/social/reaction-summary";
 
 type CommentConfig = {
   commentsUrl: string;
@@ -79,8 +92,10 @@ export function MobilizeSocialPostCard({
   const isGroupFeedCard = layout === "groupFeedCard";
   const [reactions, setReactions] = useState(post.reactions);
   const [commentCount, setCommentCount] = useState(post.comment_count);
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [reacting, setReacting] = useState(false);
+  const commentsVisible = isDesktop || commentsOpen;
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkBusy, setBookmarkBusy] = useState(false);
 
@@ -125,8 +140,14 @@ export function MobilizeSocialPostCard({
     }
   }
 
+  useEffect(() => {
+    setReactions(post.reactions);
+    setCommentCount(post.comment_count);
+  }, [post.id, post.reactions, post.comment_count]);
+
   async function setReaction(next: ReactionType | null) {
-    setReacting(true);
+    const previous = reactions;
+    setReactions(applyReactionToggle(previous, next));
     try {
       const res = await fetch(reactionUrl, {
         method: "POST",
@@ -137,8 +158,8 @@ export function MobilizeSocialPostCard({
       if (!res.ok) throw new Error(json.error || "Reaction failed.");
       setReactions(json.reactions);
       onReactionChange?.(json.reactions);
-    } finally {
-      setReacting(false);
+    } catch {
+      setReactions(previous);
     }
   }
 
@@ -253,8 +274,8 @@ export function MobilizeSocialPostCard({
                   onToggleLike={() => void setReaction(reactions.viewer_reaction === "like" ? null : "like")}
                   onToggleLove={() => void setReaction(reactions.viewer_reaction === "love" ? null : "love")}
                   onToggleComments={() => setCommentsOpen((v) => !v)}
-                  commentsOpen={commentsOpen}
-                  disabled={reacting}
+                  commentsOpen={commentsVisible}
+                  commentToggleDisabled={isDesktop}
                   tone={surface}
                   embedded
                 />
@@ -281,7 +302,7 @@ export function MobilizeSocialPostCard({
               </Stack>
             </Stack>
             <MobilizeSocialComments
-              open={commentsOpen}
+              open={commentsVisible}
               canComment={canComment}
               commentsUrl={commentConfig.commentsUrl}
               commentReactionUrl={commentConfig.commentReactionUrl}

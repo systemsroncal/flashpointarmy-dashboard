@@ -1,7 +1,7 @@
 "use client";
 
 import type { MobilizeSocialAuthor } from "@/components/mobilize/social/MobilizeSocialPostHeader";
-import type { ReactionType } from "@/lib/mobilize/social/reaction-summary";
+import { applyReactionToggle, type ReactionType } from "@/lib/mobilize/social/reaction-summary";
 import { TRUTH_HUB_BORDER, TRUTH_HUB_TEXT_MUTED } from "@/lib/mobilize/social/social-hub-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
@@ -35,6 +35,31 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 const DEFAULT_VISIBLE_COMMENTS = 2;
+
+function pickVisibleTopComments(comments: SocialCommentNode[], n: number) {
+  if (comments.length <= n) {
+    return { visible: comments, rest: [] as SocialCommentNode[] };
+  }
+  const picked: SocialCommentNode[] = [];
+  const used = new Set<string>();
+
+  for (const c of comments) {
+    if (picked.length >= n) break;
+    if ((c.replies?.length ?? 0) > 0) {
+      picked.push(c);
+      used.add(c.id);
+    }
+  }
+  for (const c of comments) {
+    if (picked.length >= n) break;
+    if (!used.has(c.id)) {
+      picked.push(c);
+      used.add(c.id);
+    }
+  }
+  const rest = comments.filter((c) => !used.has(c.id));
+  return { visible: picked, rest };
+}
 const COMMENT_CLAMP_LINES = 3;
 const COMMENT_EMOJI_OPTIONS = [
   "😀",
@@ -359,7 +384,8 @@ function CommentItem({
   const profileHref = mobilizeMemberProfileHref(node.author.id);
 
   async function setReaction(next: ReactionType | null) {
-    setBusy(true);
+    const previous = reactions;
+    setReactions(applyReactionToggle(previous, next));
     try {
       const res = await fetch(commentReactionUrl(node.id), {
         method: "POST",
@@ -369,8 +395,8 @@ function CommentItem({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Reaction failed.");
       setReactions(json.reactions);
-    } finally {
-      setBusy(false);
+    } catch {
+      setReactions(previous);
     }
   }
 
@@ -651,10 +677,9 @@ export function MobilizeSocialComments({
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
   const avatarFallback = viewerDisplayName?.trim() || "?";
 
-  const topComments = isDesktop ? comments.slice(0, DEFAULT_VISIBLE_COMMENTS) : [];
-  const restComments = isDesktop && comments.length > DEFAULT_VISIBLE_COMMENTS
-    ? comments.slice(DEFAULT_VISIBLE_COMMENTS)
-    : [];
+  const { visible: topComments, rest: restComments } = isDesktop
+    ? pickVisibleTopComments(comments, DEFAULT_VISIBLE_COMMENTS)
+    : { visible: [] as SocialCommentNode[], rest: [] as SocialCommentNode[] };
   const hiddenCount = restComments.length;
   const mobileComments = !isDesktop ? comments : [];
 
@@ -805,7 +830,8 @@ export function MobilizeSocialComments({
               color: light ? "#3a3a3a" : "#d0d2d6",
             },
           }}
-        >           {commentsExpanded ? "Less comments" : "More comments"}
+        >
+          {commentsExpanded ? "See less" : "See more"}
         </Button>
       ) : null}
       {canComment && !replyParentId ? (

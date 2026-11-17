@@ -22,6 +22,8 @@ type Props = {
   onToggleLove: () => void;
   onToggleComments?: () => void;
   commentsOpen?: boolean;
+  /** Desktop: comment control is display-only (comments stay open). */
+  commentToggleDisabled?: boolean;
   disabled?: boolean;
   tone?: "light" | "dark";
   /** When true, omits outer border/margin (parent provides footer row). */
@@ -35,6 +37,7 @@ export function MobilizeSocialReactionBar({
   onToggleLove,
   onToggleComments,
   commentsOpen,
+  commentToggleDisabled = false,
   disabled,
   tone = "light",
   embedded = false,
@@ -92,11 +95,18 @@ export function MobilizeSocialReactionBar({
 
       <IconButton
         size="small"
-        disabled={disabled}
-        onClick={onToggleComments}
+        disabled={disabled || commentToggleDisabled}
+        onClick={commentToggleDisabled ? undefined : onToggleComments}
         aria-label="Comments"
         aria-expanded={commentsOpen}
-        sx={{ color: commentsOpen ? accent : muted, ml: 0.5 }}
+        tabIndex={commentToggleDisabled ? -1 : undefined}
+        sx={{
+          color: commentsOpen ? accent : muted,
+          ml: 0.5,
+          ...(commentToggleDisabled
+            ? { cursor: "default", pointerEvents: "none" }
+            : {}),
+        }}
       >
         <ChatBubbleOutlineIcon fontSize="small" />
       </IconButton>
