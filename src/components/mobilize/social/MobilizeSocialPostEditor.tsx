@@ -3,7 +3,10 @@
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import { VideoEmbedDialog } from "@/components/mobilize/social/VideoEmbedDialog";
-import { trimTrailingFeedHtml } from "@/lib/mobilize/social/sanitize-feed-html";
+import {
+  MOBILIZE_FEED_POST_MAX_CHARS,
+  trimTrailingFeedHtml,
+} from "@/lib/mobilize/social/sanitize-feed-html";
 import { MAX_MOBILIZE_ANNOUNCEMENT_IMAGES } from "@/lib/mobilize/announcement-images";
 import { DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS } from "@/lib/mobilize/image-upload-limits";
 import {
@@ -39,7 +42,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, t
 
 const TRUTH_POST_PURPLE = "#5448e8";
 const TRUTH_ICON = "#9aa3c7";
-const MAX_CHARS = 3000;
+const MAX_CHARS = MOBILIZE_FEED_POST_MAX_CHARS;
 const DESIGN_EDITOR_BORDER = "rgba(0, 108, 231, 0.28)";
 
 export type MobilizePostCommentsPolicy = "everyone" | "leaders_only";

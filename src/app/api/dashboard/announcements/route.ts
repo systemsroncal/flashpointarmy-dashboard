@@ -140,7 +140,8 @@ export async function POST(req: Request) {
         ? expiresRaw
         : null;
 
-  const read_more_collapsed = Boolean(body.read_more_collapsed);
+  const read_more_collapsed =
+    body.read_more_collapsed === undefined ? true : Boolean(body.read_more_collapsed);
   const ctas = normalizeCtas(body.ctas);
   const audience = normalizeAnnouncementAudience(body.audience);
   const targetUserIds = normalizeTargetUserIds(body.target_user_ids);

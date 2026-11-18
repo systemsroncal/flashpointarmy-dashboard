@@ -1,6 +1,15 @@
 import { announcementPlainTextPreview } from "@/components/dashboard/notifications/announcement-video-markers";
 import DOMPurify from "isomorphic-dompurify";
 
+export const MOBILIZE_FEED_POST_MAX_CHARS = 5000;
+
+export function validateMobilizeFeedPostLength(content: string): string | null {
+  if (content.length > MOBILIZE_FEED_POST_MAX_CHARS) {
+    return `Post text must be at most ${MOBILIZE_FEED_POST_MAX_CHARS.toLocaleString()} characters.`;
+  }
+  return null;
+}
+
 const FEED_HTML_OPTIONS = {
   USE_PROFILES: { html: true },
 } as const;

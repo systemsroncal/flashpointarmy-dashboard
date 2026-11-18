@@ -19,17 +19,16 @@ import {
   setMissionUpdateSoundEnabled as persistMissionUpdateSoundEnabled,
 } from "@/lib/notifications/mission-update-sound-pref";
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
-import {
-  AnnouncementDescriptionBody,
-  announcementPlainTextPreview,
-} from "@/components/dashboard/notifications/AnnouncementDescriptionBody";
+import { AnnouncementDescriptionBody } from "@/components/dashboard/notifications/AnnouncementDescriptionBody";
 import AddIcon from "@mui/icons-material/Add";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import {
+  CLAMP_ACCORDION_TRANSITION,
+  useClampAccordion,
+} from "@/lib/mobilize/social/use-clamp-accordion";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
@@ -65,10 +64,9 @@ import {
   useMemo,
   useRef,
   useState,
-  type TransitionEvent,
 } from "react";
 
-const PREVIEW_CHARS = 240;
+const MISSION_UPDATE_CLAMP_LINES = 4;
 
 function emptyCta(): AnnouncementCta {
   return {
@@ -97,39 +95,23 @@ function fromLocalDatetimeValue(s: string): string | null {
 
 type Snack = { message: string; severity: "success" | "error" };
 
-/**
- * Accordion-style Read more / Read less for announcement descriptions.
- * The body height animates between the plain-text preview height and the full
- * HTML body height; the content swap happens only at the end of each direction.
- */
+/** Mission Update description — clamped to 4 lines, then Read more / Read less. */
 function AnnouncementCollapsibleBody({
   html,
-  preview,
   useCollapse,
-  expanded,
-  onToggle,
   mb = 0,
 }: {
   html: string;
-  preview: string | null;
   useCollapse: boolean;
-  expanded: boolean;
-  onToggle: () => void;
   mb?: number;
 }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const previewHRef = useRef<number | null>(null);
-  const [renderBody, setRenderBody] = useState(!useCollapse || expanded);
-  const [maxH, setMaxH] = useState<number | "none">("none");
-  const [animating, setAnimating] = useState(false);
+  const accordion = useClampAccordion(MISSION_UPDATE_CLAMP_LINES);
 
-  // While the preview is rendered, remember its height and clamp the box to it.
-  useEffect(() => {
-    if (renderBody || !ref.current) return;
-    const h = ref.current.scrollHeight;
-    previewHRef.current = h;
-    setMaxH(h);
-  }, [renderBody, preview]);
+  const clampSx = {
+    display: "-webkit-box",
+    WebkitLineClamp: MISSION_UPDATE_CLAMP_LINES,
+    WebkitBoxOrient: "vertical",
+  } as const;
 
   if (!useCollapse) {
     return (
@@ -139,72 +121,32 @@ function AnnouncementCollapsibleBody({
     );
   }
 
-  function swap() {
-    const el = ref.current;
-    if (!el || animating) return;
-    onToggle();
-    if (!expanded) {
-      // Expand: swap to the full body while clipped at the preview height, then grow.
-      setAnimating(true);
-      setRenderBody(true);
-      setMaxH(el.scrollHeight);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const el2 = ref.current;
-          if (el2) setMaxH(el2.scrollHeight);
-        });
-      });
-    } else {
-      // Collapse: shrink to the preview height, then swap back to the preview text.
-      setAnimating(true);
-      setMaxH(el.scrollHeight);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setMaxH(previewHRef.current ?? el.scrollHeight);
-        });
-      });
-    }
-  }
-
-  function onTransitionEnd(e: TransitionEvent<HTMLDivElement>) {
-    if (e.propertyName !== "max-height") return;
-    if (!expanded && previewHRef.current !== null) {
-      setRenderBody(false);
-      setMaxH(previewHRef.current);
-    }
-    setAnimating(false);
-  }
-
   return (
     <Box sx={{ mb }}>
       <Box
-        ref={ref}
-        onTransitionEnd={onTransitionEnd}
+        ref={accordion.ref}
+        onTransitionEnd={accordion.onTransitionEnd}
         sx={{
           overflow: "hidden",
-          maxHeight: maxH,
-          transition: "max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1)",
+          lineHeight: 1.65,
+          fontSize: "0.875rem",
+          maxHeight: accordion.maxHeight ?? "none",
+          transition:
+            accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
+          ...(accordion.showClamp ? clampSx : {}),
         }}
       >
-        {renderBody ? (
-          <AnnouncementDescriptionBody html={html} />
-        ) : (
-          <Typography
-            variant="body2"
-            sx={{ color: "grey.300", whiteSpace: "pre-wrap", lineHeight: 1.65 }}
-          >
-            {preview}
-          </Typography>
-        )}
+        <AnnouncementDescriptionBody html={html} compact />
       </Box>
-      <Button
-        size="small"
-        onClick={swap}
-        endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-        sx={{ mt: 0.5, color: "primary.light", textTransform: "none" }}
-      >
-        {expanded ? "Read less" : "Read more"}
-      </Button>
+      {accordion.needsCollapse ? (
+        <Button
+          size="small"
+          onClick={accordion.toggle}
+          sx={{ mt: 0.5, color: "primary.light", textTransform: "none", fontWeight: 600 }}
+        >
+          {accordion.expanded ? "Read less" : "Read more"}
+        </Button>
+      ) : null}
     </Box>
   );
 }
@@ -213,13 +155,10 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   const [items, setItems] = useState<AnnouncementListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [snack, setSnack] = useState<Snack | null>(null);
-  const [expandedDesc, setExpandedDesc] = useState<Record<string, boolean>>({});
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [readMoreCollapsed, setReadMoreCollapsed] = useState(false);
   const [audience, setAudience] = useState<AnnouncementAudience>("everyone");
   const [targetUsers, setTargetUsers] = useState<AnnouncementTargetUser[]>([]);
   const [missionUpdateSoundEnabled, setMissionUpdateSoundEnabled] = useState(true);
@@ -261,7 +200,6 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setEditingId(null);
     setTitle("");
     setDescription("");
-    setReadMoreCollapsed(false);
     setAudience("everyone");
     setTargetUsers([]);
     setUseExpiry(false);
@@ -276,7 +214,6 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setEditingId(row.id);
     setTitle(row.title);
     setDescription(row.description);
-    setReadMoreCollapsed(row.read_more_collapsed);
     setAudience(normalizeAnnouncementAudience(row.audience));
     setTargetUsers(row.target_users ?? []);
     const ex = row.expires_at;
@@ -302,7 +239,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     () => ({
       title: title.trim(),
       description: description.trim(),
-      read_more_collapsed: readMoreCollapsed,
+      read_more_collapsed: true,
       audience,
       target_user_ids: audience === "specific_users" ? targetUsers.map((u) => u.id) : [],
       expires_at: useExpiry ? fromLocalDatetimeValue(expiresLocal) : null,
@@ -324,7 +261,6 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     [
       title,
       description,
-      readMoreCollapsed,
       audience,
       targetUsers,
       useExpiry,
@@ -527,11 +463,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         <Stack spacing={2.5}>
           {items.map((row) => {
             const unread = !row.read_at;
-            const expanded = expandedDesc[row.id];
-            const plainPreview = announcementPlainTextPreview(row.description);
-            const useCollapse = row.read_more_collapsed && plainPreview.length > PREVIEW_CHARS;
-            const previewSnippet =
-              useCollapse && !expanded ? `${plainPreview.slice(0, PREVIEW_CHARS).trim()}…` : null;
+            const useCollapse = true;
 
             return (
               <Paper
@@ -600,10 +532,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                     </Stack>
                     <AnnouncementCollapsibleBody
                       html={row.description}
-                      preview={previewSnippet}
                       useCollapse={useCollapse}
-                      expanded={expanded}
-                      onToggle={() => setExpandedDesc((m) => ({ ...m, [row.id]: !expanded }))}
                       mb={row.ctas?.length ? 2 : 0}
                     />
 
@@ -686,21 +615,53 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         maxWidth="lg"
         disableEnforceFocus
         disableRestoreFocus
+        PaperProps={{
+          sx: {
+            bgcolor: "#ffffff",
+            color: "#0d0d0d",
+            backgroundImage: "none",
+          },
+        }}
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 1 }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            pr: 1,
+            color: "#0d0d0d",
+          }}
+        >
           {editingId ? "Edit Mission Update" : "New Mission Update"}
           <IconButton aria-label="Close" onClick={closeDialog} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent dividers sx={{ maxHeight: "min(88vh, 900px)", overflow: "auto" }}>
+        <DialogContent
+          dividers
+          sx={{
+            maxHeight: "min(88vh, 900px)",
+            overflow: "auto",
+            bgcolor: "#ffffff",
+            color: "#0d0d0d",
+            borderColor: "rgba(0,0,0,0.12)",
+          }}
+        >
           <Stack spacing={2.25}>
-            <TextField label="Mission Update title" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth required />
+            <TextField
+              label="Mission Update title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              fullWidth
+              required
+            />
             <GatheringDescriptionEditor
               key={editingId ?? "new-notification"}
               label="Description"
               value={description}
               onChange={setDescription}
+              socialSurface="light"
+              darkSurface={false}
               videoEmbedButton
               imageUploadEndpoint="/api/dashboard/announcements/image"
               helperText='Rich text (TinyMCE). Images: upload, paste from desktop, or paste from another site — remote images are saved to this server. Video: “Video” inserts [fpa_video]URL[/fpa_video]. Source: Code button.'
@@ -735,10 +696,6 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
               <AnnouncementTargetUsersField value={targetUsers} onChange={setTargetUsers} />
             ) : null}
             <FormControlLabel
-              control={<Switch checked={readMoreCollapsed} onChange={(_, v) => setReadMoreCollapsed(v)} />}
-              label="Read more / Read less (long descriptions collapse)"
-            />
-            <FormControlLabel
               control={<Switch checked={useExpiry} onChange={(_, v) => setUseExpiry(v)} />}
               label="Set expiration"
             />
@@ -753,7 +710,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
               />
             ) : null}
 
-            <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
+            <Divider sx={{ borderColor: "rgba(0,0,0,0.12)" }} />
             <Typography variant="subtitle2" color="text.secondary">
               PDF attachment (optional, max 7 MB)
             </Typography>
@@ -828,12 +785,12 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
               </Stack>
             ) : null}
 
-            <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
+            <Divider sx={{ borderColor: "rgba(0,0,0,0.12)" }} />
             <Typography variant="subtitle2" color="text.secondary">
               Call to actions (max 3)
             </Typography>
             {ctas.map((c, i) => (
-              <Paper key={i} variant="outlined" sx={{ p: 2, bgcolor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,255,255,0.12)" }}>
+              <Paper key={i} variant="outlined" sx={{ p: 2, bgcolor: "#fafafa", borderColor: "rgba(0,0,0,0.12)" }}>
                 <Stack spacing={1.5}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography variant="caption" color="primary.main">
@@ -890,7 +847,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
             ) : null}
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: "#ffffff" }}>
           <Button onClick={closeDialog}>Cancel</Button>
           <Button variant="contained" onClick={requestSave}>
             {editingId ? "Save changes" : "Create"}

@@ -6,7 +6,10 @@ import { isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { getMobilizeWallPostAccess } from "@/lib/mobilize/mobilize-wall-post-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { enrichGroupMessages } from "@/lib/mobilize/social/enrich-group-messages";
-import { normalizeFeedContent } from "@/lib/mobilize/social/sanitize-feed-html";
+import {
+  normalizeFeedContent,
+  validateMobilizeFeedPostLength,
+} from "@/lib/mobilize/social/sanitize-feed-html";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -76,6 +79,8 @@ export async function POST(req: Request, ctx: Ctx) {
     image_urls?: unknown;
   };
   const normalized = normalizeFeedContent(body);
+  const lengthError = validateMobilizeFeedPostLength(normalized.content);
+  if (lengthError) return NextResponse.json({ error: lengthError }, { status: 400 });
   const content = normalized.content;
   const content_html = normalized.content_html;
   const limits = await loadMobilizeImageUploadLimits(auth.admin);
