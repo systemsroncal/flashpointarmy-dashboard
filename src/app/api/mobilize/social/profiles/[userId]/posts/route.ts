@@ -3,7 +3,10 @@ import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
 import { canViewMobilizeProfile } from "@/lib/mobilize/social/profile-access";
 import { resolveMobilizeAuthors } from "@/lib/mobilize/social/resolve-authors";
 import { summarizeReactions, type ReactionType } from "@/lib/mobilize/social/reaction-summary";
-import { normalizeFeedContent } from "@/lib/mobilize/social/sanitize-feed-html";
+import {
+  normalizeFeedContent,
+  validateMobilizeFeedPostLength,
+} from "@/lib/mobilize/social/sanitize-feed-html";
 import { sanitizeSocialPostImageUrls } from "@/lib/mobilize/announcement-images";
 import { loadMobilizeImageUploadLimits } from "@/lib/mobilize/image-upload-limits";
 
@@ -84,6 +87,8 @@ export async function POST(req: Request, ctx: Ctx) {
 
   const body = (await req.json()) as { content?: string; content_html?: string; image_urls?: unknown };
   const normalized = normalizeFeedContent(body);
+  const lengthError = validateMobilizeFeedPostLength(normalized.content);
+  if (lengthError) return NextResponse.json({ error: lengthError }, { status: 400 });
   const limits = await loadMobilizeImageUploadLimits(auth.admin);
   const image_urls =
     sanitizeSocialPostImageUrls(body.image_urls, limits.profile_image_max_count) ?? [];

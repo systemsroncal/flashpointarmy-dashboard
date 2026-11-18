@@ -1,14 +1,16 @@
 "use client";
 
+import {
+  CLAMP_ACCORDION_TRANSITION,
+  useClampAccordion,
+} from "@/lib/mobilize/social/use-clamp-accordion";
 import { Box, Button } from "@mui/material";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode } from "react";
 
-/** Character threshold — text-only posts at or below this show everything. */
-const FULL_THRESHOLD = 450;
-/** Collapsed max-height in px for text-only posts > 450 chars. */
-const TEXT_CLAMP_HEIGHT = 170;
-/** Collapsed max-height in px for image posts (heading + ~2 lines of text). */
-const IMAGE_CLAMP_HEIGHT = 60;
+/** Collapsed line count for text-only feed posts. */
+const FEED_TEXT_CLAMP_LINES = 4;
+/** Collapsed line count when the post has images. */
+const FEED_IMAGE_TEXT_CLAMP_LINES = 1;
 
 type Props = {
   text: ReactNode;
@@ -19,11 +21,8 @@ type Props = {
 };
 
 /**
- * Smart collapsible post body.
- *
- * - Posts with images  → clamp text to 1 line + "More" / "Less", images always visible.
- * - Text-only ≤ 450 chars → show everything (no toggle).
- * - Text-only > 450 chars  → clamp at 170px + "Read more" / "Read less".
+ * Collapsible post body (4 lines text-only, 1 line when images).
+ * Uses line-clamp measurement — avoids tall posts showing extra lines from a loose max-height.
  */
 export function MobilizeCollapsiblePostBody({
   text,
@@ -32,102 +31,45 @@ export function MobilizeCollapsiblePostBody({
   plain,
   hasImages = false,
 }: Props) {
-  const fullText = (plain ?? "").trim();
-  const charCount = fullText.length;
+  const lineCount = hasImages ? FEED_IMAGE_TEXT_CLAMP_LINES : FEED_TEXT_CLAMP_LINES;
+  const accordion = useClampAccordion(lineCount);
+  const noText = !(plain ?? "").trim();
 
-  // Text-only posts short enough → no clamp at all
-  const skipClamp = !hasImages && charCount > 0 && charCount <= FULL_THRESHOLD;
+  const clampSx = {
+    display: "-webkit-box",
+    WebkitLineClamp: lineCount,
+    WebkitBoxOrient: "vertical",
+  } as const;
 
-  // No text content → no clamp
-  const noText = charCount === 0;
-
-  const [expanded, setExpanded] = useState(false);
-  const [needsCollapse, setNeedsCollapse] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Measure after render to determine if collapse is needed
-  useEffect(() => {
-    if (skipClamp || noText) {
-      setNeedsCollapse(false);
-      return;
-    }
-
-    const el = containerRef.current;
-    if (!el) return;
-
-    const raf = requestAnimationFrame(() => {
-      // Temporarily remove clamp to measure full height
-      const prevMax = el.style.maxHeight;
-      const prevOverflow = el.style.overflow;
-      el.style.transition = "none";
-      el.style.maxHeight = "none";
-      el.style.overflow = "visible";
-
-      const full = el.scrollHeight;
-
-      el.style.maxHeight = prevMax;
-      el.style.overflow = prevOverflow;
-      el.style.transition = "";
-
-      const collapsedHeight = hasImages ? IMAGE_CLAMP_HEIGHT : TEXT_CLAMP_HEIGHT;
-      setNeedsCollapse(full > collapsedHeight + 4);
-    });
-
-    return () => cancelAnimationFrame(raf);
-  }, [skipClamp, noText, text, hasImages]);
-
-  // Collapsed height value
-  const collapsedHeight = hasImages ? IMAGE_CLAMP_HEIGHT : TEXT_CLAMP_HEIGHT;
-
-  const fadeTo = surface === "dark" ? "#0b0c16" : "#fff";
-
-  const toggle = useCallback(() => {
-    setExpanded((v) => !v);
-  }, []);
-
-  // Determine button labels: "More"/"Less" for image posts, "Read more"/"Read less" for text-only
   const moreLabel = hasImages ? "More" : "Read more";
   const lessLabel = hasImages ? "Less" : "Read less";
 
-  const shouldCollapse = !skipClamp && !noText && needsCollapse;
+  if (noText) {
+    return media ? <Box sx={{ mt: 0 }}>{media}</Box> : null;
+  }
 
   return (
     <Box>
       <Box
-        ref={containerRef}
+        ref={accordion.ref}
+        onTransitionEnd={accordion.onTransitionEnd}
         sx={{
           position: "relative",
           overflow: "hidden",
-          maxHeight:
-            !shouldCollapse || expanded
-              ? "none"
-              : collapsedHeight,
-          transition: shouldCollapse
-            ? "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)"
-            : "none",
+          lineHeight: 1.55,
+          fontSize: "0.875rem",
+          maxHeight: accordion.maxHeight ?? "none",
+          transition:
+            accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
+          ...(accordion.showClamp ? clampSx : {}),
         }}
       >
         {text}
-        {/* Gradient fade when collapsed */}
-        {shouldCollapse && !expanded ? (
-          <Box
-            sx={{
-              pointerEvents: "none",
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 28,
-              background: `linear-gradient(180deg, rgba(255,255,255,0) 0%, ${fadeTo} 90%)`,
-            }}
-          />
-        ) : null}
       </Box>
-      {/* Toggle button */}
-      {shouldCollapse ? (
+      {accordion.needsCollapse ? (
         <Button
           size="small"
-          onClick={toggle}
+          onClick={accordion.toggle}
           sx={{
             mt: 0.5,
             px: 0,
@@ -144,10 +86,9 @@ export function MobilizeCollapsiblePostBody({
             },
           }}
         >
-          {expanded ? lessLabel : moreLabel}
+          {accordion.expanded ? lessLabel : moreLabel}
         </Button>
       ) : null}
-      {/* Media renders BELOW text, always visible */}
       {media ? <Box sx={{ mt: 1.25 }}>{media}</Box> : null}
     </Box>
   );

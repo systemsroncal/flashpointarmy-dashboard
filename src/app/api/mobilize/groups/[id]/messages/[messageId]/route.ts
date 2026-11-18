@@ -3,7 +3,10 @@ import { sanitizeAnnouncementImageUrls } from "@/lib/mobilize/announcement-image
 import { loadMobilizeImageUploadLimits } from "@/lib/mobilize/image-upload-limits";
 import { canManageMobilizeGroupContent, canPinMobilizeGroupMessage, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
-import { normalizeFeedContent } from "@/lib/mobilize/social/sanitize-feed-html";
+import {
+  normalizeFeedContent,
+  validateMobilizeFeedPostLength,
+} from "@/lib/mobilize/social/sanitize-feed-html";
 
 type Ctx = { params: Promise<{ id: string; messageId: string }> };
 
@@ -86,6 +89,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const patch: Record<string, unknown> = {};
   if (typeof body.content_html === "string" || typeof body.content === "string") {
     const normalized = normalizeFeedContent(body);
+    const lengthError = validateMobilizeFeedPostLength(normalized.content);
+    if (lengthError) return NextResponse.json({ error: lengthError }, { status: 400 });
     patch.content = normalized.content;
     patch.content_html = normalized.content_html;
   }

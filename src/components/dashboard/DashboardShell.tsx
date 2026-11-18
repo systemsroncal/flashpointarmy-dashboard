@@ -298,16 +298,16 @@ const PEOPLE_NAV: NavItem[] = [
 
 const NAV: NavItem[] = [
   {
-    label: "National Map",
-    href: "/dashboard",
-    module: MODULE_SLUGS.nationalOverview,
-    icon: <HomeOutlinedIcon />,
-  },
-  {
     label: "Feed",
     href: MOBILIZE_HOME_HREF,
     module: MODULE_SLUGS.movilization,
     icon: <DashboardOutlinedIcon />,
+  },
+  {
+    label: "National Map",
+    href: "/dashboard",
+    module: MODULE_SLUGS.nationalOverview,
+    icon: <HomeOutlinedIcon />,
   },
   // Groups is rendered as ChaptersGroupsNavGroup (not a flat link).
   {
