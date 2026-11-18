@@ -19,6 +19,7 @@ import {
   setMissionUpdateSoundEnabled as persistMissionUpdateSoundEnabled,
 } from "@/lib/notifications/mission-update-sound-pref";
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import { AnnouncementDescriptionBody } from "@/components/dashboard/notifications/AnnouncementDescriptionBody";
 import AddIcon from "@mui/icons-material/Add";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -67,6 +68,12 @@ import {
 } from "react";
 
 const MISSION_UPDATE_CLAMP_LINES = 4;
+
+/** Select menu stays inside the light-theme dialog (avoids dark-theme portal). */
+const MISSION_UPDATE_SELECT_MENU_PROPS = {
+  disablePortal: true,
+  disableScrollLock: true,
+} as const;
 
 function emptyCta(): AnnouncementCta {
   return {
@@ -608,20 +615,12 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         </Stack>
       )}
 
-      <Dialog
+      <MobilizeDialog
         open={dialogOpen}
         onClose={closeDialog}
         fullWidth
         maxWidth="lg"
-        disableEnforceFocus
         disableRestoreFocus
-        PaperProps={{
-          sx: {
-            bgcolor: "#ffffff",
-            color: "#0d0d0d",
-            backgroundImage: "none",
-          },
-        }}
       >
         <DialogTitle
           sx={{
@@ -673,6 +672,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                   labelId="announcement-audience-label"
                   label="Visible to"
                   value={audience}
+                  MenuProps={MISSION_UPDATE_SELECT_MENU_PROPS}
                   onChange={(e) => {
                     const next = e.target.value as AnnouncementAudience;
                     setAudience(next);
@@ -848,12 +848,14 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "#ffffff" }}>
-          <Button onClick={closeDialog}>Cancel</Button>
-          <Button variant="contained" onClick={requestSave}>
+          <Button onClick={closeDialog} color="primary">
+            Cancel
+          </Button>
+          <Button variant="contained" color="primary" onClick={requestSave}>
             {editingId ? "Save changes" : "Create"}
           </Button>
         </DialogActions>
-      </Dialog>
+      </MobilizeDialog>
 
       <Dialog open={Boolean(confirmSaveEdit)} onClose={() => setConfirmSaveEdit(false)}>
         <DialogTitle>Save changes?</DialogTitle>

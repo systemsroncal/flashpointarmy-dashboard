@@ -81,6 +81,7 @@ export function AnnouncementTargetUsersField({
           }))
         );
       }}
+      slotProps={{ popper: { disablePortal: true } }}
       inputValue={input}
       onInputChange={(_, next, reason) => {
         if (reason === "input") setInput(next);
