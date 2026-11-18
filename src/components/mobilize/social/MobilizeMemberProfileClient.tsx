@@ -30,45 +30,31 @@ import {
 } from "@/lib/mobilize/social/follow-state-bus";
 import { publicAssetSrc, cacheBustAssetUrl } from "@/lib/media/public-asset-url";
 import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
+import { subscribeProfileMediaUpdated } from "@/lib/user/profile-media-events";
 import {
-  emitProfileMediaUpdated,
-  subscribeProfileMediaUpdated,
-} from "@/lib/user/profile-media-events";
-import { ImageCropDialog, type ImageCropKind } from "@/components/media/ImageCropDialog";
-import {
-  DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS,
-  mbToBytes,
-} from "@/lib/mobilize/image-upload-limits";
+  requestOpenProfileDrawer,
+  subscribeProfileSettingsUpdated,
+} from "@/lib/user/profile-drawer-events";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
-import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
-import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   CircularProgress,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
-  FormControlLabel,
-  IconButton,
   Paper,
-  Radio,
-  RadioGroup,
   Stack,
-  TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const VISITOR_PROFILE_TABS = [
   { id: "posts", label: "Posts" },
@@ -150,10 +136,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [composerHtml, setComposerHtml] = useState("");
   const [composerImages, setComposerImages] = useState<string[]>([]);
   const [posting, setPosting] = useState(false);
-  const [bioDraft, setBioDraft] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "private">("public");
-  const [savingSettings, setSavingSettings] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const [unfollowConfirmOpen, setUnfollowConfirmOpen] = useState(false);
   const [connectionsDialog, setConnectionsDialog] = useState<ConnectionKind | null>(null);
   const [deletePostTarget, setDeletePostTarget] = useState<ProfilePost | null>(null);
@@ -162,18 +144,9 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [editPostHtml, setEditPostHtml] = useState("");
   const [editPostImages, setEditPostImages] = useState<string[]>([]);
   const [editPostSaving, setEditPostSaving] = useState(false);
-  const [mediaUploading, setMediaUploading] = useState<"avatar" | "cover" | null>(null);
-  const [cropKind, setCropKind] = useState<ImageCropKind | null>(null);
-  const [cropFile, setCropFile] = useState<File | null>(null);
   const [mediaNonce, setMediaNonce] = useState(() => Date.now());
   const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
-  const [profileMaxMb, setProfileMaxMb] = useState(
-    DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.profile_image_max_mb
-  );
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
-
   // Following from one of this member's posts must flip the header button too.
   useEffect(
     () =>
@@ -208,24 +181,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       });
       setMediaNonce(Date.now());
     });
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch("/api/mobilize/upload-limits");
-        if (!res.ok) return;
-        const j = (await res.json()) as { profile_image_max_mb?: number };
-        const mb = Number(j.profile_image_max_mb);
-        if (!cancelled && Number.isFinite(mb) && mb > 0) setProfileMaxMb(mb);
-      } catch {
-        /* default */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
@@ -272,8 +227,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       } else {
         setPosts([]);
       }
-      setBioDraft(p.bio ?? "");
-      setVisibility(p.profile_visibility);
     } catch (e) {
       setProfile(null);
       setPosts([]);
@@ -285,6 +238,12 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  useEffect(() => {
+    return subscribeProfileSettingsUpdated(() => {
+      void load({ silent: true });
+    });
   }, [load]);
 
   const loadTabFeed = useCallback(async () => {
@@ -419,77 +378,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     }
   }
 
-  async function saveSettings() {
-    setSavingSettings(true);
-    try {
-      const res = await fetch("/api/mobilize/social/profile-settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bio: bioDraft, profile_visibility: visibility }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Save failed.");
-      await load();
-      return true;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed.");
-      return false;
-    } finally {
-      setSavingSettings(false);
-    }
-  }
-
-  async function uploadProfileMedia(kind: "avatar" | "cover", file: File) {
-    setMediaUploading(kind);
-    setError(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch(kind === "avatar" ? "/api/profile/avatar" : "/api/profile/cover", {
-        method: "POST",
-        body: fd,
-      });
-      const json = (await res.json()) as {
-        error?: string;
-        avatar_url?: string;
-        cover_url?: string;
-      };
-      if (!res.ok) throw new Error(json.error || "Upload failed.");
-      const nextAvatar =
-        kind === "avatar" ? json.avatar_url ?? null : undefined;
-      const nextCover = kind === "cover" ? json.cover_url ?? null : undefined;
-      setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              avatar_url: nextAvatar !== undefined ? nextAvatar : prev.avatar_url,
-              cover_url: nextCover !== undefined ? nextCover : prev.cover_url,
-            }
-          : prev
-      );
-      setMediaNonce(Date.now());
-      emitProfileMediaUpdated({
-        ...(nextAvatar !== undefined ? { avatar_url: nextAvatar } : {}),
-        ...(nextCover !== undefined ? { cover_url: nextCover } : {}),
-      });
-      router.refresh();
-      await load({ silent: true });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed.");
-    } finally {
-      setMediaUploading(null);
-      if (kind === "avatar" && avatarInputRef.current) avatarInputRef.current.value = "";
-      if (kind === "cover" && coverInputRef.current) coverInputRef.current.value = "";
-    }
-  }
-
-  function pickProfileMedia(kind: ImageCropKind, files: FileList | null) {
-    const f = files?.[0];
-    if (!f) return;
-    setCropKind(kind);
-    setCropFile(f);
-  }
-
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -550,7 +438,11 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   };
 
   const headerActions = p.is_own_profile ? (
-    <Button variant="outlined" onClick={() => setEditOpen(true)} sx={heroBtnSx}>
+    <Button
+      variant="outlined"
+      onClick={() => requestOpenProfileDrawer({ edit: true })}
+      sx={heroBtnSx}
+    >
       Edit profile
     </Button>
   ) : (
@@ -999,181 +891,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       </MobilizeSocialHubLayout>
 
       <MobilizeDialog
-        open={editOpen}
-        onClose={() => !savingSettings && !mediaUploading && setEditOpen(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>Edit profile</DialogTitle>
-        <DialogContent>
-          <input
-            ref={coverInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            hidden
-            onChange={(e) => {
-              pickProfileMedia("cover", e.target.files);
-              e.target.value = "";
-            }}
-          />
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            hidden
-            onChange={(e) => {
-              pickProfileMedia("profile", e.target.files);
-              e.target.value = "";
-            }}
-          />
-
-          <Box sx={{ position: "relative", mt: 1 }}>
-            <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden" }}>
-              <Box
-                sx={{
-                  height: 140,
-                  backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%), url(${coverDisplaySrc})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
-              />
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={
-                  mediaUploading === "cover" ? (
-                    <CircularProgress size={14} color="inherit" />
-                  ) : (
-                    <PhotoCameraOutlinedIcon fontSize="small" />
-                  )
-                }
-                disabled={Boolean(mediaUploading) || savingSettings}
-                onClick={() => coverInputRef.current?.click()}
-                sx={{
-                  position: "absolute",
-                  top: 10,
-                  right: 10,
-                  textTransform: "none",
-                  bgcolor: "rgba(0,0,0,0.65)",
-                  "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
-                }}
-              >
-                Change cover
-              </Button>
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "flex-end",
-                gap: 1.25,
-                mt: -4,
-                ml: 2,
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
-              <Avatar
-                key={avatarDisplaySrc || "edit-avatar"}
-                src={avatarDisplaySrc}
-                sx={{
-                  width: 72,
-                  height: 72,
-                  border: "3px solid #fff",
-                  bgcolor: "primary.dark",
-                  fontWeight: 700,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
-                }}
-              >
-                {p.display_name.slice(0, 2).toUpperCase()}
-              </Avatar>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={
-                  mediaUploading === "avatar" ? (
-                    <CircularProgress size={14} />
-                  ) : (
-                    <PhotoCameraOutlinedIcon fontSize="small" />
-                  )
-                }
-                disabled={Boolean(mediaUploading) || savingSettings}
-                onClick={() => avatarInputRef.current?.click()}
-                sx={{
-                  mb: 0.75,
-                  textTransform: "none",
-                  bgcolor: "#fff",
-                  borderColor: "rgba(0,0,0,0.2)",
-                }}
-              >
-                Change photo
-              </Button>
-            </Box>
-          </Box>
-
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
-            JPEG, PNG, WebP or GIF · max {profileMaxMb} MB · square crop for photo, 21:9 for cover
-          </Typography>
-
-          <FormControl sx={{ mt: 2, width: "100%" }}>
-            <RadioGroup
-              value={visibility}
-              onChange={(_, v) => setVisibility(v as "public" | "private")}
-            >
-              <FormControlLabel
-                value="public"
-                control={<Radio size="small" />}
-                label={
-                  <Stack direction="row" spacing={0.5} alignItems="center">
-                    <PublicOutlinedIcon fontSize="small" />
-                    <span>Public</span>
-                  </Stack>
-                }
-              />
-              <FormControlLabel
-                value="private"
-                control={<Radio size="small" />}
-                label={
-                  <Stack direction="row" spacing={0.5} alignItems="center">
-                    <LockOutlinedIcon fontSize="small" />
-                    <span>Private</span>
-                  </Stack>
-                }
-              />
-            </RadioGroup>
-          </FormControl>
-          <TextField
-            fullWidth
-            multiline
-            minRows={3}
-            label="Bio"
-            value={bioDraft}
-            onChange={(e) => setBioDraft(e.target.value)}
-            sx={{ mt: 2 }}
-            size="small"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setEditOpen(false)}
-            disabled={savingSettings || Boolean(mediaUploading)}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            disabled={savingSettings || Boolean(mediaUploading)}
-            onClick={() => {
-              void saveSettings().then((ok) => {
-                if (ok) setEditOpen(false);
-              });
-            }}
-          >
-            {savingSettings ? "Saving…" : "Save"}
-          </Button>
-        </DialogActions>
-      </MobilizeDialog>
-
-      <MobilizeDialog
         open={unfollowConfirmOpen}
         onClose={() => !followBusy && setUnfollowConfirmOpen(false)}
         fullWidth
@@ -1199,24 +916,6 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           </Button>
         </DialogActions>
       </MobilizeDialog>
-
-      <ImageCropDialog
-        open={Boolean(cropFile)}
-        file={cropFile}
-        kind={cropKind ?? "profile"}
-        maxBytes={mbToBytes(profileMaxMb)}
-        onCancel={() => {
-          setCropFile(null);
-          setCropKind(null);
-        }}
-        onConfirm={(file) => {
-          const kind = cropKind;
-          setCropFile(null);
-          setCropKind(null);
-          if (kind === "profile") void uploadProfileMedia("avatar", file);
-          else if (kind === "cover") void uploadProfileMedia("cover", file);
-        }}
-      />
 
       <MobilizeConnectionsDialog
         open={Boolean(connectionsDialog)}

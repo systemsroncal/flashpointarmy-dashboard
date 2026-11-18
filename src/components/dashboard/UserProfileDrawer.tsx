@@ -6,6 +6,7 @@ import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { missionRankDialogTitle } from "@/lib/onboarding/mission-rank-info";
 import { cacheBustAssetUrl } from "@/lib/media/public-asset-url";
 import { resolveProfileCoverUrl } from "@/lib/user/default-profile-cover";
+import { emitProfileSettingsUpdated } from "@/lib/user/profile-drawer-events";
 import {
   emitProfileMediaUpdated,
   subscribeProfileMediaUpdated,
@@ -24,6 +25,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
+import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import {
   Alert,
@@ -35,10 +38,14 @@ import {
   Divider,
   Drawer,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem,
+  Radio,
+  RadioGroup,
   Select,
+  Stack,
   TextField,
   Tooltip,
   Typography,
@@ -60,6 +67,8 @@ type ProfileRow = {
   zip_code: string | null;
   date_of_birth: string | null;
   gender: string | null;
+  bio: string | null;
+  profile_visibility: string | null;
 };
 
 function formatRoleSlug(slug: string): string {
@@ -123,6 +132,8 @@ export function UserProfileDrawer({
   const [addrZip, setAddrZip] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState<"" | "male" | "female">("");
+  const [bio, setBio] = useState("");
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarNonce, setAvatarNonce] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -187,7 +198,7 @@ export function UserProfileDrawer({
       supabase
         .from("profiles")
         .select(
-          "first_name, last_name, display_name, avatar_url, cover_url, phone, address_line, city, state, zip_code, date_of_birth, gender"
+          "first_name, last_name, display_name, avatar_url, cover_url, phone, address_line, city, state, zip_code, date_of_birth, gender, bio, profile_visibility"
         )
         .eq("id", du.id)
         .maybeSingle(),
@@ -221,6 +232,8 @@ export function UserProfileDrawer({
     setAddrZip(row?.zip_code?.trim() ?? "");
     setDateOfBirth(row?.date_of_birth?.slice(0, 10) ?? "");
     setGender(row?.gender === "male" || row?.gender === "female" ? row.gender : "");
+    setBio(row?.bio?.trim() ?? "");
+    setVisibility(row?.profile_visibility === "private" ? "private" : "public");
     setAvatarUrl(row?.avatar_url ?? "");
     setCoverUrl(row?.cover_url ?? "");
     setGroupsCount(groupsCountRes.count ?? 0);
@@ -231,9 +244,11 @@ export function UserProfileDrawer({
   useEffect(() => {
     if (open) {
       void load();
-      setEditMode(false);
+      if (!editModeControlledMode) {
+        setEditModeInternal(false);
+      }
     }
-  }, [open, load]);
+  }, [open, load, editModeControlledMode]);
 
   async function save() {
     setSaving(true);
@@ -313,6 +328,29 @@ export function UserProfileDrawer({
       setSaving(false);
       return;
     }
+
+    try {
+      const settingsRes = await fetch("/api/mobilize/social/profile-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bio: bio.trim(),
+          profile_visibility: visibility,
+        }),
+      });
+      const settingsJson = (await settingsRes.json()) as { error?: string };
+      if (!settingsRes.ok) {
+        setError(settingsJson.error || "Could not save bio or visibility.");
+        setSaving(false);
+        return;
+      }
+    } catch {
+      setError("Could not save bio or visibility.");
+      setSaving(false);
+      return;
+    }
+
+    emitProfileSettingsUpdated();
 
     setSaving(false);
     setEditMode(false);
@@ -909,6 +947,81 @@ export function UserProfileDrawer({
                     <Typography sx={{ fontWeight: 700, mb: 0.5, textAlign: "center" }}>
                       Edit profile
                     </Typography>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+                        Cover photo
+                      </Typography>
+                      <Box
+                        sx={{
+                          position: "relative",
+                          borderRadius: 1.5,
+                          overflow: "hidden",
+                          height: 88,
+                          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.35) 100%), url(${coverSrc})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="small"
+                        variant="outlined"
+                        startIcon={
+                          coverUploading ? (
+                            <CircularProgress size={14} />
+                          ) : (
+                            <PhotoCameraOutlinedIcon fontSize="small" />
+                          )
+                        }
+                        disabled={coverUploading || saving}
+                        onClick={() => coverInputRef.current?.click()}
+                        sx={{ mt: 1, textTransform: "none" }}
+                      >
+                        Change cover
+                      </Button>
+                    </Box>
+                    <FormControl>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
+                        Profile visibility
+                      </Typography>
+                      <RadioGroup
+                        value={visibility}
+                        onChange={(_, v) => setVisibility(v as "public" | "private")}
+                      >
+                        <FormControlLabel
+                          value="public"
+                          control={<Radio size="small" />}
+                          label={
+                            <Stack direction="row" spacing={0.5} alignItems="center">
+                              <PublicOutlinedIcon fontSize="small" />
+                              <span>Public</span>
+                            </Stack>
+                          }
+                        />
+                        <FormControlLabel
+                          value="private"
+                          control={<Radio size="small" />}
+                          label={
+                            <Stack direction="row" spacing={0.5} alignItems="center">
+                              <LockOutlinedIcon fontSize="small" />
+                              <span>Private</span>
+                            </Stack>
+                          }
+                        />
+                      </RadioGroup>
+                    </FormControl>
+                    <TextField
+                      label="Bio"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      size="small"
+                      fullWidth
+                      multiline
+                      minRows={3}
+                      placeholder="A short description others will see on your profile"
+                      inputProps={{ maxLength: 500 }}
+                      helperText={`${bio.length}/500`}
+                    />
                     <TextField
                       label="First name"
                       value={firstName}
