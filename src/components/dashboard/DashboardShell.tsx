@@ -110,6 +110,7 @@ import {
   MOBILIZE_PREFIX as MOBILIZE_PREFIX_CANON,
 } from "@/lib/mobilize/mobilize-nav-config";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
+import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
 
 const DRAWER_WIDTH = 220;
 
@@ -589,6 +590,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const permissions = usePermissions();
   const user = useDashboardUser();
+
+  useEffect(() => {
+    return subscribeProfileDrawerOpen((detail) => {
+      if (detail.edit) setProfileEditMode(true);
+      setProfileOpen(true);
+    });
+  }, []);
 
   useEffect(() => {
     return subscribeProfileMediaUpdated((detail) => {
