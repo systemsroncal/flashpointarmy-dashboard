@@ -518,12 +518,14 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             <MenuItem
               component={Link}
               href={`/dashboard/people/${userId}?from=profile`}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() => setAdminMenuAnchor(null)}
             >
-              <ListItemIcon>
+              <ListItemIcon sx={{ color: "inherit", minWidth: 36 }}>
                 <EditOutlinedIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Edit in People</ListItemText>
+              <ListItemText primary="Edit" />
             </MenuItem>
           </Menu>
         </>
