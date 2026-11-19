@@ -39,7 +39,7 @@ const HOME_TABS = [
   { id: "for_you", label: "For you" },
   { id: "following", label: "Following" },
   { id: "groups", label: "Groups" },
-  { id: "recommended", label: "Discover" },
+  { id: "recommended", label: "Discover New Groups" },
 ] as const;
 
 /** Home feed composer: keep code, hide UI until we re-enable out-of-group posting. */
@@ -259,7 +259,7 @@ export function MobilizeOwnerHomeClient() {
               fontWeight={800}
               sx={{ mb: 1.5, color: "#0d0d0d", px: { xs: 1.5, sm: 0 }, pt: { xs: 1.5, sm: 0 } }}
             >
-              Discover
+              Discover New Groups
             </Typography>
 
             {error ? (

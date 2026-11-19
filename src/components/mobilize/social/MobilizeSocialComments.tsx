@@ -1,6 +1,7 @@
 "use client";
 
 import type { MobilizeSocialAuthor } from "@/components/mobilize/social/MobilizeSocialPostHeader";
+import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
 import { applyReactionToggle, type ReactionType } from "@/lib/mobilize/social/reaction-summary";
 import { TRUTH_HUB_BORDER, TRUTH_HUB_TEXT_MUTED } from "@/lib/mobilize/social/social-hub-surface";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
@@ -430,7 +431,7 @@ function CommentItem({
               maxWidth: "100%",
             }}
           >
-            <Stack direction="row" spacing={0.75} alignItems="baseline" flexWrap="wrap" useFlexGap>
+            <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
               <MuiLink
                 component={Link}
                 href={profileHref}
@@ -444,6 +445,12 @@ function CommentItem({
               >
                 {node.author.display_name}
               </MuiLink>
+              {node.author.verified ? (
+                <VerifiedUserBadge
+                  size={depth > 0 ? 14 : 16}
+                  verifiedAt={node.author.verified_at}
+                />
+              ) : null}
               <Typography component="span" sx={{ fontSize: depth > 0 ? "0.7rem" : "0.75rem", color: nameMuted }}>
                 {timeAgo(node.created_at)}
               </Typography>

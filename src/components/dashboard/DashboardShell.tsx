@@ -302,13 +302,13 @@ const NAV: NavItem[] = [
     label: "Feed",
     href: MOBILIZE_HOME_HREF,
     module: MODULE_SLUGS.movilization,
-    icon: <DashboardOutlinedIcon />,
+    icon: <HomeOutlinedIcon />,
   },
   {
     label: "National Map",
     href: "/dashboard",
     module: MODULE_SLUGS.nationalOverview,
-    icon: <HomeOutlinedIcon />,
+    icon: <DashboardOutlinedIcon />,
   },
   // Groups is rendered as ChaptersGroupsNavGroup (not a flat link).
   {
