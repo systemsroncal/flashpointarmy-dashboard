@@ -11,6 +11,7 @@ import { MobilizeImageLightbox } from "@/components/mobilize/MobilizeImageLightb
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
+import { isElevatedRole } from "@/lib/auth/user-roles";
 import { MOBILIZE_EMPTY_STATE_IMAGES } from "@/lib/mobilize/mobilize-empty-state-icons";
 import {
   PRIVATE_PROFILE_TAB_MESSAGE,
@@ -39,6 +40,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import {
   Alert,
@@ -49,6 +51,10 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
   Paper,
   Stack,
   Tooltip,
@@ -149,6 +155,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [mediaNonce, setMediaNonce] = useState(() => Date.now());
   const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
+  const [adminMenuAnchor, setAdminMenuAnchor] = useState<null | HTMLElement>(null);
   // Following from one of this member's posts must flip the header button too.
   useEffect(
     () =>
@@ -439,6 +446,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     },
   };
 
+  const canAdminOpenPeopleProfile =
+    !p.is_own_profile &&
+    (isElevatedRole(me.role_names) || me.role_names.includes("sub_admin"));
+
   const headerActions = p.is_own_profile ? (
     <Button
       variant="outlined"
@@ -448,7 +459,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       Edit profile
     </Button>
   ) : (
-    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
       <Button
         variant={p.is_following ? "outlined" : "contained"}
         onClick={() => handleFollowClick()}
@@ -482,6 +493,40 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         >
           Message
         </Button>
+      ) : null}
+      {canAdminOpenPeopleProfile ? (
+        <>
+          <IconButton
+            aria-label="More profile actions"
+            onClick={(e) => setAdminMenuAnchor(e.currentTarget)}
+            sx={{
+              border: "1px solid rgba(0,0,0,0.18)",
+              bgcolor: "#fff",
+              color: "#0d0d0d",
+              "&:hover": { bgcolor: "rgba(0,0,0,0.03)" },
+            }}
+          >
+            <MoreVertIcon />
+          </IconButton>
+          <Menu
+            anchorEl={adminMenuAnchor}
+            open={Boolean(adminMenuAnchor)}
+            onClose={() => setAdminMenuAnchor(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+          >
+            <MenuItem
+              component={Link}
+              href={`/dashboard/people/${userId}?from=profile`}
+              onClick={() => setAdminMenuAnchor(null)}
+            >
+              <ListItemIcon>
+                <EditOutlinedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Edit in People</ListItemText>
+            </MenuItem>
+          </Menu>
+        </>
       ) : null}
     </Stack>
   );
