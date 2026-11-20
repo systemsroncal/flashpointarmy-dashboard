@@ -22,7 +22,16 @@ export const CLAMP_ACCORDION_TRANSITION = "max-height 0.35s cubic-bezier(0.4, 0,
  *   </Box>
  *   {a.needsCollapse && <Button onClick={a.toggle}>{a.expanded ? "Less" : "More"}</Button>}
  */
-export function useClampAccordion(lineCount: number) {
+function plainTextLikelyExceedsLines(plain: string | undefined, lineCount: number): boolean {
+  const t = (plain ?? "").trim();
+  if (!t) return false;
+  const logicalLines = t.split(/\n/).filter((line) => line.trim().length > 0).length;
+  if (logicalLines > lineCount) return true;
+  // ~38 chars/line in the feed column at body2 size.
+  return t.replace(/\s+/g, " ").length > lineCount * 38;
+}
+
+export function useClampAccordion(lineCount: number, plainHint?: string) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [needsCollapse, setNeedsCollapse] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -53,15 +62,16 @@ export function useClampAccordion(lineCount: number) {
     el.style.transition = "none";
     el.style.overflow = "visible";
     el.style.maxHeight = "none";
+    el.style.display = prev.display || "";
+    el.style.webkitLineClamp = "";
+    el.style.webkitBoxOrient = "";
     const full = el.scrollHeight;
 
-    const cs = typeof window !== "undefined" ? window.getComputedStyle(el) : null;
-    const fontSize = cs ? parseFloat(cs.fontSize) || 14 : 14;
-    let lineHeightPx = cs ? parseFloat(cs.lineHeight) : NaN;
-    if (!Number.isFinite(lineHeightPx) || lineHeightPx <= 0) {
-      lineHeightPx = fontSize * 1.45;
-    }
-    const clamped = Math.ceil(lineHeightPx * lineCount);
+    el.style.display = "-webkit-box";
+    el.style.webkitLineClamp = String(lineCount);
+    el.style.webkitBoxOrient = "vertical";
+    el.style.overflow = "hidden";
+    const clampedMeasured = el.scrollHeight;
 
     el.style.display = prev.display;
     el.style.webkitLineClamp = prev.lineClamp;
@@ -70,10 +80,21 @@ export function useClampAccordion(lineCount: number) {
     el.style.maxHeight = prev.maxHeight;
     el.style.transition = prev.transition;
 
+    const cs = typeof window !== "undefined" ? window.getComputedStyle(el) : null;
+    const fontSize = cs ? parseFloat(cs.fontSize) || 14 : 14;
+    let lineHeightPx = cs ? parseFloat(cs.lineHeight) : NaN;
+    if (!Number.isFinite(lineHeightPx) || lineHeightPx <= 0) {
+      lineHeightPx = fontSize * 1.45;
+    }
+    const clampedFallback = Math.ceil(lineHeightPx * lineCount);
+    const clamped = Math.max(clampedMeasured, clampedFallback);
+
     setClampedH(clamped);
     setFullH(full);
-    setNeedsCollapse(full > clamped + 4);
-  }, [lineCount]);
+    setNeedsCollapse(
+      full > clamped + 2 || plainTextLikelyExceedsLines(plainHint, lineCount)
+    );
+  }, [lineCount, plainHint]);
 
   useEffect(() => {
     measure();
@@ -81,7 +102,15 @@ export function useClampAccordion(lineCount: number) {
     if (!el) return;
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
     ro?.observe(el);
-    return () => ro?.disconnect();
+    const imgs = el.querySelectorAll("img");
+    const onImg = () => measure();
+    imgs.forEach((img) => img.addEventListener("load", onImg));
+    const fonts = document.fonts;
+    void fonts?.ready?.then(() => measure());
+    return () => {
+      ro?.disconnect();
+      imgs.forEach((img) => img.removeEventListener("load", onImg));
+    };
   }, [measure]);
 
   // Enable CSS transitions only after the initial measurement has settled,
@@ -128,8 +157,7 @@ export function useClampAccordion(lineCount: number) {
     collapsed,
     /** `maxHeight` value to apply (undefined when no collapse is needed). */
     maxHeight: needsCollapse ? (collapsed ? clampedH : fullH) : undefined,
-    /** Max-height collapse for rich HTML (`<p>` children); line-clamp on the wrapper mis-measures. */
-    showClamp: false,
+    showClamp: collapsed && animating !== "collapsing",
     toggle,
     onTransitionEnd,
   };

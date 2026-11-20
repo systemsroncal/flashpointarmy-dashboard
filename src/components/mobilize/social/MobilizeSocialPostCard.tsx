@@ -102,16 +102,28 @@ export function MobilizeSocialPostCard({
   const bookmarkRef = bookmarkRefFromPost(post);
   const hasEmbeddedVideo = findAllVideoMarkers(post.content_html ?? "").length > 0;
 
-  const feedBody = (
+  const feedHtmlSx = isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined;
+  const feedBodyText = (
     <MobilizeFeedHtml
       html={post.content_html}
       plain={post.content}
-      sx={isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined}
+      include="text"
+      sx={feedHtmlSx}
     />
   );
+  const feedBodyVideos = hasEmbeddedVideo ? (
+    <MobilizeFeedHtml html={post.content_html} plain={post.content} include="videos" sx={feedHtmlSx} />
+  ) : null;
   const feedMedia = <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />;
   const hasRealImages = Boolean(
     post.image_urls?.filter((u) => typeof u === "string" && u.trim().length > 0).length
+  );
+  const hasMedia = hasRealImages || hasEmbeddedVideo;
+  const postMedia = (
+    <>
+      {feedBodyVideos}
+      {feedMedia}
+    </>
   );
 
   async function toggleBookmark() {
@@ -245,14 +257,13 @@ export function MobilizeSocialPostCard({
           <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
         ) : null}
         <Box sx={{ mt: isGroupFeedCard || isGroupFeedList ? 0 : 1.25 }}>
-          {hasEmbeddedVideo ? (
-            <Box>
-              {feedBody}
-              {feedMedia}
-            </Box>
-          ) : (
-            <MobilizeCollapsiblePostBody surface={surface} text={feedBody} media={feedMedia} plain={post.content} hasImages={hasRealImages} />
-          )}
+          <MobilizeCollapsiblePostBody
+            surface={surface}
+            text={feedBodyText}
+            media={hasMedia ? postMedia : undefined}
+            plain={post.content}
+            hasMedia={hasMedia}
+          />
         </Box>
         {!hideReactionBar ? (
           <>

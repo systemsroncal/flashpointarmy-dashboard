@@ -9,10 +9,14 @@ import { Box, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { useMemo } from "react";
 
+type FeedHtmlInclude = "all" | "text" | "videos";
+
 type Props = {
   html?: string | null;
   plain?: string | null;
   sx?: SxProps<Theme>;
+  /** `text` / `videos` split body vs players (for clamp above media). */
+  include?: FeedHtmlInclude;
 };
 
 type Part = { kind: "html"; html: string } | { kind: "video"; url: string };
@@ -154,19 +158,23 @@ function HtmlFragment({
   );
 }
 
-export function MobilizeFeedHtml({ html, plain, sx }: Props) {
+export function MobilizeFeedHtml({ html, plain, sx, include = "all" }: Props) {
   const rawHtml = typeof html === "string" ? trimTrailingFeedHtml(html.trim()) : "";
   const parts = useMemo(() => (rawHtml ? splitParts(rawHtml) : []), [rawHtml]);
 
   if (parts.length > 0) {
-    const hasRenderable = parts.some((p) => {
+    const filtered =
+      include === "all"
+        ? parts
+        : parts.filter((p) => (include === "text" ? p.kind === "html" : p.kind === "video"));
+    const hasRenderable = filtered.some((p) => {
       if (p.kind === "video") return resolveVideoForPlyr(p.url).kind !== "none";
       return Boolean(DOMPurify.sanitize(p.html, { USE_PROFILES: { html: true } }).trim());
     });
     if (hasRenderable) {
       return (
         <Stack spacing={1.25} sx={{ width: "100%" }}>
-          {parts.map((part, i) => {
+          {filtered.map((part, i) => {
             if (part.kind === "video") {
               const resolved = resolveVideoForPlyr(part.url);
               if (resolved.kind === "none") {
@@ -196,6 +204,7 @@ export function MobilizeFeedHtml({ html, plain, sx }: Props) {
         </Stack>
       );
     }
+    if (include !== "all") return null;
   }
 
   // Plain text fallback — also auto-link
