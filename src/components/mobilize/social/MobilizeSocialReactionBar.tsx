@@ -95,14 +95,16 @@ export function MobilizeSocialReactionBar({
 
       <IconButton
         size="small"
-        disabled={disabled || commentToggleDisabled}
+        disabled={disabled}
         onClick={commentToggleDisabled ? undefined : onToggleComments}
         aria-label="Comments"
         aria-expanded={commentsOpen}
+        aria-disabled={commentToggleDisabled || undefined}
         tabIndex={commentToggleDisabled ? -1 : undefined}
         sx={{
           color: commentsOpen ? accent : muted,
           ml: 0.5,
+          opacity: disabled ? undefined : 1,
           ...(commentToggleDisabled
             ? { cursor: "default", pointerEvents: "none" }
             : {}),
