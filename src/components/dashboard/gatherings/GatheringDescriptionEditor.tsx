@@ -6,6 +6,7 @@ import {
   shortcodesToVideoBlocks,
   videoBlocksToShortcodes,
 } from "@/lib/media/video-embed-blocks";
+import { extractPastedUrl } from "@/lib/mobilize/social/link-preview";
 import { Box, InputLabel, Typography } from "@mui/material";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
@@ -75,6 +76,8 @@ type Props = {
   imageUploadEndpoint?: string;
   /** Dark chrome + white text in the editing surface (course editor). */
   darkSurface?: boolean;
+  /** When the user pastes a bare https URL (social composer). */
+  onPasteUrl?: (url: string) => void;
 };
 
 export function GatheringDescriptionEditor({
@@ -93,6 +96,7 @@ export function GatheringDescriptionEditor({
   onVideoBlockClick,
   imageUploadEndpoint,
   darkSurface = false,
+  onPasteUrl,
 }: Props) {
   const isSocial = variant === "social";
   const socialDark = socialSurface === "dark";
@@ -247,6 +251,14 @@ export function GatheringDescriptionEditor({
           },
         });
       }
+      if (onPasteUrl) {
+        ed.on("PastePostProcess", (...args: unknown[]) => {
+          const e = args[0] as { node?: HTMLElement } | undefined;
+          const html = e?.node?.innerHTML ?? "";
+          const url = extractPastedUrl(html);
+          if (url) onPasteUrl(url);
+        });
+      }
       if (imageUploadEndpoint) {
         ed.on("init", () => scheduleImportExternalImages(ed));
         ed.on("PastePostProcess", () => scheduleImportExternalImages(ed));
@@ -295,6 +307,12 @@ export function GatheringDescriptionEditor({
         setup: registerEditorExtras,
         ...EMOJI_CONFIG,
         ...videoSchema,
+        ...(onPasteUrl
+          ? {
+              extended_valid_elements:
+                "aside[class|data-link-url|data-mce-block|contenteditable],a[class|href|target|rel],img[class|src|alt|loading],strong,span",
+            }
+          : {}),
         ...socialChrome,
       };
     }
@@ -372,6 +390,7 @@ export function GatheringDescriptionEditor({
     isSocial,
     socialDark,
     onEditorInit,
+    onPasteUrl,
   ]);
 
   const defaultHelper =
