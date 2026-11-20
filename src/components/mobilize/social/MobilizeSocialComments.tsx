@@ -856,13 +856,9 @@ export function MobilizeSocialComments({
     </Box>
   );
 
-  if (isDark) {
-    return (
-      <ThemeProvider theme={mobilizePanelTheme}>
-        <Box sx={{ color: "#0d0d0d" }}>{body}</Box>
-      </ThemeProvider>
-    );
-  }
-
-  return body;
+  return (
+    <ThemeProvider theme={mobilizePanelTheme}>
+      <Box sx={{ color: isDark ? "#0d0d0d" : "#0d0d0d" }}>{body}</Box>
+    </ThemeProvider>
+  );
 }
