@@ -9,30 +9,47 @@ import { type ReactNode } from "react";
 
 /** Collapsed line count for text-only feed posts. */
 const FEED_TEXT_CLAMP_LINES = 4;
-/** Collapsed line count when the post has images. */
-const FEED_IMAGE_TEXT_CLAMP_LINES = 1;
+/** Collapsed line count when the post has images or video (max 3). */
+const FEED_MEDIA_TEXT_CLAMP_LINES = 3;
 
 type Props = {
   text: ReactNode;
   media?: ReactNode;
   surface?: "light" | "dark";
   plain?: string;
-  hasImages?: boolean;
+  /** Post has attached image grid and/or embedded video below the text. */
+  hasMedia?: boolean;
 };
 
+const toggleBtnSx = (surface: "light" | "dark") =>
+  ({
+    px: 0,
+    minWidth: 0,
+    textTransform: "none",
+    fontWeight: 700,
+    fontSize: "0.875rem",
+    color: surface === "dark" ? "#b0b3b8" : "#525252",
+    textDecoration: "underline",
+    verticalAlign: "baseline",
+    "&:hover": {
+      bgcolor: "transparent",
+      textDecoration: "underline",
+      color: surface === "dark" ? "#d0d2d6" : "#3a3a3a",
+    },
+  }) as const;
+
 /**
- * Collapsible post body (4 lines text-only, 1 line when images).
- * Uses line-clamp measurement — avoids tall posts showing extra lines from a loose max-height.
+ * Collapsible post body (4 lines text-only, up to 3 when media is present).
  */
 export function MobilizeCollapsiblePostBody({
   text,
   media,
   surface = "light",
   plain,
-  hasImages = false,
+  hasMedia = false,
 }: Props) {
-  const lineCount = hasImages ? FEED_IMAGE_TEXT_CLAMP_LINES : FEED_TEXT_CLAMP_LINES;
-  const accordion = useClampAccordion(lineCount);
+  const lineCount = hasMedia ? FEED_MEDIA_TEXT_CLAMP_LINES : FEED_TEXT_CLAMP_LINES;
+  const accordion = useClampAccordion(lineCount, plain);
   const noText = !(plain ?? "").trim();
 
   const clampSx = {
@@ -41,51 +58,75 @@ export function MobilizeCollapsiblePostBody({
     WebkitBoxOrient: "vertical",
   } as const;
 
-  const moreLabel = hasImages ? "More" : "Read more";
-  const lessLabel = hasImages ? "Less" : "Read less";
+  const moreLabel = hasMedia ? "More" : "Read more";
+  const lessLabel = hasMedia ? "Less" : "Read less";
+  const fadeRgb = surface === "dark" ? "13, 17, 23" : "255, 255, 255";
 
   if (noText) {
     return media ? <Box sx={{ mt: 0 }}>{media}</Box> : null;
   }
 
-  return (
-    <Box>
+  const inlineMore =
+    hasMedia && accordion.needsCollapse && !accordion.expanded ? (
       <Box
-        ref={accordion.ref}
-        onTransitionEnd={accordion.onTransitionEnd}
+        component="span"
         sx={{
-          position: "relative",
-          overflow: "hidden",
+          position: "absolute",
+          right: 0,
+          bottom: 0,
+          display: "inline-flex",
+          alignItems: "baseline",
+          gap: 0.15,
+          pl: 2.5,
           lineHeight: 1.45,
           fontSize: "0.9375rem",
-          maxHeight: accordion.maxHeight ?? "none",
-          "& .mobilize-feed-html": { lineHeight: 1.45 },
-          "& .mobilize-feed-html p:first-of-type": { marginTop: 0, paddingTop: "0.18em" },
-          transition:
-            accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
-          ...(accordion.showClamp ? clampSx : {}),
+          background: `linear-gradient(to right, rgba(${fadeRgb}, 0) 0%, rgba(${fadeRgb}, 0.92) 38%, rgba(${fadeRgb}, 1) 55%)`,
+          pointerEvents: "none",
+          "& button": { pointerEvents: "auto" },
         }}
       >
-        {text}
+        <Box component="span" sx={{ color: surface === "dark" ? "#8b98a5" : "text.secondary" }}>…</Box>
+        <Button
+          component="span"
+          size="small"
+          onClick={accordion.toggle}
+          sx={{ ...toggleBtnSx(surface), p: 0, m: 0, lineHeight: "inherit", fontSize: "inherit" }}
+        >
+          {moreLabel}
+        </Button>
       </Box>
-      {accordion.needsCollapse ? (
+    ) : null;
+
+  return (
+    <Box>
+      <Box sx={{ position: "relative" }}>
+        <Box
+          ref={accordion.ref}
+          onTransitionEnd={accordion.onTransitionEnd}
+          sx={{
+            overflow: "hidden",
+            lineHeight: 1.45,
+            fontSize: "0.9375rem",
+            maxHeight: accordion.maxHeight ?? "none",
+            "& .mobilize-feed-html": { lineHeight: 1.45 },
+            "& .mobilize-feed-html p:first-of-type": { marginTop: 0, paddingTop: "0.18em" },
+            transition:
+              accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
+            ...(accordion.showClamp ? clampSx : {}),
+          }}
+        >
+          {text}
+        </Box>
+        {inlineMore}
+      </Box>
+      {accordion.needsCollapse && (!hasMedia || accordion.expanded) ? (
         <Button
           size="small"
           onClick={accordion.toggle}
           sx={{
-            mt: 0.5,
-            px: 0,
-            minWidth: 0,
-            textTransform: "none",
-            fontWeight: 700,
-            fontSize: "0.875rem",
-            color: surface === "dark" ? "#b0b3b8" : "#525252",
-            textDecoration: "underline",
-            "&:hover": {
-              bgcolor: "transparent",
-              textDecoration: "underline",
-              color: surface === "dark" ? "#d0d2d6" : "#3a3a3a",
-            },
+            ...toggleBtnSx(surface),
+            mt: hasMedia && accordion.expanded ? 0.35 : 0.5,
+            display: "inline",
           }}
         >
           {accordion.expanded ? lessLabel : moreLabel}
