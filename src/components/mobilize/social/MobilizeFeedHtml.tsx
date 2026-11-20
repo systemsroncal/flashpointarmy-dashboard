@@ -228,7 +228,9 @@ export function MobilizeFeedHtml({ html, plain, sx, include = "all" }: Props) {
 
   return (
     <Typography
+      component="div"
       variant="body2"
+      className="mobilize-feed-plain"
       sx={{ whiteSpace: "pre-wrap", color: "#1a1a1a", fontFamily: "inherit", ...sx }}
       dangerouslySetInnerHTML={{ __html: linked }}
     />

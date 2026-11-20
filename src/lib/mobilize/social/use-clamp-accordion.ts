@@ -49,22 +49,31 @@ function restoreBoxStyle(
   el.style.transition = prev.transition;
 }
 
-function measureLineClampHeights(el: HTMLElement, lineCount: number) {
-  const prev = captureBoxStyle(el);
-  el.style.transition = "none";
-  el.style.maxHeight = "none";
-  el.style.overflow = "visible";
-  el.style.display = "";
-  el.style.webkitLineClamp = "";
-  el.style.webkitBoxOrient = "";
-  const full = el.scrollHeight;
+function clampTarget(el: HTMLElement): HTMLElement {
+  return (
+    el.querySelector<HTMLElement>(".mobilize-feed-html") ??
+    el.querySelector<HTMLElement>(".mobilize-feed-plain") ??
+    el
+  );
+}
 
-  el.style.display = lineClampProbe.display;
-  el.style.webkitLineClamp = String(lineCount);
-  el.style.webkitBoxOrient = lineClampProbe.webkitBoxOrient;
-  el.style.overflow = lineClampProbe.overflow;
-  const clamped = el.getBoundingClientRect().height;
-  restoreBoxStyle(el, prev);
+function measureLineClampHeights(el: HTMLElement, lineCount: number) {
+  const target = clampTarget(el);
+  const prev = captureBoxStyle(target);
+  target.style.transition = "none";
+  target.style.maxHeight = "none";
+  target.style.overflow = "visible";
+  target.style.display = "";
+  target.style.webkitLineClamp = "";
+  target.style.webkitBoxOrient = "";
+  const full = target.scrollHeight;
+
+  target.style.display = lineClampProbe.display;
+  target.style.webkitLineClamp = String(lineCount);
+  target.style.webkitBoxOrient = lineClampProbe.webkitBoxOrient;
+  target.style.overflow = lineClampProbe.overflow;
+  const clamped = Math.ceil(target.getBoundingClientRect().height);
+  restoreBoxStyle(target, prev);
 
   return { full, clamped };
 }
