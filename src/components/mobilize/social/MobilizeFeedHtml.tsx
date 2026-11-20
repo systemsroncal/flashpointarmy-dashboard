@@ -132,7 +132,8 @@ function HtmlFragment({
   const processed = useMemo(() => processHtml(html), [html]);
   const safe = DOMPurify.sanitize(processed, {
     USE_PROFILES: { html: true },
-    ADD_ATTR: ["target", "rel"],
+    ADD_TAGS: ["aside"],
+    ADD_ATTR: ["target", "rel", "data-link-url", "data-mce-block", "contenteditable", "loading"],
   });
   if (!safe.trim()) return null;
   return (
@@ -151,6 +152,46 @@ function HtmlFragment({
         "& p:last-child": { mb: 0 },
         "& a": { color: "#1565c0", wordBreak: "break-word" },
         "& img": { maxWidth: "100%", height: "auto", borderRadius: 1, verticalAlign: "text-bottom" },
+        "& .mobilize-link-preview": { mt: 1, mb: 0.25 },
+        "& .mobilize-link-preview__card": {
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          textDecoration: "none",
+          color: "inherit",
+          border: "1px solid rgba(0,0,0,0.12)",
+          borderRadius: 1,
+          overflow: "hidden",
+          "&:hover .mobilize-link-preview__title": { textDecoration: "underline" },
+        },
+        "& .mobilize-link-preview__image": {
+          width: { xs: "100%", sm: 168 },
+          height: { xs: 140, sm: 112 },
+          objectFit: "cover",
+          flexShrink: 0,
+          display: "block",
+        },
+        "& .mobilize-link-preview__body": {
+          display: "flex",
+          flexDirection: "column",
+          gap: 0.35,
+          p: 1.1,
+          minWidth: 0,
+        },
+        "& .mobilize-link-preview__title": {
+          fontWeight: 700,
+          fontSize: "0.9rem",
+          lineHeight: 1.35,
+          color: "#0d0d0d",
+        },
+        "& .mobilize-link-preview__desc": {
+          fontSize: "0.8125rem",
+          lineHeight: 1.4,
+          color: "rgba(0,0,0,0.62)",
+        },
+        "& .mobilize-link-preview__host": {
+          fontSize: "0.75rem",
+          color: "rgba(0,0,0,0.5)",
+        },
         ...sx,
       }}
       dangerouslySetInnerHTML={{ __html: safe }}

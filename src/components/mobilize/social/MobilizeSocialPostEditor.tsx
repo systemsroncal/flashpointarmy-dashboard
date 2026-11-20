@@ -3,6 +3,12 @@
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import { VideoEmbedDialog } from "@/components/mobilize/social/VideoEmbedDialog";
+import { MobilizeLinkPreviewComposerCard } from "@/components/mobilize/social/MobilizeLinkPreviewComposerCard";
+import {
+  appendLinkPreviewHtml,
+  contentHasLinkPreview,
+  type LinkPreviewMeta,
+} from "@/lib/mobilize/social/link-preview";
 import {
   MOBILIZE_FEED_POST_MAX_CHARS,
   trimTrailingFeedHtml,
@@ -117,6 +123,10 @@ export function MobilizeSocialPostEditor({
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [videoDialogUrl, setVideoDialogUrl] = useState("");
   const videoBookmarkRef = useRef<unknown>(null);
+  const [linkPreview, setLinkPreview] = useState<LinkPreviewMeta | null>(null);
+  const [linkPreviewLoading, setLinkPreviewLoading] = useState(false);
+  const [linkPreviewError, setLinkPreviewError] = useState<string | null>(null);
+  const linkPreviewFetchRef = useRef(0);
   const visibilityLabel = "Post to public";
 
   useEffect(() => {
@@ -253,10 +263,53 @@ export function MobilizeSocialPostEditor({
     setVideoDialogOpen(false);
   }
 
+  const fetchLinkPreview = useCallback(async (url: string) => {
+    const token = ++linkPreviewFetchRef.current;
+    setLinkPreviewLoading(true);
+    setLinkPreviewError(null);
+    try {
+      const res = await fetch("/api/mobilize/link-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const json = (await res.json()) as { preview?: LinkPreviewMeta; error?: string };
+      if (token !== linkPreviewFetchRef.current) return;
+      if (!res.ok) throw new Error(json.error || "Could not load link preview.");
+      setLinkPreview(json.preview ?? null);
+    } catch (e) {
+      if (token !== linkPreviewFetchRef.current) return;
+      setLinkPreview(null);
+      setLinkPreviewError(e instanceof Error ? e.message : "Could not load link preview.");
+    } finally {
+      if (token === linkPreviewFetchRef.current) setLinkPreviewLoading(false);
+    }
+  }, []);
+
+  const handlePasteUrl = useCallback(
+    (url: string) => {
+      if (disabled || posting) return;
+      if (contentHasLinkPreview(value)) return;
+      void fetchLinkPreview(url);
+    },
+    [disabled, posting, value, fetchLinkPreview]
+  );
+
+  function clearLinkPreview() {
+    linkPreviewFetchRef.current += 1;
+    setLinkPreview(null);
+    setLinkPreviewError(null);
+    setLinkPreviewLoading(false);
+  }
+
   function handlePostClick() {
     if (!onPost) return;
-    const prepared = trimTrailingFeedHtml(value);
+    let prepared = trimTrailingFeedHtml(value);
+    if (linkPreview && !contentHasLinkPreview(prepared)) {
+      prepared = appendLinkPreviewHtml(prepared, linkPreview);
+    }
     if (prepared !== value) onChange(prepared);
+    clearLinkPreview();
     void onPost(prepared);
   }
 
@@ -385,6 +438,16 @@ export function MobilizeSocialPostEditor({
     </Typography>
   );
 
+  const linkPreviewCard = (
+    <MobilizeLinkPreviewComposerCard
+      preview={linkPreview}
+      loading={linkPreviewLoading}
+      error={linkPreviewError}
+      surface={surface}
+      onDismiss={linkPreview || linkPreviewError ? clearLinkPreview : undefined}
+    />
+  );
+
   const editorBlock = (
     <Box
       sx={
@@ -409,6 +472,7 @@ export function MobilizeSocialPostEditor({
         socialSurface={surface}
         videoBlockPreview
         onVideoBlockClick={handleVideoBlockClick}
+        onPasteUrl={handlePasteUrl}
         onEditorInit={(ed) => {
           editorRef.current = ed;
         }}
@@ -593,6 +657,7 @@ export function MobilizeSocialPostEditor({
         </Box>
 
         {editorBlock}
+        {linkPreviewCard}
         {imageThumbs}
         {children}
         {footer}
@@ -624,6 +689,7 @@ export function MobilizeSocialPostEditor({
             {heading}
           </Box>
           {editorBlock}
+          {linkPreviewCard}
           {imageThumbs}
           {children}
           {footer}

@@ -12,7 +12,9 @@ export function validateMobilizeFeedPostLength(content: string): string | null {
 
 const FEED_HTML_OPTIONS = {
   USE_PROFILES: { html: true },
-} as const;
+  ADD_TAGS: ["aside"],
+  ADD_ATTR: ["data-link-url", "data-mce-block", "contenteditable", "loading"],
+};
 
 /** Remove leading empty blocks/br so clamped previews don't show half a blank line. */
 export function trimLeadingFeedHtml(html: string): string {
