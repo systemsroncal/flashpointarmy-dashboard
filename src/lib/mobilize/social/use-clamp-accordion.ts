@@ -51,17 +51,17 @@ export function useClampAccordion(lineCount: number) {
     };
 
     el.style.transition = "none";
-    el.style.overflow = "visible";
+    el.style.overflow = "hidden";
     el.style.maxHeight = "none";
-  const full = el.scrollHeight;
-
-    const cs = typeof window !== "undefined" ? window.getComputedStyle(el) : null;
-    const fontSize = cs ? parseFloat(cs.fontSize) || 14 : 14;
-    let lineHeightPx = cs ? parseFloat(cs.lineHeight) : NaN;
-    if (!Number.isFinite(lineHeightPx) || lineHeightPx <= 0) {
-      lineHeightPx = fontSize * 1.5;
-    }
-    const clamped = Math.ceil(lineHeightPx * lineCount);
+    el.style.display = "-webkit-box";
+    el.style.webkitLineClamp = String(lineCount);
+    el.style.webkitBoxOrient = "vertical";
+    const clamped = el.scrollHeight;
+    el.style.display = "";
+    el.style.webkitLineClamp = "";
+    el.style.webkitBoxOrient = "";
+    el.style.overflow = "visible";
+    const full = el.scrollHeight;
 
     el.style.display = prev.display;
     el.style.webkitLineClamp = prev.lineClamp;
@@ -128,8 +128,7 @@ export function useClampAccordion(lineCount: number) {
     collapsed,
     /** `maxHeight` value to apply (undefined when no collapse is needed). */
     maxHeight: needsCollapse ? (collapsed ? clampedH : fullH) : undefined,
-    /** No-op for max-height-only collapse (rich HTML with block children). */
-    showClamp: false,
+    showClamp: collapsed && animating !== "collapsing",
     toggle,
     onTransitionEnd,
   };

@@ -94,7 +94,7 @@ export function MobilizeSocialPostCard({
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(true);
   const commentsVisible = isDesktop || commentsOpen;
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkBusy, setBookmarkBusy] = useState(false);
@@ -274,7 +274,7 @@ export function MobilizeSocialPostCard({
                   onToggleLike={() => void setReaction(reactions.viewer_reaction === "like" ? null : "like")}
                   onToggleLove={() => void setReaction(reactions.viewer_reaction === "love" ? null : "love")}
                   onToggleComments={() => setCommentsOpen((v) => !v)}
-                  commentsOpen={commentsVisible}
+                  commentsOpen={commentsOpen}
                   commentToggleDisabled={isDesktop}
                   tone={surface}
                   embedded

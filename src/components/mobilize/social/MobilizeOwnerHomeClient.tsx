@@ -254,14 +254,6 @@ export function MobilizeOwnerHomeClient() {
               p: { xs: 0, sm: 1.5, md: 2 },
             }}
           >
-            <Typography
-              variant="h5"
-              fontWeight={800}
-              sx={{ mb: 1.5, color: "#0d0d0d", px: { xs: 1.5, sm: 0 }, pt: { xs: 1.5, sm: 0 } }}
-            >
-              Discover New Groups
-            </Typography>
-
             {error ? (
               <Typography color="error" sx={{ mb: 1, px: { xs: 1.5, sm: 0 } }}>
                 {error}

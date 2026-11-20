@@ -139,13 +139,14 @@ function HtmlFragment({
         color: "#1a1a1a",
         fontFamily: "inherit",
         "& *": { fontFamily: "inherit !important" },
-        "& h1, & h2, & h3, & h4, & h5, & h6": { mt: 0, pt: 0, mb: 0.75, lineHeight: 1.3 },
+        lineHeight: 1.45,
+        "& h1, & h2, & h3, & h4, & h5, & h6": { mt: 0, pt: 0, mb: 0.75, lineHeight: 1.35 },
         "& h1:first-child, & h2:first-child, & h3:first-child, & h4:first-child, & h5:first-child, & h6:first-child": { mt: 0, pt: 0 },
-        "& p": { mt: 0, pt: 0, mb: 1 },
-        "& p:first-of-type": { mt: 0, pt: 0 },
+        "& p": { mt: 0, mb: 0.65, lineHeight: 1.45 },
+        "& p:first-of-type": { mt: 0, pt: "0.12em" },
         "& p:last-child": { mb: 0 },
         "& a": { color: "#1565c0", wordBreak: "break-word" },
-        "& img": { maxWidth: "100%", height: "auto", borderRadius: 1 },
+        "& img": { maxWidth: "100%", height: "auto", borderRadius: 1, verticalAlign: "text-bottom" },
         ...sx,
       }}
       dangerouslySetInnerHTML={{ __html: safe }}
