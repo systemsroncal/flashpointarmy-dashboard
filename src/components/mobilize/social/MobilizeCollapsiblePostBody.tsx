@@ -60,7 +60,7 @@ export function MobilizeCollapsiblePostBody({
           fontSize: "0.9375rem",
           maxHeight: accordion.maxHeight ?? "none",
           "& .mobilize-feed-html": { lineHeight: 1.45 },
-          "& .mobilize-feed-html p:first-of-type": { marginTop: 0, paddingTop: "0.12em" },
+          "& .mobilize-feed-html p:first-of-type": { marginTop: 0, paddingTop: "0.18em" },
           transition:
             accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
           ...(accordion.showClamp ? clampSx : {}),
