@@ -83,6 +83,8 @@ import { MobilizeVideoCamIcon } from "@/components/mobilize/MobilizeVideoCamIcon
 import { WelcomeVideoPopup } from "@/components/mobilize/WelcomeVideoPopup";
 import { MissionUpdatesUnreadProvider } from "./MissionUpdatesUnreadProvider";
 import { HeaderSuperAdminProfileAvatar } from "./HeaderSuperAdminProfileAvatar";
+import { DashboardGlobalSearch } from "./DashboardGlobalSearch";
+import { MobileDrawerAccountSection } from "./MobileDrawerAccountSection";
 import { GlobalContainerShareItemListener } from "./GlobalContainerShareItemListener";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
@@ -833,6 +835,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     user.display_name?.trim() ||
     [user.first_name, user.last_name].filter(Boolean).join(" ").trim() ||
     user.email.split("@")[0];
+  const drawerDisplayName =
+    [user.first_name, user.last_name].filter(Boolean).join(" ").trim() ||
+    user.display_name?.trim() ||
+    user.email.split("@")[0];
 
   const showSidebarJourney = shouldShowSidebarYourJourney(user.role_names, user.member_onboarding);
   const showTrainingSubmenu = showSidebarJourney && Boolean(user.member_onboarding);
@@ -909,6 +915,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </Box>
       </Box>
       <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
+      {!desktop ? (
+        <>
+          <MobileDrawerAccountSection
+            shellAvatarSrc={shellAvatarSrc}
+            displayName={drawerDisplayName}
+            onOpenProfile={() => setProfileOpen(true)}
+            onSignOut={() => void handleSignOut()}
+            onNavigate={closeMobileDrawer}
+          />
+          <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
+        </>
+      ) : null}
       <List
         sx={{
           flex: 1,
@@ -1170,7 +1188,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </Button>
         </Box>
       ) : null}
-      <Box sx={{ flexShrink: 0 }}>
+      <Box sx={{ flexShrink: 0, display: { xs: "none", md: "block" } }}>
         <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
         <Box
           data-tour="sidebar-profile"
@@ -1332,6 +1350,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Box>
           ) : null}
           <Box sx={{ flexGrow: 1 }} />
+          {canAccessMobilize ? <DashboardGlobalSearch /> : null}
           <RoleWelcomeVideoPrompt />
           <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
             <MobilizeVideoCamIcon />
@@ -1344,10 +1363,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {/* Profile/social alerts (follows, likes, comments) — members and admins alike. */}
             <UserNotificationsMenu />
           </Box>
-          <HeaderSuperAdminProfileAvatar
-            onOpenProfile={() => setProfileOpen(true)}
-            onSignOut={() => void handleSignOut()}
-          />
+          <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
+            <HeaderSuperAdminProfileAvatar
+              onOpenProfile={() => setProfileOpen(true)}
+              onSignOut={() => void handleSignOut()}
+            />
+          </Box>
         </Toolbar>
       </AppBar>
 
