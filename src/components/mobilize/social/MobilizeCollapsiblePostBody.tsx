@@ -9,7 +9,7 @@ import { type ReactNode } from "react";
 
 /** Collapsed line count for text-only feed posts. */
 const FEED_TEXT_CLAMP_LINES = 4;
-/** Collapsed line count when the post has images or video (max 3). */
+/** Collapsed lines when the post has images or video (min ~2 visible, max 3). */
 const FEED_MEDIA_TEXT_CLAMP_LINES = 3;
 
 type Props = {
@@ -51,12 +51,6 @@ export function MobilizeCollapsiblePostBody({
   const lineCount = hasMedia ? FEED_MEDIA_TEXT_CLAMP_LINES : FEED_TEXT_CLAMP_LINES;
   const accordion = useClampAccordion(lineCount, plain);
   const noText = !(plain ?? "").trim();
-
-  const clampSx = {
-    display: "-webkit-box",
-    WebkitLineClamp: lineCount,
-    WebkitBoxOrient: "vertical",
-  } as const;
 
   const moreLabel = hasMedia ? "More" : "Read more";
   const lessLabel = hasMedia ? "Less" : "Read less";
@@ -112,7 +106,6 @@ export function MobilizeCollapsiblePostBody({
             "& .mobilize-feed-html p:first-of-type": { marginTop: 0, paddingTop: "0.18em" },
             transition:
               accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
-            ...(accordion.showClamp ? clampSx : {}),
           }}
         >
           {text}
