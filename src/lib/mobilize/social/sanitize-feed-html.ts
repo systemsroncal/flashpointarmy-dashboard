@@ -14,6 +14,25 @@ const FEED_HTML_OPTIONS = {
   USE_PROFILES: { html: true },
 } as const;
 
+/** Remove leading empty blocks/br so clamped previews don't show half a blank line. */
+export function trimLeadingFeedHtml(html: string): string {
+  let s = typeof html === "string" ? html : "";
+  if (!s) return "";
+
+  const leadingEmptyBlock =
+    /^(?:\s*<(?:p|div)(?:\s[^>]*)?>\s*(?:<br\s*\/?>|&nbsp;|\u00a0|\s|<span[^>]*>\s*(?:&nbsp;|\u00a0|\s)*<\/span>)*\s*<\/(?:p|div)>\s*)+/i;
+  const leadingBr = /^(?:<br\s*\/?>\s*)+/i;
+
+  let prev = "";
+  while (prev !== s) {
+    prev = s;
+    s = s.replace(leadingEmptyBlock, "");
+    s = s.replace(leadingBr, "");
+    s = s.replace(/^\s+/u, "");
+  }
+  return s;
+}
+
 /** Remove trailing empty blocks/br so posts don't show blank space at the bottom. */
 export function trimTrailingFeedHtml(html: string): string {
   let s = typeof html === "string" ? html : "";

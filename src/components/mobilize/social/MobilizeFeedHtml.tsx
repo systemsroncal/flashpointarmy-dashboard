@@ -3,7 +3,7 @@
 import { findAllVideoMarkers } from "@/components/dashboard/notifications/announcement-video-markers";
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { resolveVideoForPlyr } from "@/lib/media/resolve-plyr-video";
-import { trimTrailingFeedHtml } from "@/lib/mobilize/social/sanitize-feed-html";
+import { trimLeadingFeedHtml, trimTrailingFeedHtml } from "@/lib/mobilize/social/sanitize-feed-html";
 import DOMPurify from "isomorphic-dompurify";
 import { Box, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -159,7 +159,8 @@ function HtmlFragment({
 }
 
 export function MobilizeFeedHtml({ html, plain, sx, include = "all" }: Props) {
-  const rawHtml = typeof html === "string" ? trimTrailingFeedHtml(html.trim()) : "";
+  const rawHtml =
+    typeof html === "string" ? trimTrailingFeedHtml(trimLeadingFeedHtml(html.trim())) : "";
   const parts = useMemo(() => (rawHtml ? splitParts(rawHtml) : []), [rawHtml]);
 
   if (parts.length > 0) {
@@ -172,6 +173,11 @@ export function MobilizeFeedHtml({ html, plain, sx, include = "all" }: Props) {
       return Boolean(DOMPurify.sanitize(p.html, { USE_PROFILES: { html: true } }).trim());
     });
     if (hasRenderable) {
+      if (include === "text" && filtered.every((p) => p.kind === "html")) {
+        const merged = filtered.map((p) => (p.kind === "html" ? p.html : "")).join("");
+        return <HtmlFragment key="html-merged" html={merged} sx={sx} />;
+      }
+
       return (
         <Stack spacing={1.25} sx={{ width: "100%" }}>
           {filtered.map((part, i) => {
