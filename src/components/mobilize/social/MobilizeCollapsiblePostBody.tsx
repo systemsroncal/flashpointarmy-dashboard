@@ -1,15 +1,12 @@
 "use client";
 
-import {
-  CLAMP_ACCORDION_TRANSITION,
-  useClampAccordion,
-} from "@/lib/mobilize/social/use-clamp-accordion";
+import { useClampAccordion } from "@/lib/mobilize/social/use-clamp-accordion";
 import { Box, Button } from "@mui/material";
 import { type ReactNode } from "react";
 
 /** Collapsed line count for text-only feed posts. */
 const FEED_TEXT_CLAMP_LINES = 4;
-/** Collapsed lines when the post has images or video (min ~2 visible, max 3). */
+/** Collapsed lines when the post has images or video (max 3). */
 const FEED_MEDIA_TEXT_CLAMP_LINES = 3;
 
 type Props = {
@@ -20,6 +17,13 @@ type Props = {
   /** Post has attached image grid and/or embedded video below the text. */
   hasMedia?: boolean;
 };
+
+const clampSx = (lineCount: number) =>
+  ({
+    display: "-webkit-box",
+    WebkitLineClamp: lineCount,
+    WebkitBoxOrient: "vertical",
+  }) as const;
 
 const toggleBtnSx = (surface: "light" | "dark") =>
   ({
@@ -49,7 +53,7 @@ export function MobilizeCollapsiblePostBody({
   hasMedia = false,
 }: Props) {
   const lineCount = hasMedia ? FEED_MEDIA_TEXT_CLAMP_LINES : FEED_TEXT_CLAMP_LINES;
-  const accordion = useClampAccordion(lineCount, plain);
+  const accordion = useClampAccordion(lineCount, plain, { mode: "line-clamp" });
   const noText = !(plain ?? "").trim();
 
   const moreLabel = hasMedia ? "More" : "Read more";
@@ -80,14 +84,28 @@ export function MobilizeCollapsiblePostBody({
         }}
       >
         <Box component="span" sx={{ color: surface === "dark" ? "#8b98a5" : "text.secondary" }}>…</Box>
-        <Button
-          component="span"
-          size="small"
-          onClick={accordion.toggle}
-          sx={{ ...toggleBtnSx(surface), p: 0, m: 0, lineHeight: "inherit", fontSize: "inherit" }}
+        <Box
+          component="button"
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            accordion.toggle();
+          }}
+          sx={{
+            ...toggleBtnSx(surface),
+            p: 0,
+            m: 0,
+            border: 0,
+            bgcolor: "transparent",
+            cursor: "pointer",
+            lineHeight: "inherit",
+            fontSize: "inherit",
+            fontFamily: "inherit",
+          }}
         >
           {moreLabel}
-        </Button>
+        </Box>
       </Box>
     ) : null;
 
@@ -101,11 +119,10 @@ export function MobilizeCollapsiblePostBody({
             overflow: "hidden",
             lineHeight: 1.45,
             fontSize: "0.9375rem",
-            maxHeight: accordion.maxHeight ?? "none",
             "& .mobilize-feed-html": { lineHeight: 1.45 },
             "& .mobilize-feed-html p:first-of-type": { marginTop: 0, paddingTop: "0.18em" },
-            transition:
-              accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
+            transition: "none",
+            ...(accordion.showClamp ? clampSx(lineCount) : {}),
           }}
         >
           {text}
@@ -114,6 +131,7 @@ export function MobilizeCollapsiblePostBody({
       </Box>
       {accordion.needsCollapse && (!hasMedia || accordion.expanded) ? (
         <Button
+          type="button"
           size="small"
           onClick={accordion.toggle}
           sx={{
