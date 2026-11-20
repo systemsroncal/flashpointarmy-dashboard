@@ -71,7 +71,7 @@ export function MobilizeCollapsiblePostBody({
         sx={{
           position: "absolute",
           right: 0,
-          bottom: 0,
+          bottom: "0.05em",
           display: "inline-flex",
           alignItems: "baseline",
           gap: 0.15,
@@ -111,18 +111,47 @@ export function MobilizeCollapsiblePostBody({
 
   return (
     <Box>
-      <Box sx={{ position: "relative" }}>
+      <Box
+        sx={{
+          position: "relative",
+          ...(accordion.showClamp && hasMedia ? { display: "inline-block", width: "100%", maxWidth: "100%" } : {}),
+        }}
+      >
         <Box
           ref={accordion.ref}
           onTransitionEnd={accordion.onTransitionEnd}
           sx={{
-            overflow: "hidden",
             lineHeight: 1.45,
             fontSize: "0.9375rem",
-            "& .mobilize-feed-html": { lineHeight: 1.45 },
-            "& .mobilize-feed-html p:first-of-type": { marginTop: 0, paddingTop: "0.18em" },
-            transition: "none",
-            ...(accordion.showClamp ? clampSx(lineCount) : {}),
+            "& .mobilize-feed-html, & .mobilize-feed-plain": { lineHeight: 1.45 },
+            "& .mobilize-feed-html p:first-of-type, & .mobilize-feed-plain p:first-of-type": {
+              marginTop: 0,
+              paddingTop: "0.18em",
+            },
+            ...(accordion.showClamp
+              ? {
+                  "& .mobilize-feed-html, & .mobilize-feed-plain": {
+                    ...clampSx(lineCount),
+                    overflow: "hidden",
+                    wordBreak: "break-word",
+                    ...(hasMedia ? { pr: "4.75rem" } : {}),
+                  },
+                  "& .mobilize-feed-html p, & .mobilize-feed-plain p": {
+                    display: "inline",
+                    margin: 0,
+                    marginBottom: 0,
+                    paddingTop: 0,
+                  },
+                  "& .mobilize-feed-html p:first-of-type, & .mobilize-feed-plain p:first-of-type": {
+                    paddingTop: "0.18em",
+                  },
+                  "& .mobilize-feed-html p:not(:last-child)::after, & .mobilize-feed-plain p:not(:last-child)::after":
+                    {
+                      content: '"\\A"',
+                      whiteSpace: "pre",
+                    },
+                }
+              : {}),
           }}
         >
           {text}
