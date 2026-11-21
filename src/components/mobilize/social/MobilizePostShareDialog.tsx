@@ -101,16 +101,17 @@ export function MobilizePostShareDialog({ open, onClose, post }: Props) {
         sx: {
           width: "100%",
           maxWidth: 720,
-          bgcolor: "#141418",
-          border: "1px solid rgba(255,215,0,0.18)",
+          bgcolor: "#ffffff",
+          border: "1px solid rgba(0,0,0,0.1)",
           borderRadius: 2,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
         },
       }}
     >
-      <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>Share this post</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 800, pb: 1, color: "#1a1a1a" }}>Share this post</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.7 }}>
-          Share <strong style={{ color: "inherit" }}>{authorName}&apos;s</strong> post. The link opens the
+        <Typography variant="body2" sx={{ mb: 2.5, lineHeight: 1.7, color: "#65676b" }}>
+          Share <strong style={{ color: "#1a1a1a" }}>{authorName}&apos;s</strong> post. The link opens the
           feed with this post in a popup (sign-in required).
         </Typography>
 
@@ -138,12 +139,13 @@ export function MobilizePostShareDialog({ open, onClose, post }: Props) {
                   textTransform: "none",
                   fontWeight: 600,
                   fontSize: "0.78rem",
-                  color: color ?? "inherit",
-                  borderColor: "rgba(255,255,255,0.14)",
+                  color: color ?? "#1a1a1a",
+                  borderColor: "rgba(0,0,0,0.12)",
+                  bgcolor: "#fafafa",
                   py: 1,
                   "&:hover": {
                     borderColor: color ?? "primary.main",
-                    bgcolor: hoverBg ?? "rgba(255,255,255,0.06)",
+                    bgcolor: hoverBg ?? "rgba(0,0,0,0.04)",
                   },
                 }}
               >
@@ -176,7 +178,7 @@ export function MobilizePostShareDialog({ open, onClose, post }: Props) {
             Link copied — ready to share.
           </Typography>
         ) : (
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, lineHeight: 1.5 }}>
+          <Typography variant="caption" sx={{ display: "block", mt: 1, lineHeight: 1.5, color: "#65676b" }}>
             Copy the link or share it on social networks.
           </Typography>
         )}

@@ -151,7 +151,7 @@ export function MobilizeSocialPostHeader({
         <Avatar
           src={author.avatar_url ? publicAssetSrc(author.avatar_url) : undefined}
           alt=""
-          sx={{ width: avatarSize, height: avatarSize, bgcolor: "#263238" }}
+          sx={{ width: avatarSize, height: avatarSize, bgcolor: "#263238", color: "#fff", fontWeight: 700 }}
         >
           {author.display_name.charAt(0)}
         </Avatar>

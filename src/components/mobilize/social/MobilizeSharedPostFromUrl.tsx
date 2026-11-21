@@ -36,19 +36,27 @@ export function MobilizeSharedPostFromUrl({
   const [post, setPost] = useState<UnifiedFeedPost | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const close = useCallback(() => {
+  const clearShareQuery = useCallback(() => {
     const q = new URLSearchParams(searchParams.toString());
     q.delete("share_post");
     const next = q.toString() ? `${pathname}?${q}` : pathname;
     router.replace(next, { scroll: false });
-    setPost(null);
-    setError(null);
   }, [pathname, router, searchParams]);
+
+  const close = useCallback(() => {
+    setDialogOpen(false);
+    clearShareQuery();
+  }, [clearShareQuery]);
+
+  useEffect(() => {
+    if (sharePostId) setDialogOpen(true);
+    else setDialogOpen(false);
+  }, [sharePostId]);
 
   useEffect(() => {
     if (!sharePostId) {
-      setPost(null);
       return;
     }
 
@@ -85,7 +93,18 @@ export function MobilizeSharedPostFromUrl({
     };
   }, [sharePostId, groupId, profileUserId]);
 
-  if (!sharePostId) return null;
+  if (!sharePostId && !dialogOpen) return null;
+
+  const dialogScrollSx = {
+    scrollbarWidth: "thin" as const,
+    scrollbarColor: "rgba(0,0,0,0.28) rgba(0,0,0,0.04)",
+    "&::-webkit-scrollbar": { width: 6 },
+    "&::-webkit-scrollbar-thumb": {
+      backgroundColor: "rgba(0,0,0,0.22)",
+      borderRadius: 8,
+    },
+    "&::-webkit-scrollbar-track": { backgroundColor: "rgba(0,0,0,0.04)", borderRadius: 8 },
+  };
 
   const canComment = post
     ? canCommentOnUnifiedPost(post, {
@@ -97,20 +116,35 @@ export function MobilizeSharedPostFromUrl({
 
   return (
     <Dialog
-      open
+      open={dialogOpen}
       onClose={close}
       maxWidth="sm"
       fullWidth
-      scroll="body"
+      scroll="paper"
+      TransitionProps={{
+        onExited: () => {
+          setPost(null);
+          setError(null);
+          setLoading(false);
+        },
+      }}
       PaperProps={{
         sx: {
           borderRadius: 2,
           bgcolor: "#f0f2f5",
           maxHeight: "min(92vh, 900px)",
+          display: "flex",
+          flexDirection: "column",
         },
       }}
     >
-      <DialogContent sx={{ p: { xs: 1.25, sm: 2 } }}>
+      <DialogContent
+        sx={{
+          p: { xs: 1.25, sm: 2 },
+          overflowY: "auto",
+          ...dialogScrollSx,
+        }}
+      >
         {loading ? (
           <CircularProgress size={28} sx={{ display: "block", mx: "auto", my: 3 }} />
         ) : null}
