@@ -191,6 +191,14 @@ function formatMemberSince(iso: string): string {
   });
 }
 
+function memberListRoleLabel(
+  member: { user_id: string; member_role: string },
+  groupCreatedBy: string | null | undefined
+): string {
+  if (groupCreatedBy && member.user_id === groupCreatedBy) return "Member";
+  return capitalizeRole(member.member_role);
+}
+
 function capitalizeRole(role: string): string {
   return role === "leader" ? "Leader" : "Member";
 }
@@ -2016,11 +2024,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
                           <Typography variant="body2" component="span">
-                            {capitalizeRole(m.member_role)}
+                            {memberListRoleLabel(m, group?.created_by)}
                           </Typography>
-                          {group.created_by === m.user_id ? (
-                            <Chip size="small" label="Owner" variant="outlined" />
-                          ) : null}
                         </Stack>
                       </TableCell>
                       <TableCell>
@@ -2614,7 +2619,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 }))
               }
             />
-            {group?.parent_group_id && isSuperAdmin ? (
+            {group?.parent_group_id && (isSuperAdmin || me.role_names.includes("admin")) ? (
               <MobilizeGroupListedSwitch
                 listed={editForm.is_featured}
                 disabled={editSaving}

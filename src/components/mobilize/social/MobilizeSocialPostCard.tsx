@@ -19,7 +19,10 @@ import {
 import { mobilizeGroupFeedPostCardSx } from "@/lib/mobilize/mobilize-ui-surface";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
+import IosShareOutlinedIcon from "@mui/icons-material/IosShareOutlined";
 import PushPinIcon from "@mui/icons-material/PushPin";
+import { MobilizePostShareDialog } from "@/components/mobilize/social/MobilizePostShareDialog";
+import { buildMobilizePostSharePath } from "@/lib/mobilize/social/post-share-url";
 import {
   Box,
   Button,
@@ -98,6 +101,8 @@ export function MobilizeSocialPostCard({
   const commentsVisible = isDesktop || commentsOpen;
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkBusy, setBookmarkBusy] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const canSharePost = Boolean(buildMobilizePostSharePath(post));
 
   const bookmarkRef = bookmarkRefFromPost(post);
   const hasEmbeddedVideo = findAllVideoMarkers(post.content_html ?? "").length > 0;
@@ -293,6 +298,18 @@ export function MobilizeSocialPostCard({
               </Box>
               <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flexShrink: 0, ml: "auto" }}>
                 {manageActions}
+                {canSharePost ? (
+                  <Tooltip title="Share post">
+                    <IconButton
+                      size="small"
+                      onClick={() => setShareOpen(true)}
+                      aria-label="Share post"
+                      sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
+                    >
+                      <IosShareOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
                 {bookmarkRef ? (
                   <Tooltip title={bookmarked ? "Unsave" : "Save"}>
                     <IconButton
@@ -327,6 +344,9 @@ export function MobilizeSocialPostCard({
           </>
         ) : null}
       </CardContent>
+      {canSharePost ? (
+        <MobilizePostShareDialog open={shareOpen} onClose={() => setShareOpen(false)} post={post} />
+      ) : null}
     </Card>
   );
 }
