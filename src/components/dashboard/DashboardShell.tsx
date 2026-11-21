@@ -867,25 +867,24 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             gap: { xs: 1, md: 0 },
           }}
         >
-          <IconButton
-            size="small"
-            aria-label={sidebarOpen ? "Hide menu" : "Show menu"}
-            data-tour="sidebar-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            sx={{
-              display: { xs: "inline-flex", md: "none" },
-              color: "primary.main",
-              alignSelf: { xs: "center", md: "flex-start" },
-              mb: { xs: 0, md: 1.5 },
-              borderRadius: 1,
-              flexShrink: 0,
-            }}
-          >
-            <Box component="span" sx={{ display: "flex", alignItems: "center", gap: 0 }}>
-              <ChevronLeftIcon sx={{ fontSize: 20 }} />
-              <MenuIcon sx={{ fontSize: 22, ml: -0.25 }} />
-            </Box>
-          </IconButton>
+          {!sidebarOpen ? (
+            <IconButton
+              size="small"
+              aria-label="Show menu"
+              data-tour="sidebar-toggle"
+              onClick={() => setSidebarOpen(true)}
+              sx={{
+                display: { xs: "inline-flex", md: "none" },
+                color: "primary.main",
+                alignSelf: { xs: "center", md: "flex-start" },
+                mb: { xs: 0, md: 1.5 },
+                borderRadius: 1,
+                flexShrink: 0,
+              }}
+            >
+              <MenuIcon sx={{ fontSize: 22 }} />
+            </IconButton>
+          ) : null}
           <Box
             sx={{
               display: { xs: "none", md: "block" },
@@ -1318,7 +1317,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           variant="dense"
           sx={{ minHeight: { xs: 52, md: 48 }, py: { xs: 0.35, md: 0 }, gap: 1, position: "relative" }}
         >
-          {!desktop ? (
+          {!desktop && !mobileDrawerOpen ? (
             <IconButton
               color="inherit"
               edge="start"

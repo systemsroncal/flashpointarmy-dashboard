@@ -6,8 +6,8 @@ import { type ReactNode } from "react";
 
 /** Collapsed line count for text-only feed posts. */
 const FEED_TEXT_CLAMP_LINES = 4;
-/** Collapsed lines when the post has images or video (max 3). */
-const FEED_MEDIA_TEXT_CLAMP_LINES = 3;
+/** Collapsed lines when the post has images or video (max 4). */
+const FEED_MEDIA_TEXT_CLAMP_LINES = 4;
 
 type Props = {
   text: ReactNode;

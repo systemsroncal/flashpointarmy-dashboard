@@ -106,6 +106,7 @@ type GroupRow = {
   leaders?: MobilizeGroupLeaderBrief[];
   my_membership_status?: string | null;
   created_by?: string;
+  parent_group_id?: string | null;
   is_featured?: boolean | null;
   publish_status?: string | null;
 };
@@ -191,13 +192,18 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = q ? groups.filter((g) => g.name.toLowerCase().includes(q)) : [...groups];
-    // Featured groups first, then the rest in the same relative order.
-    return list.sort(
-      (a, b) => Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured))
-    );
-  }, [groups, search]);
+    return list.sort((a, b) => {
+      const featuredDelta = Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured));
+      if (featuredDelta !== 0) return featuredDelta;
+      const aInChapter = a.parent_group_id === chapterId ? 1 : 0;
+      const bInChapter = b.parent_group_id === chapterId ? 1 : 0;
+      if (bInChapter !== aInChapter) return bInChapter - aInChapter;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    });
+  }, [groups, search, chapterId]);
 
   const isSuperAdmin = me.role_names.includes("super_admin");
+  const canSetFeatured = isSuperAdmin || me.role_names.includes("admin");
   const canEditChapter =
     Boolean(chapter) && (isSuperAdmin || chapter?.created_by === me.id);
 
@@ -386,7 +392,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
           wall_post_policy: form.wall_post_policy,
           resources_post_policy: form.resources_post_policy,
           publish_status: form.publish_status,
-          ...(isSuperAdmin ? { is_featured: form.is_featured === true } : {}),
+          ...(canSetFeatured ? { is_featured: form.is_featured === true } : {}),
         }),
       });
       const json = await res.json();
@@ -1153,7 +1159,7 @@ export default function ChapterGroupsClient({ chapterId }: { chapterId: string }
                 }))
               }
             />
-            {isSuperAdmin ? (
+            {canSetFeatured ? (
               <MobilizeGroupListedSwitch
                 listed={form.is_featured}
                 disabled={saving}

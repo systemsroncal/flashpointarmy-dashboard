@@ -33,6 +33,7 @@ export async function GET(req: Request) {
     .select(
       "id, name, group_type, description, address, latitude, longitude, visibility, event_create_policy, wall_post_policy, resources_post_policy, cover_image_url, profile_image_url, created_by, created_at, parent_group_id, schedule_meeting, enrollment_mode, last_activity_at, public_slug, is_featured, publish_status"
     )
+    .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (parentId) {
@@ -264,8 +265,9 @@ export async function POST(req: Request) {
       ? String(body.schedule_meeting).trim()
       : null;
 
-  const is_featured =
-    parent_group_id && roleNames.includes("super_admin") && body.is_featured === true;
+  const canSetFeatured =
+    roleNames.includes("super_admin") || roleNames.includes("admin");
+  const is_featured = parent_group_id && canSetFeatured && body.is_featured === true;
   const publish_status = body.publish_status === "draft" ? "draft" : "published";
 
   const row = {

@@ -203,7 +203,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
       s == null || String(s).trim() === "" ? null : String(s).trim();
   }
   if ("is_featured" in patch) {
-    if (!isSuperAdmin) {
+    const canSetFeatured =
+      isSuperAdmin || auth.roleNames.includes("admin");
+    if (!canSetFeatured) {
       delete patch.is_featured;
     } else {
       const { data: current } = await auth.admin

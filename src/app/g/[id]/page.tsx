@@ -93,12 +93,12 @@ export default async function PublicMobilizeGroupPage({ params }: Props) {
     .eq("membership_status", "approved")
     .limit(5);
 
+  const createdBy = group.created_by ? String(group.created_by) : null;
   const leaderIds = [
     ...new Set(
-      [
-        ...(leaderRows ?? []).map((r) => r.user_id as string),
-        group.created_by ? String(group.created_by) : null,
-      ].filter((x): x is string => Boolean(x))
+      (leaderRows ?? [])
+        .map((r) => r.user_id as string)
+        .filter((uid) => uid !== createdBy)
     ),
   ];
 
