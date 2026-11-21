@@ -25,24 +25,22 @@ import { useCallback, useMemo, useState } from "react";
 
 type SharePlatform = "whatsapp" | "facebook" | "x" | "linkedin" | "telegram" | "email";
 
-function shareHref(platform: SharePlatform, url: string, message: string, subject: string): string {
+function shareHref(platform: SharePlatform, url: string, subject: string): string {
   const u = encodeURIComponent(url);
-  const t = encodeURIComponent(message);
-  const full = encodeURIComponent(`${message} ${url}`);
 
   switch (platform) {
     case "whatsapp":
-      return `https://wa.me/?text=${full}`;
+      return `https://wa.me/?text=${u}`;
     case "facebook":
-      return `https://www.facebook.com/sharer/sharer.php?u=${u}&quote=${t}`;
+      return `https://www.facebook.com/sharer/sharer.php?u=${u}`;
     case "linkedin":
       return `https://www.linkedin.com/sharing/share-offsite/?url=${u}`;
     case "telegram":
-      return `https://t.me/share/url?url=${u}&text=${t}`;
+      return `https://t.me/share/url?url=${u}`;
     case "email":
-      return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${message}\n\n${url}`)}`;
+      return `mailto:?subject=${encodeURIComponent(subject)}&body=${u}`;
     default:
-      return `https://twitter.com/intent/tweet?url=${u}&text=${t}`;
+      return `https://twitter.com/intent/tweet?url=${u}`;
   }
 }
 
@@ -76,20 +74,18 @@ export function MobilizePostShareDialog({ open, onClose, post }: Props) {
   }, [post]);
 
   const authorName = post.author.display_name?.trim() || "Member";
-  const preview = (post.content ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
   const subject = `Post from ${authorName} on FlashPoint Army`;
-  const message = preview || "See this post on FlashPoint Army Chapters.";
 
   const copyLink = useCallback(async () => {
     if (!shareUrl) return;
     try {
-      await navigator.clipboard.writeText(`${message}\n\n${shareUrl}`);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2500);
     } catch {
       setCopied(false);
     }
-  }, [shareUrl, message]);
+  }, [shareUrl]);
 
   return (
     <Dialog
@@ -127,7 +123,7 @@ export function MobilizePostShareDialog({ open, onClose, post }: Props) {
             <Tooltip key={platform} title={label}>
               <Button
                 component="a"
-                href={shareHref(platform, shareUrl, message, subject)}
+                href={shareHref(platform, shareUrl, subject)}
                 target={platform === "email" ? undefined : "_blank"}
                 rel={platform === "email" ? undefined : "noopener noreferrer"}
                 variant="outlined"
