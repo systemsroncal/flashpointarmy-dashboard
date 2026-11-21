@@ -1,4 +1,4 @@
-import { SharedPostPageClient } from "./SharedPostPageClient";
+import { legacySharePageRedirectPath } from "@/lib/mobilize/social/post-share-url";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -6,16 +6,24 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function MobilizeSharedPostPage({ searchParams }: Props) {
+function firstString(v: string | string[] | undefined): string | undefined {
+  if (typeof v === "string") return v;
+  if (Array.isArray(v)) return v[0];
+  return undefined;
+}
+
+export default async function MobilizeLegacySharedPostRedirect({ searchParams }: Props) {
   const sp = await searchParams;
-  const q = new URLSearchParams();
-  for (const [key, value] of Object.entries(sp)) {
-    if (typeof value === "string") q.set(key, value);
+  const target = legacySharePageRedirectPath({
+    kind: firstString(sp.kind),
+    group_id: firstString(sp.group_id),
+    user_id: firstString(sp.user_id),
+    post_id: firstString(sp.post_id),
+  });
+
+  if (!target) {
+    redirect("/dashboard/mobilize/home");
   }
-  const qs = q.toString();
-  const returnPath = qs
-    ? `/dashboard/mobilize/post/share?${qs}`
-    : "/dashboard/mobilize/post/share";
 
   const supabase = await createClient();
   const {
@@ -23,26 +31,8 @@ export default async function MobilizeSharedPostPage({ searchParams }: Props) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login?redirect=${encodeURIComponent(returnPath)}`);
+    redirect(`/login?redirect=${encodeURIComponent(target)}`);
   }
 
-  const { data: du } = await supabase
-    .from("dashboard_users")
-    .select("first_name, last_name, display_name")
-    .eq("id", user.id)
-    .maybeSingle();
-  const { data: profile } = await supabase.from("profiles").select("avatar_url").eq("id", user.id).maybeSingle();
-
-  const displayName =
-    [du?.first_name, du?.last_name].filter(Boolean).join(" ").trim() ||
-    du?.display_name?.trim() ||
-    null;
-
-  return (
-    <SharedPostPageClient
-      viewerUserId={user.id}
-      viewerDisplayName={displayName}
-      viewerAvatarUrl={(profile?.avatar_url as string | null) ?? null}
-    />
-  );
+  redirect(target);
 }

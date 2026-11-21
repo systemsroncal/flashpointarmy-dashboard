@@ -62,6 +62,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { MobilizeSharedPostFromUrl } from "@/components/mobilize/social/MobilizeSharedPostFromUrl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const VISITOR_PROFILE_TABS = [
@@ -1045,6 +1046,14 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           </Button>
         </DialogActions>
       </MobilizeDialog>
+
+      <MobilizeSharedPostFromUrl
+        profileUserId={userId}
+        viewerUserId={me.id}
+        viewerDisplayName={me.display_name ?? null}
+        viewerAvatarUrl={me.avatar_url ?? null}
+        viewerRoleNames={me.role_names}
+      />
     </Box>
   );
 }
