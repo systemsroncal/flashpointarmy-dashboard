@@ -1,14 +1,25 @@
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
-import { mobilizeGroupDetailHref } from "@/lib/mobilize/group-detail-tabs";
+
+export function mobilizeGroupFeedShareHref(groupId: string, messageId: string): string {
+  const q = new URLSearchParams({
+    tab: "announcements",
+    share_post: messageId,
+  });
+  return `/dashboard/mobilize/groups/${groupId}?${q.toString()}`;
+}
+
+export function mobilizeProfileFeedShareHref(profileUserId: string, postId: string): string {
+  const q = new URLSearchParams({ share_post: postId });
+  return `/dashboard/mobilize/profile/${profileUserId}?${q.toString()}`;
+}
 
 /** Opens the post in a popup on the group feed or profile feed (not a standalone page). */
 export function buildMobilizePostSharePath(post: UnifiedFeedPost): string | null {
   if (post.kind === "group_message" && post.group_id && post.message_id) {
-    return `${mobilizeGroupDetailHref(post.group_id, "announcements")}&share_post=${encodeURIComponent(post.message_id)}`;
+    return mobilizeGroupFeedShareHref(post.group_id, post.message_id);
   }
   if (post.kind === "profile_post" && post.profile_user_id && post.post_id) {
-    const q = new URLSearchParams({ share_post: post.post_id });
-    return `/dashboard/mobilize/profile/${post.profile_user_id}?${q.toString()}`;
+    return mobilizeProfileFeedShareHref(post.profile_user_id, post.post_id);
   }
   return null;
 }
@@ -27,11 +38,10 @@ export function legacySharePageRedirectPath(
   const postId = params.post_id?.trim();
   if (!postId) return null;
   if (kind === "group_message" && params.group_id) {
-    return `${mobilizeGroupDetailHref(params.group_id, "announcements")}&share_post=${encodeURIComponent(postId)}`;
+    return mobilizeGroupFeedShareHref(params.group_id, postId);
   }
   if (kind === "profile_post" && params.user_id) {
-    const q = new URLSearchParams({ share_post: postId });
-    return `/dashboard/mobilize/profile/${params.user_id}?${q.toString()}`;
+    return mobilizeProfileFeedShareHref(params.user_id, postId);
   }
   return null;
 }
