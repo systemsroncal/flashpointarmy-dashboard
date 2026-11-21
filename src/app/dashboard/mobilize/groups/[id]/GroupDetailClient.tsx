@@ -120,6 +120,7 @@ import type { MobilizeFeedAdBlock } from "@/lib/mobilize/feed-ads-types";
 import { MobilizeChapterUpdatesPanel } from "@/components/mobilize/MobilizeChapterUpdatesPanel";
 import { MobilizeGroupShareDialog } from "@/components/mobilize/MobilizeGroupShareDialog";
 import { MobilizeSharedPostFromUrl } from "@/components/mobilize/social/MobilizeSharedPostFromUrl";
+import { mobilizeGroupFeedShareHref } from "@/lib/mobilize/social/post-share-url";
 import { MobilizeTypeDeleteDialog } from "@/components/mobilize/MobilizeTypeDeleteDialog";
 import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupStateFlag";
 import { resolveMobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
@@ -568,9 +569,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   useEffect(() => {
     if (!sharePostId) return;
     if (activeTab !== "announcements") {
-      router.replace(
-        `${mobilizeGroupDetailHref(groupId, "announcements")}&share_post=${encodeURIComponent(sharePostId)}`
-      );
+      router.replace(mobilizeGroupFeedShareHref(groupId, sharePostId));
     }
   }, [sharePostId, activeTab, groupId, router]);
 
