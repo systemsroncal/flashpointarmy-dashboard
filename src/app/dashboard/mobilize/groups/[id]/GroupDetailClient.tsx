@@ -119,6 +119,7 @@ import { MobilizeFeedAdsRail } from "@/components/mobilize/feed-ads/MobilizeFeed
 import type { MobilizeFeedAdBlock } from "@/lib/mobilize/feed-ads-types";
 import { MobilizeChapterUpdatesPanel } from "@/components/mobilize/MobilizeChapterUpdatesPanel";
 import { MobilizeGroupShareDialog } from "@/components/mobilize/MobilizeGroupShareDialog";
+import { MobilizeSharedPostFromUrl } from "@/components/mobilize/social/MobilizeSharedPostFromUrl";
 import { MobilizeTypeDeleteDialog } from "@/components/mobilize/MobilizeTypeDeleteDialog";
 import { MobilizeGroupStateFlag } from "@/components/mobilize/MobilizeGroupStateFlag";
 import { resolveMobilizeGroupStateInfo } from "@/lib/mobilize/group-state-flag";
@@ -562,6 +563,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       router.replace(mobilizeGroupDetailHref(groupId, "announcements"));
     }
   }, [group, canViewContent, activeTab, groupId, router]);
+
+  const sharePostId = searchParams.get("share_post")?.trim();
+  useEffect(() => {
+    if (!sharePostId) return;
+    if (activeTab !== "announcements") {
+      router.replace(
+        `${mobilizeGroupDetailHref(groupId, "announcements")}&share_post=${encodeURIComponent(sharePostId)}`
+      );
+    }
+  }, [sharePostId, activeTab, groupId, router]);
 
   async function joinRequest() {
     try {
@@ -2763,6 +2774,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         groupId={groupId}
         groupName={group.name}
         publicUrl={`/g/${groupId}`}
+      />
+
+      <MobilizeSharedPostFromUrl
+        groupId={groupId}
+        viewerUserId={me.id}
+        viewerDisplayName={me.display_name ?? null}
+        viewerAvatarUrl={me.avatar_url ?? null}
+        viewerRoleNames={me.role_names}
+        isApprovedGroupMember={isApproved}
+        isGroupLeader={isLeader}
       />
     </Box>
   );
