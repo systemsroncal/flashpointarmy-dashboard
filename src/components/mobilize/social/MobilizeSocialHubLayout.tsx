@@ -13,12 +13,15 @@ type Props = {
   showInternalNav?: boolean;
   /** Hide right recommendations rail (e.g. dense tools). */
   showRightRail?: boolean;
+  /** Member profile on mobile: no outer card chrome (full-bleed under the slim app bar). */
+  flushOnMobile?: boolean;
 };
 
 export function MobilizeSocialHubLayout({
   children,
   sidebar = null,
   showRightRail = false,
+  flushOnMobile = false,
 }: Props) {
   return (
     <Box
@@ -28,9 +31,11 @@ export function MobilizeSocialHubLayout({
         flex: { xs: "0 0 auto", lg: 1 },
         minHeight: { xs: "auto", lg: 0 },
         bgcolor: SOCIAL_HUB_LIGHT_BG,
-        borderRadius: 2,
+        borderRadius: flushOnMobile ? { xs: 0, sm: 2 } : 2,
         overflow: { xs: "visible", lg: "hidden" },
-        border: "1px solid rgba(0,0,0,0.06)",
+        border: flushOnMobile
+          ? { xs: "none", sm: "1px solid rgba(0,0,0,0.06)" }
+          : "1px solid rgba(0,0,0,0.06)",
       }}
     >
       <Box sx={{ flex: 1, minWidth: 0, display: "flex", minHeight: 0 }}>{children}</Box>

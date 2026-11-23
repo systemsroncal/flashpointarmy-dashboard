@@ -1,4 +1,5 @@
 import { MobilizeMemberProfileClient } from "@/components/mobilize/social/MobilizeMemberProfileClient";
+import { resolveMobilizeProfileBackHref } from "@/lib/mobilize/social/profile-href";
 import { requireServerUser } from "@/lib/auth/server-session";
 import { canAccessMobilizeModule, loadUserRoleNames } from "@/lib/auth/user-roles";
 import {
@@ -45,14 +46,10 @@ export default async function MobilizeMemberProfilePage({ params, searchParams }
     redirect("/dashboard");
   }
 
-  const backHref =
-    sp.from === "group" && sp.groupId
-      ? `/dashboard/mobilize/groups/${sp.groupId}?tab=members`
-      : sp.from === "group"
-        ? "/dashboard/mobilize/my-groups"
-        : sp.from?.startsWith("/")
-          ? sp.from
-          : "/dashboard/mobilize/home";
+  const params = new URLSearchParams();
+  if (sp.from) params.set("from", sp.from);
+  if (sp.groupId) params.set("groupId", sp.groupId);
+  const backHref = resolveMobilizeProfileBackHref(params);
 
   return <MobilizeMemberProfileClient userId={userId} backHref={backHref} />;
 }
