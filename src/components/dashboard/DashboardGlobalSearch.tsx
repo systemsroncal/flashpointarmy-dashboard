@@ -97,14 +97,17 @@ function SearchResultsPanel({
   loading,
   members,
   groups,
+  hasQuery,
   onNavigate,
 }: {
   loading: boolean;
   members: SearchMember[];
   groups: SearchGroup[];
+  /** At least 2 characters typed — avoid empty-state copy before the user searches. */
+  hasQuery: boolean;
   onNavigate?: () => void;
 }) {
-  const empty = !loading && !members.length && !groups.length;
+  const empty = hasQuery && !loading && !members.length && !groups.length;
 
   return (
     <Paper
@@ -307,10 +310,25 @@ export function DashboardGlobalSearch() {
           }}
           sx={fieldSx}
         />
-        <Popper open={open && (loading || members.length > 0 || groups.length > 0 || query.trim().length >= 2)} anchorEl={anchorRef.current} placement="bottom-start" sx={{ zIndex: 1400, width: anchorRef.current?.offsetWidth }}>
+        <Popper
+          open={
+            open &&
+            query.trim().length >= 2 &&
+            (loading || members.length > 0 || groups.length > 0)
+          }
+          anchorEl={anchorRef.current}
+          placement="bottom-start"
+          sx={{ zIndex: 1400, width: anchorRef.current?.offsetWidth }}
+        >
           <ClickAwayListener onClickAway={() => setOpen(false)}>
             <Box>
-              <SearchResultsPanel loading={loading} members={members} groups={groups} onNavigate={() => setOpen(false)} />
+              <SearchResultsPanel
+                loading={loading}
+                members={members}
+                groups={groups}
+                hasQuery={query.trim().length >= 2}
+                onNavigate={() => setOpen(false)}
+              />
             </Box>
           </ClickAwayListener>
         </Popper>
@@ -354,12 +372,15 @@ export function DashboardGlobalSearch() {
             }}
             sx={{ ...fieldSx, mb: 1.5 }}
           />
-          <SearchResultsPanel
-            loading={loading}
-            members={members}
-            groups={groups}
-            onNavigate={closeMobile}
-          />
+          {query.trim().length >= 2 ? (
+            <SearchResultsPanel
+              loading={loading}
+              members={members}
+              groups={groups}
+              hasQuery
+              onNavigate={closeMobile}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
     </>

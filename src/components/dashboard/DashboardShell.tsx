@@ -919,8 +919,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <MobileDrawerAccountSection
             shellAvatarSrc={shellAvatarSrc}
             displayName={drawerDisplayName}
-            onOpenProfile={() => setProfileOpen(true)}
-            onSignOut={() => void handleSignOut()}
+            profileHref={profileHref}
             onNavigate={closeMobileDrawer}
           />
           <Divider sx={{ borderColor: "rgba(255,215,0,0.2)" }} />
