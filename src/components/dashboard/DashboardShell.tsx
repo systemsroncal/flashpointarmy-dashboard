@@ -112,10 +112,8 @@ import {
   MOBILIZE_HOME_HREF,
   MOBILIZE_PREFIX as MOBILIZE_PREFIX_CANON,
 } from "@/lib/mobilize/mobilize-nav-config";
-import {
-  mobilizeMemberProfileHref,
-  resolveMobilizeProfileBackHref,
-} from "@/lib/mobilize/social/profile-href";
+import { resolveMobilizeMobileBackHref } from "@/lib/mobilize/mobilize-mobile-back-href";
+import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
 
 const DRAWER_WIDTH = 220;
@@ -635,15 +633,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     canAccessMobilizeModule(user.role_names, mobilizeViewerRoles, mobilizeAccessOpts);
   const onMobilizeProfilePage =
     isMobilize && pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
-  const mobilizeProfileMobileHeader = !desktop && onMobilizeProfilePage;
-  const [mobilizeProfileBackHref, setMobilizeProfileBackHref] = useState("/dashboard/mobilize/home");
+  const mobilizeMobileSlimHeader = !desktop && isMobilize;
+  const [mobilizeBackHref, setMobilizeBackHref] = useState("/dashboard/mobilize/home");
 
   useEffect(() => {
-    if (!mobilizeProfileMobileHeader) return;
-    setMobilizeProfileBackHref(
-      resolveMobilizeProfileBackHref(new URLSearchParams(window.location.search))
+    if (!mobilizeMobileSlimHeader) return;
+    setMobilizeBackHref(
+      resolveMobilizeMobileBackHref(pathname, new URLSearchParams(window.location.search))
     );
-  }, [mobilizeProfileMobileHeader, pathname]);
+  }, [mobilizeMobileSlimHeader, pathname]);
   const onMobilizeSocialHubPage =
     isMobilize &&
     (pathname === `${MOBILIZE_PREFIX}/home` ||
@@ -1329,12 +1327,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           variant="dense"
           sx={{ minHeight: { xs: 52, md: 48 }, py: { xs: 0.35, md: 0 }, gap: 1, position: "relative" }}
         >
-          {mobilizeProfileMobileHeader ? (
+          {mobilizeMobileSlimHeader ? (
             <IconButton
               color="inherit"
               edge="start"
               component={Link}
-              href={mobilizeProfileBackHref}
+              href={mobilizeBackHref}
               aria-label="Back"
             >
               <ArrowBackIcon />
@@ -1349,7 +1347,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <MenuIcon />
             </IconButton>
           ) : null}
-          {!desktop && !mobilizeProfileMobileHeader ? (
+          {!desktop && !mobilizeMobileSlimHeader ? (
             <Box
               sx={{
                 position: "relative",
@@ -1432,11 +1430,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         component="main"
         sx={{
           pt: `calc(${theme.spacing(7)} + ${maintenanceTop})`,
-          px: isMobilize
-            ? onMobilizeProfilePage
-              ? { xs: 0, sm: 2, md: 3 }
-              : { xs: 1, sm: 2, md: 3 }
-            : { xs: 2, sm: 3 },
+          px: isMobilize ? { xs: 0, sm: 2, md: 3 } : { xs: 2, sm: 3 },
           pb: "calc(32px + env(safe-area-inset-bottom, 0px))",
           ml: { md: desktopDrawerOpen ? `${DRAWER_WIDTH}px` : 0 },
           minHeight: "100vh",
