@@ -59,6 +59,8 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -134,6 +136,8 @@ function formatHandle(handle: string) {
 export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const router = useRouter();
   const me = useDashboardUser();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
   const [posts, setPosts] = useState<ProfilePost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -912,7 +916,11 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         </Alert>
       ) : null}
 
-      <MobilizeSocialHubLayout showInternalNav={false} showRightRail={false}>
+      <MobilizeSocialHubLayout
+        showInternalNav={false}
+        showRightRail={false}
+        flushOnMobile={isMobile}
+      >
         <MobilizeSocialHubContent tone="light">
           <Box
             sx={{
