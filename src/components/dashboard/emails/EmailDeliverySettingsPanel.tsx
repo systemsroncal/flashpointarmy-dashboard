@@ -618,6 +618,17 @@ export function EmailDeliverySettingsPanel({
 
       {provider === "dashboard_smtp" ? (
         <Stack spacing={2}>
+          <Alert severity="info">
+            <Typography variant="body2" component="div">
+              <strong>Mission Update emails (Microsoft 365):</strong> when a new Mission Update is published, emails go
+              only to users <strong>active in the last 7 days</strong> (dashboard presence pulse or sign-in). Messages
+              send at about <strong>28/min</strong> with ~2.2 s between each, up to <strong>10,000/day</strong> per
+              mailbox. Override with <code>MISSION_UPDATE_EMAIL_ACTIVE_DAYS</code> or disable filtering with{" "}
+              <code>MISSION_UPDATE_EMAIL_REQUIRE_RECENT_ACTIVITY=false</code>. Use{" "}
+              <code>MISSION_UPDATE_EMAIL_CRON_SECRET</code> + cron on{" "}
+              <code>/api/internal/mission-update-emails/process</code> for long queues.
+            </Typography>
+          </Alert>
           <Alert severity="warning">
             <Typography variant="body2" component="div" gutterBottom>
               <strong>Error 535 / “Username and Password not accepted” (Gmail):</strong> use an{" "}

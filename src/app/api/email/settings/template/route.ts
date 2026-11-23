@@ -13,6 +13,7 @@ const ALLOWED_KEYS = new Set([
   "register_otp",
   "certificate_request_approved",
   "certificate_request_rejected",
+  "mission_update_new",
 ]);
 
 export async function PATCH(req: Request) {
