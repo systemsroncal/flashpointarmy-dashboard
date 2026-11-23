@@ -46,10 +46,10 @@ export default async function MobilizeMemberProfilePage({ params, searchParams }
     redirect("/dashboard");
   }
 
-  const params = new URLSearchParams();
-  if (sp.from) params.set("from", sp.from);
-  if (sp.groupId) params.set("groupId", sp.groupId);
-  const backHref = resolveMobilizeProfileBackHref(params);
+  const backQuery = new URLSearchParams();
+  if (sp.from) backQuery.set("from", sp.from);
+  if (sp.groupId) backQuery.set("groupId", sp.groupId);
+  const backHref = resolveMobilizeProfileBackHref(backQuery);
 
   return <MobilizeMemberProfileClient userId={userId} backHref={backHref} />;
 }
