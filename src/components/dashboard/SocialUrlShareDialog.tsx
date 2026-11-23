@@ -65,6 +65,8 @@ type Props = {
   title: string;
   description: ReactNode;
   linkLabel?: string;
+  /** Match Chapter Invite share modal (dark panel); default light for post share. */
+  variant?: "light" | "dark";
 };
 
 export function SocialUrlShareDialog({
@@ -75,7 +77,9 @@ export function SocialUrlShareDialog({
   title,
   description,
   linkLabel = "Link",
+  variant = "light",
 }: Props) {
+  const isDark = variant === "dark";
   const [copied, setCopied] = useState(false);
 
   const copyLink = useCallback(async () => {
@@ -99,16 +103,27 @@ export function SocialUrlShareDialog({
         sx: {
           width: "100%",
           maxWidth: 720,
-          bgcolor: "#ffffff",
-          border: "1px solid rgba(0,0,0,0.1)",
+          bgcolor: isDark ? "#141418" : "#ffffff",
+          border: isDark ? "1px solid rgba(255,215,0,0.18)" : "1px solid rgba(0,0,0,0.1)",
           borderRadius: 2,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+          boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.45)" : "0 8px 32px rgba(0,0,0,0.12)",
         },
       }}
     >
-      <DialogTitle sx={{ fontWeight: 800, pb: 1, color: "#1a1a1a" }}>{title}</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 800, pb: 1, color: isDark ? "grey.100" : "#1a1a1a" }}>
+        {title}
+      </DialogTitle>
       <DialogContent>
-        <Typography variant="body2" component="div" sx={{ mb: 2.5, lineHeight: 1.7, color: "#65676b" }}>
+        <Typography
+          variant="body2"
+          component="div"
+          sx={{
+            mb: 2.5,
+            lineHeight: 1.7,
+            color: isDark ? "text.secondary" : "#65676b",
+            "& strong": isDark ? { color: "text.primary" } : undefined,
+          }}
+        >
           {description}
         </Typography>
 
@@ -136,13 +151,13 @@ export function SocialUrlShareDialog({
                   textTransform: "none",
                   fontWeight: 600,
                   fontSize: "0.78rem",
-                  color: color ?? "#1a1a1a",
-                  borderColor: "rgba(0,0,0,0.12)",
-                  bgcolor: "#fafafa",
+                  color: color ?? (isDark ? "inherit" : "#1a1a1a"),
+                  borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)",
+                  bgcolor: isDark ? "transparent" : "#fafafa",
                   py: 1,
                   "&:hover": {
                     borderColor: color ?? "primary.main",
-                    bgcolor: hoverBg ?? "rgba(0,0,0,0.04)",
+                    bgcolor: hoverBg ?? (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"),
                   },
                 }}
               >
@@ -157,6 +172,17 @@ export function SocialUrlShareDialog({
           size="small"
           label={linkLabel}
           value={shareUrl}
+          sx={
+            isDark
+              ? {
+                  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.6)" },
+                  "& .MuiOutlinedInput-root": {
+                    color: "grey.100",
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                  },
+                }
+              : undefined
+          }
           InputProps={{
             readOnly: true,
             endAdornment: (
@@ -175,7 +201,15 @@ export function SocialUrlShareDialog({
             Link copied — ready to share.
           </Typography>
         ) : (
-          <Typography variant="caption" sx={{ display: "block", mt: 1, lineHeight: 1.5, color: "#65676b" }}>
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              mt: 1,
+              lineHeight: 1.5,
+              color: isDark ? "text.secondary" : "#65676b",
+            }}
+          >
             Copy the link or share it on social networks.
           </Typography>
         )}

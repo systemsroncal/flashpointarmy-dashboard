@@ -28,6 +28,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import { SocialUrlShareDialog } from "@/components/dashboard/SocialUrlShareDialog";
+import { MissionUpdateSharedFromUrl } from "@/components/dashboard/notifications/MissionUpdateSharedFromUrl";
 import { absoluteMissionUpdateShareUrl } from "@/lib/dashboard/mission-update-share-url";
 import {
   CLAMP_ACCORDION_TRANSITION,
@@ -206,16 +207,6 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    if (loading || typeof window === "undefined") return;
-    const id = new URLSearchParams(window.location.search).get("update")?.trim();
-    if (!id) return;
-  const frame = window.requestAnimationFrame(() => {
-      document.getElementById(`mission-update-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [loading, items]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -931,7 +922,10 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         </DialogActions>
       </Dialog>
 
+      <MissionUpdateSharedFromUrl items={items} loading={loading} />
+
       <SocialUrlShareDialog
+        variant="dark"
         open={Boolean(shareRow)}
         onClose={() => setShareRow(null)}
         shareUrl={
@@ -945,8 +939,8 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         description={
           shareRow ? (
             <>
-              Share <strong style={{ color: "#1a1a1a" }}>{shareRow.title}</strong>. The link opens Mission Updates
-              (sign-in required).
+              Share <strong>{shareRow.title}</strong>. The link opens this Mission Update in a popup (sign-in
+              required).
             </>
           ) : (
             ""
