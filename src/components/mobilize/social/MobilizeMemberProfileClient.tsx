@@ -771,7 +771,18 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           </Paper>
         ) : null}
         {tabLoading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              py: 6,
+              width: "100%",
+              minHeight: 220,
+              bgcolor: "#fff",
+              borderRadius: { xs: 0, sm: 2 },
+            }}
+          >
             <CircularProgress size={28} />
           </Box>
         ) : null}

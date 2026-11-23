@@ -11,6 +11,7 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -52,7 +53,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import MilitaryTechOutlinedIcon from "@mui/icons-material/MilitaryTechOutlined";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AvatarWithGraduateIcon } from "@/components/dashboard/training/CourseGraduateBadge";
 import type { TrainingGraduateBadgeRole } from "@/lib/courses/course-completion";
 import {
@@ -289,11 +290,14 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   const toast = useMobilizeToast();
   const me = useDashboardUser();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const theme = useTheme();
   const isMobileGroupFeed = useMediaQuery(theme.breakpoints.down("lg"));
   const isMobileMembersTable = useMediaQuery(theme.breakpoints.down("md"));
-  const activeTab = parseMobilizeGroupTab(searchParams.get("tab"));
+  const [activeTab, setActiveTab] = useState<MobilizeGroupTabSlug>(() =>
+    typeof window === "undefined"
+      ? "announcements"
+      : parseMobilizeGroupTab(new URLSearchParams(window.location.search).get("tab"))
+  );
   const [group, setGroup] = useState<Group | null>(null);
   const [membership, setMembership] = useState<Membership>(null);
   const [loading, setLoading] = useState(true);
@@ -431,7 +435,16 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     if (typeof window !== "undefined") {
       window.scrollTo(0, 0);
     }
+    setActiveTab(parseMobilizeGroupTab(new URLSearchParams(window.location.search).get("tab")));
   }, [groupId]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setActiveTab(parseMobilizeGroupTab(new URLSearchParams(window.location.search).get("tab")));
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -561,17 +574,19 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   useEffect(() => {
     if (!group) return;
     if (!canViewContent && activeTab !== "announcements") {
-      router.replace(mobilizeGroupDetailHref(groupId, "announcements"));
+      setActiveTab("announcements");
+      router.replace(mobilizeGroupDetailHref(groupId, "announcements"), { scroll: false });
     }
   }, [group, canViewContent, activeTab, groupId, router]);
 
-  const sharePostId = searchParams.get("share_post")?.trim();
   useEffect(() => {
+    if (!group || typeof window === "undefined") return;
+    const sharePostId = new URLSearchParams(window.location.search).get("share_post")?.trim();
     if (!sharePostId) return;
     if (activeTab !== "announcements") {
       router.replace(mobilizeGroupFeedShareHref(groupId, sharePostId));
     }
-  }, [sharePostId, activeTab, groupId, router]);
+  }, [group, activeTab, groupId, router]);
 
   async function joinRequest() {
     try {
@@ -1552,7 +1567,21 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
   }, [group, groupCoverSrc, groupStateInfo, joinCallToAction]);
 
   if (loading || !group) {
-    return <Skeleton height={320} />;
+    return (
+      <Box
+        sx={{
+          minHeight: { xs: "50vh", sm: 360 },
+          width: "100%",
+          bgcolor: SOCIAL_HUB_LIGHT_BG,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: { xs: 0, sm: 2 },
+        }}
+      >
+        <CircularProgress size={28} />
+      </Box>
+    );
   }
 
   const canEditGroup = isLeader || group.created_by === me.id || isSuperAdmin;
@@ -1618,7 +1647,9 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
         tabs={profileTabs}
         activeTab={activeTab}
         onTabChange={(id) => {
-          router.push(mobilizeGroupDetailHref(groupId, id as MobilizeGroupTabSlug));
+          const tab = id as MobilizeGroupTabSlug;
+          setActiveTab(tab);
+          router.replace(mobilizeGroupDetailHref(groupId, tab), { scroll: false });
         }}
         socialTabStyle
         tabsInContent
