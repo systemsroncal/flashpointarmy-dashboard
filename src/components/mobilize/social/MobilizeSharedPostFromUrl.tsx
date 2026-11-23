@@ -3,7 +3,8 @@
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { canCommentOnUnifiedPost, feedPostCommentConfig, feedPostReactionUrl } from "@/lib/mobilize/social/feed-post-urls";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
-import { Dialog, DialogContent, CircularProgress, Typography } from "@mui/material";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
+import { CircularProgress, DialogContent, Typography } from "@mui/material";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -115,7 +116,7 @@ export function MobilizeSharedPostFromUrl({
     : false;
 
   return (
-    <Dialog
+    <MobilizeDialog
       open={dialogOpen}
       onClose={close}
       maxWidth="sm"
@@ -167,6 +168,6 @@ export function MobilizeSharedPostFromUrl({
           />
         ) : null}
       </DialogContent>
-    </Dialog>
+    </MobilizeDialog>
   );
 }
