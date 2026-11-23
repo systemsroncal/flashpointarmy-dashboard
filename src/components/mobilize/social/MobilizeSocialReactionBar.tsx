@@ -43,7 +43,7 @@ export function MobilizeSocialReactionBar({
   embedded = false,
 }: Props) {
   const isDark = tone === "dark";
-  const muted = isDark ? "#8b98a5" : "text.secondary";
+  const muted = isDark ? "#8b98a5" : "rgba(0,0,0,0.55)";
   const accent = isDark ? "#6eb5ff" : "#1877f2";
   const liked = reactions.viewer_reaction === "like";
   const loved = reactions.viewer_reaction === "love";
