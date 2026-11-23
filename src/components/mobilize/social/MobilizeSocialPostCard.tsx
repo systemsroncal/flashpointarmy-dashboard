@@ -19,7 +19,8 @@ import {
 import { mobilizeGroupFeedPostCardSx } from "@/lib/mobilize/mobilize-ui-surface";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
-import IosShareOutlinedIcon from "@mui/icons-material/IosShareOutlined";
+import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
+import { splitHtmlLinkPreviews } from "@/lib/mobilize/social/link-preview";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import { MobilizePostShareDialog } from "@/components/mobilize/social/MobilizePostShareDialog";
 import { buildMobilizePostSharePath } from "@/lib/mobilize/social/post-share-url";
@@ -37,7 +38,7 @@ import {
   useTheme,
 } from "@mui/material";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { applyReactionToggle } from "@/lib/mobilize/social/reaction-summary";
 
 type CommentConfig = {
@@ -107,17 +108,20 @@ export function MobilizeSocialPostCard({
   const bookmarkRef = bookmarkRefFromPost(post);
   const hasEmbeddedVideo = findAllVideoMarkers(post.content_html ?? "").length > 0;
 
+  const { bodyHtml, previewHtml } = useMemo(
+    () => splitHtmlLinkPreviews(post.content_html ?? ""),
+    [post.content_html]
+  );
+
   const feedHtmlSx = isDark ? { color: TRUTH_HUB_TEXT, "& a": { color: "#6eb5ff" } } : undefined;
   const feedBodyText = (
-    <MobilizeFeedHtml
-      html={post.content_html}
-      plain={post.content}
-      include="text"
-      sx={feedHtmlSx}
-    />
+    <MobilizeFeedHtml html={bodyHtml} plain={post.content} include="text" sx={feedHtmlSx} />
   );
+  const feedLinkPreview = previewHtml ? (
+    <MobilizeFeedHtml html={previewHtml} include="text" sx={feedHtmlSx} />
+  ) : null;
   const feedBodyVideos = hasEmbeddedVideo ? (
-    <MobilizeFeedHtml html={post.content_html} plain={post.content} include="videos" sx={feedHtmlSx} />
+    <MobilizeFeedHtml html={bodyHtml} plain={post.content} include="videos" sx={feedHtmlSx} />
   ) : null;
   const feedMedia = <MobilizeAnnouncementMediaGrid urls={post.image_urls ?? []} />;
   const hasRealImages = Boolean(
@@ -265,9 +269,9 @@ export function MobilizeSocialPostCard({
           <MobilizeCollapsiblePostBody
             surface={surface}
             text={feedBodyText}
+            trailing={feedLinkPreview}
             media={hasMedia ? postMedia : undefined}
             plain={post.content}
-            hasMedia={hasMedia}
           />
         </Box>
         {!hideReactionBar ? (
@@ -306,7 +310,7 @@ export function MobilizeSocialPostCard({
                       aria-label="Share post"
                       sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
                     >
-                      <IosShareOutlinedIcon fontSize="small" />
+                      <ShareOutlinedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                 ) : null}

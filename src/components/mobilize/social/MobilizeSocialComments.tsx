@@ -735,11 +735,6 @@ export function MobilizeSocialComments({
           <CircularProgress size={22} sx={isDark ? { color: TRUTH_HUB_TEXT_MUTED } : undefined} />
         </Box>
       ) : null}
-      {!loading && !comments.length ? (
-        <Typography variant="body2" sx={{ mb: 1, color: nameMuted }}>
-          No comments yet. Start the conversation.
-        </Typography>
-      ) : null}
       {/* Mobile: all comments rendered inline, no collapse */}
       {mobileComments.map((c) => (
         <CommentItem

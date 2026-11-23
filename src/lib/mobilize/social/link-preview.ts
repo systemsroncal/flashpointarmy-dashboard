@@ -95,6 +95,23 @@ export function contentHasLinkPreview(html: string): boolean {
   return html.includes(LINK_PREVIEW_MARKER);
 }
 
+const LINK_PREVIEW_ASIDE_RE =
+  /<aside\s+class="mobilize-link-preview"[\s\S]*?<\/aside>/gi;
+
+/** Feed clamp should not hide OG cards; render previews outside the collapsed text. */
+export function splitHtmlLinkPreviews(html: string): { bodyHtml: string; previewHtml: string } {
+  const raw = typeof html === "string" ? html : "";
+  if (!raw.trim()) return { bodyHtml: "", previewHtml: "" };
+  const previews: string[] = [];
+  const bodyHtml = raw
+    .replace(LINK_PREVIEW_ASIDE_RE, (match) => {
+      previews.push(match);
+      return "";
+    })
+    .trim();
+  return { bodyHtml, previewHtml: previews.join("") };
+}
+
 export function appendLinkPreviewHtml(html: string, meta: LinkPreviewMeta): string {
   if (contentHasLinkPreview(html)) return html;
   const title = escapeHtml(meta.title?.trim() || meta.siteName || meta.url);

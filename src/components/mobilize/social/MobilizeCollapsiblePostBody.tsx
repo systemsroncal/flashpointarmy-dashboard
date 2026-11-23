@@ -4,18 +4,16 @@ import { useClampAccordion } from "@/lib/mobilize/social/use-clamp-accordion";
 import { Box, Button } from "@mui/material";
 import { type ReactNode } from "react";
 
-/** Collapsed line count for text-only feed posts. */
-const FEED_TEXT_CLAMP_LINES = 4;
-/** Collapsed lines when the post has images or video (max 4). */
-const FEED_MEDIA_TEXT_CLAMP_LINES = 4;
+/** Collapsed line count for all feed posts (text, image, video, URL). */
+const FEED_CLAMP_LINES = 4;
 
 type Props = {
   text: ReactNode;
   media?: ReactNode;
+  /** OG link preview cards — always visible below the clamped text (Facebook-style). */
+  trailing?: ReactNode;
   surface?: "light" | "dark";
   plain?: string;
-  /** Post has attached image grid and/or embedded video below the text. */
-  hasMedia?: boolean;
 };
 
 const clampSx = (lineCount: number) =>
@@ -43,135 +41,85 @@ const toggleBtnSx = (surface: "light" | "dark") =>
   }) as const;
 
 /**
- * Collapsible post body (4 lines text-only, up to 3 when media is present).
+ * Collapsible post body (4 lines) with optional link preview always visible below.
  */
 export function MobilizeCollapsiblePostBody({
   text,
   media,
+  trailing,
   surface = "light",
   plain,
-  hasMedia = false,
 }: Props) {
-  const lineCount = hasMedia ? FEED_MEDIA_TEXT_CLAMP_LINES : FEED_TEXT_CLAMP_LINES;
-  const accordion = useClampAccordion(lineCount, plain, { mode: "line-clamp" });
+  const accordion = useClampAccordion(FEED_CLAMP_LINES, plain, { mode: "line-clamp" });
   const noText = !(plain ?? "").trim();
 
-  const moreLabel = hasMedia ? "More" : "Read more";
-  const lessLabel = hasMedia ? "Less" : "Read less";
-  const fadeRgb = surface === "dark" ? "13, 17, 23" : "255, 255, 255";
+  const moreLabel = "Read more";
+  const lessLabel = "Read less";
 
   if (noText) {
-    return media ? <Box sx={{ mt: 0 }}>{media}</Box> : null;
+    return (
+      <>
+        {trailing ? <Box>{trailing}</Box> : null}
+        {media ? <Box sx={{ mt: trailing ? 1.25 : 0 }}>{media}</Box> : null}
+      </>
+    );
   }
-
-  const inlineMore =
-    hasMedia && accordion.needsCollapse && !accordion.expanded ? (
-      <Box
-        component="span"
-        sx={{
-          position: "absolute",
-          right: 0,
-          bottom: "0.05em",
-          display: "inline-flex",
-          alignItems: "baseline",
-          gap: 0.15,
-          pl: 2.5,
-          lineHeight: 1.45,
-          fontSize: "0.9375rem",
-          background: `linear-gradient(to right, rgba(${fadeRgb}, 0) 0%, rgba(${fadeRgb}, 0.92) 38%, rgba(${fadeRgb}, 1) 55%)`,
-          pointerEvents: "none",
-          "& button": { pointerEvents: "auto" },
-        }}
-      >
-        <Box component="span" sx={{ color: surface === "dark" ? "#8b98a5" : "text.secondary" }}>…</Box>
-        <Box
-          component="button"
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            accordion.toggle();
-          }}
-          sx={{
-            ...toggleBtnSx(surface),
-            p: 0,
-            m: 0,
-            border: 0,
-            bgcolor: "transparent",
-            cursor: "pointer",
-            lineHeight: "inherit",
-            fontSize: "inherit",
-            fontFamily: "inherit",
-          }}
-        >
-          {moreLabel}
-        </Box>
-      </Box>
-    ) : null;
 
   return (
     <Box>
       <Box
+        ref={accordion.ref}
+        onTransitionEnd={accordion.onTransitionEnd}
         sx={{
-          position: "relative",
-          ...(accordion.showClamp && hasMedia ? { display: "inline-block", width: "100%", maxWidth: "100%" } : {}),
+          lineHeight: 1.45,
+          fontSize: "0.9375rem",
+          "& .mobilize-feed-html, & .mobilize-feed-plain": { lineHeight: 1.45 },
+          "& .mobilize-feed-html p:first-of-type, & .mobilize-feed-plain p:first-of-type": {
+            marginTop: 0,
+            paddingTop: "0.18em",
+          },
+          ...(accordion.showClamp
+            ? {
+                "& .mobilize-feed-html, & .mobilize-feed-plain": {
+                  ...clampSx(FEED_CLAMP_LINES),
+                  overflow: "hidden",
+                  wordBreak: "break-word",
+                },
+                "& .mobilize-feed-html p, & .mobilize-feed-plain p": {
+                  display: "inline",
+                  margin: 0,
+                  marginBottom: 0,
+                  paddingTop: 0,
+                },
+                "& .mobilize-feed-html p:first-of-type, & .mobilize-feed-plain p:first-of-type": {
+                  paddingTop: "0.18em",
+                },
+                "& .mobilize-feed-html p:not(:last-child)::after, & .mobilize-feed-plain p:not(:last-child)::after":
+                  {
+                    content: '"\\A"',
+                    whiteSpace: "pre",
+                  },
+              }
+            : {}),
         }}
       >
-        <Box
-          ref={accordion.ref}
-          onTransitionEnd={accordion.onTransitionEnd}
-          sx={{
-            lineHeight: 1.45,
-            fontSize: "0.9375rem",
-            "& .mobilize-feed-html, & .mobilize-feed-plain": { lineHeight: 1.45 },
-            "& .mobilize-feed-html p:first-of-type, & .mobilize-feed-plain p:first-of-type": {
-              marginTop: 0,
-              paddingTop: "0.18em",
-            },
-            ...(accordion.showClamp
-              ? {
-                  "& .mobilize-feed-html, & .mobilize-feed-plain": {
-                    ...clampSx(lineCount),
-                    overflow: "hidden",
-                    wordBreak: "break-word",
-                    ...(hasMedia ? { pr: "4.75rem" } : {}),
-                  },
-                  "& .mobilize-feed-html p, & .mobilize-feed-plain p": {
-                    display: "inline",
-                    margin: 0,
-                    marginBottom: 0,
-                    paddingTop: 0,
-                  },
-                  "& .mobilize-feed-html p:first-of-type, & .mobilize-feed-plain p:first-of-type": {
-                    paddingTop: "0.18em",
-                  },
-                  "& .mobilize-feed-html p:not(:last-child)::after, & .mobilize-feed-plain p:not(:last-child)::after":
-                    {
-                      content: '"\\A"',
-                      whiteSpace: "pre",
-                    },
-                }
-              : {}),
-          }}
-        >
-          {text}
-        </Box>
-        {inlineMore}
+        {text}
       </Box>
-      {accordion.needsCollapse && (!hasMedia || accordion.expanded) ? (
+      {accordion.needsCollapse ? (
         <Button
           type="button"
           size="small"
           onClick={accordion.toggle}
           sx={{
             ...toggleBtnSx(surface),
-            mt: hasMedia && accordion.expanded ? 0.35 : 0.5,
+            mt: 0.5,
             display: "inline",
           }}
         >
           {accordion.expanded ? lessLabel : moreLabel}
         </Button>
       ) : null}
+      {trailing ? <Box sx={{ mt: 1 }}>{trailing}</Box> : null}
       {media ? <Box sx={{ mt: 1.25 }}>{media}</Box> : null}
     </Box>
   );
