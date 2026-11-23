@@ -26,6 +26,9 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
+import { SocialUrlShareDialog } from "@/components/dashboard/SocialUrlShareDialog";
+import { absoluteMissionUpdateShareUrl } from "@/lib/dashboard/mission-update-share-url";
 import {
   CLAMP_ACCORDION_TRANSITION,
   useClampAccordion,
@@ -180,6 +183,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   const [confirmSaveEdit, setConfirmSaveEdit] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDismissId, setConfirmDismissId] = useState<string | null>(null);
+  const [shareRow, setShareRow] = useState<AnnouncementListItem | null>(null);
 
   useEffect(() => {
     setMissionUpdateSoundEnabled(getMissionUpdateSoundEnabled());
@@ -202,6 +206,16 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (loading || typeof window === "undefined") return;
+    const id = new URLSearchParams(window.location.search).get("update")?.trim();
+    if (!id) return;
+  const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`mission-update-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, items]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -475,6 +489,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
             return (
               <Paper
                 key={row.id}
+                id={`mission-update-${row.id}`}
                 elevation={0}
                 sx={{
                   p: 2.5,
@@ -580,6 +595,14 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                 <Divider sx={{ my: 2, borderColor: "rgba(255,255,255,0.08)" }} />
 
                 <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<ShareOutlinedIcon />}
+                    onClick={() => setShareRow(row)}
+                  >
+                    Share
+                  </Button>
                   {unread ? (
                     <Button size="small" variant="outlined" onClick={() => void setRead(row.id, true)}>
                       Mark as read
@@ -907,6 +930,29 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <SocialUrlShareDialog
+        open={Boolean(shareRow)}
+        onClose={() => setShareRow(null)}
+        shareUrl={
+          shareRow && typeof window !== "undefined"
+            ? absoluteMissionUpdateShareUrl(window.location.origin, shareRow.id)
+            : ""
+        }
+        subject={shareRow ? `Mission Update: ${shareRow.title}` : "Mission Update on FlashPoint Army"}
+        title="Share this Mission Update"
+        linkLabel="Mission Update link"
+        description={
+          shareRow ? (
+            <>
+              Share <strong style={{ color: "#1a1a1a" }}>{shareRow.title}</strong>. The link opens Mission Updates
+              (sign-in required).
+            </>
+          ) : (
+            ""
+          )
+        }
+      />
 
       <Snackbar
         open={Boolean(snack)}
