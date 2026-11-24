@@ -88,7 +88,7 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    if (phone && phone.replace(/\D/g, "").length < 10) {
+    if (!phone || phone.replace(/\D/g, "").length < 10) {
       return NextResponse.json({ error: "Enter a valid 10-digit phone number." }, { status: 400 });
     }
     if (body.dateOfBirth?.trim() && !dateOfBirth) {

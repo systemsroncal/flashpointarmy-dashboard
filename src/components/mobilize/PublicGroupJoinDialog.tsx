@@ -110,7 +110,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
       return;
     }
     const phoneTrim = phone.trim();
-    if (phoneTrim && phoneTrim.replace(/\D/g, "").length < 10) {
+    if (!phoneTrim || phoneTrim.replace(/\D/g, "").length < 10) {
       setError("Enter a valid 10-digit phone number.");
       return;
     }
@@ -128,7 +128,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
           password,
           firstName: fn,
           lastName: ln,
-          phone: phoneTrim || undefined,
+          phone: phoneTrim,
           zipCode: zip,
           gender: gender || undefined,
           dateOfBirth: dateOfBirth || undefined,
@@ -264,7 +264,8 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
                   sx={fieldSx}
                 />
                 <TextField
-                  label="Phone (optional)"
+                  label="Phone"
+                  required
                   fullWidth
                   size="small"
                   value={phone}
