@@ -23,6 +23,7 @@ type PasswordTextFieldProps = {
   autoComplete?: string;
   helperText?: string;
   required?: boolean;
+  size?: "small" | "medium";
   /** Use white auth form styling (login / reset pages). */
   authStyled?: boolean;
   /** With authStyled: no label above; show `placeholder` inside the field. */
@@ -40,6 +41,7 @@ export function PasswordTextField({
   autoComplete = "current-password",
   helperText,
   required = true,
+  size = "medium",
   authStyled = false,
   placeholderOnly = false,
   placeholder,
@@ -63,6 +65,7 @@ export function PasswordTextField({
       id={id}
       name={name ?? id}
       type={visible ? "text" : "password"}
+      size={size}
       required={required}
       fullWidth
       autoComplete={autoComplete}

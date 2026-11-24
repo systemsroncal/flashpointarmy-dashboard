@@ -69,6 +69,8 @@ export async function POST(req: Request) {
     const city = (body.city || "").trim();
     const stateRaw = (body.state || "").trim().toUpperCase();
     const state = usStateByCode(stateRaw)?.code ?? null;
+    let cityForProfile = city;
+    let stateForProfile = state;
     const zipCode = (body.zipCode || "").trim();
     const joinGroupId = (body.joinGroupId || "").trim() || null;
     const gender = normalizeGender(body.gender);
@@ -80,20 +82,14 @@ export async function POST(req: Request) {
     if (password.length < 6) {
       return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
     }
-    if (!phone || phone.replace(/\D/g, "").length < 10) {
-      return NextResponse.json({ error: "Enter a valid 10-digit phone number." }, { status: 400 });
-    }
-    if (!city) {
-      return NextResponse.json({ error: "City is required." }, { status: 400 });
-    }
-    if (!state) {
-      return NextResponse.json({ error: "Select a valid US state." }, { status: 400 });
-    }
     if (!zipCode || zipCode.replace(/\D/g, "").length < 5) {
       return NextResponse.json(
         { error: "Enter a valid 5-digit ZIP code so we can assign your nearest chapter." },
         { status: 400 }
       );
+    }
+    if (phone && phone.replace(/\D/g, "").length < 10) {
+      return NextResponse.json({ error: "Enter a valid 10-digit phone number." }, { status: 400 });
     }
     if (body.dateOfBirth?.trim() && !dateOfBirth) {
       return NextResponse.json({ error: "Enter a valid date of birth." }, { status: 400 });
@@ -117,6 +113,25 @@ export async function POST(req: Request) {
     }
     const primaryChapterId = nearest.id;
 
+    const resolvedCity =
+      city || (nearest.city || "").trim() || (nearest.name || "").trim();
+    const resolvedState = state || (nearest.state || "").trim().toUpperCase();
+    const resolvedStateCode = usStateByCode(resolvedState)?.code ?? null;
+    if (!resolvedCity) {
+      return NextResponse.json(
+        { error: "Could not resolve city from your ZIP. Please contact support." },
+        { status: 400 }
+      );
+    }
+    if (!resolvedStateCode) {
+      return NextResponse.json(
+        { error: "Could not resolve state from your ZIP. Please contact support." },
+        { status: 400 }
+      );
+    }
+    cityForProfile = resolvedCity;
+    stateForProfile = resolvedStateCode;
+
     if (await isEmailInUse(supabase, email)) {
       return NextResponse.json({ error: "This email is already registered." }, { status: 409 });
     }
@@ -131,8 +146,8 @@ export async function POST(req: Request) {
         primary_chapter_id: primaryChapterId,
         phone,
         address_line: streetAddress,
-        city,
-        state,
+        city: cityForProfile,
+        state: stateForProfile,
         zip_code: zipCode,
         gender,
         date_of_birth: dateOfBirth,
@@ -158,8 +173,8 @@ export async function POST(req: Request) {
       phone,
       mailing: {
         address_line: streetAddress,
-        city,
-        state,
+        city: cityForProfile,
+        state: stateForProfile,
         zip_code: zipCode,
       },
     });
@@ -176,8 +191,8 @@ export async function POST(req: Request) {
         primary_chapter_id: primaryChapterId,
         phone,
         address_line: streetAddress,
-        city,
-        state,
+        city: cityForProfile,
+        state: stateForProfile,
         zip_code: zipCode,
         gender,
         date_of_birth: dateOfBirth,
