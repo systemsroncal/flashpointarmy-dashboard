@@ -17,12 +17,13 @@ function profileSearchBlob(row: ProfileRow): string {
   return parts.join(" ").toLowerCase().replace(/\s+/g, " ");
 }
 
-function scoreProfileMatch(row: ProfileRow, tokens: string[]): number {
+function scoreProfileMatch(row: ProfileRow, tokens: string[], followingIds?: Set<string>): number {
   const blob = profileSearchBlob(row);
   if (!tokens.every((t) => blob.includes(t))) return -1;
   const dn = (row.display_name ?? "").trim().toLowerCase();
   const fn = (row.first_name ?? "").trim().toLowerCase();
   let score = row.verified_at ? 1000 : 0;
+  if (followingIds?.has(row.id)) score += 500;
   for (const t of tokens) {
     if (dn.startsWith(t) || fn.startsWith(t)) score += 80;
     else if (dn.includes(t)) score += 40;
@@ -82,8 +83,22 @@ export async function GET(req: Request) {
     }
   }
 
+  const candidateIds = [...merged.keys()];
+  let followingSet = new Set<string>();
+  if (candidateIds.length) {
+    const { data: followRows } = await auth.admin
+      .from("mobilize_user_follows")
+      .select("followed_id")
+      .eq("follower_id", auth.userId)
+      .in("followed_id", candidateIds);
+    followingSet = new Set((followRows ?? []).map((r) => r.followed_id as string));
+  }
+
   const rankedIds = [...merged.values()]
-    .map((row) => ({ id: row.id, score: scoreProfileMatch(row, tokens.length ? tokens : [primaryToken]) }))
+    .map((row) => ({
+      id: row.id,
+      score: scoreProfileMatch(row, tokens.length ? tokens : [primaryToken], followingSet),
+    }))
     .filter((r) => r.score >= 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 12)
@@ -99,6 +114,9 @@ export async function GET(req: Request) {
       display_name: m!.display_name,
       handle: m!.handle,
       avatar_url: m!.avatar_url,
+      verified: m!.verified,
+      verified_at: m!.verified_at ?? null,
+      is_following: Boolean(m!.is_following),
       href: `/dashboard/mobilize/profile/${m!.id}`,
     }));
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { DiscoverJoinGroupButton } from "@/components/mobilize/social/DiscoverJoinGroupButton";
+import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import CloseIcon from "@mui/icons-material/Close";
@@ -34,6 +35,9 @@ type SearchMember = {
   handle: string;
   avatar_url: string | null;
   href: string;
+  verified?: boolean;
+  verified_at?: string | null;
+  is_following?: boolean;
 };
 
 type SearchGroup = {
@@ -205,9 +209,16 @@ function SearchResultsPanel({
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={m.display_name}
+                    primary={
+                      <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+                        <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {m.display_name}
+                        </Box>
+                        {m.verified ? <VerifiedUserBadge size={16} verifiedAt={m.verified_at ?? null} /> : null}
+                      </Box>
+                    }
                     secondary={m.handle}
-                    primaryTypographyProps={{ fontWeight: 600, noWrap: true }}
+                    primaryTypographyProps={{ component: "div", fontWeight: 600, noWrap: true }}
                     secondaryTypographyProps={{ noWrap: true }}
                   />
                 </ListItemButton>

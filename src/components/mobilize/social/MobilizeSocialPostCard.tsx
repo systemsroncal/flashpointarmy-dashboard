@@ -6,6 +6,10 @@ import { MobilizeCollapsiblePostBody } from "@/components/mobilize/social/Mobili
 import { MobilizeFeedHtml } from "@/components/mobilize/social/MobilizeFeedHtml";
 import { MobilizeSocialComments } from "@/components/mobilize/social/MobilizeSocialComments";
 import { MobilizeSocialPostHeader } from "@/components/mobilize/social/MobilizeSocialPostHeader";
+import {
+  MobilizePostCardTopActions,
+  type MobilizePostManageProps,
+} from "@/components/mobilize/social/MobilizePostCardTopActions";
 import { MobilizeSocialReactionBar } from "@/components/mobilize/social/MobilizeSocialReactionBar";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { bookmarkRefFromPost } from "@/lib/mobilize/social/bookmark-ref";
@@ -17,8 +21,6 @@ import {
   TRUTH_HUB_TEXT_MUTED,
 } from "@/lib/mobilize/social/social-hub-surface";
 import { mobilizeGroupFeedPostCardSx } from "@/lib/mobilize/mobilize-ui-surface";
-import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
-import BookmarkIcon from "@mui/icons-material/Bookmark";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import { splitHtmlLinkPreviews } from "@/lib/mobilize/social/link-preview";
 import PushPinIcon from "@mui/icons-material/PushPin";
@@ -52,7 +54,8 @@ type Props = {
   commentConfig: CommentConfig;
   reactionUrl: string;
   showGroupBadge?: boolean;
-  manageActions?: React.ReactNode;
+  /** Edit / delete / pin menu (top-right of card). */
+  postManage?: MobilizePostManageProps;
   onReactionChange?: (reactions: UnifiedFeedPost["reactions"]) => void;
   surface?: "light" | "dark";
   /** Inline row inside a shared group feed card (divider between posts). */
@@ -78,7 +81,7 @@ export function MobilizeSocialPostCard({
   commentConfig,
   reactionUrl,
   showGroupBadge = true,
-  manageActions,
+  postManage,
   onReactionChange,
   surface = "light",
   layout = "card",
@@ -237,13 +240,25 @@ export function MobilizeSocialPostCard({
             </Typography>
           </Stack>
         ) : null}
-        <MobilizeSocialPostHeader
-          author={post.author}
-          createdAt={post.created_at}
-          tone={surface}
-          roleLabel={authorRoleLabel}
-          viewerUserId={viewerUserId}
-        />
+        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={0.5}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <MobilizeSocialPostHeader
+              author={post.author}
+              createdAt={post.created_at}
+              tone={surface}
+              roleLabel={authorRoleLabel}
+              viewerUserId={viewerUserId}
+            />
+          </Box>
+          <MobilizePostCardTopActions
+            tone={surface}
+            showBookmark={Boolean(bookmarkRef)}
+            bookmarked={bookmarked}
+            bookmarkBusy={bookmarkBusy}
+            onToggleBookmark={bookmarkRef ? () => void toggleBookmark() : undefined}
+            manage={postManage}
+          />
+        </Stack>
         {showGroupBadge && post.group ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
             <Typography variant="caption" sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}>
@@ -301,7 +316,6 @@ export function MobilizeSocialPostCard({
                 />
               </Box>
               <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flexShrink: 0, ml: "auto" }}>
-                {manageActions}
                 {canSharePost ? (
                   <Tooltip title="Share post">
                     <IconButton
@@ -311,23 +325,6 @@ export function MobilizeSocialPostCard({
                       sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
                     >
                       <ShareOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                ) : null}
-                {bookmarkRef ? (
-                  <Tooltip title={bookmarked ? "Unsave" : "Save"}>
-                    <IconButton
-                      size="small"
-                      onClick={() => void toggleBookmark()}
-                      disabled={bookmarkBusy}
-                      aria-label={bookmarked ? "Unsave post" : "Save post"}
-                      sx={{ color: isDark ? TRUTH_HUB_TEXT_MUTED : undefined }}
-                    >
-                      {bookmarked ? (
-                        <BookmarkIcon fontSize="small" color={isDark ? "inherit" : "primary"} />
-                      ) : (
-                        <BookmarkBorderOutlinedIcon fontSize="small" />
-                      )}
                     </IconButton>
                   </Tooltip>
                 ) : null}

@@ -11,7 +11,16 @@ import {
   type MobilizeSocialNavKey,
 } from "@/lib/mobilize/social/mobilize-social-nav-config";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
+import {
+  MOBILIZE_BOOKMARKS_HREF,
+  MOBILIZE_SOCIAL_SETTINGS_HREF,
+} from "@/lib/mobilize/mobilize-nav-config";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
+import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
+import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
+import { createClient } from "@/utils/supabase/client";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import { Box, Divider, ListItemIcon } from "@mui/material";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
@@ -24,6 +33,7 @@ import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNone
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import { flashpointYellow } from "@/theme/tokens";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +41,7 @@ import {
   InputAdornment,
   ListItemButton,
   ListItemText,
+  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
@@ -71,7 +82,14 @@ function MobilizeBottomNavSearchDialog({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{
-    members: { id: string; display_name: string; handle: string; href: string }[];
+    members: {
+      id: string;
+      display_name: string;
+      handle: string;
+      href: string;
+      verified?: boolean;
+      verified_at?: string | null;
+    }[];
     groups: { id: string; name: string; href: string }[];
   }>({ members: [], groups: [] });
 
@@ -145,7 +163,16 @@ function MobilizeBottomNavSearchDialog({
             onClick={onClose}
             sx={{ borderRadius: 1, mb: 0.25 }}
           >
-            <ListItemText primary={m.display_name} secondary={m.handle} />
+            <ListItemText
+              primary={
+                <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                  {m.display_name}
+                  {m.verified ? <VerifiedUserBadge size={15} verifiedAt={m.verified_at ?? null} /> : null}
+                </Box>
+              }
+              secondary={m.handle}
+              primaryTypographyProps={{ component: "div" }}
+            />
           </ListItemButton>
         ))}
         {results.groups.map((g) => (
@@ -164,6 +191,86 @@ function MobilizeBottomNavSearchDialog({
   );
 }
 
+const SOCIAL_OVERFLOW_ONLY: MobilizeSocialNavKey[] = ["profile", "bookmarks", "settings"];
+
+async function signOutFromMobilizeMenu() {
+  try {
+    sessionStorage.setItem(SIGNING_OUT_SESSION_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+  try {
+    await fetch("/api/auth/session-clear", { method: "POST", credentials: "include" });
+  } catch {
+    /* ignore */
+  }
+  const supabase = createClient();
+  await supabase.auth.signOut();
+  window.location.href = "/login";
+}
+
+function MobilizeSocialOverflowMenu({
+  close,
+  profileHref,
+  pathname,
+}: {
+  close: () => void;
+  profileHref: string;
+  pathname: string;
+}) {
+  const profileActive = pathname === profileHref;
+  const savedActive = pathname.startsWith(MOBILIZE_BOOKMARKS_HREF);
+  const settingsActive = pathname.startsWith(MOBILIZE_SOCIAL_SETTINGS_HREF);
+
+  return (
+    <>
+      <MenuItem
+        component={Link}
+        href={profileHref}
+        onClick={close}
+        selected={profileActive}
+        sx={{ color: profileActive ? flashpointYellow : "rgba(255,255,255,0.88)", py: 1 }}
+      >
+        <ListItemIcon sx={{ minWidth: 36 }}>{SOCIAL_ICONS.profile}</ListItemIcon>
+        <ListItemText primary="Profile" primaryTypographyProps={{ fontWeight: 700 }} />
+      </MenuItem>
+      <MenuItem
+        component={Link}
+        href={MOBILIZE_BOOKMARKS_HREF}
+        onClick={close}
+        selected={savedActive}
+        sx={{ pl: 4, color: savedActive ? flashpointYellow : "rgba(255,255,255,0.88)", py: 0.85 }}
+      >
+        <ListItemIcon sx={{ minWidth: 32 }}>{SOCIAL_ICONS.bookmarks}</ListItemIcon>
+        <ListItemText primary="My saved" primaryTypographyProps={{ fontSize: "0.85rem" }} />
+      </MenuItem>
+      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 0.5 }} />
+      <MenuItem
+        component={Link}
+        href={MOBILIZE_SOCIAL_SETTINGS_HREF}
+        onClick={close}
+        selected={settingsActive}
+        sx={{ color: settingsActive ? flashpointYellow : "rgba(255,255,255,0.88)", py: 1 }}
+      >
+        <ListItemIcon sx={{ minWidth: 36 }}>{SOCIAL_ICONS.settings}</ListItemIcon>
+        <ListItemText primary="Settings" primaryTypographyProps={{ fontWeight: 700 }} />
+      </MenuItem>
+      <MenuItem
+        onClick={() => {
+          close();
+          void signOutFromMobilizeMenu();
+        }}
+        sx={{ color: "rgba(255,255,255,0.88)", py: 1 }}
+      >
+        <ListItemIcon sx={{ minWidth: 36 }}>
+          <LogoutOutlinedIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: "0.875rem" }} />
+      </MenuItem>
+    </>
+  );
+}
+
 function MobilizeSocialBottomNav() {
   const me = useDashboardUser();
   const pathname = usePathname();
@@ -171,7 +278,9 @@ function MobilizeSocialBottomNav() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const items = useMemo<MobilizeBottomNavBarItem[]>(() => {
-    return mobilizeSocialNavItems(profileHref).map((item) => {
+    return mobilizeSocialNavItems(profileHref)
+      .filter((item) => !SOCIAL_OVERFLOW_ONLY.includes(item.key))
+      .map((item) => {
       const active =
         item.key === "search"
           ? searchOpen
@@ -191,7 +300,13 @@ function MobilizeSocialBottomNav() {
   return (
     <>
       <MobilizeBottomNavSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <MobilizeBottomNavBar items={items} ariaLabel="Mobilize social navigation" />
+      <MobilizeBottomNavBar
+        items={items}
+        ariaLabel="Mobilize social navigation"
+        renderOverflowMenu={(close) => (
+          <MobilizeSocialOverflowMenu close={close} profileHref={profileHref} pathname={pathname} />
+        )}
+      />
     </>
   );
 }

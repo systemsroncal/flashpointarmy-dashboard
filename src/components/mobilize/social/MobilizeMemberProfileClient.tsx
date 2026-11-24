@@ -675,30 +675,13 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           viewerDisplayName={me.display_name ?? me.email}
           viewerUserId={me.id}
           viewerIsSuperAdmin={me.role_names.includes("super_admin")}
-          manageActions={
-            post.author.id === me.id || me.role_names.includes("super_admin") ? (
-              <Stack direction="row" spacing={0.25}>
-                <Tooltip title="Edit post">
-                  <IconButton
-                    size="small"
-                    onClick={() => openEditPost(post)}
-                    aria-label="Edit post"
-                  >
-                    <EditOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Delete post">
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => setDeletePostTarget(post)}
-                    aria-label="Delete post"
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            ) : undefined
+          postManage={
+            post.author.id === me.id || me.role_names.includes("super_admin")
+              ? {
+                  onEdit: () => openEditPost(post),
+                  onDelete: () => setDeletePostTarget(post),
+                }
+              : undefined
           }
         />
       ))}

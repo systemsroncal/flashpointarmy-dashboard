@@ -10,7 +10,6 @@ import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSection
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import DynamicFeedOutlinedIcon from "@mui/icons-material/DynamicFeedOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import {
@@ -27,13 +26,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
   Paper,
   Stack,
-  Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
 
 const HOME_TABS = [
   { id: "for_you", label: "For you" },
@@ -56,6 +56,9 @@ function canManageHomePost(post: UnifiedFeedPost, viewerId: string, roleNames: s
 
 export function MobilizeOwnerHomeClient() {
   const me = useDashboardUser();
+  const theme = useTheme();
+  const mobile = useMediaQuery(theme.breakpoints.down("md"));
+  const hideChromeOnScroll = useMobilizeScrollHide(mobile);
   const isSuperAdmin = me.role_names.includes("super_admin");
   const [posts, setPosts] = useState<UnifiedFeedPost[]>([]);
   const [activeTab, setActiveTab] = useState<HomeTabId>("for_you");
@@ -310,6 +313,7 @@ export function MobilizeOwnerHomeClient() {
                 onTabChange={(id) => setActiveTab(id as HomeTabId)}
                 variant="facebook"
                 surface="light"
+                hiddenOnScroll={hideChromeOnScroll}
               />
             </Box>
 
@@ -354,30 +358,13 @@ export function MobilizeOwnerHomeClient() {
                         viewerDisplayName={me.display_name ?? me.email}
                         viewerUserId={me.id}
                         viewerIsSuperAdmin={isSuperAdmin}
-                        manageActions={
-                          canManage ? (
-                            <Stack direction="row" spacing={0.25}>
-                              <Tooltip title="Edit post">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => openEditPost(post)}
-                                  aria-label="Edit post"
-                                >
-                                  <EditOutlinedIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete post">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => setDeletePostTarget(post)}
-                                  aria-label="Delete post"
-                                >
-                                  <DeleteOutlineIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Stack>
-                          ) : undefined
+                        postManage={
+                          canManage
+                            ? {
+                                onEdit: () => openEditPost(post),
+                                onDelete: () => setDeletePostTarget(post),
+                              }
+                            : undefined
                         }
                       />
                     );

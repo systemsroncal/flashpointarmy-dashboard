@@ -19,6 +19,12 @@ import {
   setMissionUpdateSoundEnabled as persistMissionUpdateSoundEnabled,
 } from "@/lib/notifications/mission-update-sound-pref";
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
+import { MobilizeLinkPreviewComposerCard } from "@/components/mobilize/social/MobilizeLinkPreviewComposerCard";
+import {
+  appendLinkPreviewHtml,
+  contentHasLinkPreview,
+  type LinkPreviewMeta,
+} from "@/lib/mobilize/social/link-preview";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import { AnnouncementDescriptionBody } from "@/components/dashboard/notifications/AnnouncementDescriptionBody";
 import AddIcon from "@mui/icons-material/Add";
@@ -180,6 +186,10 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   const [pdfFileName, setPdfFileName] = useState("");
   const [pdfUploading, setPdfUploading] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [linkPreview, setLinkPreview] = useState<LinkPreviewMeta | null>(null);
+  const [linkPreviewLoading, setLinkPreviewLoading] = useState(false);
+  const [linkPreviewError, setLinkPreviewError] = useState<string | null>(null);
+  const linkPreviewFetchRef = useRef(0);
 
   const [confirmSaveEdit, setConfirmSaveEdit] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -219,6 +229,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setCtas([]);
     setPdfUrl("");
     setPdfFileName("");
+    clearLinkPreview();
     setDialogOpen(true);
   };
 
@@ -239,18 +250,65 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     setCtas(row.ctas?.length ? row.ctas.map((c) => ({ ...c })) : []);
     setPdfUrl(row.pdf_url?.trim() ?? "");
     setPdfFileName(row.pdf_file_name?.trim() ?? "");
+    clearLinkPreview();
     setDialogOpen(true);
   };
+
+  function clearLinkPreview() {
+    linkPreviewFetchRef.current += 1;
+    setLinkPreview(null);
+    setLinkPreviewError(null);
+    setLinkPreviewLoading(false);
+  }
+
+  const fetchLinkPreview = useCallback(async (url: string) => {
+    const token = ++linkPreviewFetchRef.current;
+    setLinkPreviewLoading(true);
+    setLinkPreviewError(null);
+    try {
+      const res = await fetch("/api/mobilize/link-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const json = (await res.json()) as { preview?: LinkPreviewMeta; error?: string };
+      if (token !== linkPreviewFetchRef.current) return;
+      if (!res.ok) throw new Error(json.error || "Could not load link preview.");
+      setLinkPreview(json.preview ?? null);
+    } catch (e) {
+      if (token !== linkPreviewFetchRef.current) return;
+      setLinkPreview(null);
+      setLinkPreviewError(e instanceof Error ? e.message : "Could not load link preview.");
+    } finally {
+      if (token === linkPreviewFetchRef.current) setLinkPreviewLoading(false);
+    }
+  }, []);
+
+  const handlePasteUrl = useCallback(
+    (url: string) => {
+      if (contentHasLinkPreview(description)) return;
+      void fetchLinkPreview(url);
+    },
+    [description, fetchLinkPreview]
+  );
 
   const closeDialog = () => {
     setDialogOpen(false);
     setConfirmSaveEdit(false);
   };
 
+  const preparedDescription = useMemo(() => {
+    let html = description.trim();
+    if (linkPreview && !contentHasLinkPreview(html)) {
+      html = appendLinkPreviewHtml(html, linkPreview);
+    }
+    return html;
+  }, [description, linkPreview]);
+
   const submitPayload = useMemo(
     () => ({
       title: title.trim(),
-      description: description.trim(),
+      description: preparedDescription,
       read_more_collapsed: true,
       audience,
       target_user_ids: audience === "specific_users" ? targetUsers.map((u) => u.id) : [],
@@ -272,7 +330,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
     }),
     [
       title,
-      description,
+      preparedDescription,
       audience,
       targetUsers,
       useExpiry,
@@ -677,7 +735,15 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
               darkSurface={false}
               videoEmbedButton
               imageUploadEndpoint="/api/dashboard/announcements/image"
+              onPasteUrl={handlePasteUrl}
               helperText='Rich text (TinyMCE). Images: upload, paste from desktop, or paste from another site — remote images are saved to this server. Video: “Video” inserts [fpa_video]URL[/fpa_video]. Source: Code button.'
+            />
+            <MobilizeLinkPreviewComposerCard
+              preview={linkPreview}
+              loading={linkPreviewLoading}
+              error={linkPreviewError}
+              surface="light"
+              onDismiss={linkPreview || linkPreviewError ? clearLinkPreview : undefined}
             />
             {canManage ? (
               <FormControl fullWidth>
