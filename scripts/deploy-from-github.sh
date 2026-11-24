@@ -155,6 +155,13 @@ ensure_repo_owned_by_deploy_owner() {
 }
 
 # Root-owned node_modules/.next break npm ci + next build when npm runs as admin (EACCES / TAR_ENTRY_ERROR).
+# A writable .next dir can still contain root-owned files from an old deploy — next build then fails on prerender.
+dir_has_foreign_owner_files() {
+  local rel="$1"
+  [[ -d "$rel" ]] || return 1
+  find "$rel" ! -user "$DEPLOY_OWNER" -print -quit 2>/dev/null | grep -q .
+}
+
 prepare_build_workspace() {
   local needs_clean=0
   local reason=""
@@ -162,10 +169,20 @@ prepare_build_workspace() {
   if [[ -d node_modules ]] && ! run_as_deploy_owner test -w node_modules 2>/dev/null; then
     needs_clean=1
     reason="node_modules not writable by ${DEPLOY_OWNER}"
+  elif dir_has_foreign_owner_files node_modules; then
+    needs_clean=1
+    reason="node_modules contains files not owned by ${DEPLOY_OWNER}"
   fi
   if [[ -d .next ]] && ! run_as_deploy_owner test -w .next 2>/dev/null; then
     needs_clean=1
     reason="${reason:+$reason; }.next not writable by ${DEPLOY_OWNER}"
+  elif dir_has_foreign_owner_files .next; then
+    needs_clean=1
+    reason="${reason:+$reason; }.next contains files not owned by ${DEPLOY_OWNER} (common EACCES on register.rsc)"
+  fi
+  if [[ "${CLEAN_NEXT_BEFORE_BUILD:-}" == "1" && -d .next ]]; then
+    needs_clean=1
+    reason="${reason:+$reason; }CLEAN_NEXT_BEFORE_BUILD=1"
   fi
 
   if [[ "$needs_clean" -eq 0 ]]; then
@@ -179,7 +196,7 @@ prepare_build_workspace() {
     exit 1
   fi
 
-  echo "[deploy] Removing root-owned node_modules + .next for clean install (${reason})"
+  echo "[deploy] Removing node_modules + .next for clean install (${reason})"
   rm -rf node_modules .next
   chown -R "$DEPLOY_OWNER:$DEPLOY_OWNER" "$ROOT"
 }
