@@ -14,6 +14,7 @@ const ALLOWED_KEYS = new Set([
   "certificate_request_approved",
   "certificate_request_rejected",
   "mission_update_new",
+  "account_verified",
 ]);
 
 export async function PATCH(req: Request) {

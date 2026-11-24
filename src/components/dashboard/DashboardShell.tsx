@@ -117,6 +117,11 @@ import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
 import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
 import {
+  SOCIAL_HUB_LIGHT_BG,
+  TRUTH_HUB_CENTER_BG,
+  TRUTH_HUB_TEXT,
+} from "@/lib/mobilize/social/social-hub-surface";
+import {
   MOBILIZE_BOOKMARKS_HREF,
   MOBILIZE_SOCIAL_SETTINGS_HREF,
 } from "@/lib/mobilize/mobilize-nav-config";
@@ -642,6 +647,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     isMobilize && pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
   const mobilizeMobileSlimHeader = !desktop && isMobilize;
   const mobilizeMobileChrome = mobilizeMobileSlimHeader;
+  const mobilizeTransparentAppBar = isMobilize;
   const mobilizeHeaderHidden = useMobilizeScrollHide(mobilizeMobileChrome);
   const [mobilizeBackHref, setMobilizeBackHref] = useState("/dashboard/mobilize/home");
 
@@ -660,6 +666,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       pathname.startsWith(`${MOBILIZE_PREFIX}/alerts`) ||
       pathname.startsWith(`${MOBILIZE_PREFIX}/messages`) ||
       pathname.startsWith(`${MOBILIZE_PREFIX}/social-settings`));
+
+  const mobilizeHeaderOnLightSurface =
+    mobilizeMobileChrome && onMobilizeSocialHubPage && !onMobilizeProfilePage;
 
   useEffect(() => {
     if (desktop) setDesktopDrawerOpen(true);
@@ -1413,16 +1422,33 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <AppBar
         position={mobilizeMobileChrome ? "absolute" : "fixed"}
         elevation={0}
+        color="transparent"
         sx={{
           top: maintenanceTop,
           zIndex: (t) => t.zIndex.drawer + 1,
-          bgcolor: mobilizeMobileChrome ? "transparent" : "rgba(12,12,14,0.88)",
-          backdropFilter: mobilizeMobileChrome ? "none" : "blur(8px)",
-          WebkitBackdropFilter: mobilizeMobileChrome ? "none" : "blur(8px)",
-          borderBottom: mobilizeMobileChrome ? "none" : "1px solid rgba(255,215,0,0.12)",
+          ...(mobilizeTransparentAppBar
+            ? {
+                bgcolor: "transparent",
+                backgroundColor: "transparent",
+                backgroundImage: "none",
+                boxShadow: "none",
+                backdropFilter: "none",
+                WebkitBackdropFilter: "none",
+                borderBottom: "none",
+              }
+            : {
+                bgcolor: "rgba(12,12,14,0.88)",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
+                borderBottom: "1px solid rgba(255,215,0,0.12)",
+              }),
           width: { xs: "100%", md: `calc(100% - ${appBarShift}px)` },
           ml: { md: `${appBarShift}px` },
-          color: mobilizeMobileChrome ? "#fff" : undefined,
+          color: mobilizeTransparentAppBar
+            ? mobilizeHeaderOnLightSurface
+              ? "#0d0d0d"
+              : TRUTH_HUB_TEXT
+            : undefined,
           transform: mobilizeMobileChrome && mobilizeHeaderHidden ? "translateY(-110%)" : "translate3d(0, 0, 0)",
           WebkitTransform: mobilizeMobileChrome && mobilizeHeaderHidden ? "translateY(-110%)" : "translate3d(0, 0, 0)",
           willChange: "transform",
@@ -1435,12 +1461,29 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-          "& .MuiIconButton-root": mobilizeMobileChrome ? { color: "#fff" } : undefined,
+          "& .MuiIconButton-root": mobilizeTransparentAppBar
+            ? {
+                color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.75)" : TRUTH_HUB_TEXT,
+              }
+            : undefined,
+          "& .MuiBadge-root .MuiSvgIcon-root": mobilizeTransparentAppBar
+            ? {
+                color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.75)" : TRUTH_HUB_TEXT,
+              }
+            : undefined,
         }}
       >
         <Toolbar
           variant="dense"
-          sx={{ minHeight: { xs: 52, md: 48 }, py: { xs: 0.35, md: 0 }, gap: 1, position: "relative" }}
+          sx={{
+            minHeight: { xs: 52, md: 48 },
+            py: { xs: 0.35, md: 0 },
+            gap: 1,
+            position: "relative",
+            bgcolor: "transparent",
+            backgroundImage: "none",
+            boxShadow: "none",
+          }}
         >
           {mobilizeMobileSlimHeader ? (
             <IconButton
@@ -1544,15 +1587,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Box
         component="main"
         sx={{
-          pt: `calc(${theme.spacing(7)} + ${maintenanceTop})`,
+          pt:
+            mobilizeMobileChrome
+              ? `calc(52px + ${maintenanceTop})`
+              : `calc(${theme.spacing(7)} + ${maintenanceTop})`,
           px: isMobilize ? { xs: 0, sm: 2, md: 3 } : { xs: 2, sm: 3 },
-          pb: "calc(32px + env(safe-area-inset-bottom, 0px))",
+          pb: isMobilize
+            ? "calc(56px + 32px + env(safe-area-inset-bottom, 0px))"
+            : "calc(32px + env(safe-area-inset-bottom, 0px))",
           ml: { md: desktopDrawerOpen ? `${DRAWER_WIDTH}px` : 0 },
           minHeight: "100vh",
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          color: "grey.100",
+          ...(mobilizeMobileChrome
+            ? {
+                bgcolor: onMobilizeProfilePage ? TRUTH_HUB_CENTER_BG : SOCIAL_HUB_LIGHT_BG,
+                color: onMobilizeProfilePage ? TRUTH_HUB_TEXT : "#0d0d0d",
+              }
+            : { color: "grey.100" }),
           transition: theme.transitions.create("margin", {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,

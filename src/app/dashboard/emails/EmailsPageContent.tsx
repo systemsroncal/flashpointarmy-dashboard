@@ -5,6 +5,7 @@ import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
 import { ensureMissionUpdateNewEmailTemplate } from "@/lib/mail/ensure-mission-update-email-template";
+import { ensureAccountVerifiedEmailTemplate } from "@/lib/mail/ensure-account-verified-email-template";
 import { requireServerUser } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -29,10 +30,12 @@ export default async function EmailsPageContent({
 
   const canEdit = can(permissions, MODULE_SLUGS.emails, "update");
 
+  const admin = createAdminClient();
   try {
-    await ensureMissionUpdateNewEmailTemplate(createAdminClient());
+    await ensureMissionUpdateNewEmailTemplate(admin);
+    await ensureAccountVerifiedEmailTemplate(admin);
   } catch (e) {
-    console.error("[emails] ensure mission_update_new template:", e);
+    console.error("[emails] ensure email templates:", e);
   }
 
   const [{ data: branding }, { data: templates }, logsResult] = await Promise.all([

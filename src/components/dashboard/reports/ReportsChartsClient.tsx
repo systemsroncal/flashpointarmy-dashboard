@@ -40,6 +40,8 @@ type ReportsPayload = {
   rolesPie: PieBlock;
   chapterStatusPie: PieBlock;
   courseCompletion?: CourseCompletionRow[];
+  verifiedByBucket?: SeriesBlock;
+  verifiedAccountsTotal?: number;
 };
 
 const baseOpts: ApexOptions = {
@@ -181,6 +183,23 @@ export function ReportsChartsClient() {
     };
   }, [data]);
 
+  const verifiedAreaOpts = useMemo((): ApexOptions => {
+    if (!data?.verifiedByBucket) return baseOpts;
+    return {
+      ...baseOpts,
+      chart: { ...baseOpts.chart, id: "verified-area", type: "area" },
+      stroke: { curve: "smooth", width: 2 },
+      fill: {
+        type: "gradient",
+        gradient: { shadeIntensity: 0.4, opacityFrom: 0.35, opacityTo: 0.05 },
+      },
+      xaxis: { categories: data.verifiedByBucket.categories, title: { text: formatLabel(data.bucket) } },
+      yaxis: { min: 0, decimalsInFloat: 0, title: { text: "New verifications" } },
+      colors: ["#8338ec"],
+      title: { text: "Verified accounts (verified_at)", style: { color: "#cbb2ff" } },
+    };
+  }, [data]);
+
   const rolesPieOpts = useMemo((): ApexOptions => {
     if (!data) return baseOpts;
     return {
@@ -304,6 +323,12 @@ export function ReportsChartsClient() {
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
             Range: {new Date(data.range.from).toLocaleString()} — {new Date(data.range.to).toLocaleString()}
             · Bucket: <strong>{data.bucket}</strong>
+            {typeof data.verifiedAccountsTotal === "number" ? (
+              <>
+                {" "}
+                · Verified accounts (current): <strong>{data.verifiedAccountsTotal.toLocaleString()}</strong>
+              </>
+            ) : null}
           </Typography>
         ) : null}
       </Paper>
@@ -347,6 +372,16 @@ export function ReportsChartsClient() {
               />
             </Paper>
           </Stack>
+          {data.verifiedByBucket ? (
+            <Paper sx={{ p: 2 }}>
+              <Chart
+                type="area"
+                height={300}
+                series={[{ name: "Verified accounts", data: data.verifiedByBucket.data }]}
+                options={verifiedAreaOpts}
+              />
+            </Paper>
+          ) : null}
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <Paper sx={{ p: 2, flex: 1 }}>
               {pieSeriesRoles.length > 0 && pieSeriesRoles.some((n) => n > 0) ? (

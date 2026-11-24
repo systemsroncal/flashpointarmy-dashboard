@@ -12,7 +12,8 @@ export type TemplateKey =
   | "register_otp"
   | "certificate_request_approved"
   | "certificate_request_rejected"
-  | "mission_update_new";
+  | "mission_update_new"
+  | "account_verified";
 
 export type SendTemplatedEmailOptions = {
   triggeredByUserId?: string | null;
