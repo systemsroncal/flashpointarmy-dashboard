@@ -15,6 +15,8 @@ import {
   normalizeAnnouncementPdfUrl,
 } from "@/lib/dashboard/announcement-pdf";
 import { loadUserRoleNames } from "@/lib/auth/user-roles";
+import { enqueueMissionUpdateEmailJob } from "@/lib/dashboard/mission-update-email-enqueue";
+import { scheduleMissionUpdateEmailProcessing } from "@/lib/dashboard/mission-update-email-scheduler";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -201,6 +203,21 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+  }
+
+  try {
+    const admin = createAdminClient();
+    const job = await enqueueMissionUpdateEmailJob(admin, {
+      announcementId,
+      audience,
+      targetUserId: null,
+      createdBy: user.id,
+    });
+    if (job && job.status !== "completed") {
+      scheduleMissionUpdateEmailProcessing(job.id);
+    }
+  } catch (e) {
+    console.error("[mission-update-email] enqueue failed", e);
   }
 
   return NextResponse.json({

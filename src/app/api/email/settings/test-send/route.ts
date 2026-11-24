@@ -14,6 +14,7 @@ const ALLOWED = new Set<TemplateKey>([
   "register_otp",
   "certificate_request_approved",
   "certificate_request_rejected",
+  "mission_update_new",
 ]);
 
 const DEMO_SHORTCODES = {
@@ -30,6 +31,10 @@ const DEMO_SHORTCODES = {
   admin_note_html: "<p><strong>Note from our team:</strong> Please continue with your next step.</p>",
   mission_briefing_url: "https://example.com/dashboard/training/mission-briefing",
   training_url: "https://example.com/dashboard/training",
+  mission_update_title: "New resources for your chapter",
+  mission_update_url: "https://example.com/dashboard/notifications?update=demo",
+  mission_update_preview_html:
+    "<p>We published new guidance for local leaders. Sign in to read the full update and any attached resources.</p>",
 };
 
 export async function POST(req: Request) {

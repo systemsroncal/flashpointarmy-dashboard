@@ -28,39 +28,43 @@ import {
   TextField,
   ThemeProvider,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from "@mui/material";
 import EmojiEmotionsOutlinedIcon from "@mui/icons-material/EmojiEmotionsOutlined";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
-const DEFAULT_VISIBLE_COMMENTS = 2;
+const INITIAL_VISIBLE_TOP_COMMENTS = 1;
+const LOAD_MORE_TOP_COMMENTS = 5;
+const INITIAL_VISIBLE_REPLIES = 2;
+const LOAD_MORE_REPLIES = 5;
 
-function pickVisibleTopComments(comments: SocialCommentNode[], n: number) {
-  if (comments.length <= n) {
-    return { visible: comments, rest: [] as SocialCommentNode[] };
-  }
-  const picked: SocialCommentNode[] = [];
-  const used = new Set<string>();
-
-  for (const c of comments) {
-    if (picked.length >= n) break;
-    if ((c.replies?.length ?? 0) > 0) {
-      picked.push(c);
-      used.add(c.id);
-    }
-  }
-  for (const c of comments) {
-    if (picked.length >= n) break;
-    if (!used.has(c.id)) {
-      picked.push(c);
-      used.add(c.id);
-    }
-  }
-  const rest = comments.filter((c) => !used.has(c.id));
-  return { visible: picked, rest };
+function commentThreadToggleSx(light: boolean) {
+  return {
+    mt: 0.75,
+    ml: 5.5,
+    px: 0,
+    minWidth: 0,
+    textTransform: "none",
+    fontWeight: 700,
+    fontSize: "0.8125rem",
+    color: light ? "#525252" : "#b0b3b8",
+    textDecoration: "underline",
+    "&:hover": {
+      bgcolor: "transparent",
+      textDecoration: "underline",
+      color: light ? "#3a3a3a" : "#d0d2d6",
+    },
+  } as const;
 }
+
+function replyToggleSx(light: boolean, depth: number) {
+  return {
+    ...commentThreadToggleSx(light),
+    mt: 0.35,
+    ml: depth > 0 ? 4.5 : 5.5,
+  };
+}
+
 const COMMENT_CLAMP_LINES = 3;
 const COMMENT_EMOJI_OPTIONS = [
   "😀",
@@ -402,6 +406,15 @@ function CommentItem({
   }
 
   const canDelete = Boolean(viewerUserId && (viewerUserId === node.author_id || viewerIsSuperAdmin));
+  const [visibleReplyCount, setVisibleReplyCount] = useState(INITIAL_VISIBLE_REPLIES);
+  const replies = node.replies ?? [];
+  const shownReplies = replies.slice(0, visibleReplyCount);
+  const hiddenReplyCount = replies.length - shownReplies.length;
+
+  useEffect(() => {
+    setVisibleReplyCount(INITIAL_VISIBLE_REPLIES);
+  }, [node.id, replies.length]);
+
   const liked = reactions.viewer_reaction === "like";
   const bubbleBg = light ? "#f0f2f5" : "rgba(255,255,255,0.08)";
   const nameMuted = light ? "#65676b" : "rgba(255,255,255,0.45)";
@@ -557,7 +570,7 @@ function CommentItem({
               </>
             )}
           </Stack>
-          {node.replies.map((reply) => (
+          {shownReplies.map((reply) => (
             <CommentItem
               key={reply.id}
               node={reply}
@@ -574,6 +587,26 @@ function CommentItem({
               onDelete={onDelete}
             />
           ))}
+          {hiddenReplyCount > 0 ? (
+            <Button
+              size="small"
+              onClick={() =>
+                setVisibleReplyCount((c) => Math.min(c + LOAD_MORE_REPLIES, replies.length))
+              }
+              sx={replyToggleSx(light, depth + 1)}
+            >
+              Read more
+            </Button>
+          ) : null}
+          {visibleReplyCount > INITIAL_VISIBLE_REPLIES && replies.length > INITIAL_VISIBLE_REPLIES ? (
+            <Button
+              size="small"
+              onClick={() => setVisibleReplyCount(INITIAL_VISIBLE_REPLIES)}
+              sx={replyToggleSx(light, depth + 1)}
+            >
+              Read less
+            </Button>
+          ) : null}
           {replyParentId === node.id ? replyComposer : null}
         </Box>
       </Box>
@@ -602,7 +635,7 @@ export function MobilizeSocialComments({
   const [draft, setDraft] = useState("");
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [replyToName, setReplyToName] = useState<string | null>(null);
-  const [commentsExpanded, setCommentsExpanded] = useState(false);
+  const [visibleTopCount, setVisibleTopCount] = useState(INITIAL_VISIBLE_TOP_COMMENTS);
   const replyInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(async () => {
@@ -624,7 +657,7 @@ export function MobilizeSocialComments({
 
   useEffect(() => {
     if (open) {
-      setCommentsExpanded(false);
+      setVisibleTopCount(INITIAL_VISIBLE_TOP_COMMENTS);
       setReplyParentId(null);
       setReplyToName(null);
       void load();
@@ -655,8 +688,8 @@ export function MobilizeSocialComments({
       setDraft("");
       setReplyParentId(null);
       setReplyToName(null);
-      setCommentsExpanded(true);
       await load();
+      setVisibleTopCount((c) => c + LOAD_MORE_TOP_COMMENTS);
     } finally {
       setPosting(false);
     }
@@ -674,21 +707,13 @@ export function MobilizeSocialComments({
     }
   }
 
-  // On mobile (stacked columns), show all comments expanded.
-  // On desktop, show first 2 with expand/collapse.
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
-
   if (!open) return null;
 
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
   const avatarFallback = viewerDisplayName?.trim() || "?";
 
-  const { visible: topComments, rest: restComments } = isDesktop
-    ? pickVisibleTopComments(comments, DEFAULT_VISIBLE_COMMENTS)
-    : { visible: [] as SocialCommentNode[], rest: [] as SocialCommentNode[] };
-  const hiddenCount = restComments.length;
-  const mobileComments = !isDesktop ? comments : [];
+  const visibleComments = comments.slice(0, visibleTopCount);
+  const hiddenTopCount = comments.length - visibleComments.length;
 
   const replyComposer = (
     <CommentComposer
@@ -735,8 +760,7 @@ export function MobilizeSocialComments({
           <CircularProgress size={22} sx={isDark ? { color: TRUTH_HUB_TEXT_MUTED } : undefined} />
         </Box>
       ) : null}
-      {/* Mobile: all comments rendered inline, no collapse */}
-      {mobileComments.map((c) => (
+      {visibleComments.map((c) => (
         <CommentItem
           key={c.id}
           node={c}
@@ -745,7 +769,6 @@ export function MobilizeSocialComments({
           onReply={(id, name) => {
             setReplyParentId(id);
             setReplyToName(name);
-            setCommentsExpanded(true);
           }}
           replyParentId={replyParentId}
           replyComposer={replyComposer}
@@ -757,83 +780,24 @@ export function MobilizeSocialComments({
           onDelete={(id) => void deleteComment(id)}
         />
       ))}
-      {/* Desktop: first 2 always visible */}
-      {topComments.map((c) => (
-        <CommentItem
-          key={c.id}
-          node={c}
-          commentReactionUrl={commentReactionUrl}
-          canComment={canComment}
-          onReply={(id, name) => {
-            setReplyParentId(id);
-            setReplyToName(name);
-            setCommentsExpanded(true);
-          }}
-          replyParentId={replyParentId}
-          replyComposer={replyComposer}
-          depth={0}
-          light={light}
-          viewerUserId={viewerUserId}
-          viewerIsSuperAdmin={viewerIsSuperAdmin}
-          deleting={deletingId === c.id}
-          onDelete={(id) => void deleteComment(id)}
-        />
-      ))}
-      {restComments.length > 0 ? (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateRows: commentsExpanded ? "1fr" : "0fr",
-            transition: "grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        >
-          <Box sx={{ overflow: "hidden", minHeight: 0 }}>
-            {restComments.map((c) => (
-              <CommentItem
-                key={c.id}
-                node={c}
-                commentReactionUrl={commentReactionUrl}
-                canComment={canComment}
-                onReply={(id, name) => {
-                  setReplyParentId(id);
-                  setReplyToName(name);
-                  setCommentsExpanded(true);
-                }}
-                replyParentId={replyParentId}
-                replyComposer={replyComposer}
-                depth={0}
-                light={light}
-                viewerUserId={viewerUserId}
-                viewerIsSuperAdmin={viewerIsSuperAdmin}
-                deleting={deletingId === c.id}
-                onDelete={(id) => void deleteComment(id)}
-              />
-            ))}
-          </Box>
-        </Box>
-      ) : null}
-      {!loading && isDesktop && hiddenCount > 0 ? (
+      {!loading && hiddenTopCount > 0 ? (
         <Button
           size="small"
-          onClick={() => setCommentsExpanded((v) => !v)}
-          sx={{
-            mt: 0.75,
-            ml: 5.5,
-            px: 0,
-            minWidth: 0,
-            textTransform: "none",
-            fontWeight: 700,
-            fontSize: "0.8125rem",
-            color: light ? "#525252" : "#b0b3b8",
-            textDecoration: "underline",
-            "&:hover": {
-              bgcolor: "transparent",
-              textDecoration: "underline",
-              color: light ? "#3a3a3a" : "#d0d2d6",
-            },
-          }}
+          onClick={() =>
+            setVisibleTopCount((c) => Math.min(c + LOAD_MORE_TOP_COMMENTS, comments.length))
+          }
+          sx={commentThreadToggleSx(light)}
         >
-          {commentsExpanded ? "See less" : "See more"}
+          Read more
+        </Button>
+      ) : null}
+      {!loading && visibleTopCount > INITIAL_VISIBLE_TOP_COMMENTS && comments.length > INITIAL_VISIBLE_TOP_COMMENTS ? (
+        <Button
+          size="small"
+          onClick={() => setVisibleTopCount(INITIAL_VISIBLE_TOP_COMMENTS)}
+          sx={commentThreadToggleSx(light)}
+        >
+          Read less
         </Button>
       ) : null}
       {canComment && !replyParentId ? (

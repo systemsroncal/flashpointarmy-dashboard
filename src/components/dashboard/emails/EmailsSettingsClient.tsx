@@ -128,6 +128,10 @@ const PREVIEW_SHORTCODES: Record<string, string> = {
     "<p><strong>Note from our team:</strong> Please continue with your next step.</p>",
   mission_briefing_url: "https://example.com/dashboard/training/mission-briefing",
   training_url: "https://example.com/dashboard/training",
+  mission_update_title: "New resources for your chapter",
+  mission_update_url: "https://example.com/dashboard/notifications?update=demo",
+  mission_update_preview_html:
+    "<p>We published new guidance for local leaders. Sign in to read the full update and any attached resources.</p>",
 };
 
 const TEMPLATE_LABELS: Record<string, string> = {
@@ -138,6 +142,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
   register_otp: "Registration OTP (sign-up)",
   certificate_request_approved: "Certificate request approved",
   certificate_request_rejected: "Certificate request rejected",
+  mission_update_new: "New Mission Update",
 };
 
 type EmailLogSortKey =
@@ -177,6 +182,8 @@ const TEMPLATE_SHORTCODE_HINTS: Record<string, string> = {
     "{user_fullname}, {user_email}, {course_title}, {admin_note}, {admin_note_html}, {mission_briefing_url}, {training_url}, {current_year}, {app_name}",
   certificate_request_rejected:
     "{user_fullname}, {user_email}, {course_title}, {admin_note}, {admin_note_html}, {current_year}, {app_name}",
+  mission_update_new:
+    "{user_fullname}, {user_email}, {mission_update_title}, {mission_update_url}, {mission_update_preview_html}, {current_year}, {app_name}",
 };
 
 function initialTabIndex(isSuperAdmin: boolean, initialTab?: string): number {
