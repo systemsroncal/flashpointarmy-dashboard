@@ -4,8 +4,9 @@ import { MODULE_SLUGS } from "@/config/modules";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
 import { isSuperAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { can } from "@/types/permissions";
-import { createClient } from "@/utils/supabase/server";
+import { ensureMissionUpdateNewEmailTemplate } from "@/lib/mail/ensure-mission-update-email-template";
 import { requireServerUser } from "@/lib/auth/server-session";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export default async function EmailsPageContent({
   initialTab,
@@ -27,6 +28,12 @@ export default async function EmailsPageContent({
   const isSuperAdmin = isSuperAdminUser(roleNames);
 
   const canEdit = can(permissions, MODULE_SLUGS.emails, "update");
+
+  try {
+    await ensureMissionUpdateNewEmailTemplate(createAdminClient());
+  } catch (e) {
+    console.error("[emails] ensure mission_update_new template:", e);
+  }
 
   const [{ data: branding }, { data: templates }, logsResult] = await Promise.all([
     supabase.from("email_branding_settings").select("*").eq("id", true).maybeSingle(),

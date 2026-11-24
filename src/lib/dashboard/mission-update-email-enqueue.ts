@@ -5,6 +5,7 @@ import {
 } from "@/lib/dashboard/announcement-email-audience";
 import { filterMissionUpdateEmailRecipients } from "@/lib/dashboard/mission-update-email-active-recipients";
 import { normalizeAnnouncementAudience } from "@/lib/dashboard/announcements-types";
+import { ensureMissionUpdateNewEmailTemplate } from "@/lib/mail/ensure-mission-update-email-template";
 
 export type MissionUpdateEmailJobRow = {
   id: string;
@@ -22,6 +23,8 @@ export async function enqueueMissionUpdateEmailJob(
   }
 ): Promise<MissionUpdateEmailJobRow | null> {
   const audience = normalizeAnnouncementAudience(opts.audience);
+
+  await ensureMissionUpdateNewEmailTemplate(admin);
 
   const { data: existing } = await admin
     .from("dashboard_announcement_email_jobs")
