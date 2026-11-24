@@ -17,6 +17,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { PasswordTextField } from "@/components/auth/PasswordTextField";
 import { useState } from "react";
 
 type Mode = "register" | "signin";
@@ -108,6 +109,11 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
       setError("Enter a valid 5-digit ZIP code.");
       return;
     }
+    const phoneTrim = phone.trim();
+    if (phoneTrim && phoneTrim.replace(/\D/g, "").length < 10) {
+      setError("Enter a valid 10-digit phone number.");
+      return;
+    }
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");
       return;
@@ -122,7 +128,7 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
           password,
           firstName: fn,
           lastName: ln,
-          phone: phone.trim() || undefined,
+          phone: phoneTrim || undefined,
           zipCode: zip,
           gender: gender || undefined,
           dateOfBirth: dateOfBirth || undefined,
@@ -176,6 +182,10 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
       "&.Mui-focused fieldset": { borderColor: "#000" },
     },
     "& .MuiFormHelperText-root": { color: "rgba(0,0,0,0.55)" },
+    "& .MuiIconButton-root": {
+      color: "rgba(0,0,0,0.55)",
+      "&:hover": { color: "#000", bgcolor: "rgba(0,0,0,0.06)" },
+    },
   } as const;
 
   const submitBtnSx = {
@@ -311,14 +321,13 @@ export function PublicGroupJoinDialog({ open, groupId, onClose, onJoined }: Prop
               autoComplete="email"
               sx={fieldSx}
             />
-            <TextField
+            <PasswordTextField
+              id="public-group-join-password"
               label="Password"
-              type="password"
               required
-              fullWidth
               size="small"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               autoComplete={mode === "register" ? "new-password" : "current-password"}
               sx={fieldSx}
             />
