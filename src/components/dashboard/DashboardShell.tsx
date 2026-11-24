@@ -116,11 +116,7 @@ import { resolveMobilizeMobileBackHref } from "@/lib/mobilize/mobilize-mobile-ba
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
 import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
-import {
-  SOCIAL_HUB_LIGHT_BG,
-  TRUTH_HUB_CENTER_BG,
-  TRUTH_HUB_TEXT,
-} from "@/lib/mobilize/social/social-hub-surface";
+import { SOCIAL_HUB_LIGHT_BG, TRUTH_HUB_TEXT } from "@/lib/mobilize/social/social-hub-surface";
 import {
   MOBILIZE_BOOKMARKS_HREF,
   MOBILIZE_SOCIAL_SETTINGS_HREF,
@@ -667,8 +663,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       pathname.startsWith(`${MOBILIZE_PREFIX}/messages`) ||
       pathname.startsWith(`${MOBILIZE_PREFIX}/social-settings`));
 
-  const mobilizeHeaderOnLightSurface =
-    mobilizeMobileChrome && onMobilizeSocialHubPage && !onMobilizeProfilePage;
+  /** Mobilize mobile: icons on light page chrome (transparent AppBar over #f0f2f5). */
+  const mobilizeHeaderOnLightSurface = mobilizeMobileChrome;
 
   useEffect(() => {
     if (desktop) setDesktopDrawerOpen(true);
@@ -1422,7 +1418,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <AppBar
         position={mobilizeMobileChrome ? "absolute" : "fixed"}
         elevation={0}
-        color="transparent"
         sx={{
           top: maintenanceTop,
           zIndex: (t) => t.zIndex.drawer + 1,
@@ -1430,11 +1425,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             ? {
                 bgcolor: "transparent",
                 backgroundColor: "transparent",
+                background: "transparent",
                 backgroundImage: "none",
                 boxShadow: "none",
                 backdropFilter: "none",
                 WebkitBackdropFilter: "none",
                 borderBottom: "none",
+                "&.MuiAppBar-root": {
+                  backgroundColor: "transparent",
+                  backgroundImage: "none",
+                  boxShadow: "none",
+                },
+                "&.MuiAppBar-colorDefault": {
+                  backgroundColor: "transparent",
+                },
+                "&.MuiPaper-root": {
+                  backgroundColor: "transparent",
+                  backgroundImage: "none",
+                  boxShadow: "none",
+                },
               }
             : {
                 bgcolor: "rgba(12,12,14,0.88)",
@@ -1602,8 +1611,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           flexDirection: "column",
           ...(mobilizeMobileChrome
             ? {
-                bgcolor: onMobilizeProfilePage ? TRUTH_HUB_CENTER_BG : SOCIAL_HUB_LIGHT_BG,
-                color: onMobilizeProfilePage ? TRUTH_HUB_TEXT : "#0d0d0d",
+                bgcolor: SOCIAL_HUB_LIGHT_BG,
+                color: "#0d0d0d",
               }
             : { color: "grey.100" }),
           transition: theme.transitions.create("margin", {
@@ -1618,6 +1627,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </Box>
         <PoweredByDreamsAnimation
           sx={{
+            display: mobilizeMobileChrome ? "none" : "block",
             fontSize: "0.65rem",
             mt: 2,
             pt: 1.5,

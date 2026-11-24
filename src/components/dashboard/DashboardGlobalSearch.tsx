@@ -2,6 +2,7 @@
 
 import { DiscoverJoinGroupButton } from "@/components/mobilize/social/DiscoverJoinGroupButton";
 import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
+import { mobilizeDarkScrollbarSx } from "@/lib/ui/scrollbar-sx";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import CloseIcon from "@mui/icons-material/Close";
@@ -116,6 +117,7 @@ function SearchResultsPanel({
   return (
     <Paper
       elevation={8}
+      className="fp-search-results-scroll"
       sx={{
         mt: 0.75,
         maxHeight: 360,
@@ -123,6 +125,7 @@ function SearchResultsPanel({
         bgcolor: "#1a1d24",
         border: "1px solid rgba(255,215,0,0.18)",
         borderRadius: 2,
+        ...mobilizeDarkScrollbarSx,
       }}
     >
       {loading ? (
@@ -366,7 +369,7 @@ export function DashboardGlobalSearch() {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ pt: 0 }}>
+        <DialogContent sx={{ pt: 0, ...mobilizeDarkScrollbarSx, maxHeight: "min(70dvh, 520px)", overflowY: "auto" }}>
           <TextField
             autoFocus
             size="small"

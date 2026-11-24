@@ -706,8 +706,8 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
 
   const tabPanelSx = {
     flex: 1,
-    minHeight: 0,
-    bgcolor: "transparent",
+    minHeight: { xs: "calc(100dvh - 300px)", sm: 420 },
+    bgcolor: "#fff",
     borderRadius: { xs: 0, sm: 2 },
     p: { xs: 0, sm: 2 },
     display: "flex",
@@ -735,8 +735,28 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       );
     }
 
-    const renderPostList = (items: ProfilePost[], emptyCopy: { title: string; description: string }) => (
-      <Stack spacing={{ xs: "15px", sm: 1.5 }}>
+    const tabLoadingPanel = (
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: "#fff",
+          minHeight: { xs: "calc(100dvh - 300px)", sm: 420 },
+          width: "100%",
+        }}
+      >
+        <CircularProgress size={28} sx={{ color: "rgba(0,0,0,0.35)" }} />
+      </Box>
+    );
+
+    const renderPostList = (items: ProfilePost[], emptyCopy: { title: string; description: string }) => {
+      if (tabLoading && !items.length) {
+        return tabLoadingPanel;
+      }
+      return (
+      <Stack spacing={{ xs: "15px", sm: 1.5 }} sx={{ flex: 1, minHeight: 0, width: "100%" }}>
         {items.map((post) => (
           <MobilizeSocialPostCard
             key={post.id}
@@ -757,24 +777,14 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             <MobilizeSectionEmptyState fill layout="stacked" title={emptyCopy.title} description={emptyCopy.description} />
           </Paper>
         ) : null}
-        {tabLoading ? (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              py: 6,
-              width: "100%",
-              minHeight: 220,
-              bgcolor: "#fff",
-              borderRadius: { xs: 0, sm: 2 },
-            }}
-          >
-            <CircularProgress size={28} />
+        {tabLoading && items.length > 0 ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4, width: "100%", bgcolor: "#fff" }}>
+            <CircularProgress size={24} sx={{ color: "rgba(0,0,0,0.35)" }} />
           </Box>
         ) : null}
       </Stack>
     );
+    };
 
     switch (activeTab) {
       case "posts":
