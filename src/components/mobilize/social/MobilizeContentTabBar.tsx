@@ -17,6 +17,8 @@ type Props = {
   variant?: "truth" | "facebook";
   /** Dark Truth center column vs white panel. */
   surface?: "light" | "dark";
+  /** Slide away on scroll (Mobilize mobile). */
+  hiddenOnScroll?: boolean;
 };
 
 const TRUTH_ACCENT = "#ff2952";
@@ -28,6 +30,7 @@ export function MobilizeContentTabBar({
   onTabChange,
   variant = "truth",
   surface = "light",
+  hiddenOnScroll = false,
 }: Props) {
   const accent = variant === "truth" ? TRUTH_ACCENT : FACEBOOK_ACCENT;
   const isDark = surface === "dark";
@@ -42,9 +45,11 @@ export function MobilizeContentTabBar({
         borderBottom: isDark ? `1px solid ${TRUTH_HUB_BORDER}` : "1px solid rgba(0,0,0,0.08)",
         overflowX: "auto",
         flexShrink: 0,
-        position: isDark ? "sticky" : undefined,
-        top: isDark ? 57 : undefined,
-        zIndex: isDark ? 2 : undefined,
+        position: isDark || hiddenOnScroll ? "sticky" : undefined,
+        top: isDark ? 57 : hiddenOnScroll ? 52 : undefined,
+        zIndex: isDark || hiddenOnScroll ? 2 : undefined,
+        transform: hiddenOnScroll ? "translateY(-110%)" : "none",
+        transition: "transform 0.22s ease",
       }}
     >
       {tabs.map((t) => {

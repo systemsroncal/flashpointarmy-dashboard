@@ -31,6 +31,8 @@ type Props = {
   items: MobilizeBottomNavBarItem[];
   ariaLabel: string;
   borderAccent?: "gold" | "neutral";
+  /** Replaces the default flat overflow menu (nested Mobilize account menu). */
+  renderOverflowMenu?: (close: () => void) => ReactNode;
 };
 
 function navItemButtonSx(active: boolean) {
@@ -107,11 +109,26 @@ function usePrimaryNavSlotLimit(): number {
   return Number.POSITIVE_INFINITY;
 }
 
-export function MobilizeBottomNavBar({ items, ariaLabel, borderAccent = "neutral" }: Props) {
+export function MobilizeBottomNavBar({
+  items,
+  ariaLabel,
+  borderAccent = "neutral",
+  renderOverflowMenu,
+}: Props) {
   const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(null);
   const primaryLimit = usePrimaryNavSlotLimit();
 
   const { primaryItems, overflowItems, showOverflow } = useMemo(() => {
+    if (renderOverflowMenu) {
+      if (items.length <= primaryLimit) {
+        return { primaryItems: items, overflowItems: [] as MobilizeBottomNavBarItem[], showOverflow: true };
+      }
+      return {
+        primaryItems: items.slice(0, primaryLimit),
+        overflowItems: items.slice(primaryLimit),
+        showOverflow: true,
+      };
+    }
     if (items.length <= primaryLimit) {
       return { primaryItems: items, overflowItems: [] as MobilizeBottomNavBarItem[], showOverflow: false };
     }
@@ -120,7 +137,7 @@ export function MobilizeBottomNavBar({ items, ariaLabel, borderAccent = "neutral
       overflowItems: items.slice(primaryLimit),
       showOverflow: true,
     };
-  }, [items, primaryLimit]);
+  }, [items, primaryLimit, renderOverflowMenu]);
 
   const overflowActive = overflowItems.some((item) => item.active);
 
@@ -187,34 +204,36 @@ export function MobilizeBottomNavBar({ items, ariaLabel, borderAccent = "neutral
           },
         }}
       >
-        {overflowItems.map((item) => {
-          const label = item.shortLabel ?? item.label;
-          const active = Boolean(item.active);
-          return (
-            <MenuItem
-              key={item.key}
-              component={item.href ? Link : "li"}
-              href={item.href}
-              onClick={() => {
-                item.onClick?.();
-                setOverflowAnchor(null);
-              }}
-              selected={active}
-              sx={{
-                color: active ? flashpointYellow : "rgba(255,255,255,0.88)",
-                py: 1,
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: active ? flashpointYellow : "inherit" }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={label}
-                primaryTypographyProps={{ fontSize: "0.875rem", fontWeight: active ? 700 : 500 }}
-              />
-            </MenuItem>
-          );
-        })}
+        {renderOverflowMenu
+          ? renderOverflowMenu(() => setOverflowAnchor(null))
+          : overflowItems.map((item) => {
+              const label = item.shortLabel ?? item.label;
+              const active = Boolean(item.active);
+              return (
+                <MenuItem
+                  key={item.key}
+                  component={item.href ? Link : "li"}
+                  href={item.href}
+                  onClick={() => {
+                    item.onClick?.();
+                    setOverflowAnchor(null);
+                  }}
+                  selected={active}
+                  sx={{
+                    color: active ? flashpointYellow : "rgba(255,255,255,0.88)",
+                    py: 1,
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36, color: active ? flashpointYellow : "inherit" }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={label}
+                    primaryTypographyProps={{ fontSize: "0.875rem", fontWeight: active ? 700 : 500 }}
+                  />
+                </MenuItem>
+              );
+            })}
       </Menu>
     </>
   );

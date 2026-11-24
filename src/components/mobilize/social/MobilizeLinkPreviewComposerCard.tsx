@@ -113,22 +113,6 @@ export function MobilizeLinkPreviewComposerCard({
             >
               {preview.title || preview.url}
             </Typography>
-            {preview.description ? (
-              <Typography
-                variant="body2"
-                sx={{
-                  color: muted,
-                  fontSize: "0.8125rem",
-                  lineHeight: 1.4,
-                  display: "-webkit-box",
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}
-              >
-                {preview.description}
-              </Typography>
-            ) : null}
             <Stack direction="row" alignItems="center" spacing={0.35} sx={{ mt: 0.75 }}>
               <OpenInNewIcon sx={{ fontSize: 14, color: muted }} />
               <Typography variant="caption" sx={{ color: muted }}>

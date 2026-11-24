@@ -13,15 +13,9 @@ import {
   mobilizeGroupFeedPostsListSx,
   mobilizeGroupFeedPostsStackSx,
 } from "@/lib/mobilize/mobilize-ui-surface";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import {
   Box,
-  IconButton,
   Paper,
-  Stack,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -188,47 +182,16 @@ export function MobilizeGroupFeed({
                 viewerUserId={me.id}
                 viewerIsSuperAdmin={isSuperAdmin}
                 pinned={isPinned}
-                manageActions={
-                  canManage || canPinPost ? (
-                    <Stack direction="row" spacing={0.25}>
-                      {canPinPost && onPin ? (
-                        <Tooltip title={isPinned ? "Unpin post" : "Pin post"}>
-                          <IconButton
-                            size="small"
-                            onClick={() => onPin(m, !isPinned)}
-                            aria-label={isPinned ? "Unpin post" : "Pin post"}
-                            sx={{
-                              color: isPinned ? "#1877f2" : "rgba(0,0,0,0.45)",
-                              "&:hover": {
-                                color: isPinned ? "#166fe5" : "rgba(0,0,0,0.7)",
-                              },
-                            }}
-                          >
-                            <PushPinOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      ) : null}
-                      {canManage && onEdit ? (
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => onEdit(m)} aria-label="Edit post">
-                            <EditOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      ) : null}
-                      {canManage && onDelete ? (
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => onDelete(m)}
-                            aria-label="Delete post"
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      ) : null}
-                    </Stack>
-                  ) : undefined
+                postManage={
+                  canManage || canPinPost
+                    ? {
+                        showPin: Boolean(canPinPost && onPin),
+                        onPin: onPin ? () => onPin(m, !isPinned) : undefined,
+                        isPinned,
+                        onEdit: canManage && onEdit ? () => onEdit(m) : undefined,
+                        onDelete: canManage && onDelete ? () => onDelete(m) : undefined,
+                      }
+                    : undefined
                 }
               />
             );

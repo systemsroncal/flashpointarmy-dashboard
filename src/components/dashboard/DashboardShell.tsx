@@ -115,6 +115,13 @@ import {
 import { resolveMobilizeMobileBackHref } from "@/lib/mobilize/mobilize-mobile-back-href";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
+import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
+import {
+  MOBILIZE_BOOKMARKS_HREF,
+  MOBILIZE_SOCIAL_SETTINGS_HREF,
+} from "@/lib/mobilize/mobilize-nav-config";
+import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 
 const DRAWER_WIDTH = 220;
 
@@ -634,6 +641,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const onMobilizeProfilePage =
     isMobilize && pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
   const mobilizeMobileSlimHeader = !desktop && isMobilize;
+  const mobilizeMobileChrome = mobilizeMobileSlimHeader;
+  const mobilizeHeaderHidden = useMobilizeScrollHide(mobilizeMobileChrome);
   const [mobilizeBackHref, setMobilizeBackHref] = useState("/dashboard/mobilize/home");
 
   useEffect(() => {
@@ -962,9 +971,108 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             ) : null;
 
           // After Profile → Member Journey + People (admin sections).
+          const mobilizeDrawerAccountExtras =
+            !desktop && isMobilize && canAccessMobilize && item.href === "__PROFILE__" ? (
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    component={Link}
+                    href={MOBILIZE_BOOKMARKS_HREF}
+                    selected={pathname.startsWith(MOBILIZE_BOOKMARKS_HREF)}
+                    onClick={closeMobileDrawer}
+                    sx={{ ...NAV_ITEM_TOUCH_SX, pl: 4.5, py: 0.65 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 34, color: "rgba(255,255,255,0.88)" }}>
+                      <BookmarkBorderOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="My saved"
+                      primaryTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 600,
+                        fontSize: "0.82rem",
+                        color: "rgba(255,255,255,0.88)",
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              </>
+            ) : null;
+
           const afterProfile =
             item.href === "__PROFILE__" ? (
               <>
+                {mobilizeDrawerAccountExtras}
+                {!desktop && isMobilize && canAccessMobilize && settingsNav.length > 0 ? (
+                  <>
+                    <ListItem disablePadding>
+                      <ListItemButton
+                        onClick={() => setSettingsOpen((prev) => !prev)}
+                        selected={settingsHasActive}
+                        sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.75, mt: 0.25 }}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            color: settingsHasActive ? "primary.main" : "rgba(255,255,255,0.92)",
+                            minWidth: 38,
+                          }}
+                        >
+                          <SettingsIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary="Settings"
+                          primaryTypographyProps={{
+                            variant: "body2",
+                            fontWeight: 600,
+                            fontSize: "calc(0.82rem + 3px)",
+                            color: settingsHasActive ? "primary.main" : "rgba(255,255,255,0.88)",
+                          }}
+                        />
+                        {settingsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                      </ListItemButton>
+                    </ListItem>
+                    <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
+                      <SidebarNestedNavList
+                        items={settingsNav.map((item) => ({
+                          key: item.href,
+                          label: item.label,
+                          href: item.href,
+                          icon: item.icon,
+                          selected: isNavItemSelected(item, pathname),
+                          tourAttr: `nav-${item.module}`,
+                        }))}
+                        onNavigate={closeMobileDrawer}
+                      />
+                      {showMobilizeSettings ? (
+                        <Suspense fallback={null}>
+                          <MobilizeSettingsNavGroup onNavigate={closeMobileDrawer} />
+                        </Suspense>
+                      ) : null}
+                      <ListItem disablePadding sx={{ pl: 2.25, pr: 1 }}>
+                        <ListItemButton
+                          onClick={() => {
+                            closeMobileDrawer();
+                            void handleSignOut();
+                          }}
+                          sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.65, pl: 1.5, borderRadius: 1 }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 34, color: "rgba(255,255,255,0.88)" }}>
+                            <LogoutOutlinedIcon fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary="Log out"
+                            primaryTypographyProps={{
+                              variant: "body2",
+                              fontWeight: 600,
+                              fontSize: "0.82rem",
+                              color: "rgba(255,255,255,0.88)",
+                            }}
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    </Collapse>
+                  </>
+                ) : null}
                 {missionPipelineNav.length > 0 ? (
                   <MissionPipelineNavGroup
                     key="mission-pipeline-group"
@@ -1108,7 +1216,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             ) : null}
           </>
         ) : null}
-        {settingsNav.length > 0 ? (
+        {settingsNav.length > 0 && !(mobilizeMobileChrome && canAccessMobilize) ? (
           <>
             <ListItem disablePadding>
               <ListItemButton
@@ -1160,7 +1268,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Collapse>
           </>
         ) : null}
-        {showMobilizeSettings ? (
+        {showMobilizeSettings && !(mobilizeMobileChrome && canAccessMobilize) ? (
           <Suspense fallback={null}>
             <MobilizeSettingsNavGroup onNavigate={closeMobileDrawer} />
           </Suspense>
@@ -1303,24 +1411,31 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Box sx={{ minHeight: "100vh", flex: 1, display: "flex", flexDirection: "column" }}>
       <FirstLoginPasswordGate />
       <AppBar
-        position="fixed"
+        position={mobilizeMobileChrome ? "absolute" : "fixed"}
         elevation={0}
         sx={{
           top: maintenanceTop,
           zIndex: (t) => t.zIndex.drawer + 1,
-          bgcolor: "rgba(12,12,14,0.88)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          borderBottom: "1px solid rgba(255,215,0,0.12)",
+          bgcolor: mobilizeMobileChrome ? "transparent" : "rgba(12,12,14,0.88)",
+          backdropFilter: mobilizeMobileChrome ? "none" : "blur(8px)",
+          WebkitBackdropFilter: mobilizeMobileChrome ? "none" : "blur(8px)",
+          borderBottom: mobilizeMobileChrome ? "none" : "1px solid rgba(255,215,0,0.12)",
           width: { xs: "100%", md: `calc(100% - ${appBarShift}px)` },
           ml: { md: `${appBarShift}px` },
-          transform: "translate3d(0, 0, 0)",
-          WebkitTransform: "translate3d(0, 0, 0)",
+          color: mobilizeMobileChrome ? "#fff" : undefined,
+          transform: mobilizeMobileChrome && mobilizeHeaderHidden ? "translateY(-110%)" : "translate3d(0, 0, 0)",
+          WebkitTransform: mobilizeMobileChrome && mobilizeHeaderHidden ? "translateY(-110%)" : "translate3d(0, 0, 0)",
           willChange: "transform",
-          transition: theme.transitions.create(["width", "margin"], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
+          transition: mobilizeMobileChrome
+            ? theme.transitions.create(["transform", "width", "margin"], {
+                easing: theme.transitions.easing.easeInOut,
+                duration: 220,
+              })
+            : theme.transitions.create(["width", "margin"], {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
+          "& .MuiIconButton-root": mobilizeMobileChrome ? { color: "#fff" } : undefined,
         }}
       >
         <Toolbar

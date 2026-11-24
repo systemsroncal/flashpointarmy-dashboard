@@ -115,12 +115,11 @@ export function splitHtmlLinkPreviews(html: string): { bodyHtml: string; preview
 export function appendLinkPreviewHtml(html: string, meta: LinkPreviewMeta): string {
   if (contentHasLinkPreview(html)) return html;
   const title = escapeHtml(meta.title?.trim() || meta.siteName || meta.url);
-  const desc = meta.description?.trim() ? escapeHtml(meta.description.trim()) : "";
   const host = escapeHtml(meta.siteName?.trim() || new URL(meta.url).hostname.replace(/^www\./i, ""));
   const img = meta.imageUrl
     ? `<img class="mobilize-link-preview__image" src="${escapeAttr(meta.imageUrl)}" alt="" loading="lazy" />`
     : "";
-  const block = `<aside class="mobilize-link-preview" contenteditable="false" data-mce-block="1" data-link-url="${escapeAttr(meta.url)}"><a href="${escapeAttr(meta.url)}" target="_blank" rel="noopener noreferrer" class="mobilize-link-preview__card">${img}<span class="mobilize-link-preview__body"><strong class="mobilize-link-preview__title">${title}</strong>${desc ? `<span class="mobilize-link-preview__desc">${desc}</span>` : ""}<span class="mobilize-link-preview__host">${host}</span></span></a></aside>`;
+  const block = `<aside class="mobilize-link-preview" contenteditable="false" data-mce-block="1" data-link-url="${escapeAttr(meta.url)}"><a href="${escapeAttr(meta.url)}" target="_blank" rel="noopener noreferrer" class="mobilize-link-preview__card">${img}<span class="mobilize-link-preview__body"><strong class="mobilize-link-preview__title">${title}</strong><span class="mobilize-link-preview__host">${host}</span></span></a></aside>`;
   const trimmed = html.trim();
   return trimmed ? `${trimmed}${block}` : block;
 }
