@@ -15,6 +15,7 @@ const ALLOWED = new Set<TemplateKey>([
   "certificate_request_approved",
   "certificate_request_rejected",
   "mission_update_new",
+  "account_verified",
 ]);
 
 const DEMO_SHORTCODES = {
@@ -35,6 +36,7 @@ const DEMO_SHORTCODES = {
   mission_update_url: "https://example.com/dashboard/notifications?update=demo",
   mission_update_preview_html:
     "<p>We published new guidance for local leaders. Sign in to read the full update and any attached resources.</p>",
+  profile_url: "https://example.com/dashboard/mobilize/profile/demo",
 };
 
 export async function POST(req: Request) {

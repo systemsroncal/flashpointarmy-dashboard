@@ -423,6 +423,7 @@ export function CommunitySection({
   const [editLocalLeaderVerified, setEditLocalLeaderVerified] = useState(false);
   const [editUserVerified, setEditUserVerified] = useState(false);
   const [editUserVerifiedAt, setEditUserVerifiedAt] = useState<string | null>(null);
+  const [verifiedEmailBusy, setVerifiedEmailBusy] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [editRoleDraft, setEditRoleDraft] = useState<EditableRole>("member");
@@ -1017,10 +1018,22 @@ export function CommunitySection({
           ...passwordPayload,
         }),
       });
-      const data = (await res.json()) as { error?: string; user?: Partial<CommunityUserRow> };
+      const data = (await res.json()) as {
+        error?: string;
+        user?: Partial<CommunityUserRow>;
+        verified_email_sent?: boolean;
+        verified_email_error?: string;
+      };
       if (!res.ok) {
         setEditError(data.error || "Could not update member.");
         return;
+      }
+      if (data.verified_email_sent === false && data.verified_email_error) {
+        setInviteFlash(`User saved, but verification email failed: ${data.verified_email_error}`);
+        window.setTimeout(() => setInviteFlash(null), 14000);
+      } else if (data.verified_email_sent) {
+        setInviteFlash("Verification email sent.");
+        window.setTimeout(() => setInviteFlash(null), 8000);
       }
       if (data.user) {
         const row = data.user;
@@ -1493,6 +1506,61 @@ export function CommunitySection({
 
   const displayRecordCount = remoteMode ? totalCount : sorted.length;
 
+  async function sendVerifiedAccountEmail(userId: string) {
+    setVerifiedEmailBusy(true);
+    try {
+      const res = await fetch("/api/community/verified-account/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = (await res.json()) as { error?: string; sent?: number };
+      if (!res.ok) {
+        setInviteFlash(`ERROR:${data.error || "Could not send verification email."}`);
+      } else {
+        setInviteFlash("Verification email sent.");
+      }
+      window.setTimeout(() => setInviteFlash(null), 10000);
+    } finally {
+      setVerifiedEmailBusy(false);
+    }
+  }
+
+  async function emailAllVerifiedAccounts() {
+    if (
+      !window.confirm(
+        "Send the account verified email to all verified members? This may send up to 200 emails per run."
+      )
+    ) {
+      return;
+    }
+    setVerifiedEmailBusy(true);
+    try {
+      const res = await fetch("/api/community/verified-account/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ allVerified: true }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        sent?: number;
+        failed?: number;
+        cappedAt?: number;
+      };
+      if (!res.ok) {
+        setInviteFlash(`ERROR:${data.error || "Bulk send failed."}`);
+      } else {
+        const failed = data.failed ?? 0;
+        setInviteFlash(
+          `Verification emails sent: ${data.sent ?? 0}${failed ? `, failed: ${failed}` : ""}.`
+        );
+      }
+      window.setTimeout(() => setInviteFlash(null), 14000);
+    } finally {
+      setVerifiedEmailBusy(false);
+    }
+  }
+
   return (
     <Paper sx={{ p: 2, bgcolor: "rgba(0,0,0,0.45)", maxWidth: "100%", overflow: "hidden" }}>
       <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
@@ -1566,6 +1634,16 @@ export function CommunitySection({
               {!isAdmins && isSuperAdmin ? (
                 <Button variant="outlined" size="small" onClick={() => setImportOpen(true)}>
                   {isLeaders ? "Import Local leaders" : "Import Members"}
+                </Button>
+              ) : null}
+              {!isLeaders && !isAdmins && isSuperAdmin ? (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled={verifiedEmailBusy}
+                  onClick={() => void emailAllVerifiedAccounts()}
+                >
+                  Email verified accounts
                 </Button>
               ) : null}
               {!isLeaders && !isAdmins && isSuperAdmin ? (
@@ -2643,23 +2721,36 @@ export function CommunitySection({
               />
             ) : null}
             {isSuperAdmin && editUser ? (
-              <VerifiedUserSwitch
-                checked={editUserVerified}
-                verifiedAt={editUserVerifiedAt}
-                disabled={editSaving || editRoleSaving}
-                userLabel={[
-                  [editFirstName, editLastName].filter(Boolean).join(" ").trim() ||
-                    editUser.display_name ||
-                    "User",
-                  editUser.email,
-                ]
-                  .filter(Boolean)
-                  .join(" — ")}
-                onChange={(next) => {
-                  setEditUserVerified(next);
-                  setEditUserVerifiedAt(next ? new Date().toISOString() : null);
-                }}
-              />
+              <>
+                <VerifiedUserSwitch
+                  checked={editUserVerified}
+                  verifiedAt={editUserVerifiedAt}
+                  disabled={editSaving || editRoleSaving}
+                  userLabel={[
+                    [editFirstName, editLastName].filter(Boolean).join(" ").trim() ||
+                      editUser.display_name ||
+                      "User",
+                    editUser.email,
+                  ]
+                    .filter(Boolean)
+                    .join(" — ")}
+                  onChange={(next) => {
+                    setEditUserVerified(next);
+                    setEditUserVerifiedAt(next ? new Date().toISOString() : null);
+                  }}
+                />
+                {editUserVerified ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={verifiedEmailBusy || editSaving || editRoleSaving}
+                    onClick={() => void sendVerifiedAccountEmail(editUser.id)}
+                    sx={{ alignSelf: "flex-start", mt: 0.5 }}
+                  >
+                    Send verification email
+                  </Button>
+                ) : null}
+              </>
             ) : null}
           </Box>
         </DialogContent>

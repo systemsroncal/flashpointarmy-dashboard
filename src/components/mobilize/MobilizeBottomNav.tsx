@@ -17,10 +17,13 @@ import {
 } from "@/lib/mobilize/mobilize-nav-config";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
+import { mobilizeDarkScrollbarSx } from "@/lib/ui/scrollbar-sx";
 import { SIGNING_OUT_SESSION_KEY } from "@/lib/auth/session-policy";
 import { createClient } from "@/utils/supabase/client";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
-import { Box, Divider, ListItemIcon } from "@mui/material";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Box, Collapse, Divider, ListItemIcon } from "@mui/material";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
@@ -122,7 +125,7 @@ function MobilizeBottomNavSearchDialog({
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle sx={{ pb: 1 }}>Search</DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ ...mobilizeDarkScrollbarSx, maxHeight: "min(70dvh, 520px)", overflowY: "auto" }}>
         <TextField
           autoFocus
           fullWidth
@@ -221,53 +224,75 @@ function MobilizeSocialOverflowMenu({
   const profileActive = pathname === profileHref;
   const savedActive = pathname.startsWith(MOBILIZE_BOOKMARKS_HREF);
   const settingsActive = pathname.startsWith(MOBILIZE_SOCIAL_SETTINGS_HREF);
+  const [profileOpen, setProfileOpen] = useState(profileActive || savedActive);
+  const [settingsOpen, setSettingsOpen] = useState(settingsActive);
 
   return (
-    <>
+    <Box sx={{ minWidth: 240, py: 0.5 }}>
       <MenuItem
-        component={Link}
-        href={profileHref}
-        onClick={close}
-        selected={profileActive}
-        sx={{ color: profileActive ? flashpointYellow : "rgba(255,255,255,0.88)", py: 1 }}
+        onClick={() => setProfileOpen((v) => !v)}
+        selected={profileActive || savedActive}
+        sx={{ color: profileActive || savedActive ? flashpointYellow : "rgba(255,255,255,0.88)", py: 1 }}
       >
         <ListItemIcon sx={{ minWidth: 36 }}>{SOCIAL_ICONS.profile}</ListItemIcon>
         <ListItemText primary="Profile" primaryTypographyProps={{ fontWeight: 700 }} />
+        {profileOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
       </MenuItem>
-      <MenuItem
-        component={Link}
-        href={MOBILIZE_BOOKMARKS_HREF}
-        onClick={close}
-        selected={savedActive}
-        sx={{ pl: 4, color: savedActive ? flashpointYellow : "rgba(255,255,255,0.88)", py: 0.85 }}
-      >
-        <ListItemIcon sx={{ minWidth: 32 }}>{SOCIAL_ICONS.bookmarks}</ListItemIcon>
-        <ListItemText primary="My saved" primaryTypographyProps={{ fontSize: "0.85rem" }} />
-      </MenuItem>
+      <Collapse in={profileOpen} unmountOnExit>
+        <MenuItem
+          component={Link}
+          href={profileHref}
+          onClick={close}
+          selected={profileActive}
+          sx={{ pl: 4.5, py: 0.85, color: profileActive ? flashpointYellow : "rgba(255,255,255,0.82)" }}
+        >
+          <ListItemText primary="View profile" primaryTypographyProps={{ fontSize: "0.85rem" }} />
+        </MenuItem>
+        <MenuItem
+          component={Link}
+          href={MOBILIZE_BOOKMARKS_HREF}
+          onClick={close}
+          selected={savedActive}
+          sx={{ pl: 4.5, py: 0.85, color: savedActive ? flashpointYellow : "rgba(255,255,255,0.82)" }}
+        >
+          <ListItemIcon sx={{ minWidth: 32 }}>{SOCIAL_ICONS.bookmarks}</ListItemIcon>
+          <ListItemText primary="My saved" primaryTypographyProps={{ fontSize: "0.85rem" }} />
+        </MenuItem>
+      </Collapse>
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 0.5 }} />
       <MenuItem
-        component={Link}
-        href={MOBILIZE_SOCIAL_SETTINGS_HREF}
-        onClick={close}
+        onClick={() => setSettingsOpen((v) => !v)}
         selected={settingsActive}
         sx={{ color: settingsActive ? flashpointYellow : "rgba(255,255,255,0.88)", py: 1 }}
       >
         <ListItemIcon sx={{ minWidth: 36 }}>{SOCIAL_ICONS.settings}</ListItemIcon>
         <ListItemText primary="Settings" primaryTypographyProps={{ fontWeight: 700 }} />
+        {settingsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
       </MenuItem>
-      <MenuItem
-        onClick={() => {
-          close();
-          void signOutFromMobilizeMenu();
-        }}
-        sx={{ color: "rgba(255,255,255,0.88)", py: 1 }}
-      >
-        <ListItemIcon sx={{ minWidth: 36 }}>
-          <LogoutOutlinedIcon fontSize="small" />
-        </ListItemIcon>
-        <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: "0.875rem" }} />
-      </MenuItem>
-    </>
+      <Collapse in={settingsOpen} unmountOnExit>
+        <MenuItem
+          component={Link}
+          href={MOBILIZE_SOCIAL_SETTINGS_HREF}
+          onClick={close}
+          selected={settingsActive}
+          sx={{ pl: 4.5, py: 0.85, color: settingsActive ? flashpointYellow : "rgba(255,255,255,0.82)" }}
+        >
+          <ListItemText primary="Mobilize settings" primaryTypographyProps={{ fontSize: "0.85rem" }} />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            close();
+            void signOutFromMobilizeMenu();
+          }}
+          sx={{ pl: 4.5, py: 0.85, color: "rgba(255,255,255,0.82)" }}
+        >
+          <ListItemIcon sx={{ minWidth: 32 }}>
+            <LogoutOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: "0.85rem" }} />
+        </MenuItem>
+      </Collapse>
+    </Box>
   );
 }
 

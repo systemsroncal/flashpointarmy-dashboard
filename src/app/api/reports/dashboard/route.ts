@@ -9,6 +9,7 @@ import {
   type DateBucket,
 } from "@/lib/reports/bucket-series";
 import { fetchCreatedAtInRange } from "@/lib/reports/fetch-created-at-range";
+import { fetchTimestampInRange } from "@/lib/reports/fetch-timestamp-in-range";
 import { fetchAllCourseSessionProgress } from "@/lib/courses/fetch-course-session-progress";
 import { can } from "@/types/permissions";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -50,6 +51,8 @@ export async function GET(req: Request) {
       coursesRes,
       sessionsRes,
       progressRows,
+      verifiedAtDates,
+      verifiedCountRes,
     ] = await Promise.all([
       fetchCreatedAtInRange(admin, "dashboard_users", fromIso, toIso),
       fetchCreatedAtInRange(admin, "chapters", fromIso, toIso),
@@ -59,6 +62,11 @@ export async function GET(req: Request) {
       admin.from("courses").select("id, title, published").eq("published", true),
       admin.from("course_sessions").select("id, course_id"),
       fetchAllCourseSessionProgress(admin),
+      fetchTimestampInRange(admin, "profiles", "verified_at", fromIso, toIso),
+      admin
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .not("verified_at", "is", null),
     ]);
 
     const firstErr = roleRes.error || chapterStatusRes.error;
@@ -69,6 +77,8 @@ export async function GET(req: Request) {
     const usersByBucket = buildSeriesForTimestamps(userDates, from, to, bucket);
     const chaptersByBucket = buildSeriesForTimestamps(chapterDates, from, to, bucket);
     const gatheringsByBucket = buildSeriesForTimestamps(gatheringDates, from, to, bucket);
+    const verifiedByBucket = buildSeriesForTimestamps(verifiedAtDates, from, to, bucket);
+    const verifiedAccountsTotal = verifiedCountRes.count ?? 0;
 
     const roleCounts = new Map<string, number>();
     for (const row of roleRes.data ?? []) {
@@ -206,6 +216,8 @@ export async function GET(req: Request) {
         series: [...chapterStatusCounts.values()],
       },
       courseCompletion,
+      verifiedByBucket,
+      verifiedAccountsTotal,
     });
   } catch (e) {
     return NextResponse.json(

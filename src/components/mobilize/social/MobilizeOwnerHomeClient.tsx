@@ -43,7 +43,7 @@ const HOME_TABS = [
 ] as const;
 
 /** Home feed composer: keep code, hide UI until we re-enable out-of-group posting. */
-const SHOW_HOME_COMPOSER = false;
+const SHOW_HOME_COMPOSER = true;
 
 type HomeTabId = (typeof HOME_TABS)[number]["id"];
 // Ensure "recommended" is recognized as a valid scope for the API call.
@@ -263,7 +263,6 @@ export function MobilizeOwnerHomeClient() {
               </Typography>
             ) : null}
 
-            {/* Composer hidden for now — publish from groups / member profile only. */}
             {SHOW_HOME_COMPOSER ? (
               <Paper
                 elevation={0}
@@ -317,13 +316,43 @@ export function MobilizeOwnerHomeClient() {
               />
             </Box>
 
-            <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <Box
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+                bgcolor: "#fff",
+                borderRadius: { xs: 0, sm: 2 },
+                boxShadow: { xs: "none", sm: "0 0 9px 1px #d2d2d2" },
+                borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
+                overflow: "hidden",
+              }}
+            >
               {loading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-                  <CircularProgress size={28} />
+                <Box
+                  sx={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "#fff",
+                    minHeight: { xs: "55vh", sm: 360 },
+                    py: 6,
+                  }}
+                >
+                  <CircularProgress size={28} sx={{ color: "rgba(0,0,0,0.35)" }} />
                 </Box>
               ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: "15px", sm: 1.5 } }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: { xs: "15px", sm: 1.5 },
+                    p: { xs: 0, sm: 1.5 },
+                    bgcolor: "#fff",
+                  }}
+                >
                   {!posts.length ? (
                     <MobilizeSectionEmptyState
                       fill

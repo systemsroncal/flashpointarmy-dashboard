@@ -132,6 +132,7 @@ const PREVIEW_SHORTCODES: Record<string, string> = {
   mission_update_url: "https://example.com/dashboard/notifications?update=demo",
   mission_update_preview_html:
     "<p>We published new guidance for local leaders. Sign in to read the full update and any attached resources.</p>",
+  profile_url: "https://example.com/dashboard/mobilize/profile/demo",
 };
 
 const TEMPLATE_LABELS: Record<string, string> = {
@@ -143,6 +144,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
   certificate_request_approved: "Certificate request approved",
   certificate_request_rejected: "Certificate request rejected",
   mission_update_new: "New Mission Update",
+  account_verified: "Account verified",
 };
 
 type EmailLogSortKey =
@@ -184,6 +186,8 @@ const TEMPLATE_SHORTCODE_HINTS: Record<string, string> = {
     "{user_fullname}, {user_email}, {course_title}, {admin_note}, {admin_note_html}, {current_year}, {app_name}",
   mission_update_new:
     "{user_fullname}, {user_email}, {mission_update_title}, {mission_update_url}, {mission_update_preview_html}, {current_year}, {app_name}",
+  account_verified:
+    "{user_fullname}, {user_email}, {profile_url}, {current_year}, {app_name}",
 };
 
 function initialTabIndex(isSuperAdmin: boolean, initialTab?: string): number {

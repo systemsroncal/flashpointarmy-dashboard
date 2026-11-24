@@ -10,6 +10,7 @@ import {
 import { can } from "@/types/permissions";
 import { usStateByCode } from "@/data/usStates";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { sendAccountVerifiedEmail } from "@/lib/mail/send-account-verified-email";
 import { getApiSessionWithPermissions } from "@/lib/auth/server-session";
 import { createClient } from "@/utils/supabase/server";
 
@@ -36,6 +37,8 @@ type PatchBody = {
    * Distinct from localLeaderVerified.
    */
   verified?: boolean;
+  /** Super admin — resend account_verified email (user must already be verified). */
+  sendVerifiedEmail?: boolean;
 };
 
 async function getSessionAndPermissions() {
@@ -236,6 +239,7 @@ export async function PATCH(
       profileUpdate.local_leader_verified = body.localLeaderVerified === true;
     }
 
+    let shouldSendVerifiedEmail = false;
     if ("verified" in body) {
       if (!isSuperAdminUser(callerRoles)) {
         return NextResponse.json(
@@ -251,6 +255,9 @@ export async function PATCH(
           .maybeSingle();
         const existing =
           (currentVerified as { verified_at?: string | null } | null)?.verified_at ?? null;
+        if (!existing) {
+          shouldSendVerifiedEmail = true;
+        }
         profileUpdate.verified_at = existing ?? new Date().toISOString();
       } else {
         profileUpdate.verified_at = null;
@@ -333,6 +340,23 @@ export async function PATCH(
       .eq("id", userId)
       .maybeSingle();
 
+    let verifiedEmailSent: boolean | undefined;
+    let verifiedEmailError: string | undefined;
+    const manualResend = body.sendVerifiedEmail === true;
+    if (manualResend && !isSuperAdminUser(callerRoles)) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+    if (shouldSendVerifiedEmail || manualResend) {
+      try {
+        await sendAccountVerifiedEmail(admin, userId, { triggeredByUserId: user.id });
+        verifiedEmailSent = true;
+      } catch (e) {
+        verifiedEmailSent = false;
+        verifiedEmailError = e instanceof Error ? e.message : "Could not send email.";
+        console.error("[community] account_verified email:", e);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       user: {
@@ -356,6 +380,8 @@ export async function PATCH(
           ((profileRow as { verified_at?: string | null } | null)?.verified_at as string | null) ??
           null,
       },
+      verified_email_sent: verifiedEmailSent,
+      verified_email_error: verifiedEmailError,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error.";
