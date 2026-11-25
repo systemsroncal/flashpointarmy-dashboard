@@ -136,9 +136,11 @@ function AnnouncementCollapsibleBody({
   const firstImage = allImages[0] ?? null;
   const hasVideos = useMemo(() => findAllVideoMarkers(html).length > 0, [html]);
   const plainHint = useMemo(() => announcementPlainTextPreview(textHtml), [textHtml]);
-  const showReadMore =
-    hasVideos || allImages.length > 1;
+  const hasExtraMedia = hasVideos || allImages.length > 1;
   const accordion = useClampAccordion(MISSION_UPDATE_CLAMP_LINES, plainHint);
+  const canExpand =
+    accordion.needsCollapse || hasExtraMedia || Boolean(firstImage);
+  const [userExpanded, setUserExpanded] = useState(false);
 
   const clampSx = {
     display: "-webkit-box",
@@ -154,22 +156,23 @@ function AnnouncementCollapsibleBody({
     );
   }
 
-  if (accordion.expanded) {
+  if (userExpanded) {
     return (
       <Box sx={{ mb }}>
         <AnnouncementDescriptionBody html={html} compact />
-        {accordion.needsCollapse ? (
-          <Button
-            size="small"
-            onClick={accordion.toggle}
-            sx={{ mt: 0.5, color: "primary.light", textTransform: "none", fontWeight: 600 }}
-          >
-            Read less
-          </Button>
-        ) : null}
+        <Button
+          size="small"
+          type="button"
+          onClick={() => setUserExpanded(false)}
+          sx={{ mt: 0.5, color: "primary.light", textTransform: "none", fontWeight: 600 }}
+        >
+          Read less
+        </Button>
       </Box>
     );
   }
+
+  const showTextClamp = accordion.needsCollapse && !userExpanded;
 
   return (
     <Box sx={{ mb }}>
@@ -180,10 +183,10 @@ function AnnouncementCollapsibleBody({
           overflow: "hidden",
           lineHeight: 1.65,
           fontSize: "0.875rem",
-          maxHeight: accordion.maxHeight ?? "none",
+          maxHeight: showTextClamp ? accordion.maxHeight ?? "none" : "none",
           transition:
-            accordion.ready && accordion.needsCollapse ? CLAMP_ACCORDION_TRANSITION : "none",
-          ...(accordion.showClamp ? clampSx : {}),
+            accordion.ready && showTextClamp ? CLAMP_ACCORDION_TRANSITION : "none",
+          ...(showTextClamp && accordion.showClamp ? clampSx : {}),
         }}
       >
         <AnnouncementDescriptionBody html={textHtml || "<p></p>"} compact />
@@ -196,10 +199,11 @@ function AnnouncementCollapsibleBody({
           sx={{ mt: 1.25, maxWidth: "100%", height: "auto", borderRadius: 1, display: "block" }}
         />
       ) : null}
-      {accordion.needsCollapse || showReadMore ? (
+      {canExpand ? (
         <Button
           size="small"
-          onClick={accordion.toggle}
+          type="button"
+          onClick={() => setUserExpanded(true)}
           sx={{ mt: 0.5, color: "primary.light", textTransform: "none", fontWeight: 600 }}
         >
           Read more

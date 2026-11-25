@@ -88,19 +88,16 @@ export function SocialUrlShareDialog({
   const isDark = variant === "dark";
   const [copied, setCopied] = useState(false);
 
-  const clipboardText =
-    shareMessage?.trim() && shareUrl ? `${shareMessage.trim()}\n\n${shareUrl}` : shareUrl;
-
   const copyLink = useCallback(async () => {
-    if (!clipboardText) return;
+    if (!shareUrl) return;
     try {
-      await navigator.clipboard.writeText(clipboardText);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2500);
     } catch {
       setCopied(false);
     }
-  }, [clipboardText]);
+  }, [shareUrl]);
 
   return (
     <Dialog
