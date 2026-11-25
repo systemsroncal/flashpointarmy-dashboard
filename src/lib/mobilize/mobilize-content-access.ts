@@ -72,16 +72,17 @@ export function canManageMobilizeGroupMembers(input: {
 }
 
 /**
- * Promote a member to leader (or demote one) — super admins, site admins, and
- * the group owner only. Leaders may approve and remove members, but appointing
- * other leaders stays with owners and staff.
+ * Promote a member to leader (or demote) — super admins, site admins, group
+ * owner, and approved group leaders.
  */
 export function canChangeMobilizeGroupMemberRole(input: {
   roleNames: string[];
   isGroupOwner?: boolean;
+  isLeader?: boolean;
 }): boolean {
   if (isMobilizeSuperAdmin(input.roleNames)) return true;
   if (input.roleNames.includes("admin")) return true;
   if (input.isGroupOwner) return true;
+  if (input.isLeader) return true;
   return false;
 }

@@ -1598,7 +1598,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     isLeader || group.created_by === me.id || isSuperAdmin || me.role_names.includes("admin");
   // Appointing leaders is owner/staff territory — mirrors the server-side gate.
   const canChangeMemberRoles =
-    isSuperAdmin || me.role_names.includes("admin") || group.created_by === me.id;
+    isSuperAdmin || me.role_names.includes("admin") || group.created_by === me.id || isLeader;
   // Matches canAddMobilizeGroupMembers: site staff or group owner only (not group leaders).
   const canAddMember =
     group.created_by === me.id || isSuperAdmin || me.role_names.includes("admin");
@@ -1607,7 +1607,8 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
     isSuperAdmin ||
     me.role_names.includes("admin") ||
     me.role_names.includes("sub_admin") ||
-    group.created_by === me.id;
+    group.created_by === me.id ||
+    isLeader;
   const gridSx = {
     display: "grid",
     gridTemplateColumns: "repeat(7, minmax(0, 1fr))",

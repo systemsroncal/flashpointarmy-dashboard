@@ -4,6 +4,7 @@ import { insertGroupJoinActivity } from "@/lib/community/group-activity-feed";
 import { loadTrainingGraduateBadgesForUsers } from "@/lib/courses/course-completion";
 import { canAddMobilizeGroupMembers, isMobilizeSuperAdmin } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
+import { syncPlatformRoleForMobilizeGroupLeader } from "@/lib/mobilize/sync-group-leader-platform-role";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -36,11 +37,14 @@ export async function GET(_req: Request, ctx: Ctx) {
     .eq("id", id)
     .maybeSingle();
 
+  const isApprovedGroupLeader =
+    me?.membership_status === "approved" && me?.member_role === "leader";
   const canViewContacts =
     isMobilizeSuperAdmin(auth.roleNames) ||
     auth.roleNames.includes("admin") ||
     auth.roleNames.includes("sub_admin") ||
-    groupRow?.created_by === auth.userId;
+    groupRow?.created_by === auth.userId ||
+    isApprovedGroupLeader;
 
   const { data: rows, error } = await auth.admin
     .from("mobilize_group_members")
@@ -338,6 +342,9 @@ async function upsertApprovedGroupMember(
       .select("*")
       .maybeSingle();
     if (error) return { status: "error", error: error.message };
+    if (targetRole === "leader" || existing.member_role === "leader") {
+      await syncPlatformRoleForMobilizeGroupLeader(admin, userId, targetRole);
+    }
     return { status: "added", row: data };
   }
 
@@ -352,5 +359,8 @@ async function upsertApprovedGroupMember(
     .select("*")
     .maybeSingle();
   if (insErr) return { status: "error", error: insErr.message };
+  if (targetRole === "leader") {
+    await syncPlatformRoleForMobilizeGroupLeader(admin, userId, "leader");
+  }
   return { status: "added", row: inserted };
 }

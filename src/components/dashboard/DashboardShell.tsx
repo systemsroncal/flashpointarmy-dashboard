@@ -324,24 +324,18 @@ const NAV: NavItem[] = [
     module: MODULE_SLUGS.movilization,
     icon: <HomeOutlinedIcon />,
   },
+  // Groups is rendered as ChaptersGroupsNavGroup after Feed (not a flat link).
   {
-    label: "National Map",
-    href: "/dashboard",
-    module: MODULE_SLUGS.nationalOverview,
-    icon: <DashboardOutlinedIcon />,
+    label: "Mission Updates",
+    href: "/dashboard/notifications",
+    module: MODULE_SLUGS.communications,
+    icon: <CampaignIcon />,
   },
-  // Groups is rendered as ChaptersGroupsNavGroup (not a flat link).
   {
     label: "Training",
     href: "/dashboard/training",
     module: MODULE_SLUGS.training,
     icon: <SchoolIcon />,
-  },
-  {
-    label: "Deployments",
-    href: MOBILIZE_ACTIVITIES_HREF,
-    module: MODULE_SLUGS.movilization,
-    icon: <EventAvailableOutlinedIcon />,
   },
   {
     label: "Events",
@@ -350,10 +344,16 @@ const NAV: NavItem[] = [
     icon: <EventIcon />,
   },
   {
-    label: "Mission Updates",
-    href: "/dashboard/notifications",
-    module: MODULE_SLUGS.communications,
-    icon: <CampaignIcon />,
+    label: "Deployments",
+    href: MOBILIZE_ACTIVITIES_HREF,
+    module: MODULE_SLUGS.movilization,
+    icon: <EventAvailableOutlinedIcon />,
+  },
+  {
+    label: "National Map",
+    href: "/dashboard",
+    module: MODULE_SLUGS.nationalOverview,
+    icon: <DashboardOutlinedIcon />,
   },
   {
     label: "Profile",
@@ -1027,9 +1027,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           const href = resolveNavHref(item);
           const selected = isNavItemSelected({ ...item, href }, pathname);
 
-          // After National Map → Groups parent.
-          const afterOverview =
-            item.href === "/dashboard" && item.module === MODULE_SLUGS.nationalOverview && canSeeMobilize ? (
+          // After Feed → Groups (Chapters / My Groups).
+          const afterFeedGroups =
+            item.href === MOBILIZE_HOME_HREF && item.module === MODULE_SLUGS.movilization && canSeeMobilize ? (
               <ChaptersGroupsNavGroup
                 key="chapters-groups"
                 onNavigate={closeMobileDrawer}
@@ -1082,7 +1082,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   navItemTouchSx={NAV_ITEM_TOUCH_SX}
                   navSelectedSx={NAV_SELECTED_SX}
                 />
-                {afterOverview}
+                {afterFeedGroups}
                 {afterProfile}
               </Box>
             );
@@ -1101,7 +1101,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           if (item.href === "__PROFILE__" && !canAccessMobilize) {
             return (
               <Box key="profile-block" component="span" sx={{ display: "contents" }}>
-                {afterOverview}
+                {afterFeedGroups}
                 {afterProfile}
               </Box>
             );
@@ -1215,7 +1215,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     </ListItemButton>
                   </ListItem>
                 </Collapse>
-                {afterOverview}
+                {afterFeedGroups}
                 {afterProfile}
               </Box>
             );
@@ -1269,12 +1269,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   {item.href === "/dashboard/notifications" ? <NotificationsDrawerUnreadCount /> : null}
                 </ListItemButton>
               </ListItem>
-              {afterOverview}
+              {afterFeedGroups}
               {afterProfile}
             </Box>
           );
         })}
-        {!visibleNav.some((i) => i.href === "/dashboard") && canSeeMobilize ? (
+        {!visibleNav.some((i) => i.href === MOBILIZE_HOME_HREF) && canSeeMobilize ? (
           <ChaptersGroupsNavGroup
             onNavigate={closeMobileDrawer}
             disabled={!canAccessMobilize}
