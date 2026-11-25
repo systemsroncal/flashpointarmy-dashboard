@@ -116,6 +116,10 @@ import { resolveMobilizeMobileBackHref } from "@/lib/mobilize/mobilize-mobile-ba
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
 import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
+import {
+  useMobilizeHeaderOnLightSurface,
+  type MobilizeHeaderSurfaceMode,
+} from "@/lib/mobilize/social/use-mobilize-header-surface";
 import { SOCIAL_HUB_LIGHT_BG, TRUTH_HUB_TEXT } from "@/lib/mobilize/social/social-hub-surface";
 import { mobilizeDarkScrollbarSx } from "@/lib/ui/scrollbar-sx";
 import {
@@ -643,6 +647,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     canAccessMobilizeModule(user.role_names, mobilizeViewerRoles, mobilizeAccessOpts);
   const onMobilizeProfilePage =
     isMobilize && pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
+  const onMobilizeGroupDetailPage =
+    isMobilize && /^\/dashboard\/mobilize\/groups\/[^/]+/.test(pathname);
   const mobilizeMobileSlimHeader = !desktop && isMobilize;
   const mobilizeMobileChrome = mobilizeMobileSlimHeader;
   const mobilizeMobileLayout = !desktop && isMobilize;
@@ -666,8 +672,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       pathname.startsWith(`${MOBILIZE_PREFIX}/messages`) ||
       pathname.startsWith(`${MOBILIZE_PREFIX}/social-settings`));
 
-  /** Mobilize mobile: icons on light page chrome (transparent AppBar over #f0f2f5). */
-  const mobilizeHeaderOnLightSurface = mobilizeMobileChrome;
+  const mobilizeHeaderSurfaceMode: MobilizeHeaderSurfaceMode =
+    onMobilizeProfilePage || onMobilizeGroupDetailPage ? "cover-hero" : "light";
+  const mobilizeContentUnderHeader =
+    mobilizeMobileChrome && mobilizeHeaderSurfaceMode === "cover-hero";
+  /** Icons dark on #f0f2f5 / white; light over profile & group cover heroes until scroll. */
+  const mobilizeHeaderOnLightSurface = useMobilizeHeaderOnLightSurface(
+    mobilizeMobileChrome,
+    mobilizeHeaderSurfaceMode
+  );
 
   useEffect(() => {
     if (desktop) setDesktopDrawerOpen(true);
@@ -1606,13 +1619,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           color: mobilizeTransparentAppBar
             ? mobilizeHeaderOnLightSurface
               ? "#0d0d0d"
-              : TRUTH_HUB_TEXT
+              : "#fff"
             : undefined,
           transform: mobilizeMobileChrome && mobilizeHeaderHidden ? "translateY(-110%)" : "translate3d(0, 0, 0)",
           WebkitTransform: mobilizeMobileChrome && mobilizeHeaderHidden ? "translateY(-110%)" : "translate3d(0, 0, 0)",
           willChange: "transform",
           transition: mobilizeMobileChrome
-            ? theme.transitions.create(["transform", "width", "margin"], {
+            ? theme.transitions.create(["transform", "width", "margin", "color"], {
                 easing: theme.transitions.easing.easeInOut,
                 duration: 220,
               })
@@ -1622,12 +1635,27 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               }),
           "& .MuiIconButton-root": mobilizeTransparentAppBar
             ? {
-                color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.75)" : TRUTH_HUB_TEXT,
+                color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.82)" : "rgba(255,255,255,0.95)",
+                transition: theme.transitions.create(["color", "filter"], {
+                  duration: 180,
+                  easing: theme.transitions.easing.easeInOut,
+                }),
+                filter: mobilizeHeaderOnLightSurface ? "none" : "drop-shadow(0 1px 2px rgba(0,0,0,0.55))",
+                "&:hover": {
+                  bgcolor: mobilizeHeaderOnLightSurface
+                    ? "rgba(0,0,0,0.05)"
+                    : "rgba(255,255,255,0.12)",
+                },
               }
             : undefined,
           "& .MuiBadge-root .MuiSvgIcon-root": mobilizeTransparentAppBar
             ? {
-                color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.75)" : TRUTH_HUB_TEXT,
+                color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.82)" : "rgba(255,255,255,0.95)",
+                transition: theme.transitions.create(["color", "filter"], {
+                  duration: 180,
+                  easing: theme.transitions.easing.easeInOut,
+                }),
+                filter: mobilizeHeaderOnLightSurface ? "none" : "drop-shadow(0 1px 2px rgba(0,0,0,0.55))",
               }
             : undefined,
         }}
@@ -1748,8 +1776,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Box
         component="main"
         sx={{
-          pt:
-            mobilizeMobileChrome
+          pt: mobilizeContentUnderHeader
+            ? maintenanceTop
+            : mobilizeMobileChrome
               ? `calc(52px + ${maintenanceTop})`
               : `calc(${theme.spacing(7)} + ${maintenanceTop})`,
           px: isMobilize ? { xs: 0, sm: 2, md: 3 } : { xs: 2, sm: 3 },
