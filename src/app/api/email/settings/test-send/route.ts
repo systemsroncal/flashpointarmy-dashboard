@@ -25,7 +25,8 @@ const DEMO_SHORTCODES = {
   resetpassword_url: "https://example.com/auth/reset-password?token=demo",
   gathering_title: "Sunday community gathering",
   gathering_url: "https://example.com/dashboard/gatherings/demo",
-  app_name: "FlashPoint Army Chapters",
+  app_name:
+    "FlashPoint Army Chapters Command Center - Connect. Grow. Lead. Mobile. Impact Your City.",
   otp: "123456",
   course_title: "Biblical Citizenship",
   admin_note: "Please continue with your next step.",

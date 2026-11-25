@@ -201,7 +201,8 @@ export async function processMissionUpdateEmailJob(
           mission_update_title: title,
           mission_update_url: missionUpdateUrl,
           mission_update_preview_html: previewHtml,
-          app_name: "FlashPoint Army Chapters",
+          app_name:
+            "FlashPoint Army Chapters Command Center - Connect. Grow. Lead. Mobile. Impact Your City.",
           current_year: String(new Date().getFullYear()),
           resetpassword_url: "",
           validateemail_url: "",

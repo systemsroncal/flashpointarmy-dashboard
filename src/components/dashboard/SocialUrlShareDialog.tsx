@@ -23,22 +23,25 @@ import { useCallback, useState, type ReactNode } from "react";
 
 type SharePlatform = "whatsapp" | "facebook" | "x" | "linkedin" | "telegram" | "email";
 
-function shareHref(platform: SharePlatform, url: string, subject: string): string {
+function shareHref(platform: SharePlatform, url: string, subject: string, message: string): string {
   const u = encodeURIComponent(url);
+  const bodyText = message.trim() || subject;
+  const t = encodeURIComponent(bodyText);
+  const full = encodeURIComponent(`${bodyText}\n\n${url}`);
 
   switch (platform) {
     case "whatsapp":
-      return `https://wa.me/?text=${u}`;
+      return `https://wa.me/?text=${full}`;
     case "facebook":
-      return `https://www.facebook.com/sharer/sharer.php?u=${u}`;
+      return `https://www.facebook.com/sharer/sharer.php?u=${u}&quote=${t}`;
     case "linkedin":
       return `https://www.linkedin.com/sharing/share-offsite/?url=${u}`;
     case "telegram":
-      return `https://t.me/share/url?url=${u}`;
+      return `https://t.me/share/url?url=${u}&text=${t}`;
     case "email":
-      return `mailto:?subject=${encodeURIComponent(subject)}&body=${u}`;
+      return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${bodyText}\n\n${url}`)}`;
     default:
-      return `https://twitter.com/intent/tweet?url=${u}`;
+      return `https://twitter.com/intent/tweet?url=${u}&text=${t}`;
   }
 }
 
@@ -62,6 +65,8 @@ type Props = {
   onClose: () => void;
   shareUrl: string;
   subject: string;
+  /** Plain text prepended in WhatsApp, Telegram, X, and email body (not only the URL). */
+  shareMessage?: string;
   title: string;
   description: ReactNode;
   linkLabel?: string;
@@ -74,6 +79,7 @@ export function SocialUrlShareDialog({
   onClose,
   shareUrl,
   subject,
+  shareMessage,
   title,
   description,
   linkLabel = "Link",
@@ -82,16 +88,19 @@ export function SocialUrlShareDialog({
   const isDark = variant === "dark";
   const [copied, setCopied] = useState(false);
 
+  const clipboardText =
+    shareMessage?.trim() && shareUrl ? `${shareMessage.trim()}\n\n${shareUrl}` : shareUrl;
+
   const copyLink = useCallback(async () => {
-    if (!shareUrl) return;
+    if (!clipboardText) return;
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(clipboardText);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2500);
     } catch {
       setCopied(false);
     }
-  }, [shareUrl]);
+  }, [clipboardText]);
 
   return (
     <Dialog
@@ -139,7 +148,7 @@ export function SocialUrlShareDialog({
             <Tooltip key={platform} title={label}>
               <Button
                 component="a"
-                href={shareHref(platform, shareUrl, subject)}
+                href={shareHref(platform, shareUrl, subject, shareMessage?.trim() || subject)}
                 target={platform === "email" ? undefined : "_blank"}
                 rel={platform === "email" ? undefined : "noopener noreferrer"}
                 variant="outlined"
