@@ -23,6 +23,7 @@ import { MobilizeLinkPreviewComposerCard } from "@/components/mobilize/social/Mo
 import {
   appendLinkPreviewHtml,
   contentHasLinkPreview,
+  splitHtmlLinkPreviews,
   type LinkPreviewMeta,
 } from "@/lib/mobilize/social/link-preview";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
@@ -39,8 +40,11 @@ import { absoluteMissionUpdateShareUrl } from "@/lib/dashboard/mission-update-sh
 import { missionUpdateShareHeadline } from "@/lib/share/social-share-message";
 import {
   extractImageSrcsFromHtml,
+  findFirstAnnouncementMedia,
   stripAnnouncementMediaFromHtml,
 } from "@/lib/share/announcement-media-html";
+import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
+import { resolveVideoForPlyr } from "@/lib/media/resolve-plyr-video";
 import {
   announcementPlainTextPreview,
   findAllVideoMarkers,
@@ -88,6 +92,45 @@ import {
 
 const MISSION_UPDATE_CLAMP_LINES = 4;
 
+const MISSION_UPDATE_LINK_PREVIEW_SX = {
+  mt: 1.25,
+  "& .mobilize-link-preview__card": {
+    display: "flex",
+    flexDirection: { xs: "column", sm: "row" },
+    textDecoration: "none",
+    color: "inherit",
+    border: "1px solid rgba(255,255,255,0.15)",
+    borderRadius: 1,
+    overflow: "hidden",
+    bgcolor: "rgba(255,255,255,0.04)",
+    "&:hover .mobilize-link-preview__title": { textDecoration: "underline" },
+  },
+  "& .mobilize-link-preview__image": {
+    width: { xs: "100%", sm: 168 },
+    height: { xs: 140, sm: 112 },
+    objectFit: "cover",
+    flexShrink: 0,
+    display: "block",
+  },
+  "& .mobilize-link-preview__body": {
+    display: "flex",
+    flexDirection: "column",
+    gap: 0.35,
+    p: 1.1,
+    minWidth: 0,
+  },
+  "& .mobilize-link-preview__title": {
+    fontWeight: 700,
+    fontSize: "0.9rem",
+    lineHeight: 1.35,
+    color: "grey.100",
+  },
+  "& .mobilize-link-preview__host": {
+    fontSize: "0.75rem",
+    color: "grey.500",
+  },
+} as const;
+
 /** Select menu stays inside the light-theme dialog (avoids dark-theme portal). */
 const MISSION_UPDATE_SELECT_MENU_PROPS = {
   disablePortal: true,
@@ -121,7 +164,7 @@ function fromLocalDatetimeValue(s: string): string | null {
 
 type Snack = { message: string; severity: "success" | "error" };
 
-/** Mission Update description — clamped text; first image when collapsed; full media when expanded. */
+/** Mission Update description — clamped text; first image/video + link preview when collapsed. */
 function AnnouncementCollapsibleBody({
   html,
   useCollapse,
@@ -131,15 +174,19 @@ function AnnouncementCollapsibleBody({
   useCollapse: boolean;
   mb?: number;
 }) {
-  const textHtml = useMemo(() => stripAnnouncementMediaFromHtml(html), [html]);
-  const allImages = useMemo(() => extractImageSrcsFromHtml(html), [html]);
-  const firstImage = allImages[0] ?? null;
-  const hasVideos = useMemo(() => findAllVideoMarkers(html).length > 0, [html]);
+  const { bodyHtml, previewHtml } = useMemo(() => splitHtmlLinkPreviews(html), [html]);
+  const textHtml = useMemo(() => stripAnnouncementMediaFromHtml(bodyHtml), [bodyHtml]);
+  const allImages = useMemo(() => extractImageSrcsFromHtml(bodyHtml), [bodyHtml]);
+  const firstMedia = useMemo(() => findFirstAnnouncementMedia(bodyHtml), [bodyHtml]);
+  const videoCount = useMemo(() => findAllVideoMarkers(bodyHtml).length, [bodyHtml]);
   const plainHint = useMemo(() => announcementPlainTextPreview(textHtml), [textHtml]);
-  const hasExtraMedia = hasVideos || allImages.length > 1;
+  const hasExtraMedia = videoCount > 1 || allImages.length > 1;
   const accordion = useClampAccordion(MISSION_UPDATE_CLAMP_LINES, plainHint);
   const canExpand =
-    accordion.needsCollapse || hasExtraMedia || Boolean(firstImage);
+    accordion.needsCollapse ||
+    hasExtraMedia ||
+    Boolean(firstMedia) ||
+    Boolean(previewHtml.trim());
   const [userExpanded, setUserExpanded] = useState(false);
 
   const clampSx = {
@@ -191,13 +238,34 @@ function AnnouncementCollapsibleBody({
       >
         <AnnouncementDescriptionBody html={textHtml || "<p></p>"} compact />
       </Box>
-      {firstImage ? (
+      {firstMedia?.kind === "image" ? (
         <Box
           component="img"
-          src={firstImage}
+          src={firstMedia.src}
           alt=""
           sx={{ mt: 1.25, maxWidth: "100%", height: "auto", borderRadius: 1, display: "block" }}
         />
+      ) : null}
+      {firstMedia?.kind === "video" ? (
+        <Box sx={{ mt: 1.25, width: "100%", "& .course-video-plyr-mount": { maxWidth: "100%" } }}>
+          {resolveVideoForPlyr(firstMedia.url).kind === "none" ? (
+            <Typography variant="caption" color="warning.light">
+              Invalid video URL.
+            </Typography>
+          ) : (
+            <CourseVideoPlyr
+              videoUrl={firstMedia.url}
+              initialSeconds={0}
+              onPersistSeconds={() => {}}
+              autoplayMuted={false}
+            />
+          )}
+        </Box>
+      ) : null}
+      {previewHtml.trim() ? (
+        <Box sx={MISSION_UPDATE_LINK_PREVIEW_SX}>
+          <AnnouncementDescriptionBody html={previewHtml} compact />
+        </Box>
       ) : null}
       {canExpand ? (
         <Button
