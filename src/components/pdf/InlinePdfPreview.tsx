@@ -48,6 +48,9 @@ export function InlinePdfPreview({
     <Box
       sx={{
         mt: 2,
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
         border: isLight ? "1px solid rgba(0,0,0,0.12)" : "1px solid rgba(255,215,0,0.18)",
         borderRadius: 1.5,
         bgcolor: isLight ? "rgba(0,0,0,0.02)" : "rgba(0,0,0,0.28)",
@@ -87,7 +90,7 @@ export function InlinePdfPreview({
       </Stack>
 
       {open ? (
-        <Box sx={{ bgcolor: "#525659" }}>
+        <Box sx={{ bgcolor: "#525659", width: "100%", maxWidth: "100%", overflow: "hidden" }}>
           {frameError ? (
             <Alert severity="warning" sx={{ m: 1.5 }}>
               Could not load the PDF viewer. Refresh the page or try again.
