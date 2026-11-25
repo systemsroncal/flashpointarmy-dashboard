@@ -8,11 +8,12 @@ import { useDashboardUser } from "@/contexts/DashboardUserContext";
 
 type Props = {
   groupId: string;
+  onMembershipChange?: () => void;
 };
 
 type JoinUi = "checking" | "idle" | "loading" | "joined" | "pending";
 
-export function DiscoverJoinGroupButton({ groupId }: Props) {
+export function DiscoverJoinGroupButton({ groupId, onMembershipChange }: Props) {
   const me = useDashboardUser();
   const [status, setStatus] = useState<JoinUi>("checking");
 
@@ -34,9 +35,13 @@ export function DiscoverJoinGroupButton({ groupId }: Props) {
         }
         setIsOwner(json.group?.created_by === me.id);
         const st = json.membership?.membership_status;
-        if (st === "approved") setStatus("joined");
-        else if (st === "pending") setStatus("pending");
-        else setStatus("idle");
+        if (st === "approved") {
+          setStatus("joined");
+          onMembershipChange?.();
+        } else if (st === "pending") {
+          setStatus("pending");
+          onMembershipChange?.();
+        } else setStatus("idle");
       } catch {
         if (!cancelled) setStatus("idle");
       }
@@ -58,7 +63,10 @@ export function DiscoverJoinGroupButton({ groupId }: Props) {
       };
       if (res.ok || json.alreadyMember || json.alreadyPending) {
         const st = json.membership?.membership_status;
-        setStatus(st === "pending" || json.alreadyPending ? "pending" : "joined");
+        const next =
+          st === "pending" || json.alreadyPending ? ("pending" as const) : ("joined" as const);
+        setStatus(next);
+        onMembershipChange?.();
       } else {
         setStatus("idle");
       }
@@ -99,6 +107,7 @@ export function DiscoverJoinGroupButton({ groupId }: Props) {
             onLeft={() => {
               setIsOwner(false);
               setStatus("idle");
+              onMembershipChange?.();
             }}
           />
         ) : null}
