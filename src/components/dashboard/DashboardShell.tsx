@@ -674,8 +674,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const mobilizeHeaderSurfaceMode: MobilizeHeaderSurfaceMode =
     onMobilizeProfilePage || onMobilizeGroupDetailPage ? "cover-hero" : "light";
-  const mobilizeContentUnderHeader =
+  const mobilizeHeroOverlayToolbar =
     mobilizeMobileChrome && mobilizeHeaderSurfaceMode === "cover-hero";
+  const mobilizeContentUnderHeader = mobilizeHeroOverlayToolbar;
   /** Icons dark on #f0f2f5 / white; light over profile & group cover heroes until scroll. */
   const mobilizeHeaderOnLightSurface = useMobilizeHeaderOnLightSurface(
     mobilizeMobileChrome,
@@ -1634,28 +1635,51 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 duration: theme.transitions.duration.enteringScreen,
               }),
           "& .MuiIconButton-root": mobilizeTransparentAppBar
-            ? {
-                color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.82)" : "rgba(255,255,255,0.95)",
-                transition: theme.transitions.create(["color", "filter"], {
-                  duration: 180,
-                  easing: theme.transitions.easing.easeInOut,
-                }),
-                filter: mobilizeHeaderOnLightSurface ? "none" : "drop-shadow(0 1px 2px rgba(0,0,0,0.55))",
-                "&:hover": {
+            ? mobilizeHeroOverlayToolbar
+              ? {
+                  width: 40,
+                  height: 40,
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  color: mobilizeHeaderOnLightSurface ? "#0d0d0d" : "#fff",
                   bgcolor: mobilizeHeaderOnLightSurface
-                    ? "rgba(0,0,0,0.05)"
-                    : "rgba(255,255,255,0.12)",
-                },
-              }
+                    ? "rgba(255,255,255,0.96)"
+                    : "rgba(0,0,0,0.42)",
+                  boxShadow: mobilizeHeaderOnLightSurface
+                    ? "0 1px 3px rgba(0,0,0,0.14)"
+                    : "0 1px 5px rgba(0,0,0,0.38)",
+                  backdropFilter: mobilizeHeaderOnLightSurface ? "none" : "blur(8px)",
+                  WebkitBackdropFilter: mobilizeHeaderOnLightSurface ? "none" : "blur(8px)",
+                  transition: theme.transitions.create(["color", "background-color", "box-shadow"], {
+                    duration: 200,
+                    easing: theme.transitions.easing.easeInOut,
+                  }),
+                  "&:hover": {
+                    bgcolor: mobilizeHeaderOnLightSurface
+                      ? "#fff"
+                      : "rgba(0,0,0,0.55)",
+                  },
+                }
+              : {
+                  color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.82)" : "rgba(255,255,255,0.95)",
+                  transition: theme.transitions.create(["color"], {
+                    duration: 180,
+                    easing: theme.transitions.easing.easeInOut,
+                  }),
+                  "&:hover": {
+                    bgcolor: mobilizeHeaderOnLightSurface
+                      ? "rgba(0,0,0,0.05)"
+                      : "rgba(255,255,255,0.12)",
+                  },
+                }
             : undefined,
           "& .MuiBadge-root .MuiSvgIcon-root": mobilizeTransparentAppBar
             ? {
                 color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.82)" : "rgba(255,255,255,0.95)",
-                transition: theme.transitions.create(["color", "filter"], {
+                transition: theme.transitions.create(["color"], {
                   duration: 180,
                   easing: theme.transitions.easing.easeInOut,
                 }),
-                filter: mobilizeHeaderOnLightSurface ? "none" : "drop-shadow(0 1px 2px rgba(0,0,0,0.55))",
               }
             : undefined,
         }}
@@ -1665,7 +1689,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           sx={{
             minHeight: { xs: 52, md: 48 },
             py: { xs: 0.35, md: 0 },
-            gap: 1,
+            gap: mobilizeHeroOverlayToolbar ? 0.5 : 1,
+            px: mobilizeHeroOverlayToolbar ? { xs: 1, sm: 1.5 } : undefined,
             position: "relative",
             bgcolor: "transparent",
             backgroundImage: "none",
@@ -1717,7 +1742,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {canAccessMobilize ? (
             <DashboardGlobalSearch lightSurface={mobilizeHeaderOnLightSurface} />
           ) : null}
-          <RoleWelcomeVideoPrompt />
+          <Box
+            sx={{
+              display: {
+                xs: mobilizeHeroOverlayToolbar ? "none" : "inline-flex",
+                md: "inline-flex",
+              },
+            }}
+          >
+            <RoleWelcomeVideoPrompt />
+          </Box>
           <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
             <MobilizeVideoCamIcon />
           </Box>
@@ -1777,10 +1811,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         component="main"
         sx={{
           pt: mobilizeContentUnderHeader
-            ? maintenanceTop
+            ? 0
             : mobilizeMobileChrome
               ? `calc(52px + ${maintenanceTop})`
               : `calc(${theme.spacing(7)} + ${maintenanceTop})`,
+          mt: mobilizeContentUnderHeader ? maintenanceTop : 0,
           px: isMobilize ? { xs: 0, sm: 2, md: 3 } : { xs: 2, sm: 3 },
           pb: isMobilize
             ? "calc(56px + 32px + env(safe-area-inset-bottom, 0px))"
