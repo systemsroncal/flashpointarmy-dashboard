@@ -1114,6 +1114,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       onClick={closeMobileDrawer}
                       sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.65, pl: 1.5, borderRadius: 1 }}
                     >
+                      <ListItemIcon sx={{ minWidth: 34, color: "rgba(255,255,255,0.88)" }}>
+                        <PersonOutlineIcon fontSize="small" />
+                      </ListItemIcon>
                       <ListItemText
                         primary="My profile"
                         primaryTypographyProps={{
