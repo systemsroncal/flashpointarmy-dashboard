@@ -197,7 +197,7 @@ export const mobilizeGroupFeedPostsStackSx: SxProps<Theme> = {
   flex: 1,
   minHeight: 0,
   height: "100%",
-  gap: { xs: "15px", sm: 2 },
+  gap: { xs: 0, sm: 2 },
 };
 
 /** White Paper shell for group feed composer and posts column. */
@@ -215,7 +215,7 @@ export const mobilizeGroupFeedPostsListSx: SxProps<Theme> = {
   display: "flex",
   flexDirection: "column",
   alignSelf: "stretch",
-  gap: { xs: "15px", sm: 2 },
+  gap: { xs: 0, sm: 2 },
   minHeight: {
     xs: "calc(100dvh - 28rem)",
     sm: "calc(100dvh - 32rem)",
@@ -228,14 +228,17 @@ export const mobilizeGroupFeedPostsListSx: SxProps<Theme> = {
 };
 
 /** Single post card in group feed (elevated white tile on camo). */
+/** Facebook-style gap between stacked posts on mobile feeds. */
+export const MOBILIZE_FEED_MOBILE_POST_DIVIDER = "8px solid #e4e6eb";
+
 export const mobilizeGroupFeedPostCardSx: SxProps<Theme> = {
   bgcolor: "#fff",
   borderRadius: { xs: 0, sm: "1rem" },
-  p: { xs: 1.25, sm: 2 },
+  p: { xs: 1, sm: 2 },
   boxShadow: { xs: "none", sm: "0 0 9px 1px #d2d2d2" },
   m: 0,
   mb: { xs: 0, sm: 2 },
-  borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
+  borderBottom: { xs: MOBILIZE_FEED_MOBILE_POST_DIVIDER, sm: "none" },
   width: "100%",
   boxSizing: "border-box",
   "&:last-child": { mb: 0, borderBottom: { xs: "none", sm: "none" } },

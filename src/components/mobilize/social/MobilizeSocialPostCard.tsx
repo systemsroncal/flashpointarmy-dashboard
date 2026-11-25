@@ -211,13 +211,12 @@ export function MobilizeSocialPostCard({
           isGroupFeedCard
             ? {
                 ...mobilizeGroupFeedPostCardSx,
-                p: { xs: 1.25, sm: 2 },
-                borderRadius: { xs: 0, sm: "1rem" },
-                boxShadow: { xs: "none", sm: "0 0 9px 1px #d2d2d2" },
-                borderBottom: { xs: "1px solid rgba(0,0,0,0.08)", sm: "none" },
-                "&:last-child": { pb: { xs: 1.25, sm: 2 }, mb: 0 },
+                "&:last-child": { pb: { xs: 1, sm: 2 }, mb: 0 },
               }
-            : { p: { xs: 1.5, sm: 2 }, "&:last-child": { pb: { xs: 1.5, sm: 2 } } }
+            : {
+                p: { xs: 1, sm: 2 },
+                "&:last-child": { pb: { xs: 1, sm: 2 } },
+              }
         }
       >
         {pinned ? (
@@ -280,7 +279,14 @@ export function MobilizeSocialPostCard({
         {post.comments_policy === "leaders_only" ? (
           <Chip size="small" label="Leaders can comment" sx={{ mt: 0.75 }} variant="outlined" />
         ) : null}
-        <Box sx={{ mt: isGroupFeedCard || isGroupFeedList ? 0 : 1.25 }}>
+        <Box
+          sx={{
+            mt:
+              isGroupFeedCard || isGroupFeedList
+                ? { xs: 0.35, sm: 0 }
+                : { xs: 0.75, sm: 1.25 },
+          }}
+        >
           <MobilizeCollapsiblePostBody
             surface={surface}
             text={feedBodyText}
@@ -297,9 +303,12 @@ export function MobilizeSocialPostCard({
               justifyContent="space-between"
               gap={1}
               sx={{
-                mt: 1.25,
-                pt: 1,
-                borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+                mt: { xs: 0.5, sm: 1.25 },
+                pt: { xs: 0, sm: 1 },
+                borderTop: {
+                  xs: "none",
+                  sm: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+                },
               }}
             >
               <Box sx={{ flex: 1, minWidth: 0 }}>

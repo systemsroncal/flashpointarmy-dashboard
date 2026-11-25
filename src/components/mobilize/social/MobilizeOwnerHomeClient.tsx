@@ -416,7 +416,7 @@ export function MobilizeOwnerHomeClient() {
                   sx={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: { xs: "15px", sm: 1.5 },
+                    gap: { xs: 0, sm: 1.5 },
                     p: { xs: 0, sm: 1.5 },
                     bgcolor: "#fff",
                   }}
