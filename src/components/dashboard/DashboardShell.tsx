@@ -113,6 +113,7 @@ import {
   MOBILIZE_PREFIX as MOBILIZE_PREFIX_CANON,
 } from "@/lib/mobilize/mobilize-nav-config";
 import { resolveMobilizeMobileBackHref } from "@/lib/mobilize/mobilize-mobile-back-href";
+import { resolveMobilizeMobileHeaderTitle } from "@/lib/mobilize/mobilize-mobile-header-title";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
 import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
@@ -674,14 +675,26 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const mobilizeHeaderSurfaceMode: MobilizeHeaderSurfaceMode =
     onMobilizeProfilePage || onMobilizeGroupDetailPage ? "cover-hero" : "light";
+  const mobilizeMobileHubTitle = useMemo(
+    () => resolveMobilizeMobileHeaderTitle(pathname),
+    [pathname]
+  );
+  const mobilizeMobileTitleHeader =
+    mobilizeMobileChrome && mobilizeMobileHubTitle !== null;
+  const mobilizeAppBarTransparent =
+    mobilizeTransparentAppBar && !mobilizeMobileTitleHeader;
   const mobilizeHeroOverlayToolbar =
-    mobilizeMobileChrome && mobilizeHeaderSurfaceMode === "cover-hero";
+    mobilizeMobileChrome &&
+    mobilizeHeaderSurfaceMode === "cover-hero" &&
+    !mobilizeMobileTitleHeader;
   const mobilizeContentUnderHeader = mobilizeHeroOverlayToolbar;
   /** Icons dark on #f0f2f5 / white; light over profile & group cover heroes until scroll. */
   const mobilizeHeaderOnLightSurface = useMobilizeHeaderOnLightSurface(
-    mobilizeMobileChrome,
+    mobilizeMobileChrome && !mobilizeMobileTitleHeader,
     mobilizeHeaderSurfaceMode
   );
+  const mobilizeToolbarOnLightSurface =
+    mobilizeMobileTitleHeader || mobilizeHeaderOnLightSurface;
 
   useEffect(() => {
     if (desktop) setDesktopDrawerOpen(true);
@@ -1578,50 +1591,61 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Box sx={{ minHeight: "100vh", flex: 1, display: "flex", flexDirection: "column" }}>
       <FirstLoginPasswordGate />
       <AppBar
-        position={mobilizeMobileChrome ? "absolute" : "fixed"}
+        position={
+          mobilizeMobileTitleHeader ? "fixed" : mobilizeMobileChrome ? "absolute" : "fixed"
+        }
         elevation={0}
-        color={mobilizeTransparentAppBar ? "transparent" : "default"}
-        enableColorOnDark={mobilizeTransparentAppBar}
+        color={mobilizeMobileTitleHeader ? "default" : mobilizeAppBarTransparent ? "transparent" : "default"}
+        enableColorOnDark={mobilizeAppBarTransparent}
         sx={{
           top: maintenanceTop,
           zIndex: (t) => t.zIndex.drawer + 1,
-          ...(mobilizeTransparentAppBar
+          ...(mobilizeMobileTitleHeader
             ? {
-                bgcolor: "transparent",
-                backgroundColor: "transparent",
-                background: "transparent",
-                backgroundImage: "none",
+                bgcolor: "#fff",
+                color: "#0d0d0d",
+                borderBottom: "1px solid rgba(0,0,0,0.1)",
                 boxShadow: "none",
-                backdropFilter: "none",
-                WebkitBackdropFilter: "none",
-                borderBottom: "none",
-                "&.MuiAppBar-root": {
-                  backgroundColor: "transparent",
-                  backgroundImage: "none",
-                  boxShadow: "none",
-                },
-                "&.MuiAppBar-colorDefault": {
-                  backgroundColor: "transparent",
-                },
-                "&.MuiPaper-root": {
-                  backgroundColor: "transparent",
-                  backgroundImage: "none",
-                  boxShadow: "none",
-                },
               }
-            : {
-                bgcolor: "rgba(12,12,14,0.88)",
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
-                borderBottom: "1px solid rgba(255,215,0,0.12)",
-              }),
+            : mobilizeAppBarTransparent
+              ? {
+                  bgcolor: "transparent",
+                  backgroundColor: "transparent",
+                  background: "transparent",
+                  backgroundImage: "none",
+                  boxShadow: "none",
+                  backdropFilter: "none",
+                  WebkitBackdropFilter: "none",
+                  borderBottom: "none",
+                  "&.MuiAppBar-root": {
+                    backgroundColor: "transparent",
+                    backgroundImage: "none",
+                    boxShadow: "none",
+                  },
+                  "&.MuiAppBar-colorDefault": {
+                    backgroundColor: "transparent",
+                  },
+                  "&.MuiPaper-root": {
+                    backgroundColor: "transparent",
+                    backgroundImage: "none",
+                    boxShadow: "none",
+                  },
+                }
+              : {
+                  bgcolor: "rgba(12,12,14,0.88)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  borderBottom: "1px solid rgba(255,215,0,0.12)",
+                }),
           width: { xs: "100%", md: `calc(100% - ${appBarShift}px)` },
           ml: { md: `${appBarShift}px` },
-          color: mobilizeTransparentAppBar
-            ? mobilizeHeaderOnLightSurface
-              ? "#0d0d0d"
-              : "#fff"
-            : undefined,
+          color: mobilizeMobileTitleHeader
+            ? "#0d0d0d"
+            : mobilizeAppBarTransparent
+              ? mobilizeToolbarOnLightSurface
+                ? "#0d0d0d"
+                : "#fff"
+              : undefined,
           transform: mobilizeMobileChrome && mobilizeHeaderHidden ? "translateY(-110%)" : "translate3d(0, 0, 0)",
           WebkitTransform: mobilizeMobileChrome && mobilizeHeaderHidden ? "translateY(-110%)" : "translate3d(0, 0, 0)",
           willChange: "transform",
@@ -1634,7 +1658,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-          "& .MuiIconButton-root": mobilizeTransparentAppBar
+          "& .MuiIconButton-root": mobilizeMobileTitleHeader
+            ? {
+                color: "rgba(0,0,0,0.88)",
+                "&:hover": { bgcolor: "rgba(0,0,0,0.06)" },
+              }
+            : mobilizeAppBarTransparent
             ? mobilizeHeroOverlayToolbar
               ? {
                   width: 40,
@@ -1673,9 +1702,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   },
                 }
             : undefined,
-          "& .MuiBadge-root .MuiSvgIcon-root": mobilizeTransparentAppBar
+          "& .MuiBadge-root .MuiSvgIcon-root": mobilizeMobileTitleHeader
+            ? { color: "rgba(0,0,0,0.88)" }
+            : mobilizeAppBarTransparent
             ? {
-                color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.82)" : "rgba(255,255,255,0.95)",
+                color: mobilizeToolbarOnLightSurface ? "rgba(0,0,0,0.82)" : "rgba(255,255,255,0.95)",
                 transition: theme.transitions.create(["color"], {
                   duration: 180,
                   easing: theme.transitions.easing.easeInOut,
@@ -1689,15 +1720,29 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           sx={{
             minHeight: { xs: 52, md: 48 },
             py: { xs: 0.35, md: 0 },
-            gap: mobilizeHeroOverlayToolbar ? 0.5 : 1,
-            px: mobilizeHeroOverlayToolbar ? { xs: 1, sm: 1.5 } : undefined,
+            gap: mobilizeHeroOverlayToolbar ? 0.5 : mobilizeMobileTitleHeader ? 0.75 : 1,
+            px: mobilizeHeroOverlayToolbar
+              ? { xs: 1, sm: 1.5 }
+              : mobilizeMobileTitleHeader
+                ? { xs: 1, sm: 1.5 }
+                : undefined,
             position: "relative",
             bgcolor: "transparent",
             backgroundImage: "none",
             boxShadow: "none",
           }}
         >
-          {mobilizeMobileSlimHeader ? (
+          {mobilizeMobileTitleHeader ? (
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={() => setMobileDrawerOpen(true)}
+              aria-label="Menu"
+              sx={{ mr: 0.25 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          ) : mobilizeMobileSlimHeader ? (
             <IconButton
               color="inherit"
               edge="start"
@@ -1738,9 +1783,28 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               />
             </Box>
           ) : null}
-          <Box sx={{ flexGrow: 1 }} />
+          {mobilizeMobileTitleHeader ? (
+            <Typography
+              component="h1"
+              variant="h6"
+              noWrap
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                fontWeight: 800,
+                fontSize: "1.35rem",
+                letterSpacing: "-0.02em",
+                lineHeight: 1.2,
+                color: "inherit",
+              }}
+            >
+              {mobilizeMobileHubTitle}
+            </Typography>
+          ) : (
+            <Box sx={{ flexGrow: 1 }} />
+          )}
           {canAccessMobilize ? (
-            <DashboardGlobalSearch lightSurface={mobilizeHeaderOnLightSurface} />
+            <DashboardGlobalSearch lightSurface={mobilizeToolbarOnLightSurface} />
           ) : null}
           <Box
             sx={{

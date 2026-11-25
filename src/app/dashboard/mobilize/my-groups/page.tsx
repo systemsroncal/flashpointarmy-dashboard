@@ -80,8 +80,13 @@ export default function MyGroupsPage() {
             mx: "auto",
           }}
         >
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Groups
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            gutterBottom
+            sx={{ display: { xs: "none", md: "block" } }}
+          >
+            My Groups
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Groups you belong to or lead. Open a group to view feed, events, and members.

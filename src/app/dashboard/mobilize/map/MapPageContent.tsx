@@ -365,8 +365,8 @@ export default function MobilizeMapPageContent() {
     <Box sx={mobilizeChapterDetailRootSx}>
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2} sx={{ mb: 2, flexShrink: 0 }}>
         <Box>
-          <Typography variant="h4" fontWeight={700}>
-            Chapters&apos; Groups
+          <Typography variant="h4" fontWeight={700} sx={{ display: { xs: "none", md: "block" } }}>
+            Chapters
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720, lineHeight: 1.55 }}>
             <b>New to Chapters &amp; Groups?</b>

@@ -185,7 +185,7 @@ export function ChaptersGroupsNavGroup({ onNavigate, disabled = false }: Props) 
             <GroupsOutlinedIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Chapters' Groups"
+            primary="Chapters"
             primaryTypographyProps={{
               variant: "body2",
               fontWeight: 600,
@@ -220,7 +220,7 @@ export function ChaptersGroupsNavGroup({ onNavigate, disabled = false }: Props) 
             <GroupsOutlinedIcon />
           </ListItemIcon>
           <ListItemText
-            primary="Chapters' Groups"
+            primary="Chapters"
             primaryTypographyProps={{
               variant: "body2",
               fontWeight: 600,
