@@ -64,7 +64,14 @@ export default async function GatheringsPageContent() {
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: "primary.main" }}>
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 800,
+            color: "primary.main",
+            display: { xs: "none", md: "block" },
+          }}
+        >
           Events
         </Typography>
         {canCreate ? (

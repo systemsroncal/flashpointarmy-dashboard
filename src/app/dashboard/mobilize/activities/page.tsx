@@ -29,7 +29,15 @@ import NextLink from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
-import { mobilizeChapterDetailRootSx, mobilizeScrollBodySx } from "@/lib/mobilize/mobilize-ui-surface";
+import {
+  dashboardLightPageMutedSx,
+  dashboardMobileHiddenPageTitleSx,
+} from "@/lib/dashboard/dashboard-light-page-sx";
+import {
+  mobilizeChapterDetailRootSx,
+  mobilizeMobilePagePx,
+  mobilizeScrollBodySx,
+} from "@/lib/mobilize/mobilize-ui-surface";
 
 type Ev = {
   id: string;
@@ -141,11 +149,16 @@ function ActivitiesInner() {
   } as const;
 
   return (
-    <Box sx={mobilizeChapterDetailRootSx}>
-      <Typography variant="h4" fontWeight={700} gutterBottom sx={{ flexShrink: 0 }}>
+    <Box sx={{ ...mobilizeChapterDetailRootSx, ...mobilizeMobilePagePx, boxSizing: "border-box" }}>
+      <Typography
+        variant="h4"
+        fontWeight={700}
+        gutterBottom
+        sx={{ flexShrink: 0, ...dashboardMobileHiddenPageTitleSx }}
+      >
         Deployment
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
+      <Typography variant="body2" sx={{ mb: 2, flexShrink: 0, ...dashboardLightPageMutedSx }}>
         Mobilize events from your groups and public listings. Switch between list and month calendar; filter by My
         groups or All.
       </Typography>
@@ -172,11 +185,11 @@ function ActivitiesInner() {
       </Stack>
 
       {scope === "my" ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
+        <Typography variant="body2" sx={{ mb: 2, flexShrink: 0, ...dashboardLightPageMutedSx }}>
           Events in groups where you have approved membership.
         </Typography>
       ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexShrink: 0 }}>
+        <Typography variant="body2" sx={{ mb: 2, flexShrink: 0, ...dashboardLightPageMutedSx }}>
           Public Mobilize events plus events in groups you belong to.
         </Typography>
       )}
@@ -218,11 +231,11 @@ function ActivitiesInner() {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>When</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Event</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Group</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary", width: 100 }}>Listing</TableCell>
+                <TableCell sx={{ fontWeight: 700, ...dashboardLightPageMutedSx }}>When</TableCell>
+                <TableCell sx={{ fontWeight: 700, ...dashboardLightPageMutedSx }}>Event</TableCell>
+                <TableCell sx={{ fontWeight: 700, ...dashboardLightPageMutedSx }}>Group</TableCell>
+                <TableCell sx={{ fontWeight: 700, ...dashboardLightPageMutedSx }}>Type</TableCell>
+                <TableCell sx={{ fontWeight: 700, ...dashboardLightPageMutedSx, width: 100 }}>Listing</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -261,7 +274,13 @@ function ActivitiesInner() {
         <Box>
           <Box sx={{ ...gridSx, mb: 0.5 }}>
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <Typography key={d} variant="caption" color="text.secondary" align="center" display="block">
+              <Typography
+                key={d}
+                variant="caption"
+                align="center"
+                display="block"
+                sx={dashboardLightPageMutedSx}
+              >
                 {d}
               </Typography>
             ))}
@@ -302,7 +321,7 @@ function ActivitiesInner() {
                         </NextLink>
                       ))}
                       {evs.length > 2 ? (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" sx={dashboardLightPageMutedSx}>
                           +{evs.length - 2} more
                         </Typography>
                       ) : null}
@@ -316,9 +335,7 @@ function ActivitiesInner() {
       )}
 
       {!loading && !events.length ? (
-        <Typography color="text.secondary" sx={{ mt: 2 }}>
-          No events in this range.
-        </Typography>
+        <Typography sx={{ mt: 2, ...dashboardLightPageMutedSx }}>No events in this range.</Typography>
       ) : null}
       </Box>
       </MobilizeContentPanel>

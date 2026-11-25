@@ -8,6 +8,10 @@ import type { MobilizeBrowseGroupRow } from "@/components/mobilize/MobilizeGroup
 import MobilizeGroupCardList from "@/components/mobilize/MobilizeGroupCardList";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
+import {
+  dashboardLightPageMutedSx,
+  dashboardMobileHiddenPageTitleSx,
+} from "@/lib/dashboard/dashboard-light-page-sx";
 
 export default function MyGroupsPage() {
   const toast = useMobilizeToast();
@@ -84,11 +88,11 @@ export default function MyGroupsPage() {
             variant="h4"
             fontWeight={700}
             gutterBottom
-            sx={{ display: { xs: "none", md: "block" } }}
+            sx={dashboardMobileHiddenPageTitleSx}
           >
             My Groups
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2, ...dashboardLightPageMutedSx }}>
             Groups you belong to or lead. Open a group to view feed, events, and members.
           </Typography>
           <MobilizeGroupCardList
