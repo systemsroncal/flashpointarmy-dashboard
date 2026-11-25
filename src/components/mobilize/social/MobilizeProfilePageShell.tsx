@@ -75,6 +75,7 @@ export function MobilizeProfilePageShell({
 
   const groupHeroHeader = groupFeedLayout ? (
     <Box
+      data-mobilize-cover-hero
       sx={{
         position: "relative",
         borderRadius: 2.5,
@@ -225,6 +226,18 @@ export function MobilizeProfilePageShell({
           ) : null}
         </Stack>
       </Box>
+      <Box
+        data-mobilize-hero-end
+        aria-hidden
+        sx={{
+          position: "absolute",
+          left: 0,
+          bottom: 0,
+          width: "100%",
+          height: 1,
+          pointerEvents: "none",
+        }}
+      />
     </Box>
   ) : null;
 
@@ -286,7 +299,7 @@ export function MobilizeProfilePageShell({
           }}
         >
           {/* Cover — no title overlay (Facebook-style) */}
-          <Box sx={{ position: "relative", bgcolor: "#1a2744" }}>
+          <Box sx={{ position: "relative", bgcolor: "#1a2744" }} data-mobilize-cover-hero>
             <Box
               component="img"
               key={coverSrc}
@@ -322,6 +335,18 @@ export function MobilizeProfilePageShell({
                 {coverActions}
               </Box>
             ) : null}
+            <Box
+              data-mobilize-hero-end
+              aria-hidden
+              sx={{
+                position: "absolute",
+                left: 0,
+                bottom: 0,
+                width: "100%",
+                height: 1,
+                pointerEvents: "none",
+              }}
+            />
           </Box>
 
           {/* Identity row: only avatar overlaps cover; title stays on white */}
