@@ -3,6 +3,7 @@
 import { SocialUrlShareDialog } from "@/components/dashboard/SocialUrlShareDialog";
 import type { UnifiedFeedPost } from "@/lib/mobilize/social/feed-types";
 import { absoluteMobilizePostShareUrl } from "@/lib/mobilize/social/post-share-url";
+import { mobilizePostShareHeadline } from "@/lib/share/social-share-message";
 import { useMemo } from "react";
 
 type Props = {
@@ -18,7 +19,8 @@ export function MobilizePostShareDialog({ open, onClose, post }: Props) {
   }, [post]);
 
   const authorName = post.author.display_name?.trim() || "Member";
-  const subject = `Post from ${authorName} on FlashPoint Army`;
+  const subject = `Post from ${authorName}`;
+  const shareMessage = mobilizePostShareHeadline(authorName);
 
   return (
     <SocialUrlShareDialog
@@ -26,6 +28,7 @@ export function MobilizePostShareDialog({ open, onClose, post }: Props) {
       onClose={onClose}
       shareUrl={shareUrl}
       subject={subject}
+      shareMessage={shareMessage}
       title="Share this post"
       linkLabel="Post link"
       description={

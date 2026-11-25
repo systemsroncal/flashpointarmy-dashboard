@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { APP_DISPLAY_NAME, APP_SHORT_NAME, DEFAULT_SHARE_META_IMAGE } from "@/lib/site/app-branding";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { Barlow, Konkhmer_Sleokchher } from "next/font/google";
 import { MaintenanceBannerGate } from "@/components/MaintenanceBannerGate";
@@ -21,8 +22,19 @@ const konkhmerSleokchher = Konkhmer_Sleokchher({
 });
 
 export const metadata: Metadata = {
-  title: "FlashPoint Army Command Center",
-  description: "FlashPOINT F.P. Army dashboard",
+  title: {
+    default: APP_SHORT_NAME,
+    template: `%s | ${APP_SHORT_NAME}`,
+  },
+  description: APP_DISPLAY_NAME,
+  openGraph: {
+    siteName: APP_DISPLAY_NAME,
+    images: [{ url: DEFAULT_SHARE_META_IMAGE }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: [DEFAULT_SHARE_META_IMAGE],
+  },
   icons: {
     icon: [{ url: "/favicon-fp-army.png", type: "image/png" }],
     apple: [{ url: "/favicon-fp-army.png", type: "image/png" }],

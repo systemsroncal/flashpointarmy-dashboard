@@ -36,6 +36,15 @@ import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import { SocialUrlShareDialog } from "@/components/dashboard/SocialUrlShareDialog";
 import { MissionUpdateSharedFromUrl } from "@/components/dashboard/notifications/MissionUpdateSharedFromUrl";
 import { absoluteMissionUpdateShareUrl } from "@/lib/dashboard/mission-update-share-url";
+import { missionUpdateShareHeadline } from "@/lib/share/social-share-message";
+import {
+  extractImageSrcsFromHtml,
+  stripAnnouncementMediaFromHtml,
+} from "@/lib/share/announcement-media-html";
+import {
+  announcementPlainTextPreview,
+  findAllVideoMarkers,
+} from "@/components/dashboard/notifications/announcement-video-markers";
 import {
   CLAMP_ACCORDION_TRANSITION,
   useClampAccordion,
@@ -112,7 +121,7 @@ function fromLocalDatetimeValue(s: string): string | null {
 
 type Snack = { message: string; severity: "success" | "error" };
 
-/** Mission Update description — clamped to 4 lines, then Read more / Read less. */
+/** Mission Update description — clamped text; first image when collapsed; full media when expanded. */
 function AnnouncementCollapsibleBody({
   html,
   useCollapse,
@@ -122,7 +131,14 @@ function AnnouncementCollapsibleBody({
   useCollapse: boolean;
   mb?: number;
 }) {
-  const accordion = useClampAccordion(MISSION_UPDATE_CLAMP_LINES);
+  const textHtml = useMemo(() => stripAnnouncementMediaFromHtml(html), [html]);
+  const allImages = useMemo(() => extractImageSrcsFromHtml(html), [html]);
+  const firstImage = allImages[0] ?? null;
+  const hasVideos = useMemo(() => findAllVideoMarkers(html).length > 0, [html]);
+  const plainHint = useMemo(() => announcementPlainTextPreview(textHtml), [textHtml]);
+  const showReadMore =
+    hasVideos || allImages.length > 1;
+  const accordion = useClampAccordion(MISSION_UPDATE_CLAMP_LINES, plainHint);
 
   const clampSx = {
     display: "-webkit-box",
@@ -134,6 +150,23 @@ function AnnouncementCollapsibleBody({
     return (
       <Box sx={{ mb }}>
         <AnnouncementDescriptionBody html={html} />
+      </Box>
+    );
+  }
+
+  if (accordion.expanded) {
+    return (
+      <Box sx={{ mb }}>
+        <AnnouncementDescriptionBody html={html} compact />
+        {accordion.needsCollapse ? (
+          <Button
+            size="small"
+            onClick={accordion.toggle}
+            sx={{ mt: 0.5, color: "primary.light", textTransform: "none", fontWeight: 600 }}
+          >
+            Read less
+          </Button>
+        ) : null}
       </Box>
     );
   }
@@ -153,15 +186,23 @@ function AnnouncementCollapsibleBody({
           ...(accordion.showClamp ? clampSx : {}),
         }}
       >
-        <AnnouncementDescriptionBody html={html} compact />
+        <AnnouncementDescriptionBody html={textHtml || "<p></p>"} compact />
       </Box>
-      {accordion.needsCollapse ? (
+      {firstImage ? (
+        <Box
+          component="img"
+          src={firstImage}
+          alt=""
+          sx={{ mt: 1.25, maxWidth: "100%", height: "auto", borderRadius: 1, display: "block" }}
+        />
+      ) : null}
+      {accordion.needsCollapse || showReadMore ? (
         <Button
           size="small"
           onClick={accordion.toggle}
           sx={{ mt: 0.5, color: "primary.light", textTransform: "none", fontWeight: 600 }}
         >
-          {accordion.expanded ? "Read less" : "Read more"}
+          Read more
         </Button>
       ) : null}
     </Box>
@@ -999,7 +1040,12 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
             ? absoluteMissionUpdateShareUrl(window.location.origin, shareRow.id)
             : ""
         }
-        subject={shareRow ? `Mission Update: ${shareRow.title}` : "Mission Update on FlashPoint Army"}
+        subject={shareRow ? `Mission Update: ${shareRow.title}` : "Mission Update"}
+        shareMessage={
+          shareRow && typeof window !== "undefined"
+            ? missionUpdateShareHeadline(shareRow.title)
+            : undefined
+        }
         title="Share this Mission Update"
         linkLabel="Mission Update link"
         description={

@@ -1,5 +1,5 @@
 import { announcementPlainTextPreview } from "@/components/dashboard/notifications/announcement-video-markers";
-import { buildMissionUpdateSharePath } from "@/lib/dashboard/mission-update-share-url";
+import { buildMissionUpdatePublicSharePath } from "@/lib/dashboard/mission-update-share-url";
 
 const PREVIEW_MAX = 320;
 
@@ -19,6 +19,6 @@ export function missionUpdateEmailPreviewHtml(description: string): string {
 }
 
 export function missionUpdateEmailUrl(siteBase: string, announcementId: string): string {
-  const path = buildMissionUpdateSharePath(announcementId);
+  const path = buildMissionUpdatePublicSharePath(announcementId);
   return `${siteBase.replace(/\/$/, "")}${path}`;
 }

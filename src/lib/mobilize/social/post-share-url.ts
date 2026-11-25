@@ -13,6 +13,27 @@ export function mobilizeProfileFeedShareHref(profileUserId: string, postId: stri
   return `/dashboard/mobilize/profile/${profileUserId}?${q.toString()}`;
 }
 
+/** Public share URL with Open Graph metadata. */
+export function buildMobilizePostPublicSharePath(post: UnifiedFeedPost): string | null {
+  if (post.kind === "group_message" && post.group_id && post.message_id) {
+    const q = new URLSearchParams({
+      kind: "group_message",
+      group_id: post.group_id,
+      post_id: post.message_id,
+    });
+    return `/share/post?${q.toString()}`;
+  }
+  if (post.kind === "profile_post" && post.profile_user_id && post.post_id) {
+    const q = new URLSearchParams({
+      kind: "profile_post",
+      user_id: post.profile_user_id,
+      post_id: post.post_id,
+    });
+    return `/share/post?${q.toString()}`;
+  }
+  return null;
+}
+
 /** Opens the post in a popup on the group feed or profile feed (not a standalone page). */
 export function buildMobilizePostSharePath(post: UnifiedFeedPost): string | null {
   if (post.kind === "group_message" && post.group_id && post.message_id) {
@@ -25,7 +46,7 @@ export function buildMobilizePostSharePath(post: UnifiedFeedPost): string | null
 }
 
 export function absoluteMobilizePostShareUrl(origin: string, post: UnifiedFeedPost): string | null {
-  const path = buildMobilizePostSharePath(post);
+  const path = buildMobilizePostPublicSharePath(post);
   if (!path) return null;
   return `${origin.replace(/\/$/, "")}${path}`;
 }

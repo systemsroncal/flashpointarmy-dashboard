@@ -62,7 +62,7 @@ export async function sendAccountVerifiedEmail(
       user_fullname: displayNameFromRow({ ...row, email }),
       user_email: email,
       profile_url: profileUrl,
-      app_name: "FlashPoint Army Chapters",
+      app_name: "FlashPoint Army Chapters Command Center - Connect. Grow. Lead. Mobile. Impact Your City.",
       current_year: String(new Date().getFullYear()),
     },
     { triggeredByUserId: options?.triggeredByUserId ?? null }

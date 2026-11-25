@@ -119,7 +119,8 @@ const PREVIEW_SHORTCODES: Record<string, string> = {
   resetpassword_url: "https://example.com/auth/reset-password?token=demo",
   gathering_title: "Sunday gathering",
   gathering_url: "https://example.com/dashboard/gatherings/demo",
-  app_name: "FlashPoint Army Chapters",
+  app_name:
+    "FlashPoint Army Chapters Command Center - Connect. Grow. Lead. Mobile. Impact Your City.",
   current_year: String(new Date().getFullYear()),
   otp: "123456",
   course_title: "Biblical Citizenship",
