@@ -368,19 +368,27 @@ export default function MobilizeMapPageContent() {
           <Typography variant="h4" fontWeight={700} sx={{ display: { xs: "none", md: "block" } }}>
             Chapters
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720, lineHeight: 1.55 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 720,
+              lineHeight: 1.55,
+              color: "rgba(0,0,0,0.72)",
+              "& b, & strong": { color: "#0d0d0d" },
+            }}
+          >
             <b>New to Chapters &amp; Groups?</b>
             <br />
-            Click here to watch a short video and learn how everything works.{' '}
+            Click here to watch a short video and learn how everything works.{" "}
             <Box
               component="span"
-              onClick={() => window.dispatchEvent(new Event('fp-reopen-video-popup'))}
+              onClick={() => window.dispatchEvent(new Event("fp-reopen-video-popup"))}
               sx={{
                 fontWeight: 700,
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                color: 'text.primary',
-                '&:hover': { opacity: 0.7 },
+                textDecoration: "underline",
+                cursor: "pointer",
+                color: "#0d0d0d",
+                "&:hover": { opacity: 0.7 },
               }}
             >
               WATCH VIDEO NOW
