@@ -32,7 +32,13 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import {
+  PROFILE_POST_TARGET,
+  type ComposerPostTarget,
+} from "@/lib/mobilize/social/composer-post-target";
+import { mobilizeGroupDetailHref } from "@/lib/mobilize/group-detail-tabs";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
 
 const HOME_TABS = [
@@ -56,6 +62,7 @@ function canManageHomePost(post: UnifiedFeedPost, viewerId: string, roleNames: s
 
 export function MobilizeOwnerHomeClient() {
   const me = useDashboardUser();
+  const router = useRouter();
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down("md"));
   const hideChromeOnScroll = useMobilizeScrollHide(mobile);
@@ -77,6 +84,7 @@ export function MobilizeOwnerHomeClient() {
   const [editPostHtml, setEditPostHtml] = useState("");
   const [editPostImages, setEditPostImages] = useState<string[]>([]);
   const [editPostSaving, setEditPostSaving] = useState(false);
+  const [composerPostTarget, setComposerPostTarget] = useState<ComposerPostTarget>(PROFILE_POST_TARGET);
 
   const PAGE_SIZE = 10;
 
@@ -128,12 +136,30 @@ export function MobilizeOwnerHomeClient() {
     return () => observer.disconnect();
   }, [hasMore, loading, loadingMore, load]);
 
-  async function publishPost(preparedHtml?: string) {
+  async function publishPost(
+    preparedHtml?: string,
+    meta?: { postTarget: ComposerPostTarget }
+  ) {
     const html = preparedHtml ?? composerHtml;
     const plain = html.replace(/<[^>]+>/g, "").trim();
     if (!plain && !composerImages.length) return;
+    const target = meta?.postTarget ?? composerPostTarget;
     setPosting(true);
     try {
+      if (target.type === "group") {
+        const res = await fetch(`/api/mobilize/groups/${target.groupId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content_html: html, image_urls: composerImages }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Post failed.");
+        setComposerHtml("");
+        setComposerImages([]);
+        setComposerPostTarget(PROFILE_POST_TARGET);
+        router.push(mobilizeGroupDetailHref(target.groupId, "announcements"));
+        return;
+      }
       const res = await fetch(`/api/mobilize/social/profiles/${me.id}/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -289,7 +315,11 @@ export function MobilizeOwnerHomeClient() {
                   imageUrls={composerImages}
                   onImageUrlsChange={setComposerImages}
                   postLabel="Post"
-                  onPost={(html) => void publishPost(html)}
+                  showVisibility
+                  postTargetPicker
+                  postTarget={composerPostTarget}
+                  onPostTargetChange={setComposerPostTarget}
+                  onPost={(html, meta) => void publishPost(html, meta)}
                   posting={posting}
                   canPost={canPost}
                 />

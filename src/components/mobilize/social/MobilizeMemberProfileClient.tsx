@@ -65,6 +65,11 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MobilizeSharedPostFromUrl } from "@/components/mobilize/social/MobilizeSharedPostFromUrl";
+import {
+  PROFILE_POST_TARGET,
+  type ComposerPostTarget,
+} from "@/lib/mobilize/social/composer-post-target";
+import { mobilizeGroupDetailHref } from "@/lib/mobilize/group-detail-tabs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const VISITOR_PROFILE_TABS = [
@@ -161,6 +166,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
   const [adminMenuAnchor, setAdminMenuAnchor] = useState<null | HTMLElement>(null);
+  const [composerPostTarget, setComposerPostTarget] = useState<ComposerPostTarget>(PROFILE_POST_TARGET);
   // Following from one of this member's posts must flip the header button too.
   useEffect(
     () =>
@@ -369,12 +375,30 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     }
   }
 
-  async function publishPost(preparedHtml?: string) {
+  async function publishPost(
+    preparedHtml?: string,
+    meta?: { postTarget: ComposerPostTarget }
+  ) {
     const html = preparedHtml ?? composerHtml;
     const plain = html.replace(/<[^>]+>/g, "").trim();
     if (!plain && !composerImages.length) return;
+    const target = meta?.postTarget ?? composerPostTarget;
     setPosting(true);
     try {
+      if (target.type === "group") {
+        const res = await fetch(`/api/mobilize/groups/${target.groupId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content_html: html, image_urls: composerImages }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Post failed.");
+        setComposerHtml("");
+        setComposerImages([]);
+        setComposerPostTarget(PROFILE_POST_TARGET);
+        router.push(mobilizeGroupDetailHref(target.groupId, "announcements"));
+        return;
+      }
       const res = await fetch(`/api/mobilize/social/profiles/${userId}/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -655,7 +679,11 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             imageUrls={composerImages}
             onImageUrlsChange={setComposerImages}
             postLabel="Post"
-            onPost={(html) => void publishPost(html)}
+            showVisibility
+            postTargetPicker
+            postTarget={composerPostTarget}
+            onPostTargetChange={setComposerPostTarget}
+            onPost={(html, meta) => void publishPost(html, meta)}
             posting={posting}
             canPost={Boolean(composerHtml.replace(/<[^>]+>/g, "").trim()) || composerImages.length > 0}
           />
