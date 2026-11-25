@@ -89,6 +89,7 @@ import { MobileDrawerAccountSection } from "./MobileDrawerAccountSection";
 import { GlobalContainerShareItemListener } from "./GlobalContainerShareItemListener";
 import { NotificationMenu } from "./NotificationMenu";
 import { FirstLoginPasswordGate } from "./FirstLoginPasswordGate";
+import { MobilizeGroupLeaderTermsGate } from "@/components/mobilize/MobilizeGroupLeaderTermsGate";
 import { NotificationsDrawerUnreadCount } from "./NotificationsDrawerUnreadCount";
 import { RoleWelcomeVideoPrompt } from "./RoleWelcomeVideoPrompt";
 import { SidebarYourJourney } from "./SidebarYourJourney";
@@ -1598,6 +1599,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <MissionUpdatesUnreadProvider>
       <Box sx={{ minHeight: "100vh", flex: 1, display: "flex", flexDirection: "column" }}>
       <FirstLoginPasswordGate />
+      <MobilizeGroupLeaderTermsGate />
       <AppBar
         position={
           mobileModuleTitleHeader ? "fixed" : mobilizeMobileChrome ? "absolute" : "fixed"
