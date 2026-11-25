@@ -13,6 +13,16 @@ import {
   MOBILIZE_FEED_POST_MAX_CHARS,
   trimTrailingFeedHtml,
 } from "@/lib/mobilize/social/sanitize-feed-html";
+import {
+  PROFILE_POST_TARGET,
+  composerPostTargetLabel,
+  composerPostTargetSelectValue,
+  parseComposerPostTargetSelectValue,
+  sortComposerGroupOptions,
+  type ComposerGroupOption,
+  type ComposerPostTarget,
+} from "@/lib/mobilize/social/composer-post-target";
+import { mobilizeLightScrollbarSx } from "@/lib/ui/scrollbar-sx";
 import { MAX_MOBILIZE_ANNOUNCEMENT_IMAGES } from "@/lib/mobilize/announcement-images";
 import { DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS } from "@/lib/mobilize/image-upload-limits";
 import {
@@ -77,10 +87,14 @@ type Props = {
   postLabel?: string;
   /** Header under the visibility / comments pill. */
   headingLabel?: string;
-  onPost?: (preparedHtml: string) => void | Promise<void>;
+  onPost?: (preparedHtml: string, meta?: { postTarget: ComposerPostTarget }) => void | Promise<void>;
   posting?: boolean;
   canPost?: boolean;
   showVisibility?: boolean;
+  /** Feed / profile: pick profile vs joined groups (featured first). */
+  postTargetPicker?: boolean;
+  postTarget?: ComposerPostTarget;
+  onPostTargetChange?: (target: ComposerPostTarget) => void;
   /** Group / profile feed: yellow Post button + card layout. */
   brandAccent?: boolean;
   /** Replaces the visibility pill with a comments-policy select (group feed leaders). */
@@ -109,6 +123,9 @@ export function MobilizeSocialPostEditor({
   posting = false,
   canPost,
   showVisibility = true,
+  postTargetPicker = false,
+  postTarget = PROFILE_POST_TARGET,
+  onPostTargetChange,
   brandAccent = false,
   commentsPolicy,
   onCommentsPolicyChange,
@@ -127,7 +144,44 @@ export function MobilizeSocialPostEditor({
   const [linkPreviewLoading, setLinkPreviewLoading] = useState(false);
   const [linkPreviewError, setLinkPreviewError] = useState<string | null>(null);
   const linkPreviewFetchRef = useRef(0);
-  const visibilityLabel = "Post to public";
+  const [joinedGroups, setJoinedGroups] = useState<ComposerGroupOption[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const resolvedTarget = postTarget ?? PROFILE_POST_TARGET;
+  const visibilityLabel = composerPostTargetLabel(resolvedTarget);
+  const activeGroupId = groupId ?? (resolvedTarget.type === "group" ? resolvedTarget.groupId : undefined);
+
+  useEffect(() => {
+    if (!postTargetPicker) return;
+    let cancelled = false;
+    setGroupsLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch("/api/mobilize/my-groups");
+        const json = (await res.json()) as {
+          groups?: { id: string; name: string; is_featured?: boolean; my_membership_status?: string | null }[];
+        };
+        if (!res.ok) throw new Error();
+        const approved = (json.groups ?? []).filter(
+          (g) => (g.my_membership_status ?? "approved") === "approved"
+        );
+        const sorted = sortComposerGroupOptions(
+          approved.map((g) => ({
+            id: String(g.id),
+            name: String(g.name ?? "Group"),
+            is_featured: Boolean(g.is_featured),
+          }))
+        );
+        if (!cancelled) setJoinedGroups(sorted);
+      } catch {
+        if (!cancelled) setJoinedGroups([]);
+      } finally {
+        if (!cancelled) setGroupsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [postTargetPicker]);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,7 +193,7 @@ export function MobilizeSocialPostEditor({
           groups_image_max_count?: number;
           profile_image_max_count?: number;
         };
-        const next = groupId
+        const next = activeGroupId
           ? Number(j.groups_image_max_count)
           : Number(j.profile_image_max_count);
         if (!cancelled && Number.isFinite(next) && next >= 1) {
@@ -148,7 +202,7 @@ export function MobilizeSocialPostEditor({
       } catch {
         if (!cancelled) {
           setMaxImages(
-            groupId
+            activeGroupId
               ? DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.groups_image_max_count
               : DEFAULT_MOBILIZE_IMAGE_UPLOAD_LIMITS.profile_image_max_count
           );
@@ -158,14 +212,14 @@ export function MobilizeSocialPostEditor({
     return () => {
       cancelled = true;
     };
-  }, [groupId]);
+  }, [activeGroupId]);
 
   const charCount = useMemo(() => plainTextLength(value), [value]);
   const charsLeft = MAX_CHARS - charCount;
   const postEnabled = canPost ?? (Boolean(charCount) || imageUrls.length > 0);
 
-  const uploadUrl = groupId
-    ? `/api/mobilize/groups/${groupId}/messages/image`
+  const uploadUrl = activeGroupId
+    ? `/api/mobilize/groups/${activeGroupId}/messages/image`
     : "/api/mobilize/social/profile-posts/image";
 
   const uploadFile = useCallback(
@@ -310,7 +364,7 @@ export function MobilizeSocialPostEditor({
     }
     if (prepared !== value) onChange(prepared);
     clearLinkPreview();
-    void onPost(prepared);
+    void onPost(prepared, postTargetPicker ? { postTarget: resolvedTarget } : undefined);
   }
 
   function removeSelectedVideo() {
@@ -378,11 +432,45 @@ export function MobilizeSocialPostEditor({
         <MenuItem value="leaders_only">Leaders only can comment</MenuItem>
       </Select>
     </FormControl>
+  ) : showVisibility && postTargetPicker ? (
+    <FormControl size="small" sx={{ minWidth: 0, maxWidth: "100%", display: "block" }}>
+      <Select
+        value={composerPostTargetSelectValue(resolvedTarget)}
+        onChange={(e) => {
+          const next = parseComposerPostTargetSelectValue(String(e.target.value), joinedGroups);
+          if (next && onPostTargetChange) onPostTargetChange(next);
+        }}
+        disabled={disabled || posting || groupsLoading}
+        displayEmpty
+        IconComponent={KeyboardArrowDownIcon}
+        sx={pillSelectSx}
+        inputProps={{ "aria-label": "Where to publish" }}
+        MenuProps={{
+          disableScrollLock: true,
+          PaperProps: {
+            className: "fp-mobilize-light-scroll",
+            sx: { maxHeight: 320, ...mobilizeLightScrollbarSx },
+          },
+        }}
+      >
+        <MenuItem value="profile">My profile</MenuItem>
+        {joinedGroups.map((g) => (
+          <MenuItem key={g.id} value={`group:${g.id}`}>
+            {g.is_featured ? `★ ${g.name}` : g.name}
+          </MenuItem>
+        ))}
+        {!groupsLoading && !joinedGroups.length ? (
+          <MenuItem value="profile" disabled sx={{ opacity: 1, fontSize: "0.8rem", color: "text.secondary" }}>
+            No joined groups yet
+          </MenuItem>
+        ) : null}
+      </Select>
+    </FormControl>
   ) : showVisibility ? (
     <Button
       size="small"
       endIcon={<KeyboardArrowDownIcon sx={{ fontSize: "1rem !important" }} />}
-      disabled={disabled || posting}
+      disabled
       sx={{
         textTransform: "none",
         fontWeight: 600,
@@ -394,13 +482,6 @@ export function MobilizeSocialPostEditor({
         border: `1px solid ${useDesignAccent ? "rgba(0,0,0,0.14)" : borderColor}`,
         bgcolor: useDesignAccent || !isDark ? "#fff" : "rgba(255,255,255,0.04)",
         minWidth: 0,
-        "&:hover": {
-          bgcolor: useDesignAccent
-            ? "#f7f7f7"
-            : isDark
-              ? "rgba(255,255,255,0.08)"
-              : "rgba(0,0,0,0.03)",
-        },
       }}
     >
       {visibilityLabel}
