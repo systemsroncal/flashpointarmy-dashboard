@@ -416,7 +416,7 @@ export default function MobilizeGroupResourcesPanel({
     if (row.resource_type === "document" && row.url) {
       const isPdf = isMobilizePdfUrl(row.url);
       return (
-        <Box>
+        <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%" }}>
           <Button
             size="small"
             sx={{ mt: 1 }}
@@ -485,7 +485,12 @@ export default function MobilizeGroupResourcesPanel({
           return (
             <Card key={row.id} variant="outlined" sx={{ mb: 1, ...mobilizeCardSx }}>
               <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  alignItems={{ xs: "stretch", sm: "flex-start" }}
+                  gap={1}
+                >
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                       <Chip
@@ -501,10 +506,14 @@ export default function MobilizeGroupResourcesPanel({
                     <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                       {new Date(row.created_at).toLocaleString()}
                     </Typography>
-                    {renderResourceBody(row)}
                   </Box>
                   {canManage ? (
-                    <Stack direction="row" spacing={0.5} flexShrink={0}>
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      flexShrink={0}
+                      sx={{ alignSelf: { xs: "flex-end", sm: "flex-start" } }}
+                    >
                       <Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(row)}>
                         Edit
                       </Button>
@@ -519,6 +528,9 @@ export default function MobilizeGroupResourcesPanel({
                     </Stack>
                   ) : null}
                 </Stack>
+                <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%", mt: 1 }}>
+                  {renderResourceBody(row)}
+                </Box>
               </CardContent>
             </Card>
           );

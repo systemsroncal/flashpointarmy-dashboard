@@ -296,7 +296,7 @@ export function GatheringDescriptionEditor({
         statusbar: false,
         toolbar: false,
         plugins: ["autoresize", "emoticons", "lists", "link"].join(" "),
-        placeholder: "What's on your mind?",
+        placeholder: "Share your thoughts...",
         autoresize_bottom_margin: 4,
         autoresize_max_height: 360,
         min_height: 72,
