@@ -5,12 +5,14 @@ import {
 } from "@/lib/mobilize/social/composer-post-target";
 
 export const MOBILIZE_STARTER_GROUPS_LIMIT = 6;
+/** Show group-post nudge when posting to profile wall with at most this many followers. */
+export const MOBILIZE_LOW_FOLLOWERS_NUDGE_MAX = 10;
 
 export function shouldShowNoFollowersPostNudge(
   followersCount: number | null | undefined,
   target: ComposerPostTarget
 ): boolean {
-  return target.type === "profile" && (followersCount ?? 0) < 1;
+  return target.type === "profile" && (followersCount ?? 0) <= MOBILIZE_LOW_FOLLOWERS_NUDGE_MAX;
 }
 
 export type StarterGroupBrief = {

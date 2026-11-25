@@ -36,5 +36,5 @@ export function parseComposerPostTargetSelectValue(
 }
 
 export function composerPostTargetLabel(target: ComposerPostTarget): string {
-  return target.type === "profile" ? "My profile" : target.name;
+  return target.type === "profile" ? "On my profile" : target.name;
 }
