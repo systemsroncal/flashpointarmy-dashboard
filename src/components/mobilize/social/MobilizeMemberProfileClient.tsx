@@ -65,10 +65,12 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MobilizeSharedPostFromUrl } from "@/components/mobilize/social/MobilizeSharedPostFromUrl";
+import { MobilizeNoFollowersPostDialog } from "@/components/mobilize/social/MobilizeNoFollowersPostDialog";
 import {
   PROFILE_POST_TARGET,
   type ComposerPostTarget,
 } from "@/lib/mobilize/social/composer-post-target";
+import { shouldShowNoFollowersPostNudge } from "@/lib/mobilize/social/composer-no-followers-nudge";
 import { mobilizeGroupDetailHref } from "@/lib/mobilize/group-detail-tabs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -167,6 +169,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
   const [adminMenuAnchor, setAdminMenuAnchor] = useState<null | HTMLElement>(null);
   const [composerPostTarget, setComposerPostTarget] = useState<ComposerPostTarget>(PROFILE_POST_TARGET);
+  const [noFollowersNudge, setNoFollowersNudge] = useState<{
+    html: string;
+    meta?: { postTarget: ComposerPostTarget };
+  } | null>(null);
   // Following from one of this member's posts must flip the header button too.
   useEffect(
     () =>
@@ -375,7 +381,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     }
   }
 
-  async function publishPost(
+  async function executePublishPost(
     preparedHtml?: string,
     meta?: { postTarget: ComposerPostTarget }
   ) {
@@ -414,6 +420,21 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     } finally {
       setPosting(false);
     }
+  }
+
+  async function publishPost(
+    preparedHtml?: string,
+    meta?: { postTarget: ComposerPostTarget }
+  ) {
+    const target = meta?.postTarget ?? composerPostTarget;
+    const followers =
+      profile?.is_own_profile && userId === me.id ? profile.followers_count : null;
+    if (shouldShowNoFollowersPostNudge(followers, target)) {
+      const html = preparedHtml ?? composerHtml;
+      setNoFollowersNudge({ html, meta });
+      return;
+    }
+    await executePublishPost(preparedHtml, meta);
   }
 
   if (loading) {
@@ -1099,6 +1120,28 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           </Button>
         </DialogActions>
       </MobilizeDialog>
+
+      <MobilizeNoFollowersPostDialog
+        open={Boolean(noFollowersNudge)}
+        posting={posting}
+        onClose={() => !posting && setNoFollowersNudge(null)}
+        onPostToProfileAnyway={() => {
+          if (!noFollowersNudge) return;
+          const pending = noFollowersNudge;
+          setNoFollowersNudge(null);
+          void executePublishPost(pending.html, {
+            postTarget: PROFILE_POST_TARGET,
+          });
+        }}
+        onPostToGroup={(groupId, name) => {
+          if (!noFollowersNudge) return;
+          const pending = noFollowersNudge;
+          setNoFollowersNudge(null);
+          const target: ComposerPostTarget = { type: "group", groupId, name };
+          setComposerPostTarget(target);
+          void executePublishPost(pending.html, { postTarget: target });
+        }}
+      />
 
       <MobilizeSharedPostFromUrl
         profileUserId={userId}

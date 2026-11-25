@@ -32,10 +32,12 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { MobilizeNoFollowersPostDialog } from "@/components/mobilize/social/MobilizeNoFollowersPostDialog";
 import {
   PROFILE_POST_TARGET,
   type ComposerPostTarget,
 } from "@/lib/mobilize/social/composer-post-target";
+import { shouldShowNoFollowersPostNudge } from "@/lib/mobilize/social/composer-no-followers-nudge";
 import { mobilizeGroupDetailHref } from "@/lib/mobilize/group-detail-tabs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -85,8 +87,31 @@ export function MobilizeOwnerHomeClient() {
   const [editPostImages, setEditPostImages] = useState<string[]>([]);
   const [editPostSaving, setEditPostSaving] = useState(false);
   const [composerPostTarget, setComposerPostTarget] = useState<ComposerPostTarget>(PROFILE_POST_TARGET);
+  const [myFollowersCount, setMyFollowersCount] = useState<number | null>(null);
+  const [noFollowersNudge, setNoFollowersNudge] = useState<{
+    html: string;
+    meta?: { postTarget: ComposerPostTarget };
+  } | null>(null);
 
   const PAGE_SIZE = 10;
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/mobilize/social/profiles/${me.id}`);
+        const json = (await res.json()) as { profile?: { followers_count?: number } };
+        if (!cancelled && res.ok) {
+          setMyFollowersCount(Number(json.profile?.followers_count ?? 0));
+        }
+      } catch {
+        if (!cancelled) setMyFollowersCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [me.id]);
 
   const load = useCallback(async (opts?: { silent?: boolean; append?: boolean }) => {
     if (!opts?.append) {
@@ -136,7 +161,7 @@ export function MobilizeOwnerHomeClient() {
     return () => observer.disconnect();
   }, [hasMore, loading, loadingMore, load]);
 
-  async function publishPost(
+  async function executePublishPost(
     preparedHtml?: string,
     meta?: { postTarget: ComposerPostTarget }
   ) {
@@ -175,6 +200,19 @@ export function MobilizeOwnerHomeClient() {
     } finally {
       setPosting(false);
     }
+  }
+
+  async function publishPost(
+    preparedHtml?: string,
+    meta?: { postTarget: ComposerPostTarget }
+  ) {
+    const target = meta?.postTarget ?? composerPostTarget;
+    if (shouldShowNoFollowersPostNudge(myFollowersCount, target)) {
+      const html = preparedHtml ?? composerHtml;
+      setNoFollowersNudge({ html, meta });
+      return;
+    }
+    await executePublishPost(preparedHtml, meta);
   }
 
   function openEditPost(post: UnifiedFeedPost) {
@@ -516,6 +554,28 @@ export function MobilizeOwnerHomeClient() {
           </Button>
         </DialogActions>
       </MobilizeDialog>
+
+      <MobilizeNoFollowersPostDialog
+        open={Boolean(noFollowersNudge)}
+        posting={posting}
+        onClose={() => !posting && setNoFollowersNudge(null)}
+        onPostToProfileAnyway={() => {
+          if (!noFollowersNudge) return;
+          const pending = noFollowersNudge;
+          setNoFollowersNudge(null);
+          void executePublishPost(pending.html, {
+            postTarget: PROFILE_POST_TARGET,
+          });
+        }}
+        onPostToGroup={(groupId, name) => {
+          if (!noFollowersNudge) return;
+          const pending = noFollowersNudge;
+          setNoFollowersNudge(null);
+          const target: ComposerPostTarget = { type: "group", groupId, name };
+          setComposerPostTarget(target);
+          void executePublishPost(pending.html, { postTarget: target });
+        }}
+      />
     </Box>
   );
 }

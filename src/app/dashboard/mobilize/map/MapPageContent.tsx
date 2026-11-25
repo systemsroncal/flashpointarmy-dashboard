@@ -362,9 +362,23 @@ export default function MobilizeMapPageContent() {
   }
 
   return (
-    <Box sx={mobilizeChapterDetailRootSx}>
-      <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2} sx={{ mb: 2, flexShrink: 0 }}>
-        <Box>
+    <Box
+      sx={{
+        ...mobilizeChapterDetailRootSx,
+        width: "100%",
+        boxSizing: "border-box",
+        px: { xs: 1.5, sm: 2, md: 0 },
+        pt: { xs: 0.5, sm: 0 },
+      }}
+    >
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        justifyContent="space-between"
+        alignItems={{ sm: "center" }}
+        gap={2}
+        sx={{ mb: 2, flexShrink: 0 }}
+      >
+        <Box sx={{ width: "100%", maxWidth: 720 }}>
           <Typography variant="h4" fontWeight={700} sx={{ display: { xs: "none", md: "block" } }}>
             Chapters
           </Typography>
@@ -400,7 +414,11 @@ export default function MobilizeMapPageContent() {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setCreateOpen(true)}
-            sx={{ minWidth: 200 }}
+            sx={{
+              minWidth: { xs: "100%", sm: 200 },
+              alignSelf: { xs: "stretch", sm: "center" },
+              flexShrink: 0,
+            }}
           >
             New chapter
           </Button>
