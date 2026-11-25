@@ -117,6 +117,7 @@ import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
 import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
 import { SOCIAL_HUB_LIGHT_BG, TRUTH_HUB_TEXT } from "@/lib/mobilize/social/social-hub-surface";
+import { mobilizeDarkScrollbarSx } from "@/lib/ui/scrollbar-sx";
 import {
   MOBILIZE_BOOKMARKS_HREF,
   MOBILIZE_SOCIAL_SETTINGS_HREF,
@@ -594,6 +595,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [graduateCongratsOpen, setGraduateCongratsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mobilizeProfileNavOpen, setMobilizeProfileNavOpen] = useState(false);
   const [missionPipelineOpen, setMissionPipelineOpen] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [inviteShareOpen, setInviteShareOpen] = useState(false);
@@ -643,7 +645,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     isMobilize && pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
   const mobilizeMobileSlimHeader = !desktop && isMobilize;
   const mobilizeMobileChrome = mobilizeMobileSlimHeader;
-  const mobilizeTransparentAppBar = isMobilize;
+  const mobilizeMobileLayout = !desktop && isMobilize;
+  const mobilizeTransparentAppBar = mobilizeMobileLayout;
   const mobilizeHeaderHidden = useMobilizeScrollHide(mobilizeMobileChrome);
   const [mobilizeBackHref, setMobilizeBackHref] = useState("/dashboard/mobilize/home");
 
@@ -876,6 +879,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const showMobilizeSettings = user.role_names.includes("super_admin");
   const profileHref = mobilizeMemberProfileHref(user.id);
 
+  useEffect(() => {
+    if (
+      pathname === profileHref ||
+      pathname.startsWith(MOBILIZE_BOOKMARKS_HREF) ||
+      pathname.startsWith(`${profileHref}/`)
+    ) {
+      setMobilizeProfileNavOpen(true);
+    }
+  }, [pathname, profileHref]);
+
+  useEffect(() => {
+    if (pathname.startsWith(MOBILIZE_SOCIAL_SETTINGS_HREF)) {
+      setSettingsOpen(true);
+    }
+  }, [pathname]);
+
   const resolveNavHref = useCallback(
     (item: NavItem) => (item.href === "__PROFILE__" ? profileHref : item.href),
     [profileHref]
@@ -958,6 +977,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",
           overscrollBehavior: "contain",
+          ...mobilizeDarkScrollbarSx,
         }}
         data-tour="sidebar-nav-scroll"
       >
@@ -975,50 +995,29 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               />
             ) : null;
 
-          // After Profile → Member Journey + People (admin sections).
-          const mobilizeDrawerAccountExtras =
-            !desktop && isMobilize && canAccessMobilize && item.href === "__PROFILE__" ? (
-              <>
-                <ListItem disablePadding>
-                  <ListItemButton
-                    component={Link}
-                    href={MOBILIZE_BOOKMARKS_HREF}
-                    selected={pathname.startsWith(MOBILIZE_BOOKMARKS_HREF)}
-                    onClick={closeMobileDrawer}
-                    sx={{ ...NAV_ITEM_TOUCH_SX, pl: 4.5, py: 0.65 }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 34, color: "rgba(255,255,255,0.88)" }}>
-                      <BookmarkBorderOutlinedIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="My saved"
-                      primaryTypographyProps={{
-                        variant: "body2",
-                        fontWeight: 600,
-                        fontSize: "0.82rem",
-                        color: "rgba(255,255,255,0.88)",
-                      }}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              </>
-            ) : null;
+          const mobilizeMobileDrawerProfile =
+            !desktop && isMobilize && canAccessMobilize && item.href === "__PROFILE__";
+          const profileSectionActive =
+            pathname === profileHref ||
+            pathname.startsWith(`${profileHref}/`) ||
+            pathname.startsWith(MOBILIZE_BOOKMARKS_HREF);
+          const mobilizeSocialSettingsActive = pathname.startsWith(MOBILIZE_SOCIAL_SETTINGS_HREF);
+          const mobilizeSettingsSectionActive = settingsHasActive || mobilizeSocialSettingsActive;
 
           const afterProfile =
             item.href === "__PROFILE__" ? (
               <>
-                {mobilizeDrawerAccountExtras}
-                {!desktop && isMobilize && canAccessMobilize && settingsNav.length > 0 ? (
+                {!desktop && isMobilize && canAccessMobilize ? (
                   <>
                     <ListItem disablePadding>
                       <ListItemButton
                         onClick={() => setSettingsOpen((prev) => !prev)}
-                        selected={settingsHasActive}
+                        selected={mobilizeSettingsSectionActive}
                         sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.75, mt: 0.25 }}
                       >
                         <ListItemIcon
                           sx={{
-                            color: settingsHasActive ? "primary.main" : "rgba(255,255,255,0.92)",
+                            color: mobilizeSettingsSectionActive ? "primary.main" : "rgba(255,255,255,0.92)",
                             minWidth: 38,
                           }}
                         >
@@ -1030,24 +1029,47 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                             variant: "body2",
                             fontWeight: 600,
                             fontSize: "calc(0.82rem + 3px)",
-                            color: settingsHasActive ? "primary.main" : "rgba(255,255,255,0.88)",
+                            color: mobilizeSettingsSectionActive ? "primary.main" : "rgba(255,255,255,0.88)",
                           }}
                         />
                         {settingsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                       </ListItemButton>
                     </ListItem>
                     <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
-                      <SidebarNestedNavList
-                        items={settingsNav.map((item) => ({
-                          key: item.href,
-                          label: item.label,
-                          href: item.href,
-                          icon: item.icon,
-                          selected: isNavItemSelected(item, pathname),
-                          tourAttr: `nav-${item.module}`,
-                        }))}
-                        onNavigate={closeMobileDrawer}
-                      />
+                      {settingsNav.length > 0 ? (
+                        <SidebarNestedNavList
+                          items={settingsNav.map((item) => ({
+                            key: item.href,
+                            label: item.label,
+                            href: item.href,
+                            icon: item.icon,
+                            selected: isNavItemSelected(item, pathname),
+                            tourAttr: `nav-${item.module}`,
+                          }))}
+                          onNavigate={closeMobileDrawer}
+                        />
+                      ) : null}
+                      <ListItem disablePadding sx={{ pl: 2.25, pr: 1 }}>
+                        <ListItemButton
+                          component={Link}
+                          href={MOBILIZE_SOCIAL_SETTINGS_HREF}
+                          selected={mobilizeSocialSettingsActive}
+                          onClick={closeMobileDrawer}
+                          sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.65, pl: 1.5, borderRadius: 1 }}
+                        >
+                          <ListItemText
+                            primary="Mobilize settings"
+                            primaryTypographyProps={{
+                              variant: "body2",
+                              fontWeight: 600,
+                              fontSize: "0.82rem",
+                              color: mobilizeSocialSettingsActive
+                                ? "primary.main"
+                                : "rgba(255,255,255,0.88)",
+                            }}
+                          />
+                        </ListItemButton>
+                      </ListItem>
                       {showMobilizeSettings ? (
                         <Suspense fallback={null}>
                           <MobilizeSettingsNavGroup onNavigate={closeMobileDrawer} />
@@ -1132,6 +1154,90 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           if (item.href === "__PROFILE__" && !canAccessMobilize) {
             return (
               <Box key="profile-block" component="span" sx={{ display: "contents" }}>
+                {afterOverview}
+                {afterProfile}
+              </Box>
+            );
+          }
+
+          if (mobilizeMobileDrawerProfile) {
+            return (
+              <Box key={item.href} component="span" sx={{ display: "contents" }}>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => setMobilizeProfileNavOpen((prev) => !prev)}
+                    selected={profileSectionActive}
+                    sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.75 }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: profileSectionActive ? "primary.main" : "rgba(255,255,255,0.92)",
+                        minWidth: 38,
+                      }}
+                    >
+                      <PersonOutlineIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Profile"
+                      primaryTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 600,
+                        fontSize: "calc(0.82rem + 3px)",
+                        color: profileSectionActive ? "primary.main" : "rgba(255,255,255,0.88)",
+                      }}
+                    />
+                    {mobilizeProfileNavOpen ? (
+                      <ExpandLessIcon fontSize="small" />
+                    ) : (
+                      <ExpandMoreIcon fontSize="small" />
+                    )}
+                  </ListItemButton>
+                </ListItem>
+                <Collapse in={mobilizeProfileNavOpen} timeout="auto" unmountOnExit>
+                  <ListItem disablePadding sx={{ pl: 2.25, pr: 1 }}>
+                    <ListItemButton
+                      component={Link}
+                      href={profileHref}
+                      selected={pathname === profileHref || pathname.startsWith(`${profileHref}/`)}
+                      onClick={closeMobileDrawer}
+                      sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.65, pl: 1.5, borderRadius: 1 }}
+                    >
+                      <ListItemText
+                        primary="View profile"
+                        primaryTypographyProps={{
+                          variant: "body2",
+                          fontWeight: 600,
+                          fontSize: "0.82rem",
+                          color: "rgba(255,255,255,0.88)",
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                  <ListItem disablePadding sx={{ pl: 2.25, pr: 1 }}>
+                    <ListItemButton
+                      component={Link}
+                      href={MOBILIZE_BOOKMARKS_HREF}
+                      selected={pathname.startsWith(MOBILIZE_BOOKMARKS_HREF)}
+                      onClick={closeMobileDrawer}
+                      sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.65, pl: 1.5, borderRadius: 1 }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 34, color: "rgba(255,255,255,0.88)" }}>
+                        <BookmarkBorderOutlinedIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary="My saved"
+                        primaryTypographyProps={{
+                          variant: "body2",
+                          fontWeight: 600,
+                          fontSize: "0.82rem",
+                          color: pathname.startsWith(MOBILIZE_BOOKMARKS_HREF)
+                            ? "primary.main"
+                            : "rgba(255,255,255,0.88)",
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                </Collapse>
                 {afterOverview}
                 {afterProfile}
               </Box>
@@ -1418,6 +1524,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <AppBar
         position={mobilizeMobileChrome ? "absolute" : "fixed"}
         elevation={0}
+        color={mobilizeTransparentAppBar ? "transparent" : "default"}
+        enableColorOnDark={mobilizeTransparentAppBar}
         sx={{
           top: maintenanceTop,
           zIndex: (t) => t.zIndex.drawer + 1,
@@ -1536,7 +1644,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Box>
           ) : null}
           <Box sx={{ flexGrow: 1 }} />
-          {canAccessMobilize ? <DashboardGlobalSearch /> : null}
+          {canAccessMobilize ? (
+            <DashboardGlobalSearch lightSurface={mobilizeHeaderOnLightSurface} />
+          ) : null}
           <RoleWelcomeVideoPrompt />
           <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
             <MobilizeVideoCamIcon />
@@ -1609,12 +1719,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          ...(mobilizeMobileChrome
+          ...(mobilizeMobileLayout
             ? {
                 bgcolor: SOCIAL_HUB_LIGHT_BG,
                 color: "#0d0d0d",
               }
-            : { color: "grey.100" }),
+            : isMobilize
+              ? { bgcolor: SOCIAL_HUB_LIGHT_BG, color: "#0d0d0d" }
+              : { color: "grey.100" }),
           transition: theme.transitions.create("margin", {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
