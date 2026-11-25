@@ -86,13 +86,13 @@ export function MobilizeNoFollowersPostDialog({
       }}
     >
       <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
-        You don&apos;t have any followers yet
+        You have a few followers
       </DialogTitle>
       <DialogContent dividers sx={{ pt: 1 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          If you post on your profile, hardly anyone will see it. Share your first post in a
-          group where people are already active—or join one of the groups below. Your post will
-          show on the group wall, not on your profile.
+          If you post on your profile, hardly anyone will see it. Share your post in a group where
+          people are already active—or join one of the groups below. Your post will show on the
+          group wall, not on your profile.
         </Typography>
 
         {loading ? (
@@ -116,8 +116,8 @@ export function MobilizeNoFollowersPostDialog({
                       value={g.id}
                       control={<Radio size="small" />}
                       label={
-                        <Typography variant="body2" fontWeight={g.is_featured ? 700 : 500}>
-                          {g.is_featured ? `★ ${g.name}` : g.name}
+                        <Typography variant="body2" fontWeight={600}>
+                          {g.name}
                         </Typography>
                       }
                       sx={{ alignItems: "center", mx: 0 }}

@@ -444,7 +444,7 @@ export function MobilizeSocialPostEditor({
         displayEmpty
         IconComponent={KeyboardArrowDownIcon}
         sx={pillSelectSx}
-        inputProps={{ "aria-label": "Where to publish" }}
+        inputProps={{ "aria-label": "Where to post" }}
         MenuProps={{
           disableScrollLock: true,
           PaperProps: {
@@ -453,10 +453,10 @@ export function MobilizeSocialPostEditor({
           },
         }}
       >
-        <MenuItem value="profile">My profile</MenuItem>
+        <MenuItem value="profile">On my profile</MenuItem>
         {joinedGroups.map((g) => (
           <MenuItem key={g.id} value={`group:${g.id}`}>
-            {g.is_featured ? `★ ${g.name}` : g.name}
+            {g.name}
           </MenuItem>
         ))}
         {!groupsLoading && !joinedGroups.length ? (

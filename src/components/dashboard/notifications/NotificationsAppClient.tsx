@@ -238,6 +238,16 @@ function AnnouncementCollapsibleBody({
       >
         <AnnouncementDescriptionBody html={textHtml || "<p></p>"} compact />
       </Box>
+      {canExpand ? (
+        <Button
+          size="small"
+          type="button"
+          onClick={() => setUserExpanded(true)}
+          sx={{ mt: 0.5, color: "primary.light", textTransform: "none", fontWeight: 600 }}
+        >
+          Read more
+        </Button>
+      ) : null}
       {firstMedia?.kind === "image" ? (
         <Box
           component="img"
@@ -266,16 +276,6 @@ function AnnouncementCollapsibleBody({
         <Box sx={MISSION_UPDATE_LINK_PREVIEW_SX}>
           <AnnouncementDescriptionBody html={previewHtml} compact />
         </Box>
-      ) : null}
-      {canExpand ? (
-        <Button
-          size="small"
-          type="button"
-          onClick={() => setUserExpanded(true)}
-          sx={{ mt: 0.5, color: "primary.light", textTransform: "none", fontWeight: 600 }}
-        >
-          Read more
-        </Button>
       ) : null}
     </Box>
   );

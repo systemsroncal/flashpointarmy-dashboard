@@ -60,10 +60,12 @@ export function ImpersonationBanner() {
         icon={<AdminPanelSettingsIcon fontSize="inherit" />}
         sx={{
           alignItems: "center",
-          bgcolor: "rgba(255, 193, 7, 0.12)",
-          color: "#f5e6a8",
-          border: "1px solid rgba(255, 193, 7, 0.35)",
+          bgcolor: "#fff8e1",
+          color: "#3e2723",
+          border: "1px solid rgba(255, 152, 0, 0.45)",
+          "& .MuiAlert-icon": { color: "#e65100" },
           "& .MuiAlert-message": { flex: 1, width: "100%" },
+          "& strong": { color: "#1a1a1a" },
         }}
         action={
           <Button
@@ -73,11 +75,16 @@ export function ImpersonationBanner() {
             disabled={busy}
             onClick={() => void endImpersonation()}
             sx={{
-              borderColor: "rgba(255,255,255,0.45)",
-              color: "#fff",
+              borderColor: "rgba(62, 39, 35, 0.35)",
+              color: "#3e2723",
+              bgcolor: "#fff",
               textTransform: "none",
               fontWeight: 700,
               whiteSpace: "nowrap",
+              "&:hover": {
+                bgcolor: "#fff",
+                borderColor: "#e65100",
+              },
             }}
           >
             {busy ? (

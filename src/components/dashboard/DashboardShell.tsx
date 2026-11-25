@@ -113,10 +113,8 @@ import {
   MOBILIZE_PREFIX as MOBILIZE_PREFIX_CANON,
 } from "@/lib/mobilize/mobilize-nav-config";
 import { resolveMobilizeMobileBackHref } from "@/lib/mobilize/mobilize-mobile-back-href";
-import {
-  isMobilizeCoverHeroPath,
-  resolveMobilizeMobileHeaderTitle,
-} from "@/lib/mobilize/mobilize-mobile-header-title";
+import { isMobilizeCoverHeroPath } from "@/lib/mobilize/mobilize-mobile-header-title";
+import { resolveDashboardMobileHeaderTitle } from "@/lib/dashboard/dashboard-mobile-header-title";
 import { useMobilizeHeroAtTop } from "@/lib/mobilize/social/use-mobilize-hero-at-top";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
@@ -677,19 +675,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       pathname.startsWith(`${MOBILIZE_PREFIX}/messages`) ||
       pathname.startsWith(`${MOBILIZE_PREFIX}/social-settings`));
 
-  const mobilizeMobileHubTitle = useMemo(
-    () => resolveMobilizeMobileHeaderTitle(pathname),
+  const mobileModuleTitle = useMemo(
+    () => resolveDashboardMobileHeaderTitle(pathname),
     [pathname]
   );
-  const mobilizeMobileTitleHeader =
-    mobilizeMobileChrome && mobilizeMobileHubTitle !== null;
+  const mobileModuleTitleHeader =
+    !desktop && mobileModuleTitle !== null && !(isMobilize && onMobilizeCoverHeroPage);
   const mobilizeHeroMainLayout =
-    mobilizeMobileChrome && !mobilizeMobileTitleHeader && onMobilizeCoverHeroPage;
+    mobilizeMobileChrome && !mobileModuleTitleHeader && onMobilizeCoverHeroPage;
   const mobilizeHeaderSurfaceMode: MobilizeHeaderSurfaceMode = mobilizeHeroMainLayout
     ? "cover-hero"
     : "light";
   const mobilizeAppBarTransparent =
-    mobilizeTransparentAppBar && !mobilizeMobileTitleHeader;
+    mobilizeTransparentAppBar && !mobileModuleTitleHeader;
   const mobilizeHeroOverlayToolbar = mobilizeHeroMainLayout;
   const mobilizeContentUnderHeader = mobilizeHeroMainLayout;
   const mobilizeHeroAtTop = useMobilizeHeroAtTop(mobilizeHeroMainLayout);
@@ -700,7 +698,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   );
   const mobilizeHeroToolbarLightIcons =
     mobilizeHeroMainLayout && (mobilizeHeroAtTop || !mobilizeHeaderOnLightSurface);
-  const mobilizeToolbarOnLightSurface = mobilizeMobileTitleHeader
+  const mobilizeToolbarOnLightSurface = mobileModuleTitleHeader
     ? true
     : mobilizeHeroMainLayout
       ? !mobilizeHeroToolbarLightIcons
@@ -1602,15 +1600,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <FirstLoginPasswordGate />
       <AppBar
         position={
-          mobilizeMobileTitleHeader ? "fixed" : mobilizeMobileChrome ? "absolute" : "fixed"
+          mobileModuleTitleHeader ? "fixed" : mobilizeMobileChrome ? "absolute" : "fixed"
         }
         elevation={0}
-        color={mobilizeMobileTitleHeader ? "default" : mobilizeAppBarTransparent ? "transparent" : "default"}
+        color={mobileModuleTitleHeader ? "default" : mobilizeAppBarTransparent ? "transparent" : "default"}
         enableColorOnDark={mobilizeAppBarTransparent}
         sx={{
           top: maintenanceTop,
           zIndex: (t) => t.zIndex.drawer + 1,
-          ...(mobilizeMobileTitleHeader
+          ...(mobileModuleTitleHeader
             ? {
                 bgcolor: "#fff",
                 color: "#0d0d0d",
@@ -1649,7 +1647,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 }),
           width: { xs: "100%", md: `calc(100% - ${appBarShift}px)` },
           ml: { md: `${appBarShift}px` },
-          color: mobilizeMobileTitleHeader
+          color: mobileModuleTitleHeader
             ? "#0d0d0d"
             : mobilizeAppBarTransparent
               ? mobilizeToolbarOnLightSurface
@@ -1668,7 +1666,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-          "& .MuiIconButton-root": mobilizeMobileTitleHeader
+          "& .MuiIconButton-root": mobileModuleTitleHeader
             ? {
                 color: "rgba(0,0,0,0.88)",
                 "&:hover": { bgcolor: "rgba(0,0,0,0.06)" },
@@ -1712,7 +1710,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   },
                 }
             : undefined,
-          "& .MuiBadge-root .MuiSvgIcon-root": mobilizeMobileTitleHeader
+          "& .MuiBadge-root .MuiSvgIcon-root": mobileModuleTitleHeader
             ? { color: "rgba(0,0,0,0.88)" }
             : mobilizeAppBarTransparent
             ? {
@@ -1730,10 +1728,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           sx={{
             minHeight: { xs: 52, md: 48 },
             py: { xs: 0.35, md: 0 },
-            gap: mobilizeHeroOverlayToolbar ? 0.5 : mobilizeMobileTitleHeader ? 0.75 : 1,
+            gap: mobilizeHeroOverlayToolbar ? 0.5 : mobileModuleTitleHeader ? 0.75 : 1,
             px: mobilizeHeroOverlayToolbar
               ? { xs: 1, sm: 1.5 }
-              : mobilizeMobileTitleHeader
+              : mobileModuleTitleHeader
                 ? { xs: 1, sm: 1.5 }
                 : undefined,
             position: "relative",
@@ -1742,7 +1740,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             boxShadow: "none",
           }}
         >
-          {mobilizeMobileTitleHeader ? (
+          {mobileModuleTitleHeader ? (
             <IconButton
               color="inherit"
               edge="start"
@@ -1772,7 +1770,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <MenuIcon />
             </IconButton>
           ) : null}
-          {!desktop && !mobilizeMobileSlimHeader ? (
+          {!desktop && !mobilizeMobileSlimHeader && !mobileModuleTitleHeader ? (
             <Box
               sx={{
                 position: "relative",
@@ -1793,7 +1791,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               />
             </Box>
           ) : null}
-          {mobilizeMobileTitleHeader ? (
+          {mobileModuleTitleHeader ? (
             <Typography
               component="h1"
               variant="h6"
@@ -1808,7 +1806,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 color: "inherit",
               }}
             >
-              {mobilizeMobileHubTitle}
+              {mobileModuleTitle}
             </Typography>
           ) : (
             <Box sx={{ flexGrow: 1 }} />
