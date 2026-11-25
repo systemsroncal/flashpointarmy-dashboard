@@ -704,9 +704,12 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
     </Stack>
   );
 
+  const profileTabMinHeight = { xs: "calc(100dvh - 240px)", sm: 520 } as const;
+
   const tabPanelSx = {
     flex: 1,
-    minHeight: { xs: "calc(100dvh - 300px)", sm: 420 },
+    width: "100%",
+    minHeight: profileTabMinHeight,
     bgcolor: "#fff",
     borderRadius: { xs: 0, sm: 2 },
     p: { xs: 0, sm: 2 },
@@ -743,7 +746,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
           alignItems: "center",
           justifyContent: "center",
           bgcolor: "#fff",
-          minHeight: { xs: "calc(100dvh - 300px)", sm: 420 },
+          minHeight: profileTabMinHeight,
           width: "100%",
         }}
       >
@@ -944,7 +947,17 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         fillContent
         unifiedContent
       >
-        <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "auto" }}>
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: profileTabMinHeight,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "auto",
+            width: "100%",
+            bgcolor: "#fff",
+          }}
+        >
           {renderTabContent()}
         </Box>
       </MobilizeProfilePageShell>

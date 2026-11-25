@@ -2,7 +2,7 @@
 
 import { DiscoverJoinGroupButton } from "@/components/mobilize/social/DiscoverJoinGroupButton";
 import { VerifiedUserBadge } from "@/components/user/VerifiedUserBadge";
-import { mobilizeDarkScrollbarSx } from "@/lib/ui/scrollbar-sx";
+import { mobilizeDarkScrollbarSx, mobilizeLightScrollbarSx } from "@/lib/ui/scrollbar-sx";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import CloseIcon from "@mui/icons-material/Close";
@@ -26,6 +26,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -104,6 +105,7 @@ function SearchResultsPanel({
   groups,
   hasQuery,
   onNavigate,
+  scrollbarSx,
 }: {
   loading: boolean;
   members: SearchMember[];
@@ -111,6 +113,7 @@ function SearchResultsPanel({
   /** At least 2 characters typed — avoid empty-state copy before the user searches. */
   hasQuery: boolean;
   onNavigate?: () => void;
+  scrollbarSx?: SxProps<Theme>;
 }) {
   const empty = hasQuery && !loading && !members.length && !groups.length;
 
@@ -125,7 +128,7 @@ function SearchResultsPanel({
         bgcolor: "#1a1d24",
         border: "1px solid rgba(255,215,0,0.18)",
         borderRadius: 2,
-        ...mobilizeDarkScrollbarSx,
+        ...(scrollbarSx ?? mobilizeDarkScrollbarSx),
       }}
     >
       {loading ? (
@@ -235,7 +238,7 @@ function SearchResultsPanel({
   );
 }
 
-export function DashboardGlobalSearch() {
+export function DashboardGlobalSearch({ lightSurface = false }: { lightSurface?: boolean }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -278,18 +281,33 @@ export function DashboardGlobalSearch() {
     };
   }, [query, runSearch]);
 
-  const fieldSx = {
-    "& .MuiOutlinedInput-root": {
-      bgcolor: "rgba(255,255,255,0.08)",
-      borderRadius: 99,
-      color: "#f5f5f5",
-      fontSize: "0.875rem",
-      "& fieldset": { borderColor: "rgba(255,215,0,0.22)" },
-      "&:hover fieldset": { borderColor: "rgba(255,215,0,0.35)" },
-      "&.Mui-focused fieldset": { borderColor: "primary.main" },
-    },
-    "& .MuiInputBase-input::placeholder": { color: "rgba(255,255,255,0.45)", opacity: 1 },
-  } as const;
+  const fieldSx = lightSurface
+    ? ({
+        "& .MuiOutlinedInput-root": {
+          bgcolor: "rgba(0,0,0,0.04)",
+          borderRadius: 99,
+          color: "#0d0d0d",
+          fontSize: "0.875rem",
+          "& fieldset": { borderColor: "rgba(0,0,0,0.12)" },
+          "&:hover fieldset": { borderColor: "rgba(0,0,0,0.22)" },
+          "&.Mui-focused fieldset": { borderColor: "#1877f2" },
+        },
+        "& .MuiInputBase-input::placeholder": { color: "rgba(0,0,0,0.45)", opacity: 1 },
+      } as const)
+    : ({
+        "& .MuiOutlinedInput-root": {
+          bgcolor: "rgba(255,255,255,0.08)",
+          borderRadius: 99,
+          color: "#f5f5f5",
+          fontSize: "0.875rem",
+          "& fieldset": { borderColor: "rgba(255,215,0,0.22)" },
+          "&:hover fieldset": { borderColor: "rgba(255,215,0,0.35)" },
+          "&.Mui-focused fieldset": { borderColor: "primary.main" },
+        },
+        "& .MuiInputBase-input::placeholder": { color: "rgba(255,255,255,0.45)", opacity: 1 },
+      } as const);
+
+  const resultsScrollbarSx = lightSurface ? mobilizeLightScrollbarSx : mobilizeDarkScrollbarSx;
 
   const closeMobile = () => {
     setMobileOpen(false);
@@ -342,6 +360,7 @@ export function DashboardGlobalSearch() {
                 groups={groups}
                 hasQuery={query.trim().length >= 2}
                 onNavigate={() => setOpen(false)}
+                scrollbarSx={resultsScrollbarSx}
               />
             </Box>
           </ClickAwayListener>
@@ -369,7 +388,15 @@ export function DashboardGlobalSearch() {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ pt: 0, ...mobilizeDarkScrollbarSx, maxHeight: "min(70dvh, 520px)", overflowY: "auto" }}>
+        <DialogContent
+          className={lightSurface ? "fp-mobilize-light-scroll" : "fp-mobilize-dark-scroll"}
+          sx={{
+            pt: 0,
+            ...resultsScrollbarSx,
+            maxHeight: "min(70dvh, 520px)",
+            overflowY: "auto",
+          }}
+        >
           <TextField
             autoFocus
             size="small"
@@ -393,6 +420,7 @@ export function DashboardGlobalSearch() {
               groups={groups}
               hasQuery
               onNavigate={closeMobile}
+              scrollbarSx={resultsScrollbarSx}
             />
           ) : null}
         </DialogContent>
