@@ -36,6 +36,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import { SocialUrlShareDialog } from "@/components/dashboard/SocialUrlShareDialog";
 import { MissionUpdateSharedFromUrl } from "@/components/dashboard/notifications/MissionUpdateSharedFromUrl";
+import { dashboardMobileHiddenPageTitleSx } from "@/lib/dashboard/dashboard-light-page-sx";
 import { absoluteMissionUpdateShareUrl } from "@/lib/dashboard/mission-update-share-url";
 import { missionUpdateShareHeadline } from "@/lib/share/social-share-message";
 import {
@@ -602,7 +603,11 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
         <Stack direction="row" alignItems="center" spacing={1.5}>
           <NotificationsActiveOutlinedIcon sx={{ color: "primary.main", fontSize: 32 }} />
           <Box>
-            <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: 0.3 }}>
+            <Typography
+              variant="h5"
+              fontWeight={700}
+              sx={{ letterSpacing: 0.3, ...dashboardMobileHiddenPageTitleSx }}
+            >
               Missions updates
             </Typography>
             <Typography variant="body2" color="text.secondary">
