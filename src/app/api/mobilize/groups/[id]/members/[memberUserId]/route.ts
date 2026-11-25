@@ -5,6 +5,7 @@ import {
   canManageMobilizeGroupMembers,
 } from "@/lib/mobilize/mobilize-content-access";
 import { requireMobilizeRead } from "@/lib/mobilize/mobilize-api";
+import { syncPlatformRoleForMobilizeGroupLeader } from "@/lib/mobilize/sync-group-leader-platform-role";
 
 type Ctx = { params: Promise<{ id: string; memberUserId: string }> };
 
@@ -51,7 +52,11 @@ async function loadGroupMemberAccess(
 
   return {
     allowed,
-    canChangeRole: canChangeMobilizeGroupMemberRole({ roleNames, isGroupOwner }),
+    canChangeRole: canChangeMobilizeGroupMemberRole({
+      roleNames,
+      isGroupOwner,
+      isLeader: me?.member_role === "leader",
+    }),
     group,
   };
 }
@@ -161,7 +166,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (body.member_role === "leader" || body.member_role === "member") {
     if (!access.canChangeRole) {
       return NextResponse.json(
-        { error: "Only admins and the group owner can change group roles." },
+        { error: "Only group leaders, the group owner, or site staff can change group roles." },
         { status: 403 }
       );
     }
@@ -208,6 +213,16 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (!data) return NextResponse.json({ error: "Member row not found." }, { status: 404 });
+
+    const sync = await syncPlatformRoleForMobilizeGroupLeader(
+      auth.admin,
+      memberUserId,
+      body.member_role
+    );
+    if (!sync.ok) {
+      return NextResponse.json({ error: sync.error, membership: data }, { status: 500 });
+    }
+
     return NextResponse.json({ membership: data });
   }
 
