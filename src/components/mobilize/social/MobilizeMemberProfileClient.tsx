@@ -673,7 +673,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   );
 
   const postsFeed = (
-    <Stack spacing={{ xs: "15px", sm: 1.5 }}>
+    <Stack spacing={{ xs: 0, sm: 1.5 }}>
       {p.is_own_profile ? (
         <Paper
           elevation={0}
@@ -808,7 +808,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         return tabLoadingPanel;
       }
       return (
-      <Stack spacing={{ xs: "15px", sm: 1.5 }} sx={{ flex: 1, minHeight: 0, width: "100%" }}>
+      <Stack spacing={{ xs: 0, sm: 1.5 }} sx={{ flex: 1, minHeight: 0, width: "100%" }}>
         {items.map((post) => (
           <MobilizeSocialPostCard
             key={post.id}

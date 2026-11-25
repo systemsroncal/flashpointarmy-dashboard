@@ -28,6 +28,8 @@ import {
   TextField,
   ThemeProvider,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import EmojiEmotionsOutlinedIcon from "@mui/icons-material/EmojiEmotionsOutlined";
 import Link from "next/link";
@@ -155,9 +157,12 @@ function CommentComposer({
   inputRef?: RefObject<HTMLInputElement | null>;
   compact?: boolean;
 }) {
+  const theme = useTheme();
+  const isMobileFeed = useMediaQuery(theme.breakpoints.down("md"));
   const composerBg = light ? "#f0f2f5" : "rgba(255,255,255,0.06)";
   const nameMuted = light ? "#65676b" : TRUTH_HUB_TEXT_MUTED;
-  const avatarSize = compact ? 28 : 36;
+  const avatarSize = compact || isMobileFeed ? 32 : 36;
+  const fieldRadius = isMobileFeed ? "10px" : "999px";
   const hasDraft = Boolean(draft.trim());
   const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null);
   const localInputRef = useRef<HTMLInputElement | null>(null);
@@ -182,12 +187,25 @@ function CommentComposer({
   }
 
   return (
-    <Box sx={{ mt: compact ? 1 : 1.5, overflow: "visible" }}>
+    <Box sx={{ mt: compact ? 0.75 : { xs: 0.5, sm: 1.5 }, overflow: "visible" }}>
       {header}
-      <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", overflow: "visible" }}>
+      <Box
+        sx={{
+          display: "flex",
+          gap: { xs: 0.75, sm: 1 },
+          alignItems: isMobileFeed ? "center" : "flex-start",
+          overflow: "visible",
+        }}
+      >
         <Avatar
           src={viewerAvatarUrl ? publicAssetSrc(viewerAvatarUrl) : undefined}
-          sx={{ width: avatarSize, height: avatarSize, mt: 0.25, bgcolor: "#263238", flexShrink: 0 }}
+          sx={{
+            width: avatarSize,
+            height: avatarSize,
+            mt: isMobileFeed ? 0 : 0.25,
+            bgcolor: "#263238",
+            flexShrink: 0,
+          }}
         >
           {avatarFallback[0]?.toUpperCase()}
         </Avatar>
@@ -198,6 +216,7 @@ function CommentComposer({
             size="small"
             multiline
             maxRows={4}
+            minRows={1}
             placeholder={placeholder}
             value={draft}
             onChange={(e) => onDraftChange(e.target.value)}
@@ -226,14 +245,15 @@ function CommentComposer({
             sx={{
               "& .MuiOutlinedInput-root": {
                 bgcolor: composerBg,
-                borderRadius: "999px",
-                fontSize: "0.9375rem",
+                borderRadius: fieldRadius,
+                fontSize: isMobileFeed ? "0.875rem" : "0.9375rem",
                 overflow: "hidden",
                 alignItems: "center",
                 pr: 0.5,
+                minHeight: isMobileFeed ? 36 : undefined,
                 "& fieldset": {
                   border: "1px solid transparent",
-                  borderRadius: "999px",
+                  borderRadius: fieldRadius,
                 },
                 "&:hover fieldset": {
                   borderColor: "transparent",
@@ -246,7 +266,11 @@ function CommentComposer({
                   borderColor: light ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.16)",
                   borderWidth: "1px",
                 },
-                "& .MuiInputBase-input": { px: 1.75, py: 1.1 },
+                "& .MuiInputBase-input": {
+                  px: { xs: 1.25, sm: 1.75 },
+                  py: { xs: 0.55, sm: 1.1 },
+                  lineHeight: 1.35,
+                },
               },
             }}
           />
@@ -748,9 +772,12 @@ export function MobilizeSocialComments({
   const body = (
     <Box
       sx={{
-        mt: 1.25,
-        pt: 1.25,
-        borderTop: isDark ? `1px dashed ${TRUTH_HUB_BORDER}` : "1px solid rgba(0,0,0,0.08)",
+        mt: { xs: 0.35, sm: 1.25 },
+        pt: { xs: 0, sm: 1.25 },
+        borderTop: {
+          xs: "none",
+          sm: isDark ? `1px dashed ${TRUTH_HUB_BORDER}` : "1px solid rgba(0,0,0,0.08)",
+        },
         px: 0.25,
         overflow: "visible",
       }}
