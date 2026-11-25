@@ -113,7 +113,11 @@ import {
   MOBILIZE_PREFIX as MOBILIZE_PREFIX_CANON,
 } from "@/lib/mobilize/mobilize-nav-config";
 import { resolveMobilizeMobileBackHref } from "@/lib/mobilize/mobilize-mobile-back-href";
-import { resolveMobilizeMobileHeaderTitle } from "@/lib/mobilize/mobilize-mobile-header-title";
+import {
+  isMobilizeCoverHeroPath,
+  resolveMobilizeMobileHeaderTitle,
+} from "@/lib/mobilize/mobilize-mobile-header-title";
+import { useMobilizeHeroAtTop } from "@/lib/mobilize/social/use-mobilize-hero-at-top";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
 import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
@@ -648,8 +652,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     canAccessMobilizeModule(user.role_names, mobilizeViewerRoles, mobilizeAccessOpts);
   const onMobilizeProfilePage =
     isMobilize && pathname.startsWith(`${MOBILIZE_PREFIX}/profile/`);
-  const onMobilizeGroupDetailPage =
-    isMobilize && /^\/dashboard\/mobilize\/groups\/[^/]+/.test(pathname);
+  const onMobilizeCoverHeroPage =
+    isMobilize && isMobilizeCoverHeroPath(pathname);
   const mobilizeMobileSlimHeader = !desktop && isMobilize;
   const mobilizeMobileChrome = mobilizeMobileSlimHeader;
   const mobilizeMobileLayout = !desktop && isMobilize;
@@ -673,28 +677,34 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       pathname.startsWith(`${MOBILIZE_PREFIX}/messages`) ||
       pathname.startsWith(`${MOBILIZE_PREFIX}/social-settings`));
 
-  const mobilizeHeaderSurfaceMode: MobilizeHeaderSurfaceMode =
-    onMobilizeProfilePage || onMobilizeGroupDetailPage ? "cover-hero" : "light";
   const mobilizeMobileHubTitle = useMemo(
     () => resolveMobilizeMobileHeaderTitle(pathname),
     [pathname]
   );
   const mobilizeMobileTitleHeader =
     mobilizeMobileChrome && mobilizeMobileHubTitle !== null;
+  const mobilizeHeroMainLayout =
+    mobilizeMobileChrome && !mobilizeMobileTitleHeader && onMobilizeCoverHeroPage;
+  const mobilizeHeaderSurfaceMode: MobilizeHeaderSurfaceMode = mobilizeHeroMainLayout
+    ? "cover-hero"
+    : "light";
   const mobilizeAppBarTransparent =
     mobilizeTransparentAppBar && !mobilizeMobileTitleHeader;
-  const mobilizeHeroOverlayToolbar =
-    mobilizeMobileChrome &&
-    mobilizeHeaderSurfaceMode === "cover-hero" &&
-    !mobilizeMobileTitleHeader;
-  const mobilizeContentUnderHeader = mobilizeHeroOverlayToolbar;
+  const mobilizeHeroOverlayToolbar = mobilizeHeroMainLayout;
+  const mobilizeContentUnderHeader = mobilizeHeroMainLayout;
+  const mobilizeHeroAtTop = useMobilizeHeroAtTop(mobilizeHeroMainLayout);
   /** Icons dark on #f0f2f5 / white; light over profile & group cover heroes until scroll. */
   const mobilizeHeaderOnLightSurface = useMobilizeHeaderOnLightSurface(
-    mobilizeMobileChrome && !mobilizeMobileTitleHeader,
+    mobilizeHeroMainLayout,
     mobilizeHeaderSurfaceMode
   );
-  const mobilizeToolbarOnLightSurface =
-    mobilizeMobileTitleHeader || mobilizeHeaderOnLightSurface;
+  const mobilizeHeroToolbarLightIcons =
+    mobilizeHeroMainLayout && (mobilizeHeroAtTop || !mobilizeHeaderOnLightSurface);
+  const mobilizeToolbarOnLightSurface = mobilizeMobileTitleHeader
+    ? true
+    : mobilizeHeroMainLayout
+      ? !mobilizeHeroToolbarLightIcons
+      : mobilizeHeaderOnLightSurface;
 
   useEffect(() => {
     if (desktop) setDesktopDrawerOpen(true);
@@ -1670,33 +1680,33 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   height: 40,
                   borderRadius: "50%",
                   flexShrink: 0,
-                  color: mobilizeHeaderOnLightSurface ? "#0d0d0d" : "#fff",
-                  bgcolor: mobilizeHeaderOnLightSurface
+                  color: mobilizeToolbarOnLightSurface ? "#0d0d0d" : "#fff",
+                  bgcolor: mobilizeToolbarOnLightSurface
                     ? "rgba(255,255,255,0.96)"
                     : "rgba(0,0,0,0.42)",
-                  boxShadow: mobilizeHeaderOnLightSurface
+                  boxShadow: mobilizeToolbarOnLightSurface
                     ? "0 1px 3px rgba(0,0,0,0.14)"
                     : "0 1px 5px rgba(0,0,0,0.38)",
-                  backdropFilter: mobilizeHeaderOnLightSurface ? "none" : "blur(8px)",
-                  WebkitBackdropFilter: mobilizeHeaderOnLightSurface ? "none" : "blur(8px)",
+                  backdropFilter: mobilizeToolbarOnLightSurface ? "none" : "blur(8px)",
+                  WebkitBackdropFilter: mobilizeToolbarOnLightSurface ? "none" : "blur(8px)",
                   transition: theme.transitions.create(["color", "background-color", "box-shadow"], {
                     duration: 200,
                     easing: theme.transitions.easing.easeInOut,
                   }),
                   "&:hover": {
-                    bgcolor: mobilizeHeaderOnLightSurface
+                    bgcolor: mobilizeToolbarOnLightSurface
                       ? "#fff"
                       : "rgba(0,0,0,0.55)",
                   },
                 }
               : {
-                  color: mobilizeHeaderOnLightSurface ? "rgba(0,0,0,0.82)" : "rgba(255,255,255,0.95)",
+                  color: mobilizeToolbarOnLightSurface ? "rgba(0,0,0,0.82)" : "rgba(255,255,255,0.95)",
                   transition: theme.transitions.create(["color"], {
                     duration: 180,
                     easing: theme.transitions.easing.easeInOut,
                   }),
                   "&:hover": {
-                    bgcolor: mobilizeHeaderOnLightSurface
+                    bgcolor: mobilizeToolbarOnLightSurface
                       ? "rgba(0,0,0,0.05)"
                       : "rgba(255,255,255,0.12)",
                   },

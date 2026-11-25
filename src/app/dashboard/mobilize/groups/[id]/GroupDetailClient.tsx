@@ -1127,11 +1127,20 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       borderRadius: { xs: "10px", md: 99 },
       textTransform: "none" as const,
       fontWeight: 700,
+      fontSize: { xs: "0.8rem", md: "0.875rem" },
       minHeight: { xs: 40, md: 36 },
       flex: { xs: "1 1 0", md: "0 0 auto" },
       color: "#0d0d0d",
       borderColor: "rgba(0,0,0,0.18)",
       bgcolor: "#fff",
+      px: { xs: 1.25, md: 2 },
+      "@media (max-width: 455px)": {
+        fontSize: "0.72rem",
+        px: 0.85,
+        minHeight: 38,
+        "& .MuiButton-startIcon": { mr: 0.5 },
+        "& .MuiButton-startIcon > *:nth-of-type(1)": { fontSize: "1.05rem" },
+      },
       "&:hover": {
         // Keep the label dark: the panel theme turns outlined buttons white on hover.
         color: "#0d0d0d",
