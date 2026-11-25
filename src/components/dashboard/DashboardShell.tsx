@@ -899,6 +899,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     if (profileOpen) setMobilizeProfileNavOpen(true);
   }, [profileOpen]);
 
+  const mobilizeSocialSettingsActive = pathname.startsWith(MOBILIZE_SOCIAL_SETTINGS_HREF);
+  const mobilizeSettingsSectionActive = settingsHasActive || mobilizeSocialSettingsActive;
+
   const resolveNavHref = useCallback(
     (item: NavItem) => (item.href === "__PROFILE__" ? profileHref : item.href),
     [profileHref]
@@ -1006,10 +1009,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             pathname.startsWith(`${profileHref}/`) ||
             pathname.startsWith(MOBILIZE_BOOKMARKS_HREF) ||
             profileOpen;
-          const mobilizeSocialSettingsActive = pathname.startsWith(MOBILIZE_SOCIAL_SETTINGS_HREF);
-          const mobilizeSettingsSectionActive =
-            settingsHasActive || mobilizeSocialSettingsActive;
-
           const afterProfile =
             item.href === "__PROFILE__" ? (
               <>
