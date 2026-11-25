@@ -203,9 +203,16 @@ export async function PATCH(req: Request, ctx: Ctx) {
       }
     }
 
+    const memberPatch: { member_role: string; leader_terms_accepted_at?: string | null } = {
+      member_role: body.member_role,
+    };
+    if (body.member_role === "leader") {
+      memberPatch.leader_terms_accepted_at = null;
+    }
+
     const { data, error } = await auth.admin
       .from("mobilize_group_members")
-      .update({ member_role: body.member_role })
+      .update(memberPatch)
       .eq("group_id", id)
       .eq("user_id", memberUserId)
       .select("*")

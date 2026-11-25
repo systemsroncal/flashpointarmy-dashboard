@@ -335,9 +335,17 @@ async function upsertApprovedGroupMember(
     if (existing.membership_status === "approved" && existing.member_role === targetRole) {
       return { status: "already_member" };
     }
+    const memberPatch: {
+      membership_status: string;
+      member_role: string;
+      leader_terms_accepted_at?: string | null;
+    } = { membership_status: "approved", member_role: targetRole };
+    if (targetRole === "leader") {
+      memberPatch.leader_terms_accepted_at = null;
+    }
     const { data, error } = await admin
       .from("mobilize_group_members")
-      .update({ membership_status: "approved", member_role: targetRole })
+      .update(memberPatch)
       .eq("id", existing.id)
       .select("*")
       .maybeSingle();
@@ -355,6 +363,7 @@ async function upsertApprovedGroupMember(
       user_id: userId,
       member_role: targetRole,
       membership_status: "approved",
+      ...(targetRole === "leader" ? { leader_terms_accepted_at: null } : {}),
     })
     .select("*")
     .maybeSingle();

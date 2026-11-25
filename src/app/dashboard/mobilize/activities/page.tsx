@@ -20,7 +20,9 @@ import {
   ToggleButtonGroup,
   Tooltip,
   Typography,
+  type Theme,
 } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -149,12 +151,23 @@ function ActivitiesInner() {
   } as const;
 
   return (
-    <Box sx={{ ...mobilizeChapterDetailRootSx, ...mobilizeMobilePagePx, boxSizing: "border-box" }}>
+    <Box
+      sx={
+        {
+          ...(mobilizeChapterDetailRootSx as SystemStyleObject<Theme>),
+          ...(mobilizeMobilePagePx as SystemStyleObject<Theme>),
+          boxSizing: "border-box",
+        } satisfies SystemStyleObject<Theme>
+      }
+    >
       <Typography
         variant="h4"
         fontWeight={700}
         gutterBottom
-        sx={{ flexShrink: 0, ...dashboardMobileHiddenPageTitleSx }}
+        sx={{
+          flexShrink: 0,
+          ...(dashboardMobileHiddenPageTitleSx as SystemStyleObject<Theme>),
+        }}
       >
         Deployment
       </Typography>
