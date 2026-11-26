@@ -1,4 +1,5 @@
 import type { SxProps, Theme } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 
 /** @deprecated Sticky Mobilize bottom nav was removed; kept for MobilizeBottomNavBar. */
 export const MOBILIZE_BOTTOM_NAV_HEIGHT_PX = 56;
@@ -77,6 +78,15 @@ export const mobilizeChapterDetailRootSx: SxProps<Theme> = {
   minHeight: { xs: 0, lg: 0 },
   overflow: { xs: "visible", lg: "hidden" },
 };
+
+/** Chapter root + mobile gutters — safe to spread into `Box sx` without array typing issues. */
+export function mobilizeMobilePageRootSx(extra?: SystemStyleObject<Theme>): SxProps<Theme> {
+  return {
+    ...(mobilizeChapterDetailRootSx as SystemStyleObject<Theme>),
+    ...(mobilizeMobilePagePx as SystemStyleObject<Theme>),
+    ...extra,
+  };
+}
 
 /** White panel grows to consume remaining chapter detail height (desktop only). */
 export const mobilizeChapterDetailPanelFillSx: SxProps<Theme> = {
