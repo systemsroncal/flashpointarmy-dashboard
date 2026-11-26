@@ -124,6 +124,7 @@ export function MobilizeGroupFeed({
             onChange={onWallHtmlChange}
             disabled={posting}
             surface="light"
+            launcher
             brandAccent={embedded}
             showVisibility={!embedded}
             commentsPolicy={isLeader || isSuperAdmin ? leaderCommentsPolicy : undefined}

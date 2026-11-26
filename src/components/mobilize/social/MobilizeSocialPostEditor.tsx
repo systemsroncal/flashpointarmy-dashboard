@@ -1,6 +1,7 @@
 "use client";
 
 import { GatheringDescriptionEditor } from "@/components/dashboard/gatherings/GatheringDescriptionEditor";
+import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import { VideoEmbedDialog } from "@/components/mobilize/social/VideoEmbedDialog";
 import { MobilizeLinkPreviewComposerCard } from "@/components/mobilize/social/MobilizeLinkPreviewComposerCard";
@@ -99,6 +100,11 @@ type Props = {
   onPostTargetChange?: (target: ComposerPostTarget) => void;
   /** Group / profile feed: yellow Post button + card layout. */
   brandAccent?: boolean;
+  /**
+   * Feed, profile, and group create-post: compact avatar + single-line field.
+   * The full composer opens in a dialog. Edit flows stay inline.
+   */
+  launcher?: boolean;
   /** Replaces the visibility pill with a comments-policy select (group feed leaders). */
   commentsPolicy?: MobilizePostCommentsPolicy;
   onCommentsPolicyChange?: (policy: MobilizePostCommentsPolicy) => void;
@@ -129,6 +135,7 @@ export function MobilizeSocialPostEditor({
   postTarget = PROFILE_POST_TARGET,
   onPostTargetChange,
   brandAccent = false,
+  launcher = false,
   commentsPolicy,
   onCommentsPolicyChange,
   children,
@@ -139,6 +146,9 @@ export function MobilizeSocialPostEditor({
   const editorRef = useRef<EditorHandle | null>(null);
   const [uploading, setUploading] = useState(false);
   const [maxImages, setMaxImages] = useState(MAX_MOBILIZE_ANNOUNCEMENT_IMAGES);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const launchIntentRef = useRef<"compose" | "emoji" | "video" | "image" | null>(null);
+  const wasPostingRef = useRef(false);
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [videoDialogUrl, setVideoDialogUrl] = useState("");
   const videoBookmarkRef = useRef<unknown>(null);
@@ -423,6 +433,42 @@ export function MobilizeSocialPostEditor({
     void onPost(prepared, postTargetPicker ? { postTarget: resolvedTarget } : undefined);
   }
 
+  function openComposer(intent: "compose" | "emoji" | "video" | "image" = "compose") {
+    if (disabled || posting) return;
+    launchIntentRef.current = intent;
+    setComposerOpen(true);
+  }
+
+  useEffect(() => {
+    if (!launcher || !composerOpen) return;
+    const intent = launchIntentRef.current;
+    if (intent === "video") {
+      setVideoDialogUrl("");
+      setVideoDialogOpen(true);
+      launchIntentRef.current = null;
+      return;
+    }
+    if (intent === "image") {
+      const timer = window.setTimeout(() => {
+        fileRef.current?.click();
+        launchIntentRef.current = null;
+      }, 60);
+      return () => window.clearTimeout(timer);
+    }
+  }, [composerOpen, launcher]);
+
+  useEffect(() => {
+    if (!launcher) return;
+    if (posting) {
+      wasPostingRef.current = true;
+      return;
+    }
+    if (!wasPostingRef.current) return;
+    wasPostingRef.current = false;
+    const stillDraft = plainTextLength(value) > 0 || imageUrls.length > 0;
+    if (!stillDraft) setComposerOpen(false);
+  }, [launcher, posting, value, imageUrls.length]);
+
   function removeSelectedVideo() {
     restoreEditorSelection();
     editorRef.current?.execCommand("Delete");
@@ -620,6 +666,10 @@ export function MobilizeSocialPostEditor({
         onPasteUrl={handlePasteUrl}
         onEditorInit={(ed) => {
           editorRef.current = ed;
+          if (launchIntentRef.current === "emoji") {
+            launchIntentRef.current = null;
+            window.setTimeout(() => ed.execCommand("mceEmoticons"), 40);
+          }
         }}
       />
     </Box>
@@ -853,11 +903,134 @@ export function MobilizeSocialPostEditor({
     />
   );
 
-  const body = (
+  const composerSurface = (
     <>
       {useDesignAccent ? designBody : legacyBody}
       {videoDialog}
     </>
+  );
+
+  const draftPlain = value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const launcherPrompt = draftPlain || headingLabel;
+
+  const launcherBar = (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        px: { xs: 1.25, sm: 1.5 },
+        py: 1.25,
+      }}
+    >
+      <Avatar
+        src={avatarUrl ? publicAssetSrc(avatarUrl) : undefined}
+        alt=""
+        sx={{ width: 40, height: 40, bgcolor: "#263238", flexShrink: 0 }}
+      >
+        {avatarFallback.charAt(0).toUpperCase()}
+      </Avatar>
+      <Box
+        component="button"
+        type="button"
+        disabled={disabled || posting}
+        onClick={() => openComposer("compose")}
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          height: 40,
+          px: 1.75,
+          border: "none",
+          borderRadius: 999,
+          bgcolor: isDark ? "rgba(255,255,255,0.06)" : "#f0f2f5",
+          color: draftPlain ? textColor : "#65676b",
+          font: "inherit",
+          fontSize: "0.95rem",
+          lineHeight: 1.2,
+          textAlign: "left",
+          cursor: "pointer",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+          "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.1)" : "#e4e6eb" },
+          "&:disabled": { opacity: 0.6, cursor: "default" },
+        }}
+      >
+        {launcherPrompt}
+      </Box>
+      {onImageUrlsChange ? (
+        <Tooltip title="Attach image">
+          <span>
+            <IconButton
+              size="small"
+              disabled={disabled || posting || uploading || imageUrls.length >= maxImages}
+              onClick={() => openComposer("image")}
+              aria-label="Attach image"
+              sx={footerIconSx}
+            >
+              {uploading ? <CircularProgress size={18} /> : <AttachFileOutlinedIcon fontSize="small" />}
+            </IconButton>
+          </span>
+        </Tooltip>
+      ) : null}
+      <Tooltip title="Emoji">
+        <span>
+          <IconButton
+            size="small"
+            disabled={disabled || posting}
+            onClick={() => openComposer("emoji")}
+            aria-label="Emoji"
+            sx={footerIconSx}
+          >
+            <EmojiEmotionsOutlinedIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Tooltip title="Add video">
+        <span>
+          <IconButton
+            size="small"
+            disabled={disabled || posting}
+            onClick={() => openComposer("video")}
+            aria-label="Add video"
+            sx={footerIconSx}
+          >
+            <VideocamOutlinedIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Box>
+  );
+
+  const body = launcher ? (
+    <>
+      {launcherBar}
+      <MobilizeDialog
+        open={composerOpen}
+        onClose={() => {
+          if (posting || uploading) return;
+          setComposerOpen(false);
+        }}
+        fullWidth
+        maxWidth="sm"
+      >
+        <Box sx={{ position: "relative" }}>
+          <IconButton
+            aria-label="Close"
+            onClick={() => {
+              if (posting || uploading) return;
+              setComposerOpen(false);
+            }}
+            sx={{ position: "absolute", top: 8, right: 8, zIndex: 1, color: "rgba(0,0,0,0.6)" }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+          {composerSurface}
+        </Box>
+      </MobilizeDialog>
+    </>
+  ) : (
+    composerSurface
   );
 
   if (!isDark) {

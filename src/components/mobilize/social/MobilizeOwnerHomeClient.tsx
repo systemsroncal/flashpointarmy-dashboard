@@ -349,6 +349,7 @@ export function MobilizeOwnerHomeClient() {
                   onChange={setComposerHtml}
                   disabled={posting}
                   surface="light"
+                  launcher
                   brandAccent
                   avatarUrl={me.avatar_url}
                   avatarFallback={me.display_name ?? me.email ?? "?"}
