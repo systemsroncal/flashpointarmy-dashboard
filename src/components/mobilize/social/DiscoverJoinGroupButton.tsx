@@ -37,10 +37,8 @@ export function DiscoverJoinGroupButton({ groupId, onMembershipChange }: Props) 
         const st = json.membership?.membership_status;
         if (st === "approved") {
           setStatus("joined");
-          onMembershipChange?.();
         } else if (st === "pending") {
           setStatus("pending");
-          onMembershipChange?.();
         } else setStatus("idle");
       } catch {
         if (!cancelled) setStatus("idle");

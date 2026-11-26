@@ -26,7 +26,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 
 type Props = {
   open: boolean;
@@ -47,9 +47,11 @@ export function MobilizeNoFollowersPostDialog({
   const [joinedGroups, setJoinedGroups] = useState<ComposerGroupOption[]>([]);
   const [starterGroups, setStarterGroups] = useState<StarterGroupBrief[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const initialLoadDoneRef = useRef(false);
 
-  const loadLists = useCallback(async () => {
-    setLoading(true);
+  const loadLists = useCallback(async (opts?: { silent?: boolean }) => {
+    if (posting) return;
+    if (!opts?.silent) setLoading(true);
     try {
       const [joined, starters] = await Promise.all([
         fetchComposerJoinedGroups(),
@@ -62,12 +64,17 @@ export function MobilizeNoFollowersPostDialog({
         return joined[0]?.id ?? "";
       });
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
-  }, []);
+  }, [posting]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      initialLoadDoneRef.current = false;
+      return;
+    }
+    if (initialLoadDoneRef.current) return;
+    initialLoadDoneRef.current = true;
     void loadLists();
   }, [open, loadLists]);
 
@@ -167,7 +174,7 @@ export function MobilizeNoFollowersPostDialog({
                       </Stack>
                       <DiscoverJoinGroupButton
                         groupId={g.id}
-                        onMembershipChange={() => void loadLists()}
+                        onMembershipChange={() => void loadLists({ silent: true })}
                       />
                     </Stack>
                   ))}

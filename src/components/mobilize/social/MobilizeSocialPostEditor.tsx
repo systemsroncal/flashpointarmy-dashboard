@@ -7,6 +7,7 @@ import { MobilizeLinkPreviewComposerCard } from "@/components/mobilize/social/Mo
 import {
   appendLinkPreviewHtml,
   contentHasLinkPreview,
+  extractFirstHttpUrlFromComposerHtml,
   type LinkPreviewMeta,
 } from "@/lib/mobilize/social/link-preview";
 import {
@@ -144,6 +145,7 @@ export function MobilizeSocialPostEditor({
   const [linkPreviewLoading, setLinkPreviewLoading] = useState(false);
   const [linkPreviewError, setLinkPreviewError] = useState<string | null>(null);
   const linkPreviewFetchRef = useRef(0);
+  const linkPreviewTrackedUrlRef = useRef<string | null>(null);
   const [joinedGroups, setJoinedGroups] = useState<ComposerGroupOption[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const resolvedTarget = postTarget ?? PROFILE_POST_TARGET;
@@ -319,6 +321,7 @@ export function MobilizeSocialPostEditor({
 
   const fetchLinkPreview = useCallback(async (url: string) => {
     const token = ++linkPreviewFetchRef.current;
+    linkPreviewTrackedUrlRef.current = url;
     setLinkPreviewLoading(true);
     setLinkPreviewError(null);
     try {
@@ -340,21 +343,66 @@ export function MobilizeSocialPostEditor({
     }
   }, []);
 
-  const handlePasteUrl = useCallback(
+  const queueLinkPreviewForUrl = useCallback(
     (url: string) => {
       if (disabled || posting) return;
-      if (contentHasLinkPreview(value)) return;
+      if (url === linkPreviewTrackedUrlRef.current && (linkPreviewLoading || linkPreview)) return;
       void fetchLinkPreview(url);
     },
-    [disabled, posting, value, fetchLinkPreview]
+    [disabled, posting, fetchLinkPreview, linkPreview, linkPreviewLoading]
   );
+
+  const handlePasteUrl = useCallback(
+    (url: string) => {
+      if (disabled || posting || contentHasLinkPreview(value)) return;
+      queueLinkPreviewForUrl(url);
+    },
+    [disabled, posting, value, queueLinkPreviewForUrl]
+  );
+
+  useEffect(() => {
+    if (disabled || posting) return;
+    if (contentHasLinkPreview(value)) {
+      if (linkPreviewTrackedUrlRef.current !== null) clearLinkPreview();
+      linkPreviewTrackedUrlRef.current = null;
+      return;
+    }
+    const url = extractFirstHttpUrlFromComposerHtml(value);
+    if (!url) {
+      if (linkPreviewTrackedUrlRef.current !== null) clearLinkPreview();
+      linkPreviewTrackedUrlRef.current = null;
+      return;
+    }
+    if (url !== linkPreviewTrackedUrlRef.current && (linkPreview || linkPreviewError || linkPreviewLoading)) {
+      linkPreviewFetchRef.current += 1;
+      setLinkPreview(null);
+      setLinkPreviewError(null);
+      setLinkPreviewLoading(false);
+    }
+    if (url === linkPreviewTrackedUrlRef.current && (linkPreviewLoading || linkPreview)) return;
+    const debounce = window.setTimeout(() => {
+      queueLinkPreviewForUrl(url);
+    }, 450);
+    return () => window.clearTimeout(debounce);
+  }, [
+    value,
+    disabled,
+    posting,
+    queueLinkPreviewForUrl,
+    linkPreview,
+    linkPreviewError,
+    linkPreviewLoading,
+  ]);
 
   function clearLinkPreview() {
     linkPreviewFetchRef.current += 1;
+    linkPreviewTrackedUrlRef.current = null;
     setLinkPreview(null);
     setLinkPreviewError(null);
     setLinkPreviewLoading(false);
   }
+
+  const showComposerLinkPreview = !contentHasLinkPreview(value);
 
   function handlePostClick() {
     if (!onPost) return;
@@ -738,7 +786,7 @@ export function MobilizeSocialPostEditor({
         </Box>
 
         {editorBlock}
-        {linkPreviewCard}
+        {showComposerLinkPreview ? linkPreviewCard : null}
         {imageThumbs}
         {children}
         {footer}
@@ -770,7 +818,7 @@ export function MobilizeSocialPostEditor({
             {heading}
           </Box>
           {editorBlock}
-          {linkPreviewCard}
+          {showComposerLinkPreview ? linkPreviewCard : null}
           {imageThumbs}
           {children}
           {footer}
