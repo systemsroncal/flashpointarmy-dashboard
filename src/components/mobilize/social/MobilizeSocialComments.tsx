@@ -113,6 +113,8 @@ type Props = {
   viewerUserId?: string;
   /** Viewer is a super admin — may delete any comment. */
   viewerIsSuperAdmin?: boolean;
+  /** When set, opening a commenter profile shows a back arrow to this path. */
+  profileReturnTo?: string | null;
 };
 
 function countComments(nodes: SocialCommentNode[]): number {
@@ -393,6 +395,7 @@ function CommentItem({
   viewerIsSuperAdmin,
   deleting,
   onDelete,
+  profileReturnTo,
 }: {
   node: SocialCommentNode;
   commentReactionUrl: (commentId: string) => string;
@@ -406,11 +409,12 @@ function CommentItem({
   viewerIsSuperAdmin: boolean;
   deleting: boolean;
   onDelete: (commentId: string) => void;
+  profileReturnTo?: string | null;
 }) {
   const [reactions, setReactions] = useState(node.reactions);
   const [busy, setBusy] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const profileHref = mobilizeMemberProfileHref(node.author.id);
+  const profileHref = mobilizeMemberProfileHref(node.author.id, profileReturnTo);
 
   async function setReaction(next: ReactionType | null) {
     const previous = reactions;
@@ -609,6 +613,7 @@ function CommentItem({
               viewerIsSuperAdmin={viewerIsSuperAdmin}
               deleting={deleting}
               onDelete={onDelete}
+              profileReturnTo={profileReturnTo}
             />
           ))}
           {hiddenReplyCount > 0 ? (
@@ -649,6 +654,7 @@ export function MobilizeSocialComments({
   viewerDisplayName,
   viewerUserId,
   viewerIsSuperAdmin = false,
+  profileReturnTo,
 }: Props) {
   const light = tone === "light";
   const isDark = tone === "dark";
@@ -805,6 +811,7 @@ export function MobilizeSocialComments({
           viewerIsSuperAdmin={viewerIsSuperAdmin}
           deleting={deletingId === c.id}
           onDelete={(id) => void deleteComment(id)}
+          profileReturnTo={profileReturnTo}
         />
       ))}
       {!loading && hiddenTopCount > 0 ? (

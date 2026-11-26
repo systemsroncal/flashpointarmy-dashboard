@@ -34,6 +34,8 @@ type Props = {
   roleLabel?: string;
   /** Current viewer — used to hide Follow on own posts. */
   viewerUserId?: string;
+  /** When set, the profile header shows a back arrow to this in-app path. */
+  profileReturnTo?: string | null;
 };
 
 function formatRelativeTime(iso: string): string {
@@ -92,8 +94,10 @@ export function MobilizeSocialPostHeader({
   tone = "light",
   roleLabel,
   viewerUserId,
+  profileReturnTo,
 }: Props) {
   const avatarSize = size === "sm" ? 32 : 44;
+  const profileHref = mobilizeMemberProfileHref(author.id, profileReturnTo);
   const isDark = tone === "dark";
   const nameColor = isDark ? "#e7e9ea" : "#111";
   const metaColor = isDark ? "#8b98a5" : "#6b7280";
@@ -147,7 +151,7 @@ export function MobilizeSocialPostHeader({
 
   return (
     <Box sx={{ display: "flex", gap: 1.25, alignItems: "flex-start" }}>
-      <Link href={mobilizeMemberProfileHref(author.id)} style={{ textDecoration: "none", flexShrink: 0 }}>
+      <Link href={profileHref} style={{ textDecoration: "none", flexShrink: 0 }}>
         <Avatar
           src={author.avatar_url ? publicAssetSrc(author.avatar_url) : undefined}
           alt=""
@@ -161,7 +165,7 @@ export function MobilizeSocialPostHeader({
           <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.25, minWidth: 0 }}>
             <MuiLink
               component={Link}
-              href={mobilizeMemberProfileHref(author.id)}
+              href={profileHref}
               underline="hover"
               sx={{ fontWeight: 700, color: nameColor, fontSize: size === "sm" ? "0.85rem" : "0.95rem" }}
             >

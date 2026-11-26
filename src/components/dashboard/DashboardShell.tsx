@@ -54,7 +54,7 @@ import {
 import type { Theme } from "@mui/material/styles";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { DashboardTourHelpButton, DashboardTourProvider } from "@/components/dashboard/DashboardTour";
 import { scrollTourTargetIntoView } from "@/lib/dashboard/dashboard-tour-actions";
@@ -117,7 +117,7 @@ import { resolveMobilizeMobileBackHref } from "@/lib/mobilize/mobilize-mobile-ba
 import { isMobilizeCoverHeroPath } from "@/lib/mobilize/mobilize-mobile-header-title";
 import { resolveDashboardMobileHeaderTitle } from "@/lib/dashboard/dashboard-mobile-header-title";
 import { useMobilizeHeroAtTop } from "@/lib/mobilize/social/use-mobilize-hero-at-top";
-import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
+import { contextualMobilizeProfileBackHref, mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import { subscribeProfileDrawerOpen } from "@/lib/user/profile-drawer-events";
 import { useMobilizeScrollHide } from "@/lib/mobilize/social/use-mobilize-scroll-hide";
 import {
@@ -591,6 +591,23 @@ function PeopleNavGroup({
         />
       </Collapse>
     </>
+  );
+}
+
+function ProfileHeaderLeadingButton({ onOpenMenu }: { onOpenMenu: () => void }) {
+  const searchParams = useSearchParams();
+  const backHref = contextualMobilizeProfileBackHref(searchParams);
+  if (backHref) {
+    return (
+      <IconButton color="inherit" edge="start" component={Link} href={backHref} aria-label="Back">
+        <ArrowBackIcon />
+      </IconButton>
+    );
+  }
+  return (
+    <IconButton color="inherit" edge="start" onClick={onOpenMenu} aria-label="Menu" sx={{ mr: 0.25 }}>
+      <MenuIcon />
+    </IconButton>
   );
 }
 
@@ -1703,7 +1720,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             boxShadow: "none",
           }}
         >
-          {mobileModuleTitleHeader ? (
+          {onMobilizeProfilePage && !desktop ? (
+            <Suspense
+              fallback={
+                <IconButton color="inherit" edge="start" aria-label="Menu" sx={{ mr: 0.25 }}>
+                  <MenuIcon />
+                </IconButton>
+              }
+            >
+              <ProfileHeaderLeadingButton onOpenMenu={() => setMobileDrawerOpen(true)} />
+            </Suspense>
+          ) : mobileModuleTitleHeader ? (
             <IconButton
               color="inherit"
               edge="start"
