@@ -9,7 +9,12 @@ import {
   feedPostCommentConfig,
   feedPostReactionUrl,
 } from "@/lib/mobilize/social/feed-post-urls";
+import {
+  dashboardLightPageIntroSx,
+  dashboardMobileHiddenPageTitleSx,
+} from "@/lib/dashboard/dashboard-light-page-sx";
 import { SOCIAL_HUB_LIGHT_BG } from "@/lib/mobilize/social/social-hub-surface";
+import { mobilizeMobilePageRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { Box, CircularProgress, ThemeProvider, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
@@ -40,16 +45,17 @@ export function MobilizeBookmarksClient() {
     // Same light chrome as My Groups: gray container, dark type, white cards.
     <ThemeProvider theme={mobilizePanelTheme}>
       <Box
-        sx={{
+        sx={mobilizeMobilePageRootSx({
           bgcolor: SOCIAL_HUB_LIGHT_BG,
           color: "text.primary",
           borderRadius: { xs: 0, sm: 2 },
           border: { xs: "none", sm: "1px solid rgba(0,0,0,0.06)" },
-          p: { xs: 1.5, sm: 2, md: 2.5 },
+          p: { xs: 0, sm: 2, md: 2.5 },
+          pt: { sm: 2, md: 2.5 },
           boxSizing: "border-box",
           width: "100%",
           flex: 1,
-        }}
+        })}
       >
         <Box
           sx={{
@@ -58,10 +64,10 @@ export function MobilizeBookmarksClient() {
             mx: "auto",
           }}
         >
-          <Typography variant="h4" fontWeight={700} gutterBottom>
+          <Typography variant="h4" fontWeight={700} gutterBottom sx={dashboardMobileHiddenPageTitleSx}>
             My saved
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={dashboardLightPageIntroSx}>
             Posts you bookmarked from your feed and groups.
           </Typography>
 

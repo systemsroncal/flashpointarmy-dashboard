@@ -10,9 +10,14 @@ export const dashboardLightPageMutedSx: SxProps<Theme> = {
   color: DASHBOARD_LIGHT_PAGE_MUTED_COLOR,
 };
 
-/** Module intro line — same gutter as siblings when page root uses `mobilizeMobilePagePx`. */
+/**
+ * Module intro line — same gutter as siblings when page root uses `mobilizeMobilePagePx`.
+ * On small screens the page title is hidden (it lives in the top bar), so the intro is
+ * the first visible line and needs space under that header.
+ */
 export const dashboardLightPageIntroSx: SxProps<Theme> = {
   ...dashboardLightPageMutedSx,
+  pt: { xs: 2, md: 0 },
   mb: 2,
   flexShrink: 0,
   lineHeight: 1.55,

@@ -7,13 +7,35 @@ export type LinkPreviewMeta = {
 };
 
 function decodeBasicEntities(value: string): string {
-  return value
+  const named = value
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&#x27;/gi, "'");
+    .replace(/&#x27;/gi, "'")
+    .replace(/&nbsp;/gi, " ");
+  return named
+    .replace(/&#(\d+);/g, (full, n: string) => {
+      const code = Number(n);
+      if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) return full;
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return full;
+      }
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (full, n: string) => {
+      const code = parseInt(n, 16);
+      if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) return full;
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return full;
+      }
+    })
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function readMetaContent(html: string, key: string, by: "property" | "name"): string | null {
