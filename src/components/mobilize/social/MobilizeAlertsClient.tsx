@@ -4,9 +4,12 @@ import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSection
 import { MobilizeSocialHubContent } from "@/components/mobilize/social/MobilizeSocialHubContent";
 import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { ALERTS_EMPTY } from "@/lib/mobilize/social/social-empty-copy";
-import { SOCIAL_HUB_TEXT_MUTED } from "@/lib/mobilize/social/social-hub-surface";
 import type { SocialAlert } from "@/lib/mobilize/social/load-social-alerts";
-import { mobilizeChapterDetailRootSx } from "@/lib/mobilize/mobilize-ui-surface";
+import {
+  dashboardLightPageIntroSx,
+  dashboardMobileHiddenPageTitleSx,
+} from "@/lib/dashboard/dashboard-light-page-sx";
+import { mobilizeMobilePageRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { Avatar, Box, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -34,7 +37,7 @@ export function MobilizeAlertsClient() {
   }, [load]);
 
   return (
-    <Box sx={mobilizeChapterDetailRootSx}>
+    <Box sx={mobilizeMobilePageRootSx({ boxSizing: "border-box" })}>
       <MobilizeSocialHubLayout showRightRail={false}>
         <MobilizeSocialHubContent tone="light">
           <Box
@@ -46,13 +49,13 @@ export function MobilizeAlertsClient() {
               width: "100%",
               maxWidth: 1180,
               mx: "auto",
-              p: { xs: 1.5, sm: 1.5, md: 2 },
+              p: { xs: 0, sm: 1.5, md: 2 },
             }}
           >
-          <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
+          <Typography variant="h5" fontWeight={800} sx={{ mb: 2, ...dashboardMobileHiddenPageTitleSx }}>
             Alerts
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2, color: SOCIAL_HUB_TEXT_MUTED }}>
+          <Typography variant="body2" sx={dashboardLightPageIntroSx}>
             Likes, new followers, and reactions on your posts — separate from chapter group notifications.
           </Typography>
 

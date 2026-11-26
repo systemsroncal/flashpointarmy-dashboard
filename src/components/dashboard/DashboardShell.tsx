@@ -1154,7 +1154,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         <PersonOutlineIcon fontSize="small" />
                       </ListItemIcon>
                       <ListItemText
-                        primary="My profile"
+                        primary="Where to post"
                         primaryTypographyProps={{
                           variant: "body2",
                           fontWeight: 600,

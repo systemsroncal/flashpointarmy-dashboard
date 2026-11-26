@@ -1,7 +1,7 @@
 "use client";
 
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
-import { Button, CircularProgress, Stack } from "@mui/material";
+import { Box, Button, CircularProgress, Stack } from "@mui/material";
 import { useEffect, useState } from "react";
 import { MobilizeLeaveGroupButton } from "@/components/mobilize/MobilizeLeaveGroupButton";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
@@ -9,11 +9,29 @@ import { useDashboardUser } from "@/contexts/DashboardUserContext";
 type Props = {
   groupId: string;
   onMembershipChange?: () => void;
+  /** Compact actions in the low-followers post nudge dialog */
+  inPostNudgeDialog?: boolean;
 };
 
 type JoinUi = "checking" | "idle" | "loading" | "joined" | "pending";
 
-export function DiscoverJoinGroupButton({ groupId, onMembershipChange }: Props) {
+const NUDGE_ACTION_SX = {
+  textTransform: "none" as const,
+  fontWeight: 600,
+  fontSize: "0.75rem",
+  borderRadius: 99,
+  whiteSpace: "nowrap" as const,
+  minHeight: 32,
+  py: 0.35,
+  px: 1.25,
+  minWidth: 0,
+} as const;
+
+export function DiscoverJoinGroupButton({
+  groupId,
+  onMembershipChange,
+  inPostNudgeDialog = false,
+}: Props) {
   const me = useDashboardUser();
   const [status, setStatus] = useState<JoinUi>("checking");
 
@@ -95,6 +113,13 @@ export function DiscoverJoinGroupButton({ groupId, onMembershipChange }: Props) 
   );
 
   if (status === "joined") {
+    if (inPostNudgeDialog) {
+      return (
+        <Box onClick={(e) => e.stopPropagation()} sx={{ display: "inline-flex" }}>
+          {joinedPill}
+        </Box>
+      );
+    }
     return (
       <Stack direction="row" spacing={0.5} alignItems="center" onClick={(e) => e.stopPropagation()}>
         {!isOwner ? (
@@ -155,6 +180,7 @@ export function DiscoverJoinGroupButton({ groupId, onMembershipChange }: Props) 
         void handleJoin();
       }}
       sx={{
+        ...(inPostNudgeDialog ? NUDGE_ACTION_SX : {}),
         textTransform: "none",
         fontWeight: 600,
         fontSize: "0.7rem",
@@ -165,9 +191,15 @@ export function DiscoverJoinGroupButton({ groupId, onMembershipChange }: Props) 
         borderColor: "#1565c0",
         color: "#1565c0",
         "&:hover": { borderColor: "#0d47a1", bgcolor: "rgba(21,101,192,0.04)" },
+        ...(inPostNudgeDialog
+          ? {
+              borderColor: "#1565c0",
+              "& .MuiButton-startIcon": { mr: 0.5, marginLeft: 0 },
+            }
+          : {}),
       }}
     >
-      Join Group
+      {inPostNudgeDialog ? "Join" : "Join Group"}
     </Button>
   );
 }
