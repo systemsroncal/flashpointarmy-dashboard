@@ -346,10 +346,12 @@ export function MobilizeSocialPostEditor({
   const queueLinkPreviewForUrl = useCallback(
     (url: string) => {
       if (disabled || posting) return;
-      if (url === linkPreviewTrackedUrlRef.current && (linkPreviewLoading || linkPreview)) return;
+      if (url === linkPreviewTrackedUrlRef.current) {
+        if (linkPreviewLoading || linkPreview || linkPreviewError) return;
+      }
       void fetchLinkPreview(url);
     },
-    [disabled, posting, fetchLinkPreview, linkPreview, linkPreviewLoading]
+    [disabled, posting, fetchLinkPreview, linkPreview, linkPreviewLoading, linkPreviewError]
   );
 
   const handlePasteUrl = useCallback(
@@ -379,7 +381,12 @@ export function MobilizeSocialPostEditor({
       setLinkPreviewError(null);
       setLinkPreviewLoading(false);
     }
-    if (url === linkPreviewTrackedUrlRef.current && (linkPreviewLoading || linkPreview)) return;
+    if (
+      url === linkPreviewTrackedUrlRef.current &&
+      (linkPreviewLoading || linkPreview || linkPreviewError)
+    ) {
+      return;
+    }
     const debounce = window.setTimeout(() => {
       queueLinkPreviewForUrl(url);
     }, 450);

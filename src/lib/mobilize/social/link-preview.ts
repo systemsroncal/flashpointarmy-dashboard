@@ -50,6 +50,19 @@ function resolveMaybeRelativeUrl(base: URL, href: string): string | null {
   }
 }
 
+/** Minimal card when HTML has no OG tags (blocked bot or JS-only shell). */
+export function fallbackLinkPreviewMeta(pageUrl: string): LinkPreviewMeta {
+  const base = new URL(pageUrl);
+  const host = base.hostname.replace(/^www\./i, "");
+  return {
+    url: base.toString(),
+    title: host,
+    description: null,
+    imageUrl: null,
+    siteName: host,
+  };
+}
+
 export function parseLinkPreviewFromHtml(pageUrl: string, html: string): LinkPreviewMeta {
   const base = new URL(pageUrl);
   const title =

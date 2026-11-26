@@ -25,7 +25,10 @@ export async function POST(req: Request) {
     assertSafeHttpUrl(url);
     const preview = await fetchLinkMetadata(url);
     const hasAny =
-      Boolean(preview.title) || Boolean(preview.description) || Boolean(preview.imageUrl);
+      Boolean(preview.title?.trim()) ||
+      Boolean(preview.description?.trim()) ||
+      Boolean(preview.imageUrl) ||
+      Boolean(preview.siteName?.trim());
     if (!hasAny) {
       return NextResponse.json({ error: "No preview metadata found for this URL." }, { status: 404 });
     }
