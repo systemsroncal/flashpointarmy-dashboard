@@ -696,6 +696,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
             onChange={setComposerHtml}
             disabled={posting}
             surface="light"
+            launcher
             brandAccent
             avatarUrl={avatarDisplaySrc ?? p.avatar_url}
             avatarFallback={p.display_name}

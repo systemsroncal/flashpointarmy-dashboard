@@ -40,6 +40,7 @@ import {
   useTheme,
 } from "@mui/material";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { applyReactionToggle } from "@/lib/mobilize/social/reaction-summary";
 
@@ -97,6 +98,10 @@ export function MobilizeSocialPostCard({
   const isDark = surface === "dark";
   const isGroupFeedList = layout === "groupFeedList";
   const isGroupFeedCard = layout === "groupFeedCard";
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const here = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+  const groupPostProfileReturn = post.kind === "group_message" || isGroupFeedList || isGroupFeedCard ? here : null;
   const [reactions, setReactions] = useState(post.reactions);
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const theme = useTheme();
@@ -247,6 +252,7 @@ export function MobilizeSocialPostCard({
               tone={surface}
               roleLabel={authorRoleLabel}
               viewerUserId={viewerUserId}
+              profileReturnTo={groupPostProfileReturn}
             />
           </Box>
           <MobilizePostCardTopActions
@@ -346,6 +352,7 @@ export function MobilizeSocialPostCard({
               viewerDisplayName={viewerDisplayName}
               viewerUserId={viewerUserId}
               viewerIsSuperAdmin={viewerIsSuperAdmin}
+              profileReturnTo={here}
             />
           </>
         ) : null}
