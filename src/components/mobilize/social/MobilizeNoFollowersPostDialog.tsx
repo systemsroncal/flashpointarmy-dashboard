@@ -26,7 +26,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 
 type Props = {
   open: boolean;
@@ -47,29 +47,46 @@ export function MobilizeNoFollowersPostDialog({
   const [joinedGroups, setJoinedGroups] = useState<ComposerGroupOption[]>([]);
   const [starterGroups, setStarterGroups] = useState<StarterGroupBrief[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const initialLoadDoneRef = useRef(false);
+  const postingRef = useRef(posting);
+  postingRef.current = posting;
 
-  const loadLists = useCallback(async () => {
-    setLoading(true);
+  const refreshLists = useCallback(async (opts?: { silent?: boolean }) => {
+    if (postingRef.current) return;
+    if (!opts?.silent) setLoading(true);
     try {
       const [joined, starters] = await Promise.all([
         fetchComposerJoinedGroups(),
         fetchComposerStarterGroups(),
       ]);
+      const joinedIds = new Set(joined.map((g) => g.id));
       setJoinedGroups(joined);
-      setStarterGroups(starters);
+      setStarterGroups(starters.filter((s) => !joinedIds.has(s.id)));
       setSelectedGroupId((prev) => {
         if (prev && joined.some((g) => g.id === prev)) return prev;
         return joined[0]?.id ?? "";
       });
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
+  const refreshListsRef = useRef(refreshLists);
+  refreshListsRef.current = refreshLists;
+
   useEffect(() => {
-    if (!open) return;
-    void loadLists();
-  }, [open, loadLists]);
+    if (!open) {
+      initialLoadDoneRef.current = false;
+      return;
+    }
+    if (initialLoadDoneRef.current) return;
+    initialLoadDoneRef.current = true;
+    void refreshListsRef.current();
+  }, [open]);
+
+  const handleMembershipChange = useCallback(() => {
+    void refreshListsRef.current({ silent: true });
+  }, []);
 
   const selectedGroup = joinedGroups.find((g) => g.id === selectedGroupId);
 
@@ -141,10 +158,10 @@ export function MobilizeNoFollowersPostDialog({
                   {starterGroups.map((g) => (
                     <Stack
                       key={g.id}
-                      direction="row"
-                      alignItems="center"
+                      direction={{ xs: "column", sm: "row" }}
+                      alignItems={{ xs: "stretch", sm: "center" }}
                       justifyContent="space-between"
-                      spacing={1}
+                      spacing={{ xs: 1, sm: 1 }}
                       sx={{
                         py: 0.75,
                         px: 1,
@@ -153,22 +170,49 @@ export function MobilizeNoFollowersPostDialog({
                         bgcolor: "rgba(0,0,0,0.02)",
                       }}
                     >
-                      <Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0 }}>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={1.25}
+                        sx={{ minWidth: 0, flex: 1 }}
+                      >
                         <Avatar
                           variant="rounded"
                           src={g.cover_image_url ?? undefined}
-                          sx={{ width: 36, height: 36, bgcolor: "#1a1a1a" }}
+                          sx={{ width: 36, height: 36, flexShrink: 0, bgcolor: "#1a1a1a" }}
                         >
                           <GroupsOutlinedIcon sx={{ fontSize: 20, color: flashpointYellow }} />
                         </Avatar>
-                        <Typography variant="body2" fontWeight={600} noWrap title={g.name}>
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                          sx={{
+                            minWidth: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                          title={g.name}
+                        >
                           {g.name}
                         </Typography>
                       </Stack>
-                      <DiscoverJoinGroupButton
-                        groupId={g.id}
-                        onMembershipChange={() => void loadLists()}
-                      />
+                      <Box
+                        sx={{
+                          flexShrink: 0,
+                          display: "flex",
+                          justifyContent: { xs: "flex-end", sm: "center" },
+                          alignItems: "center",
+                        }}
+                      >
+                        <DiscoverJoinGroupButton
+                          groupId={g.id}
+                          inPostNudgeDialog
+                          onMembershipChange={handleMembershipChange}
+                        />
+                      </Box>
                     </Stack>
                   ))}
                 </Stack>

@@ -5,7 +5,11 @@ import {
   MobilizeNotificationsFeedContent,
 } from "@/components/mobilize/MobilizeNotificationsFeed";
 import { useMobilizeNotifications } from "@/components/mobilize/useMobilizeNotifications";
-import { mobilizeChapterDetailRootSx, mobilizeScrollBodySx } from "@/lib/mobilize/mobilize-ui-surface";
+import {
+  dashboardLightPageIntroSx,
+  dashboardMobileHiddenPageTitleSx,
+} from "@/lib/dashboard/dashboard-light-page-sx";
+import { mobilizeMobilePageRootSx, mobilizeScrollBodySx } from "@/lib/mobilize/mobilize-ui-surface";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import { Box, FormControlLabel, Stack, Switch, Typography } from "@mui/material";
 
@@ -13,7 +17,7 @@ export function MobilizeNotificationsClient() {
   const { data, loading, soundEnabled, toggleSound } = useMobilizeNotifications({ playSound: true });
 
   return (
-    <Box sx={mobilizeChapterDetailRootSx}>
+    <Box sx={mobilizeMobilePageRootSx({ boxSizing: "border-box" })}>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         alignItems={{ xs: "flex-start", sm: "center" }}
@@ -22,12 +26,14 @@ export function MobilizeNotificationsClient() {
         sx={{ mb: 3, flexShrink: 0 }}
       >
         <Stack direction="row" spacing={1.25} alignItems="center">
-          <NotificationsActiveOutlinedIcon sx={{ fontSize: 32, color: "primary.main" }} />
+          <NotificationsActiveOutlinedIcon
+            sx={{ fontSize: 32, color: "primary.main", display: { xs: "none", sm: "block" } }}
+          />
           <Box>
-            <Typography variant="h4" fontWeight={700} lineHeight={1.2}>
+            <Typography variant="h4" fontWeight={700} lineHeight={1.2} sx={dashboardMobileHiddenPageTitleSx}>
               Notifications
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={dashboardLightPageIntroSx}>
               Join requests and new chapter activity
             </Typography>
           </Box>

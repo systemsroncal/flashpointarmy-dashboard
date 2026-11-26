@@ -384,10 +384,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
   async function executePublishPost(
     preparedHtml?: string,
     meta?: { postTarget: ComposerPostTarget }
-  ) {
+  ): Promise<boolean> {
     const html = preparedHtml ?? composerHtml;
     const plain = html.replace(/<[^>]+>/g, "").trim();
-    if (!plain && !composerImages.length) return;
+    if (!plain && !composerImages.length) return false;
     const target = meta?.postTarget ?? composerPostTarget;
     setPosting(true);
     try {
@@ -403,7 +403,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         setComposerImages([]);
         setComposerPostTarget(PROFILE_POST_TARGET);
         router.push(mobilizeGroupDetailHref(target.groupId, "announcements"));
-        return;
+        return true;
       }
       const res = await fetch(`/api/mobilize/social/profiles/${userId}/posts`, {
         method: "POST",
@@ -415,8 +415,10 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
       setComposerHtml("");
       setComposerImages([]);
       await load({ silent: true });
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Post failed.");
+      return false;
     } finally {
       setPosting(false);
     }
@@ -1126,20 +1128,22 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
         posting={posting}
         onClose={() => !posting && setNoFollowersNudge(null)}
         onPostToProfileAnyway={() => {
-          if (!noFollowersNudge) return;
+          if (!noFollowersNudge || posting) return;
           const pending = noFollowersNudge;
-          setNoFollowersNudge(null);
-          void executePublishPost(pending.html, {
-            postTarget: PROFILE_POST_TARGET,
-          });
+          void (async () => {
+            const ok = await executePublishPost(pending.html, { postTarget: PROFILE_POST_TARGET });
+            if (ok) setNoFollowersNudge(null);
+          })();
         }}
         onPostToGroup={(groupId, name) => {
-          if (!noFollowersNudge) return;
+          if (!noFollowersNudge || posting) return;
           const pending = noFollowersNudge;
-          setNoFollowersNudge(null);
           const target: ComposerPostTarget = { type: "group", groupId, name };
           setComposerPostTarget(target);
-          void executePublishPost(pending.html, { postTarget: target });
+          void (async () => {
+            const ok = await executePublishPost(pending.html, { postTarget: target });
+            if (ok) setNoFollowersNudge(null);
+          })();
         }}
       />
 

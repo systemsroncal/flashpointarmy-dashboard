@@ -128,8 +128,36 @@ export function extractPastedUrl(pasteHtml: string): string | null {
   const raw = pasteHtml.trim();
   if (!raw) return null;
   const plain = raw.replace(/<[^>]+>/g, "").trim();
-  if (/^https?:\/\/\S+$/i.test(plain)) return plain.replace(/[.,;:!?)]+$/, "");
+  if (/^https?:\/\/\S+$/i.test(plain)) return trimUrlTrailPunctuation(plain);
   const hrefMatch = raw.match(/\bhref=["'](https?:\/\/[^"']+)["']/i);
   if (hrefMatch?.[1]) return hrefMatch[1];
   return null;
+}
+
+const URL_IN_PLAIN_TEXT_RE = /https?:\/\/[^\s<>"')\]]+/gi;
+
+function trimUrlTrailPunctuation(url: string): string {
+  return url.replace(/[.,;:!?)]+$/g, "");
+}
+
+/** Composer body without embedded OG card blocks (for URL detection). */
+export function composerHtmlWithoutLinkPreviewAside(html: string): string {
+  if (!html.trim()) return "";
+  return html.replace(LINK_PREVIEW_ASIDE_RE, "");
+}
+
+/** First http(s) URL in post HTML — typed, pasted, or autolinked. */
+export function extractFirstHttpUrlFromComposerHtml(html: string): string | null {
+  const body = composerHtmlWithoutLinkPreviewAside(html);
+  if (!body.trim()) return null;
+  const hrefMatch = body.match(/\bhref=["'](https?:\/\/[^"']+)["']/i);
+  if (hrefMatch?.[1]) return hrefMatch[1];
+  const plain = body
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\[fpa_video\][\s\S]*?\[\/fpa_video\]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const matches = plain.match(URL_IN_PLAIN_TEXT_RE);
+  if (!matches?.length) return null;
+  return trimUrlTrailPunctuation(matches[0]);
 }

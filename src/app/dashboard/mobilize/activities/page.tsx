@@ -32,14 +32,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { MobilizeContentPanel } from "@/components/mobilize/MobilizeContentPanel";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import {
+  dashboardLightPageIntroSx,
   dashboardLightPageMutedSx,
   dashboardMobileHiddenPageTitleSx,
 } from "@/lib/dashboard/dashboard-light-page-sx";
-import {
-  mobilizeChapterDetailRootSx,
-  mobilizeMobilePagePx,
-  mobilizeScrollBodySx,
-} from "@/lib/mobilize/mobilize-ui-surface";
+import { mobilizeMobilePageRootSx, mobilizeScrollBodySx } from "@/lib/mobilize/mobilize-ui-surface";
 
 type Ev = {
   id: string;
@@ -151,15 +148,7 @@ function ActivitiesInner() {
   } as const;
 
   return (
-    <Box
-      sx={
-        {
-          ...(mobilizeChapterDetailRootSx as SystemStyleObject<Theme>),
-          ...(mobilizeMobilePagePx as SystemStyleObject<Theme>),
-          boxSizing: "border-box",
-        } satisfies SystemStyleObject<Theme>
-      }
-    >
+    <Box sx={mobilizeMobilePageRootSx({ boxSizing: "border-box" })}>
       <Typography
         variant="h4"
         fontWeight={700}
@@ -171,7 +160,7 @@ function ActivitiesInner() {
       >
         Deployment
       </Typography>
-      <Typography variant="body2" sx={{ mb: 2, flexShrink: 0, ...dashboardLightPageMutedSx }}>
+      <Typography variant="body2" sx={dashboardLightPageIntroSx}>
         Mobilize events from your groups and public listings. Switch between list and month calendar; filter by My
         groups or All.
       </Typography>

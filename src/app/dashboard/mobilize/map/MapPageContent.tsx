@@ -37,7 +37,12 @@ import {
   isMobilizeGroupListed,
   mobilizeGroupListingVisibilityFromListed,
 } from "@/lib/mobilize/group-ui-labels";
-import { mobilizeChapterDetailRootSx, mobilizeFlexFillSx, mobilizeScrollBodySx } from "@/lib/mobilize/mobilize-ui-surface";
+import { dashboardLightPageIntroSx } from "@/lib/dashboard/dashboard-light-page-sx";
+import {
+  mobilizeFlexFillSx,
+  mobilizeMobilePageRootSx,
+  mobilizeScrollBodySx,
+} from "@/lib/mobilize/mobilize-ui-surface";
 import { useDashboardUser } from "@/contexts/DashboardUserContext";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -363,13 +368,12 @@ export default function MobilizeMapPageContent() {
 
   return (
     <Box
-      sx={{
-        ...mobilizeChapterDetailRootSx,
+      sx={mobilizeMobilePageRootSx({
         width: "100%",
         boxSizing: "border-box",
-        px: { xs: 1.5, sm: 2, md: 0 },
         pt: { xs: 0.5, sm: 0 },
-      }}
+        px: { md: 0 },
+      })}
     >
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -385,9 +389,9 @@ export default function MobilizeMapPageContent() {
           <Typography
             variant="body2"
             sx={{
+              ...dashboardLightPageIntroSx,
               maxWidth: 720,
-              lineHeight: 1.55,
-              color: "rgba(0,0,0,0.72)",
+              mb: 0,
               "& b, & strong": { color: "#0d0d0d" },
             }}
           >
