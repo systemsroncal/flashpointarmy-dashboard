@@ -1,4 +1,5 @@
 import { assertPublicDns, assertSafeHttpUrl } from "@/lib/http/ssrf-safe-url";
+import { resolveInternalLinkPreview } from "@/lib/mobilize/social/internal-link-preview";
 import {
   fallbackLinkPreviewMeta,
   parseLinkPreviewFromHtml,
@@ -13,6 +14,31 @@ const EARLY_EXIT_CHECK_BYTES = 48_000;
 
 const LINK_PREVIEW_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+/**
+ * Facebook answers a normal browser user-agent with HTTP 400 and an empty error page.
+ * The crawler user-agent receives the public Open Graph tags.
+ */
+const META_CRAWLER_USER_AGENT =
+  "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
+
+function isMetaCrawlerHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/\.$/, "");
+  return (
+    host === "facebook.com" ||
+    host.endsWith(".facebook.com") ||
+    host === "fb.com" ||
+    host.endsWith(".fb.com") ||
+    host === "fb.watch" ||
+    host.endsWith(".fb.watch") ||
+    host === "instagram.com" ||
+    host.endsWith(".instagram.com")
+  );
+}
+
+function userAgentForHost(hostname: string): string {
+  return isMetaCrawlerHost(hostname) ? META_CRAWLER_USER_AGENT : LINK_PREVIEW_USER_AGENT;
+}
 
 function htmlChunkHasOgSignals(html: string): boolean {
   const slice = html.slice(0, EARLY_EXIT_CHECK_BYTES);
@@ -91,13 +117,14 @@ function enrichPreview(pageUrl: string, html: string): LinkPreviewMeta {
   };
 }
 
-async function fetchHtmlPreview(urlString: string): Promise<LinkPreviewMeta> {
+async function fetchHtmlPreview(urlString: string, userAgent?: string): Promise<LinkPreviewMeta> {
   let current = urlString.trim();
   if (!current) throw new Error("Missing URL.");
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const parsed = assertSafeHttpUrl(current);
     await assertPublicDns(parsed.hostname);
+    const agent = userAgent ?? userAgentForHost(parsed.hostname);
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -109,7 +136,7 @@ async function fetchHtmlPreview(urlString: string): Promise<LinkPreviewMeta> {
         headers: {
           Accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
           "Accept-Language": "en-US,en;q=0.9",
-          "User-Agent": LINK_PREVIEW_USER_AGENT,
+          "User-Agent": agent,
         },
       });
 
@@ -187,12 +214,37 @@ async function fetchNoembedPreview(pageUrl: string): Promise<LinkPreviewMeta | n
   }
 }
 
+async function fetchHtmlPreviewWithFallback(urlString: string): Promise<LinkPreviewMeta> {
+  try {
+    return await fetchHtmlPreview(urlString);
+  } catch (first) {
+    let host = "";
+    try {
+      host = new URL(urlString).hostname;
+    } catch {
+      throw first;
+    }
+    if (isMetaCrawlerHost(host)) throw first;
+    const message = first instanceof Error ? first.message : "";
+    const blocked = /\(400\)|\(401\)|\(403\)/.test(message);
+    if (!blocked) throw first;
+    return fetchHtmlPreview(urlString, META_CRAWLER_USER_AGENT);
+  }
+}
+
 export async function fetchLinkMetadata(urlString: string): Promise<LinkPreviewMeta> {
   const trimmed = urlString.trim();
   if (!trimmed) throw new Error("Missing URL.");
 
   try {
-    const htmlMeta = await fetchHtmlPreview(trimmed);
+    const internal = await resolveInternalLinkPreview(trimmed);
+    if (internal && previewIsRich(internal)) return internal;
+  } catch {
+    /* Fall through to a public HTML fetch when the in-app lookup fails. */
+  }
+
+  try {
+    const htmlMeta = await fetchHtmlPreviewWithFallback(trimmed);
     if (previewIsRich(htmlMeta) && htmlMeta.imageUrl) return htmlMeta;
     const embed = await fetchNoembedPreview(htmlMeta.url);
     const merged = mergePreviews(htmlMeta, embed);

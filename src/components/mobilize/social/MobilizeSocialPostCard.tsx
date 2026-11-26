@@ -304,11 +304,7 @@ export function MobilizeSocialPostCard({
               gap={1}
               sx={{
                 mt: { xs: 0.5, sm: 1.25 },
-                pt: { xs: 0, sm: 1 },
-                borderTop: {
-                  xs: "none",
-                  sm: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
-                },
+                pt: 0,
               }}
             >
               <Box sx={{ flex: 1, minWidth: 0 }}>

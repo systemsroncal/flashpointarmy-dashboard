@@ -9,9 +9,10 @@ import MobilizeGroupCardList from "@/components/mobilize/MobilizeGroupCardList";
 import type { MobilizeGroupLeaderBrief } from "@/lib/mobilize/enrich-groups-browse";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 import {
-  dashboardLightPageMutedSx,
+  dashboardLightPageIntroSx,
   dashboardMobileHiddenPageTitleSx,
 } from "@/lib/dashboard/dashboard-light-page-sx";
+import { mobilizeMobilePageRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 
 export default function MyGroupsPage() {
   const toast = useMobilizeToast();
@@ -64,16 +65,17 @@ export default function MyGroupsPage() {
     // Same light chrome as the group profile: gray container, dark type, white cards.
     <ThemeProvider theme={mobilizePanelTheme}>
       <Box
-        sx={{
+        sx={mobilizeMobilePageRootSx({
           bgcolor: SOCIAL_HUB_LIGHT_BG,
           color: "text.primary",
           borderRadius: { xs: 0, sm: 2 },
           border: { xs: "none", sm: "1px solid rgba(0,0,0,0.06)" },
-          p: { xs: 1.5, sm: 2, md: 2.5 },
+          p: { xs: 0, sm: 2, md: 2.5 },
+          pt: { sm: 2, md: 2.5 },
           boxSizing: "border-box",
           width: "100%",
           flex: 1,
-        }}
+        })}
       >
         <Box
           sx={{
@@ -92,7 +94,7 @@ export default function MyGroupsPage() {
           >
             My Groups
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2, ...dashboardLightPageMutedSx }}>
+          <Typography variant="body2" sx={dashboardLightPageIntroSx}>
             Groups you belong to or lead. Open a group to view feed, events, and members.
           </Typography>
           <MobilizeGroupCardList

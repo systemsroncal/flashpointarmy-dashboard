@@ -1337,28 +1337,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <MobilizeSettingsNavGroup onNavigate={closeMobileDrawer} />
                 </Suspense>
               ) : null}
-              <ListItem disablePadding sx={{ pl: 2.25, pr: 1 }}>
-                <ListItemButton
-                  onClick={() => {
-                    closeMobileDrawer();
-                    void handleSignOut();
-                  }}
-                  sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.65, pl: 1.5, borderRadius: 1 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 34, color: "rgba(255,255,255,0.88)" }}>
-                    <LogoutOutlinedIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Log out"
-                    primaryTypographyProps={{
-                      variant: "body2",
-                      fontWeight: 600,
-                      fontSize: "0.82rem",
-                      color: "rgba(255,255,255,0.88)",
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
             </Collapse>
           </>
         ) : settingsNav.length > 0 && desktop ? (
@@ -1408,6 +1386,37 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               />
             </Collapse>
           </>
+        ) : null}
+        {!desktop ? (
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => {
+                closeMobileDrawer();
+                void handleSignOut();
+              }}
+              sx={{
+                ...NAV_ITEM_TOUCH_SX,
+                py: 0.75,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                gap: 0.5,
+              }}
+            >
+              <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
+                <LogoutOutlinedIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary="Log out"
+                primaryTypographyProps={{
+                  variant: "body2",
+                  fontWeight: 600,
+                  fontSize: "calc(0.82rem + 3px)",
+                  color: "rgba(255,255,255,0.88)",
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
         ) : null}
         {showMobilizeSettings && desktop ? (
           <Suspense fallback={null}>
@@ -1838,9 +1847,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         sx={{
           pt: mobilizeContentUnderHeader
             ? 0
-            : mobilizeMobileChrome
-              ? `calc(52px + ${maintenanceTop})`
-              : `calc(${theme.spacing(7)} + ${maintenanceTop})`,
+            : mobileModuleTitleHeader
+              ? `calc(68px + ${maintenanceTop})`
+              : mobilizeMobileChrome
+                ? `calc(52px + ${maintenanceTop})`
+                : `calc(${theme.spacing(7)} + ${maintenanceTop})`,
           mt: mobilizeContentUnderHeader ? maintenanceTop : 0,
           px: isMobilize ? { xs: 0, sm: 2, md: 3 } : { xs: 1.5, sm: 2.5, md: 3 },
           pb: isMobilize
