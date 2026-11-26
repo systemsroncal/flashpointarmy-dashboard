@@ -372,7 +372,6 @@ export default function MobilizeMapPageContent() {
         width: "100%",
         boxSizing: "border-box",
         pt: { xs: 0.5, sm: 0 },
-        px: { md: 0 },
       })}
     >
       <Stack

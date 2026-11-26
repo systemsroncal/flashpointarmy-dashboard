@@ -16,6 +16,7 @@ import {
 } from "@/lib/mobilize/social/sanitize-feed-html";
 import {
   PROFILE_POST_TARGET,
+  COMPOSER_PROFILE_POST_LABEL,
   composerPostTargetLabel,
   composerPostTargetSelectValue,
   parseComposerPostTargetSelectValue,
@@ -497,6 +498,14 @@ export function MobilizeSocialPostEditor({
         }}
         disabled={disabled || posting || groupsLoading}
         displayEmpty
+        renderValue={(selected) => {
+          if (selected === "profile" || !selected) return COMPOSER_PROFILE_POST_LABEL;
+          const groupId = String(selected).startsWith("group:")
+            ? String(selected).slice("group:".length)
+            : "";
+          const group = joinedGroups.find((g) => g.id === groupId);
+          return group?.name ?? COMPOSER_PROFILE_POST_LABEL;
+        }}
         IconComponent={KeyboardArrowDownIcon}
         sx={pillSelectSx}
         inputProps={{ "aria-label": "Where to post" }}

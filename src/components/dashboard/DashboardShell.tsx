@@ -1109,17 +1109,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           }
 
           if (mobileDrawerProfileMenu) {
+            const profileNavSelected =
+              pathname === profileHref || pathname.startsWith(`${profileHref}/`);
+            const savedNavSelected = pathname.startsWith(MOBILIZE_BOOKMARKS_HREF);
             return (
               <Box key={item.href} component="span" sx={{ display: "contents" }}>
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => setMobilizeProfileNavOpen((prev) => !prev)}
-                    selected={profileSectionActive}
+                    component={Link}
+                    href={profileHref}
+                    selected={profileNavSelected}
+                    onClick={closeMobileDrawer}
                     sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.75 }}
                   >
                     <ListItemIcon
                       sx={{
-                        color: profileSectionActive ? "primary.main" : "rgba(255,255,255,0.92)",
+                        color: profileNavSelected ? "primary.main" : "rgba(255,255,255,0.92)",
                         minWidth: 38,
                       }}
                     >
@@ -1131,91 +1136,38 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         variant: "body2",
                         fontWeight: 600,
                         fontSize: "calc(0.82rem + 3px)",
-                        color: profileSectionActive ? "primary.main" : "rgba(255,255,255,0.88)",
+                        color: profileNavSelected ? "primary.main" : "rgba(255,255,255,0.88)",
                       }}
                     />
-                    {mobilizeProfileNavOpen ? (
-                      <ExpandLessIcon fontSize="small" />
-                    ) : (
-                      <ExpandMoreIcon fontSize="small" />
-                    )}
                   </ListItemButton>
                 </ListItem>
-                <Collapse in={mobilizeProfileNavOpen} timeout="auto" unmountOnExit>
-                  <ListItem disablePadding sx={{ pl: 2.25, pr: 1 }}>
-                    <ListItemButton
-                      component={Link}
-                      href={profileHref}
-                      selected={pathname === profileHref || pathname.startsWith(`${profileHref}/`)}
-                      onClick={closeMobileDrawer}
-                      sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.65, pl: 1.5, borderRadius: 1 }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 34, color: "rgba(255,255,255,0.88)" }}>
-                        <PersonOutlineIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Where to post"
-                        primaryTypographyProps={{
-                          variant: "body2",
-                          fontWeight: 600,
-                          fontSize: "0.82rem",
-                          color:
-                            pathname === profileHref || pathname.startsWith(`${profileHref}/`)
-                              ? "primary.main"
-                              : "rgba(255,255,255,0.88)",
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                  <ListItem disablePadding sx={{ pl: 2.25, pr: 1 }}>
-                    <ListItemButton
-                      component={Link}
-                      href={MOBILIZE_BOOKMARKS_HREF}
-                      selected={pathname.startsWith(MOBILIZE_BOOKMARKS_HREF)}
-                      onClick={closeMobileDrawer}
-                      sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.65, pl: 1.5, borderRadius: 1 }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 34, color: "rgba(255,255,255,0.88)" }}>
-                        <BookmarkBorderOutlinedIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="My saved"
-                        primaryTypographyProps={{
-                          variant: "body2",
-                          fontWeight: 600,
-                          fontSize: "0.82rem",
-                          color: pathname.startsWith(MOBILIZE_BOOKMARKS_HREF)
-                            ? "primary.main"
-                            : "rgba(255,255,255,0.88)",
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                  <ListItem disablePadding sx={{ pl: 2.25, pr: 1 }}>
-                    <ListItemButton
-                      selected={profileOpen}
-                      onClick={() => {
-                        closeMobileDrawer();
-                        setProfileEditMode(false);
-                        setProfileOpen(true);
+                <ListItem disablePadding>
+                  <ListItemButton
+                    component={Link}
+                    href={MOBILIZE_BOOKMARKS_HREF}
+                    selected={savedNavSelected}
+                    onClick={closeMobileDrawer}
+                    sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.75 }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: savedNavSelected ? "primary.main" : "rgba(255,255,255,0.92)",
+                        minWidth: 38,
                       }}
-                      sx={{ ...NAV_ITEM_TOUCH_SX, py: 0.65, pl: 1.5, borderRadius: 1 }}
                     >
-                      <ListItemIcon sx={{ minWidth: 34, color: "rgba(255,255,255,0.88)" }}>
-                        <SettingsIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Settings"
-                        primaryTypographyProps={{
-                          variant: "body2",
-                          fontWeight: 600,
-                          fontSize: "0.82rem",
-                          color: profileOpen ? "primary.main" : "rgba(255,255,255,0.88)",
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                </Collapse>
+                      <BookmarkBorderOutlinedIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="My saved"
+                      primaryTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 600,
+                        fontSize: "calc(0.82rem + 3px)",
+                        color: savedNavSelected ? "primary.main" : "rgba(255,255,255,0.88)",
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
                 {afterFeedGroups}
                 {afterProfile}
               </Box>
@@ -1890,7 +1842,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               ? `calc(52px + ${maintenanceTop})`
               : `calc(${theme.spacing(7)} + ${maintenanceTop})`,
           mt: mobilizeContentUnderHeader ? maintenanceTop : 0,
-          px: isMobilize ? { xs: 0, sm: 2, md: 3 } : { xs: 2, sm: 3 },
+          px: isMobilize ? { xs: 0, sm: 2, md: 3 } : { xs: 1.5, sm: 2.5, md: 3 },
           pb: isMobilize
             ? "calc(56px + 32px + env(safe-area-inset-bottom, 0px))"
             : "calc(32px + env(safe-area-inset-bottom, 0px))",
@@ -1913,7 +1865,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           }),
         }}
       >
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+            pt: !isMobilize && !desktop ? 1 : 0,
+          }}
+        >
           <ImpersonationBanner />
           {children}
         </Box>

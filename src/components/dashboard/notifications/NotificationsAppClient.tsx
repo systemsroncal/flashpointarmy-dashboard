@@ -36,7 +36,11 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import { SocialUrlShareDialog } from "@/components/dashboard/SocialUrlShareDialog";
 import { MissionUpdateSharedFromUrl } from "@/components/dashboard/notifications/MissionUpdateSharedFromUrl";
-import { dashboardMobileHiddenPageTitleSx } from "@/lib/dashboard/dashboard-light-page-sx";
+import {
+  dashboardLightPageIntroSx,
+  dashboardMobileHiddenPageTitleSx,
+  dashboardModulePrimaryButtonSx,
+} from "@/lib/dashboard/dashboard-light-page-sx";
 import { absoluteMissionUpdateShareUrl } from "@/lib/dashboard/mission-update-share-url";
 import { missionUpdateShareHeadline } from "@/lib/share/social-share-message";
 import {
@@ -593,10 +597,15 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
   };
 
   return (
-    <Box sx={{ maxWidth: 920, mx: "auto" }}>
+    <Box sx={{ maxWidth: 920, mx: "auto", width: "100%", boxSizing: "border-box" }}>
       <Stack spacing={2} sx={{ mb: 3 }}>
         {canManage ? (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ alignSelf: "flex-start" }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={openCreate}
+            sx={{ alignSelf: "flex-start", ...dashboardModulePrimaryButtonSx }}
+          >
             Add new Mission Update
           </Button>
         ) : null}
@@ -610,7 +619,7 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
             >
               Missions updates
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={dashboardLightPageIntroSx}>
               {canManage
                 ? "Create Mission Updates and choose who can see them. Expired items are hidden automatically."
                 : "Stay up to date with Mission Updates from your organization."}

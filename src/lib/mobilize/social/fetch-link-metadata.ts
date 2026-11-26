@@ -24,6 +24,21 @@ function htmlChunkHasOgSignals(html: string): boolean {
   );
 }
 
+function previewIsRich(meta: LinkPreviewMeta): boolean {
+  return Boolean(meta.title?.trim() || meta.imageUrl || meta.description?.trim());
+}
+
+function mergePreviews(primary: LinkPreviewMeta, secondary: LinkPreviewMeta | null): LinkPreviewMeta {
+  if (!secondary) return primary;
+  return {
+    url: primary.url,
+    title: primary.title?.trim() ? primary.title : secondary.title,
+    description: primary.description?.trim() ? primary.description : secondary.description,
+    imageUrl: primary.imageUrl ?? secondary.imageUrl,
+    siteName: primary.siteName?.trim() ? primary.siteName : secondary.siteName,
+  };
+}
+
 async function readLimitedHtml(res: Response, maxBytes: number): Promise<string> {
   const body = res.body;
   if (!body) {
@@ -76,7 +91,7 @@ function enrichPreview(pageUrl: string, html: string): LinkPreviewMeta {
   };
 }
 
-export async function fetchLinkMetadata(urlString: string): Promise<LinkPreviewMeta> {
+async function fetchHtmlPreview(urlString: string): Promise<LinkPreviewMeta> {
   let current = urlString.trim();
   if (!current) throw new Error("Missing URL.");
 
@@ -131,4 +146,61 @@ export async function fetchLinkMetadata(urlString: string): Promise<LinkPreviewM
   }
 
   throw new Error("Too many redirects.");
+}
+
+async function fetchNoembedPreview(pageUrl: string): Promise<LinkPreviewMeta | null> {
+  const parsed = assertSafeHttpUrl(pageUrl);
+  const endpoint = new URL("https://noembed.com/embed");
+  endpoint.searchParams.set("url", parsed.toString());
+  endpoint.searchParams.set("maxwidth", "1200");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(endpoint.toString(), {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+    const json = (await res.json()) as {
+      error?: string;
+      title?: string;
+      author_name?: string;
+      thumbnail_url?: string;
+      provider_name?: string;
+      url?: string;
+    };
+    if (json.error || !res.ok) return null;
+    const title = json.title?.trim() || null;
+    const imageUrl = json.thumbnail_url?.trim() || null;
+    if (!title && !imageUrl) return null;
+    return {
+      url: parsed.toString(),
+      title,
+      description: json.author_name?.trim() || null,
+      imageUrl,
+      siteName: json.provider_name?.trim() || parsed.hostname.replace(/^www\./i, ""),
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function fetchLinkMetadata(urlString: string): Promise<LinkPreviewMeta> {
+  const trimmed = urlString.trim();
+  if (!trimmed) throw new Error("Missing URL.");
+
+  try {
+    const htmlMeta = await fetchHtmlPreview(trimmed);
+    if (previewIsRich(htmlMeta) && htmlMeta.imageUrl) return htmlMeta;
+    const embed = await fetchNoembedPreview(htmlMeta.url);
+    const merged = mergePreviews(htmlMeta, embed);
+    if (previewIsRich(merged)) return merged;
+    return htmlMeta;
+  } catch {
+    const embed = await fetchNoembedPreview(trimmed);
+    if (embed && previewIsRich(embed)) return embed;
+    throw new Error("Could not load link preview for this URL.");
+  }
 }
