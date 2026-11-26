@@ -22,3 +22,22 @@ export const dashboardLightPageIntroSx: SxProps<Theme> = {
 export const dashboardMobileHiddenPageTitleSx: SxProps<Theme> = {
   display: { xs: "none", md: "block" },
 };
+
+/** Non-Mobilize module pages — consistent horizontal padding with Mobilize gutters. */
+export const dashboardModulePageGutterSx: SxProps<Theme> = {
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box",
+  px: { xs: 0.5, sm: 0 },
+};
+
+/** Primary toolbar action (Add new, etc.) on dashboard modules. */
+export const dashboardModulePrimaryButtonSx: SxProps<Theme> = {
+  minHeight: { xs: 42, sm: 40 },
+  px: { xs: 2.25, sm: 2.5 },
+  py: { xs: 0.85, sm: 0.65 },
+  fontWeight: 700,
+  fontSize: "0.875rem",
+  textTransform: "none",
+  borderRadius: 1.25,
+};

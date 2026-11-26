@@ -35,6 +35,8 @@ export function parseComposerPostTargetSelectValue(
   return { type: "group", groupId: group.id, name: group.name };
 }
 
+export const COMPOSER_PROFILE_POST_LABEL = "Where to post";
+
 export function composerPostTargetLabel(target: ComposerPostTarget): string {
-  return target.type === "profile" ? "On my profile" : target.name;
+  return target.type === "profile" ? COMPOSER_PROFILE_POST_LABEL : target.name;
 }

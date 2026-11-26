@@ -9,6 +9,7 @@ import SwitchAccount from "@mui/icons-material/SwitchAccount";
 import Upgrade from "@mui/icons-material/Upgrade";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { dashboardModulePrimaryButtonSx } from "@/lib/dashboard/dashboard-light-page-sx";
 import {
   Alert,
   Autocomplete,
@@ -1613,7 +1614,6 @@ export function CommunitySection({
             <>
             <Button
               variant="contained"
-              size="small"
               onClick={() => {
                 setFirstName("");
                 setLastName("");
@@ -1628,6 +1628,7 @@ export function CommunitySection({
                 setSubmitError(null);
                 setAddOpen(true);
               }}
+              sx={dashboardModulePrimaryButtonSx}
             >
               Add new
             </Button>

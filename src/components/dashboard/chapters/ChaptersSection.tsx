@@ -12,6 +12,7 @@ import {
   usStateById,
   type USStateOption,
 } from "@/data/usStates";
+import { dashboardModulePrimaryButtonSx } from "@/lib/dashboard/dashboard-light-page-sx";
 import {
   Autocomplete,
   Box,
@@ -544,11 +545,11 @@ export function ChaptersSection({
             <>
               <Button
                 variant="contained"
-                size="small"
                 onClick={() => {
                   resetCreateForm();
                   setCreateOpen(true);
                 }}
+                sx={dashboardModulePrimaryButtonSx}
               >
                 Add new
               </Button>

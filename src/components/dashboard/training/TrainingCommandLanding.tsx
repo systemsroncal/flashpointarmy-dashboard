@@ -117,10 +117,25 @@ export function TrainingCommandLanding({
           Welcome to FlashPoint Army Training Command
         </Typography>
 
-        <Typography sx={{ color: "rgba(255,255,255,0.88)", fontWeight: 600, mb: 1.5, lineHeight: 1.5 }}>
+        <Typography
+          sx={{
+            display: { xs: "none", md: "block" },
+            color: "rgba(255,255,255,0.88)",
+            fontWeight: 600,
+            mb: 1.5,
+            lineHeight: 1.5,
+          }}
+        >
           Every mission begins with preparation.
         </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.82)", mb: 2.5, lineHeight: 1.7 }}>
+        <Typography
+          sx={{
+            display: { xs: "none", md: "block" },
+            color: "rgba(255,255,255,0.82)",
+            mb: 2.5,
+            lineHeight: 1.7,
+          }}
+        >
           Before leading, serving, or participating in your local chapter, every member is asked to complete the Biblical
           Citizenship course. This foundational training will equip you with the Biblical principles, historical
           context, and civic understanding that unite every FlashPoint Army Chapter across the nation.
@@ -204,6 +219,17 @@ export function TrainingCommandLanding({
         >
           Start Biblical Citizenship
         </Button>
+
+        <Box sx={{ display: { xs: "block", md: "none" }, mt: 2.5 }}>
+          <Typography sx={{ color: "rgba(255,255,255,0.88)", fontWeight: 600, mb: 1.25, lineHeight: 1.5 }}>
+            Every mission begins with preparation.
+          </Typography>
+          <Typography sx={{ color: "rgba(255,255,255,0.82)", lineHeight: 1.7 }}>
+            Before leading, serving, or participating in your local chapter, every member is asked to complete the
+            Biblical Citizenship course. This foundational training will equip you with the Biblical principles,
+            historical context, and civic understanding that unite every FlashPoint Army Chapter across the nation.
+          </Typography>
+        </Box>
 
         {showExternalCertPrompt ? (
           <ExternalTrainingCertificateBanner
