@@ -2,7 +2,6 @@ import { CommunicationsNavTabs } from "@/components/dashboard/communications/Com
 import { NotificationsAppClient } from "@/components/dashboard/notifications/NotificationsAppClient";
 import { isElevatedRole, isSubAdminUser, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { requireServerUser } from "@/lib/auth/server-session";
-import { mobilizeMobilePageRootSx } from "@/lib/mobilize/mobilize-ui-surface";
 import { Box } from "@mui/material";
 
 export default async function NotificationsPageContent() {
@@ -13,7 +12,15 @@ export default async function NotificationsPageContent() {
   const showBroadcastNav = isElevatedRole(roleNames) || isSubAdminUser(roleNames);
 
   return (
-    <Box sx={mobilizeMobilePageRootSx({ boxSizing: "border-box" })}>
+    <Box
+      sx={{
+        width: "100%",
+        boxSizing: "border-box",
+        height: "auto",
+        maxHeight: "none",
+        overflow: "visible",
+      }}
+    >
       {showBroadcastNav && <CommunicationsNavTabs />}
       <NotificationsAppClient canManage={canManage} />
     </Box>
