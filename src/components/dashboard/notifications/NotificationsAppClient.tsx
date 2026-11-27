@@ -773,23 +773,51 @@ export function NotificationsAppClient({ canManage }: { canManage: boolean }) {
                 <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
                   <Button
                     size="small"
-                    variant="outlined"
+                    variant="contained"
+                    disableElevation
                     startIcon={<ShareOutlinedIcon />}
                     onClick={() => setShareRow(row)}
+                    sx={{
+                      bgcolor: "#2e7d32",
+                      color: "#fff",
+                      "&:hover": { bgcolor: "#1b5e20" },
+                    }}
                   >
                     Share
                   </Button>
                   {unread ? (
-                    <Button size="small" variant="outlined" onClick={() => void setRead(row.id, true)}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => void setRead(row.id, true)}
+                      sx={{
+                        color: "rgba(255,255,255,0.55)",
+                        borderColor: "rgba(255,255,255,0.28)",
+                        "&:hover": {
+                          color: "rgba(255,255,255,0.92)",
+                          borderColor: "rgba(255,255,255,0.55)",
+                          bgcolor: "rgba(255,255,255,0.06)",
+                        },
+                      }}
+                    >
                       Mark as read
                     </Button>
-                  ) : (
-                    <Button size="small" variant="outlined" onClick={() => void setRead(row.id, false)}>
-                      Mark as unread
-                    </Button>
-                  )}
-                  <Button size="small" color="warning" variant="outlined" onClick={() => setConfirmDismissId(row.id)}>
-                    Remove from my list
+                  ) : null}
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setConfirmDismissId(row.id)}
+                    sx={{
+                      color: "rgba(255,255,255,0.55)",
+                      borderColor: "rgba(255,255,255,0.28)",
+                      "&:hover": {
+                        color: "rgba(255,255,255,0.92)",
+                        borderColor: "rgba(255,255,255,0.55)",
+                        bgcolor: "rgba(255,255,255,0.06)",
+                      },
+                    }}
+                  >
+                    Remove
                   </Button>
                   {canManage ? (
                     <>

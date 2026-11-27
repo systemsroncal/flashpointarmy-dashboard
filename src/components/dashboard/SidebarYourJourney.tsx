@@ -98,6 +98,7 @@ function buildSteps(snapshot: MemberOnboardingSnapshot): JourneyStep[] {
 
 type Props = {
   snapshot: MemberOnboardingSnapshot;
+  onNavigate?: () => void;
 };
 
 function stepBadgeStyle(status: string): { bg: string; color: string } {
@@ -106,7 +107,7 @@ function stepBadgeStyle(status: string): { bg: string; color: string } {
   return { bg: "#6b7280", color: "#fff" };
 }
 
-export function SidebarYourJourney({ snapshot }: Props) {
+export function SidebarYourJourney({ snapshot, onNavigate }: Props) {
   const steps = buildSteps(snapshot);
   const progress = computeJourneyProgressPercent(snapshot);
 
@@ -178,7 +179,7 @@ export function SidebarYourJourney({ snapshot }: Props) {
               </Box>
               <Box sx={{ minWidth: 0 }}>
                 {step.enabled && step.href ? (
-                  <Typography component={Link} href={step.href} sx={titleSx}>
+                  <Typography component={Link} href={step.href} onClick={onNavigate} sx={titleSx}>
                     {step.title}
                   </Typography>
                 ) : (
@@ -189,6 +190,7 @@ export function SidebarYourJourney({ snapshot }: Props) {
                     label={step.statusLabel}
                     tooltip={step.statusTooltip}
                     href={step.statusHref}
+                    onNavigate={onNavigate}
                     lineHeight={1}
                   />
                   {step.extraDetail ? (

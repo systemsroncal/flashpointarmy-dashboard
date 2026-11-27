@@ -12,6 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import { MAX_MOBILIZE_ANNOUNCEMENT_IMAGES } from "@/lib/mobilize/announcement-images";
+import { optimizeContentImage } from "@/lib/media/optimize-image-client";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -36,8 +37,9 @@ export default function MobilizeAnnouncementImagePicker({
 
   const uploadFile = useCallback(
     async (file: File): Promise<string | null> => {
+      const prepared = await optimizeContentImage(file);
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", prepared);
       const res = await fetch(`/api/mobilize/groups/${groupId}/messages/image`, {
         method: "POST",
         body: fd,

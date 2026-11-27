@@ -12,6 +12,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { optimizeContentImage } from "@/lib/media/optimize-image-client";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import { useMobilizeToast } from "@/components/mobilize/MobilizeToastProvider";
 
@@ -40,8 +41,9 @@ export function MobilizeFeedAdImageDropzone({
     async (file: File) => {
       setUploading(true);
       try {
+        const prepared = await optimizeContentImage(file);
         const fd = new FormData();
-        fd.set("file", file);
+        fd.set("file", prepared);
         const res = await fetch("/api/mobilize/feed-ads/image", { method: "POST", body: fd });
         const json = (await res.json()) as { image_url?: string; error?: string };
         if (!res.ok) throw new Error(json.error || "Upload failed.");

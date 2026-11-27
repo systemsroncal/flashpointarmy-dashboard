@@ -9,6 +9,7 @@ type Props = {
   tooltip: string;
   /** When set, the status label navigates to the step module (e.g. Watch Briefing → video page). */
   href?: string | null;
+  onNavigate?: () => void;
   /** Smaller text for sidebar / nav. */
   size?: "default" | "small";
   lineHeight?: number;
@@ -18,6 +19,7 @@ export function OnboardingStatusWithInfo({
   label,
   tooltip,
   href,
+  onNavigate,
   size = "default",
   lineHeight = 1.35,
 }: Props) {
@@ -43,7 +45,7 @@ export function OnboardingStatusWithInfo({
   return (
     <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.35, maxWidth: "100%" }}>
       {linkable ? (
-        <Typography component={Link} href={href!} sx={labelSx}>
+        <Typography component={Link} href={href!} onClick={onNavigate} sx={labelSx}>
           {label}
         </Typography>
       ) : (

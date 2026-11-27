@@ -54,10 +54,10 @@ export function CourseIntroVideoBlock({
             sx={{
               fontWeight: 900,
               color: "#fff",
-              fontSize: { xs: "1.75rem", sm: "2.25rem" },
-              lineHeight: 1.2,
-              mb: 1,
-              textAlign: { xs: "center", md: "left" },
+              fontSize: { xs: "1.45rem", sm: "2.25rem" },
+              lineHeight: 1.15,
+              mb: 0.75,
+              textAlign: "left",
             }}
           >
             Biblical Citizenship
@@ -66,11 +66,11 @@ export function CourseIntroVideoBlock({
             component="p"
             sx={{
               color: "rgba(255,255,255,0.88)",
-              fontSize: { xs: "1.125rem", sm: "1.35rem" },
+              fontSize: { xs: "1rem", sm: "1.35rem" },
               fontWeight: 600,
-              lineHeight: 1.45,
-              mb: { xs: 2, sm: 2.5 },
-              textAlign: { xs: "center", md: "left" },
+              lineHeight: 1.35,
+              mb: { xs: 1.5, sm: 2.5 },
+              textAlign: "left",
             }}
           >
             Your Foundational Training for FlashPoint Army Chapters
@@ -79,8 +79,8 @@ export function CourseIntroVideoBlock({
             sx={{
               color: "rgba(255,255,255,0.78)",
               lineHeight: 1.75,
-              fontSize: { xs: "0.95rem", sm: "1rem" },
-              textAlign: { xs: "center", md: "left" },
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+              textAlign: "left",
               mb: showCertificateCta ? { xs: 2, sm: 2.5 } : 0,
             }}
           >
@@ -98,7 +98,7 @@ export function CourseIntroVideoBlock({
         </Box>
 
         <Box sx={{ alignSelf: "center", width: "100%", maxWidth: { md: 420 }, mx: { xs: "auto", md: 0 } }}>
-          <Box sx={{ mb: 1.5 }}>
+          <Box sx={{ mb: 1.5, display: { xs: "none", md: "block" } }}>
             <InviteFriendsBanner variant="compact" />
           </Box>
           <Box

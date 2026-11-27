@@ -19,7 +19,6 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import PeopleIcon from "@mui/icons-material/People";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import NoteOutlinedIcon from "@mui/icons-material/NoteOutlined";
@@ -146,6 +145,17 @@ type NavItem = {
 
 const COURSE_LEARNER_PREFIX = "/dashboard/course";
 
+function FeedNavIcon() {
+  return (
+    <Box
+      component="img"
+      src="/favicon-fp-army.png"
+      alt=""
+      sx={{ width: 22, height: 22, objectFit: "contain", display: "block" }}
+    />
+  );
+}
+
 const MOBILIZE_PREFIX = MOBILIZE_PREFIX_CANON;
 
 /** Tour-only snapshot of Mobilize-related links (drawer is now unified). */
@@ -154,7 +164,7 @@ const MOBILIZE_DRAWER_NAV_BASE: NavItem[] = [
     label: "Feed",
     href: MOBILIZE_HOME_HREF,
     module: MODULE_SLUGS.movilization,
-    icon: <HomeOutlinedIcon />,
+    icon: <FeedNavIcon />,
   },
   {
     label: "Find Groups",
@@ -323,7 +333,7 @@ const NAV: NavItem[] = [
     label: "Feed",
     href: MOBILIZE_HOME_HREF,
     module: MODULE_SLUGS.movilization,
-    icon: <HomeOutlinedIcon />,
+    icon: <FeedNavIcon />,
   },
   // Groups is rendered as ChaptersGroupsNavGroup after Feed (not a flat link).
   {
@@ -823,6 +833,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     user.role_names.includes("admin") ||
     user.role_names.includes("super_admin") ||
     user.role_names.includes("sub_admin");
+  const memberProfileSettings = !showSystemNotificationBell;
 
   const tourBuildInput = useMemo(
     () => ({
@@ -1275,6 +1286,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </>
         ) : null}
         {!desktop &&
+        !memberProfileSettings &&
         (settingsNav.length > 0 || canAccessMobilize || showMobilizeSettings) ? (
           <>
             <ListItem disablePadding>
@@ -1356,7 +1368,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               ) : null}
             </Collapse>
           </>
-        ) : settingsNav.length > 0 && desktop ? (
+        ) : settingsNav.length > 0 && desktop && !memberProfileSettings ? (
           <>
             <ListItem disablePadding>
               <ListItemButton
@@ -1404,6 +1416,35 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Collapse>
           </>
         ) : null}
+        {memberProfileSettings ? (
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => {
+                closeMobileDrawer();
+                setProfileEditMode(true);
+                setProfileOpen(true);
+              }}
+              data-tour="nav-settings-group"
+              sx={{
+                ...NAV_ITEM_TOUCH_SX,
+                py: 0.75,
+              }}
+            >
+              <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
+                <SettingsIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary="Settings"
+                primaryTypographyProps={{
+                  variant: "body2",
+                  fontWeight: 600,
+                  fontSize: "calc(0.82rem + 3px)",
+                  color: "rgba(255,255,255,0.88)",
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
+        ) : null}
         {!desktop ? (
           <ListItem disablePadding>
             <ListItemButton
@@ -1420,7 +1461,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 gap: 0.5,
               }}
             >
-              <ListItemIcon sx={{ color: "rgba(255,255,255,0.92)", minWidth: 38 }}>
+              <ListItemIcon sx={{ color: "rgba(255,255,255,0.42)", minWidth: 38 }}>
                 <LogoutOutlinedIcon />
               </ListItemIcon>
               <ListItemText
@@ -1429,7 +1470,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   variant: "body2",
                   fontWeight: 600,
                   fontSize: "calc(0.82rem + 3px)",
-                  color: "rgba(255,255,255,0.88)",
+                  color: "rgba(255,255,255,0.42)",
                 }}
               />
             </ListItemButton>
@@ -1442,7 +1483,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         ) : null}
         {showSidebarJourney ? (
           <Box sx={{ px: 1.5, pt: 1, pb: 0.5 }}>
-            <SidebarYourJourney snapshot={user.member_onboarding!} />
+            <SidebarYourJourney snapshot={user.member_onboarding!} onNavigate={closeMobileDrawer} />
           </Box>
         ) : null}
       </List>
@@ -1874,9 +1915,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         sx={{
           pt: mobilizeContentUnderHeader
             ? 0
-            : mobileModuleTitleHeader
-              ? `calc(68px + ${maintenanceTop})`
-              : mobilizeMobileChrome
+            : mobileModuleTitleHeader &&
+                (pathname === MOBILIZE_HOME_HREF ||
+                  pathname === "/dashboard/mobilize" ||
+                  pathname === `${MOBILIZE_PREFIX}/` ||
+                  pathname.startsWith("/dashboard/training"))
+              ? `calc(52px + ${maintenanceTop})`
+              : mobileModuleTitleHeader
+                ? `calc(68px + ${maintenanceTop})`
+                : mobilizeMobileChrome
                 ? `calc(52px + ${maintenanceTop})`
                 : `calc(${theme.spacing(7)} + ${maintenanceTop})`,
           mt: mobilizeContentUnderHeader ? maintenanceTop : 0,

@@ -36,6 +36,7 @@ import {
 } from "@/lib/mobilize/social/social-hub-surface";
 import { mobilizePanelTheme } from "@/theme/mobilize-content-theme";
 import { flashpointYellow } from "@/theme/tokens";
+import { optimizeContentImage } from "@/lib/media/optimize-image-client";
 import { publicAssetSrc } from "@/lib/media/public-asset-url";
 import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import CloseIcon from "@mui/icons-material/Close";
@@ -237,8 +238,9 @@ export function MobilizeSocialPostEditor({
 
   const uploadFile = useCallback(
     async (file: File): Promise<string | null> => {
+      const prepared = await optimizeContentImage(file);
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", prepared);
       const res = await fetch(uploadUrl, { method: "POST", body: fd });
       const json = (await res.json()) as { image_url?: string; error?: string };
       if (!res.ok) throw new Error(json.error || "Upload failed.");
