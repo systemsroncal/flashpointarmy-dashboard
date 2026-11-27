@@ -62,6 +62,33 @@ function readTitleTag(html: string): string | null {
   return m?.[1]?.trim() ? decodeBasicEntities(m[1].trim()) : null;
 }
 
+/** Facebook's crawler image host refuses browser <img> requests. Instagram CDN does not. */
+const BROWSER_BLOCKED_PREVIEW_HOSTS = ["lookaside.fbsbx.com", "lookaside.facebook.com"];
+
+export function isBrowserBlockedPreviewImage(imageUrl: string): boolean {
+  try {
+    const host = new URL(imageUrl).hostname.toLowerCase();
+    return BROWSER_BLOCKED_PREVIEW_HOSTS.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
+  } catch {
+    return false;
+  }
+}
+
+/** Same-origin proxy so the composer and feed can paint Facebook preview images. */
+export function browserPreviewImageUrl(imageUrl: string | null): string | null {
+  if (!imageUrl) return null;
+  if (!isBrowserBlockedPreviewImage(imageUrl)) return imageUrl;
+  return `/api/mobilize/link-preview/image?url=${encodeURIComponent(imageUrl)}`;
+}
+
+export function rewriteBlockedPreviewImagesInHtml(html: string): string {
+  if (!html.includes("lookaside.")) return html;
+  return html.replace(
+    /https?:\/\/lookaside\.(?:fbsbx|facebook)\.com\/[^"'<\s]+/gi,
+    (url) => browserPreviewImageUrl(url) ?? url
+  );
+}
+
 function resolveMaybeRelativeUrl(base: URL, href: string): string | null {
   const raw = href.trim();
   if (!raw) return null;
@@ -107,7 +134,7 @@ export function parseLinkPreviewFromHtml(pageUrl: string, html: string): LinkPre
     url: base.toString(),
     title: title ?? null,
     description: description ?? null,
-    imageUrl,
+    imageUrl: browserPreviewImageUrl(imageUrl),
     siteName,
   };
 }

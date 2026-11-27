@@ -6,6 +6,7 @@ import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSo
 import { MobilizeSocialPostCard } from "@/components/mobilize/social/MobilizeSocialPostCard";
 import { DiscoverJoinGroupButton } from "@/components/mobilize/social/DiscoverJoinGroupButton";
 import { MobilizeSocialPostEditor } from "@/components/mobilize/social/MobilizeSocialPostEditor";
+import { rewriteBlockedPreviewImagesInHtml } from "@/lib/mobilize/social/link-preview";
 import { MobilizeSectionEmptyState } from "@/components/mobilize/MobilizeSectionEmptyState";
 import { MobilizeDialog } from "@/components/mobilize/MobilizeDialog";
 import DynamicFeedOutlinedIcon from "@mui/icons-material/DynamicFeedOutlined";
@@ -219,7 +220,7 @@ export function MobilizeOwnerHomeClient() {
 
   function openEditPost(post: UnifiedFeedPost) {
     setEditPostTarget(post);
-    setEditPostHtml(post.content_html || post.content || "");
+    setEditPostHtml(rewriteBlockedPreviewImagesInHtml(post.content_html || post.content || ""));
     setEditPostImages(post.image_urls ?? []);
   }
 

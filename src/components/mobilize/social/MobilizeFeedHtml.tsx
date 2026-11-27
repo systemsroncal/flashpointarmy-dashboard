@@ -4,6 +4,7 @@ import { findAllVideoMarkers } from "@/components/dashboard/notifications/announ
 import { CourseVideoPlyr } from "@/components/courses/CourseVideoPlyr";
 import { resolveVideoForPlyr } from "@/lib/media/resolve-plyr-video";
 import { trimLeadingFeedHtml, trimTrailingFeedHtml } from "@/lib/mobilize/social/sanitize-feed-html";
+import { rewriteBlockedPreviewImagesInHtml } from "@/lib/mobilize/social/link-preview";
 import DOMPurify from "isomorphic-dompurify";
 import { Box, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -115,7 +116,7 @@ function addTargetBlankToExternalLinks(html: string): string {
 }
 
 function processHtml(html: string): string {
-  let result = html;
+  let result = rewriteBlockedPreviewImagesInHtml(html);
   result = stripForeignFontFamily(result);
   result = autoLinkPlainText(result);
   result = addTargetBlankToExternalLinks(result);

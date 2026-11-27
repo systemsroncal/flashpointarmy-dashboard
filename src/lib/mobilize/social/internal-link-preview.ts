@@ -1,4 +1,4 @@
-import { loadSharePostMeta } from "@/lib/share/load-share-post-meta";
+import { loadSharePostMeta, firstAttachedShareImage } from "@/lib/share/load-share-post-meta";
 import { descriptionFromAnnouncementHtml } from "@/lib/share/build-share-metadata";
 import { extractImageSrcsFromHtml } from "@/lib/share/announcement-media-html";
 import type { LinkPreviewMeta } from "@/lib/mobilize/social/link-preview";
@@ -78,7 +78,7 @@ async function previewMissionUpdate(pageUrl: string, id: string): Promise<LinkPr
     pageUrl,
     data.title as string,
     descriptionFromAnnouncementHtml((data.description as string | null) ?? ""),
-    images[0] ?? DEFAULT_SHARE_META_IMAGE
+    firstAttachedShareImage(images)
   );
 }
 

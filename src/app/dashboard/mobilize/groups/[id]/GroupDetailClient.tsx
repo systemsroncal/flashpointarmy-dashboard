@@ -110,6 +110,7 @@ import type { EnrichedGroupMessage } from "@/lib/mobilize/social/enrich-group-me
 import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeProfilePageShell";
 import { MobilizeProfileSidebarCard } from "@/components/mobilize/social/MobilizeProfileSidebarCard";
 import { MobilizeSocialPostEditor } from "@/components/mobilize/social/MobilizeSocialPostEditor";
+import { rewriteBlockedPreviewImagesInHtml } from "@/lib/mobilize/social/link-preview";
 import { MobilizeSocialFeedShell } from "@/components/mobilize/social/MobilizeSocialFeedShell";
 import { mobilizeMemberProfileHref } from "@/lib/mobilize/social/profile-href";
 import MobilizeGroupCoverDropzone from "@/components/mobilize/MobilizeGroupCoverDropzone";
@@ -1732,7 +1733,7 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
                 setMsgEdit({
                   id: m.id,
                   content: m.content,
-                  content_html: m.content_html ?? m.content,
+                  content_html: rewriteBlockedPreviewImagesInHtml(m.content_html ?? m.content),
                   image_urls: m.image_urls ?? [],
                   comments_policy: m.comments_policy === "leaders_only" ? "leaders_only" : "everyone",
                 })

@@ -1,9 +1,10 @@
 import { ShareLinkLanding } from "@/components/share/ShareLinkLanding";
 import { buildOpenGraphMetadata, descriptionFromAnnouncementHtml } from "@/lib/share/build-share-metadata";
 import { extractImageSrcsFromHtml } from "@/lib/share/announcement-media-html";
+import { firstAttachedShareImage } from "@/lib/share/load-share-post-meta";
 import { buildMissionUpdateSharePath } from "@/lib/dashboard/mission-update-share-url";
 import { missionUpdateShareHeadline } from "@/lib/share/social-share-message";
-import { APP_DISPLAY_NAME, DEFAULT_SHARE_META_IMAGE } from "@/lib/site/app-branding";
+import { APP_DISPLAY_NAME } from "@/lib/site/app-branding";
 import { createAdminClient } from "@/utils/supabase/admin";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -26,10 +27,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!row?.title) return {};
 
   const images = extractImageSrcsFromHtml(row.description ?? "");
-  return buildOpenGraphMetadata({
+  return await buildOpenGraphMetadata({
     title: row.title,
     description: descriptionFromAnnouncementHtml(row.description ?? ""),
-    imageUrl: images[0] ?? DEFAULT_SHARE_META_IMAGE,
+    imageUrl: firstAttachedShareImage(images),
     canonicalPath: `/share/mission-update/${id}`,
   });
 }

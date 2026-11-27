@@ -1,6 +1,7 @@
 "use client";
 
 import { MobilizeSocialPostEditor } from "@/components/mobilize/social/MobilizeSocialPostEditor";
+import { rewriteBlockedPreviewImagesInHtml } from "@/lib/mobilize/social/link-preview";
 import { MobilizeSocialHubContent } from "@/components/mobilize/social/MobilizeSocialHubContent";
 import { MobilizeSocialHubLayout } from "@/components/mobilize/social/MobilizeSocialHubLayout";
 import { MobilizeProfilePageShell } from "@/components/mobilize/social/MobilizeProfilePageShell";
@@ -351,7 +352,7 @@ export function MobilizeMemberProfileClient({ userId, backHref }: Props) {
 
   function openEditPost(post: ProfilePost) {
     setEditPostTarget(post);
-    setEditPostHtml(post.content_html || post.content || "");
+    setEditPostHtml(rewriteBlockedPreviewImagesInHtml(post.content_html || post.content || ""));
     setEditPostImages(post.image_urls ?? []);
   }
 
