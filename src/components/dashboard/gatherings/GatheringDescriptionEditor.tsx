@@ -6,6 +6,7 @@ import {
   shortcodesToVideoBlocks,
   videoBlocksToShortcodes,
 } from "@/lib/media/video-embed-blocks";
+import { optimizeContentImage } from "@/lib/media/optimize-image-client";
 import { extractPastedUrl } from "@/lib/mobilize/social/link-preview";
 import { Box, InputLabel, Typography } from "@mui/material";
 import dynamic from "next/dynamic";
@@ -121,8 +122,13 @@ export function GatheringDescriptionEditor({
     const imageUploadConfig = imageUploadEndpoint
       ? {
           images_upload_handler: async (blobInfo: { blob: () => Blob; filename: () => string }) => {
+            const blob = blobInfo.blob();
+            const raw = new File([blob], blobInfo.filename(), {
+              type: blob.type || "image/jpeg",
+            });
+            const prepared = await optimizeContentImage(raw);
             const fd = new FormData();
-            fd.append("file", blobInfo.blob(), blobInfo.filename());
+            fd.append("file", prepared, prepared.name);
             const res = await fetch(imageUploadEndpoint, { method: "POST", body: fd });
             const data = (await res.json().catch(() => ({}))) as { location?: string; error?: string };
             if (!res.ok || !data.location) {

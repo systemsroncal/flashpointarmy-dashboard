@@ -114,6 +114,22 @@ export async function compressImageFile(
   return new File([blob], renameExt(file.name, "jpg"), { type: "image/jpeg" });
 }
 
+const CONTENT_IMAGE_MAX_BYTES = 1_200_000;
+const CONTENT_IMAGE_MAX_WIDTH = 1600;
+
+/** Resize and compress a content image before upload. GIFs are left intact. */
+export async function optimizeContentImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  try {
+    return await compressImageFile(file, CONTENT_IMAGE_MAX_BYTES, {
+      maxWidth: CONTENT_IMAGE_MAX_WIDTH,
+      minQuality: 0.62,
+    });
+  } catch {
+    return file;
+  }
+}
+
 function loadImageFromUrl(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();

@@ -28,7 +28,6 @@ import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlin
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import MapIcon from "@mui/icons-material/Map";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
@@ -56,7 +55,14 @@ export { MOBILIZE_BOTTOM_NAV_HEIGHT_PX } from "@/lib/mobilize/mobilize-ui-surfac
 
 const SOCIAL_ICONS: Record<MobilizeSocialNavKey, ReactNode> = {
   search: <SearchIcon sx={{ fontSize: 22 }} />,
-  home: <HomeOutlinedIcon sx={{ fontSize: 22 }} />,
+  home: (
+    <Box
+      component="img"
+      src="/favicon-fp-army.png"
+      alt=""
+      sx={{ width: 22, height: 22, objectFit: "contain", display: "block" }}
+    />
+  ),
   alerts: <NotificationsNoneOutlinedIcon sx={{ fontSize: 22 }} />,
   messages: <MailOutlineIcon sx={{ fontSize: 22 }} />,
   groups: <GroupsOutlinedIcon sx={{ fontSize: 22 }} />,
@@ -284,12 +290,15 @@ function MobilizeSocialOverflowMenu({
             close();
             void signOutFromMobilizeMenu();
           }}
-          sx={{ pl: 4.5, py: 0.85, color: "rgba(255,255,255,0.82)" }}
+          sx={{ pl: 4.5, py: 0.85, color: "rgba(255,255,255,0.42)" }}
         >
-          <ListItemIcon sx={{ minWidth: 32 }}>
+          <ListItemIcon sx={{ minWidth: 32, color: "rgba(255,255,255,0.42)" }}>
             <LogoutOutlinedIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: "0.85rem" }} />
+          <ListItemText
+            primary="Log out"
+            primaryTypographyProps={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)" }}
+          />
         </MenuItem>
       </Collapse>
     </Box>

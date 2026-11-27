@@ -62,6 +62,8 @@ export function MobilizeBookmarksClient() {
             width: "100%",
             maxWidth: 685,
             mx: "auto",
+            px: { xs: 2, sm: 0 },
+            boxSizing: "border-box",
           }}
         >
           <Typography variant="h4" fontWeight={700} gutterBottom sx={dashboardMobileHiddenPageTitleSx}>

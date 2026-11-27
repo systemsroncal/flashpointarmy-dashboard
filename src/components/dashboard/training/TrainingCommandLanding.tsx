@@ -47,7 +47,7 @@ export function TrainingCommandLanding({
       sx={{
         position: "relative",
         minHeight: "72vh",
-        py: { xs: 3, md: 5 },
+        py: { xs: 1, md: 5 },
         px: { xs: 1, sm: 2 },
         overflow: "hidden",
         backgroundColor: "#0e0e10",

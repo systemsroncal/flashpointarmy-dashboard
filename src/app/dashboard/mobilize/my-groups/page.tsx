@@ -84,6 +84,8 @@ export default function MyGroupsPage() {
             width: "100%",
             maxWidth: 685,
             mx: "auto",
+            px: { xs: 2, sm: 0 },
+            boxSizing: "border-box",
           }}
         >
           <Typography
