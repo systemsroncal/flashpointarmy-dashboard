@@ -21,6 +21,25 @@ function cleanShareText(value: string): string {
     .trim();
 }
 
+function isShareAttachmentImage(url: string): boolean {
+  const value = url.trim();
+  if (!value || value.startsWith("data:") || value.startsWith("blob:")) return false;
+  if (/lookaside\.(?:fbsbx|facebook)\.com/i.test(value)) return false;
+  if (value.includes("/api/mobilize/link-preview/image")) return false;
+  return true;
+}
+
+/** First real attachment. `preferred` (uploaded image_urls) wins over images embedded in HTML. */
+export function firstAttachedShareImage(
+  preferred: Array<string | null | undefined>,
+  htmlImages: string[] = []
+): string | null {
+  for (const url of [...preferred, ...htmlImages]) {
+    if (typeof url === "string" && isShareAttachmentImage(url)) return url.trim();
+  }
+  return null;
+}
+
 export function firstQueryValue(v: string | string[] | undefined): string | undefined {
   if (typeof v === "string") return v;
   if (Array.isArray(v)) return v[0];
@@ -51,7 +70,7 @@ export async function loadSharePostMeta(
     return {
       title: plain.slice(0, 80) || "Mobilize post",
       description: plain.slice(0, 200),
-      imageUrl: imageUrls[0] ?? htmlImages[0] ?? null,
+      imageUrl: firstAttachedShareImage(imageUrls, htmlImages),
       authorId: row.author_id as string,
     };
   }
@@ -80,7 +99,7 @@ export async function loadSharePostMeta(
     return {
       title: plain.slice(0, 80) || `Post from ${display}`,
       description: plain.slice(0, 200),
-      imageUrl: imageUrls[0] ?? htmlImages[0] ?? null,
+      imageUrl: firstAttachedShareImage(imageUrls, htmlImages),
       authorName: display,
     };
   }

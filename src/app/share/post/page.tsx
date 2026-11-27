@@ -16,7 +16,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const meta = await loadSharePostMeta(sp);
   if (!meta) return {};
 
-  return buildOpenGraphMetadata({
+  return await buildOpenGraphMetadata({
     title: meta.title,
     description: meta.description,
     imageUrl: meta.imageUrl,

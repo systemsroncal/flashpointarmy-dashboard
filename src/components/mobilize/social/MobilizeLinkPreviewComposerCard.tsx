@@ -1,6 +1,7 @@
 "use client";
 
 import type { LinkPreviewMeta } from "@/lib/mobilize/social/link-preview";
+import { browserPreviewImageUrl } from "@/lib/mobilize/social/link-preview";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { Box, CircularProgress, IconButton, Stack, Typography } from "@mui/material";
@@ -88,7 +89,7 @@ export function MobilizeLinkPreviewComposerCard({
           {preview.imageUrl ? (
             <Box
               component="img"
-              src={preview.imageUrl}
+              src={browserPreviewImageUrl(preview.imageUrl) ?? preview.imageUrl}
               alt=""
               sx={{
                 width: { xs: "100%", sm: 168 },
