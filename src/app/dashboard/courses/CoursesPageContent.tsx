@@ -64,9 +64,17 @@ export default async function CoursesPageContent() {
                     /dashboard/course/{r.slug as string} · {r.published ? "Published" : "Draft"}
                   </Typography>
                 </Box>
-                <Box sx={{ display: "flex", gap: 1 }}>
+                <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
                   <Button component={Link} href={`/dashboard/courses/${r.id}/edit`} size="small" variant="outlined">
                     Edit
+                  </Button>
+                  <Button
+                    component={Link}
+                    href={`/dashboard/course/${r.slug as string}`}
+                    size="small"
+                    variant="outlined"
+                  >
+                    View
                   </Button>
                   <Button component={Link} href={`/dashboard/courses/${r.id}/progress`} size="small" variant="text">
                     Progress

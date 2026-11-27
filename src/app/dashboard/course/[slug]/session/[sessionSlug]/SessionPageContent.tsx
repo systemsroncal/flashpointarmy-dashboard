@@ -2,6 +2,7 @@ import { CourseSessionPlayer, type SessionElementRow } from "@/components/course
 import { MODULE_SLUGS } from "@/config/modules";
 import { isQuizOnlySession } from "@/lib/courses/session-counting";
 import { loadModulePermissions } from "@/lib/auth/load-permissions";
+import { isElevatedRole, loadUserRoleNames } from "@/lib/auth/user-roles";
 import { isTrainingDebugActive } from "@/lib/training/training-debug";
 import { can } from "@/types/permissions";
 import { createClient } from "@/utils/supabase/server";
@@ -26,7 +27,9 @@ export default async function SessionPageContent({
   const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
-  if (!can(permissions, MODULE_SLUGS.training, "read")) {
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  const canPreviewCourse = isElevatedRole(roleNames) || can(permissions, MODULE_SLUGS.courses, "read");
+  if (!can(permissions, MODULE_SLUGS.training, "read") && !canPreviewCourse) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
         <Typography color="error">You do not have access to this session.</Typography>
@@ -107,7 +110,9 @@ export default async function SessionPageContent({
   const nextSlug = nextLearner?.slug ?? null;
 
   const prevDone =
-    !prevLearner || Boolean(progBySession.get(prevLearner.id)?.completed_at);
+    isElevatedRole(roleNames) ||
+    !prevLearner ||
+    Boolean(progBySession.get(prevLearner.id)?.completed_at);
   if (!prevDone) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>

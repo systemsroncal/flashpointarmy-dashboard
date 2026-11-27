@@ -14,7 +14,9 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   const { supabase, user } = await requireServerUser();
 
   const permissions = await loadModulePermissions(supabase, user.id);
-  if (!can(permissions, MODULE_SLUGS.training, "read")) {
+  const roleNames = await loadUserRoleNames(supabase, user.id);
+  const canPreviewCourse = isElevatedRole(roleNames) || can(permissions, MODULE_SLUGS.courses, "read");
+  if (!can(permissions, MODULE_SLUGS.training, "read") && !canPreviewCourse) {
     return (
       <Paper sx={{ p: 3, bgcolor: "rgba(0,0,0,0.45)" }}>
         <Typography color="error">You do not have access to this course.</Typography>
@@ -73,9 +75,10 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
 
   const sorted = [...sessions].sort((a, b) => a.sort_order - b.sort_order);
   const learnerSessions = sorted.filter((s) => !isQuizOnlySession(elementsBySession.get(s.id) ?? []));
+  const unlockAllSessions = isElevatedRole(roleNames);
   const cards: SessionCardModel[] = learnerSessions.map((s, idx) => {
     const prev = idx > 0 ? learnerSessions[idx - 1] : null;
-    const locked = Boolean(prev && !completedIds.has(prev.id));
+    const locked = unlockAllSessions ? false : Boolean(prev && !completedIds.has(prev.id));
     return {
       id: s.id,
       slug: s.slug,
@@ -87,7 +90,6 @@ export default async function CoursePageContent({ slug }: { slug: string }) {
   });
 
   const authorLabel = (course.author_display_name as string | null)?.trim() || "FlashPoint Team";
-  const roleNames = await loadUserRoleNames(supabase, user.id);
   const canEditCourse = isElevatedRole(roleNames);
   const editCourseHref = canEditCourse ? `/dashboard/courses/${course.id}/edit` : null;
 
