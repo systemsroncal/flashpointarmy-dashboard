@@ -46,7 +46,14 @@ const HAS_CAROUSEL = SET_SIZE > 1;
  * transform is rewound invisibly (same slide is on screen) so the loop never
  * slides backward. Slide 1 is the invite-friends CTA (opens the share dialog).
  */
-export function InviteFriendsBanner({ variant = "full" }: { variant?: "full" | "compact" }) {
+export function InviteFriendsBanner({
+  variant = "full",
+  stretchMobile = false,
+}: {
+  variant?: "full" | "compact";
+  /** Compact on desktop; full width of the parent below the `md` breakpoint. */
+  stretchMobile?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [instant, setInstant] = useState(false);
@@ -90,8 +97,12 @@ export function InviteFriendsBanner({ variant = "full" }: { variant?: "full" | "
         role="region"
         aria-label="FlashPoint Army announcements"
         sx={{
-          width: isCompact ? { xs: "100%", sm: 240, md: 280 } : "100%",
-          maxWidth: isCompact ? 320 : undefined,
+          width: isCompact
+            ? stretchMobile
+              ? { xs: "100%", md: 280 }
+              : { xs: "100%", sm: 240, md: 280 }
+            : "100%",
+          maxWidth: isCompact ? (stretchMobile ? { xs: "none", md: 320 } : 320) : undefined,
           mb: isCompact ? 0 : 1.25,
           overflow: "hidden",
           flexShrink: 0,
