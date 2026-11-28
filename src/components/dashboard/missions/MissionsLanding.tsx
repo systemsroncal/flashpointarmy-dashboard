@@ -370,8 +370,8 @@ export function MissionsLanding({
             </Tooltip>
           </Box>
         </Box>
-        <Box sx={{ width: "100%", flex: { md: "1 1 480px" }, maxWidth: "100%" }}>
-          <InviteFriendsBanner variant="full" />
+        <Box sx={{ flexShrink: 0, width: { xs: "100%", md: "auto" } }}>
+          <InviteFriendsBanner variant="compact" stretchMobile />
         </Box>
       </Box>
 

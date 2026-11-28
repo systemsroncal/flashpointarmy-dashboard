@@ -35,11 +35,22 @@ export function MobilizeSettingsClient() {
       <Tabs
         value={tab}
         onChange={(_, v: SettingsTab) => setTab(v)}
-        sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
+        sx={{
+          mb: 2,
+          borderBottom: 1,
+          borderColor: "divider",
+          "& .MuiTab-root": {
+            textTransform: "none",
+            fontWeight: 600,
+            color: "#111",
+            opacity: 1,
+          },
+          "& .MuiTab-root.Mui-selected": { color: "#111" },
+        }}
       >
-        <Tab value="policy" label="Policies" sx={{ textTransform: "none", fontWeight: 600 }} />
-        <Tab value="ads" label="Ads" sx={{ textTransform: "none", fontWeight: 600 }} />
-        <Tab value="auto-follow" label="Auto-follow" sx={{ textTransform: "none", fontWeight: 600 }} />
+        <Tab value="policy" label="Policies" />
+        <Tab value="ads" label="Ads" />
+        <Tab value="auto-follow" label="Auto-follow" />
       </Tabs>
 
       <MobilizeContentPanel>

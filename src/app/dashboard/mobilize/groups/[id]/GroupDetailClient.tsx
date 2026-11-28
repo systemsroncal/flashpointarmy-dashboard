@@ -1203,37 +1203,39 @@ export default function GroupDetailClient({ groupId }: { groupId: string }) {
       if (!isOwner) {
         actions.push(
           <MobilizeLeaveGroupButton
-            key="leave"
+            key="joined"
             groupId={groupId}
             userId={me.id}
             groupName={group?.name}
-            appearance="hero"
+            appearance="joinedMenu"
+            buttonSx={neutralBtnSx}
             onLeft={async () => {
               toast("You left this group.", "success");
               await loadGroup();
             }}
           />
         );
+      } else {
+        actions.push(
+          <Button
+            key="joined"
+            size="small"
+            variant="contained"
+            disableRipple
+            startIcon={<HowToRegOutlinedIcon />}
+            sx={{
+              ...neutralBtnSx,
+              cursor: "default",
+              pointerEvents: "none",
+              // Editors get "Edit group" instead on desktop; on mobile that action
+              // moves to the pencil over the cover, so "Joined" takes this slot.
+              ...(canEdit ? { display: { xs: "inline-flex", md: "none" } } : null),
+            }}
+          >
+            Joined
+          </Button>
+        );
       }
-      actions.push(
-        <Button
-          key="joined"
-          size="small"
-          variant="contained"
-          disableRipple
-          startIcon={<HowToRegOutlinedIcon />}
-          sx={{
-            ...neutralBtnSx,
-            cursor: "default",
-            pointerEvents: "none",
-            // Editors get "Edit group" instead on desktop; on mobile that action
-            // moves to the pencil over the cover, so "Joined" takes this slot.
-            ...(canEdit ? { display: { xs: "inline-flex", md: "none" } } : null),
-          }}
-        >
-          Joined
-        </Button>
-      );
     }
     if (canEdit) {
       actions.push(

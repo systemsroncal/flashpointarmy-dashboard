@@ -1,5 +1,7 @@
 "use client";
 
+import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import {
   Button,
@@ -7,6 +9,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Menu,
+  MenuItem,
   Tooltip,
   Typography,
   type SxProps,
@@ -20,7 +24,9 @@ export type MobilizeLeaveGroupButtonProps = {
   userId: string;
   groupName?: string;
   onLeft?: () => void | Promise<void>;
-  appearance?: "hero" | "compact";
+  appearance?: "hero" | "compact" | "joinedMenu";
+  /** Styles for the Joined trigger when `appearance` is `joinedMenu`. */
+  buttonSx?: SxProps<Theme>;
   disabled?: boolean;
   disabledReason?: string;
 };
@@ -44,10 +50,12 @@ export function MobilizeLeaveGroupButton({
   groupName,
   onLeft,
   appearance = "compact",
+  buttonSx,
   disabled,
   disabledReason,
 }: MobilizeLeaveGroupButtonProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,7 +77,7 @@ export function MobilizeLeaveGroupButton({
     }
   }
 
-  const buttonSx: SxProps<Theme> =
+  const buttonSxResolved: SxProps<Theme> =
     appearance === "hero"
       ? {
           borderRadius: { xs: "10px", md: 99 },
@@ -97,6 +105,86 @@ export function MobilizeLeaveGroupButton({
         }
       : COMPACT_SX;
 
+  const confirmDialog = (
+    <MobilizeDialog
+      open={confirmOpen}
+      onClose={() => !saving && setConfirmOpen(false)}
+      fullWidth
+      maxWidth="xs"
+    >
+      <DialogTitle>Leave group?</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2">
+          {groupName ? (
+            <>
+              You will leave <strong>{groupName}</strong> and lose access to announcements, events,
+              resources, and the member list.
+            </>
+          ) : (
+            <>
+              You will leave this group and lose access to announcements, events, resources, and the
+              member list.
+            </>
+          )}
+        </Typography>
+        {error ? (
+          <Typography variant="body2" color="error" sx={{ mt: 1.5 }}>
+            {error}
+          </Typography>
+        ) : null}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setConfirmOpen(false)} disabled={saving}>
+          Cancel
+        </Button>
+        <Button color="error" variant="contained" onClick={() => void confirmLeave()} disabled={saving}>
+          {saving ? "Leaving…" : "Leave group"}
+        </Button>
+      </DialogActions>
+    </MobilizeDialog>
+  );
+
+  if (appearance === "joinedMenu") {
+    return (
+      <>
+        <Button
+          size="small"
+          variant="contained"
+          disabled={disabled || saving}
+          startIcon={
+            saving ? <CircularProgress size={16} color="inherit" /> : <HowToRegOutlinedIcon />
+          }
+          endIcon={<KeyboardArrowDownIcon />}
+          aria-haspopup="menu"
+          aria-expanded={menuAnchor ? true : undefined}
+          onClick={(e) => setMenuAnchor(e.currentTarget)}
+          sx={buttonSx}
+        >
+          Joined
+        </Button>
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={() => setMenuAnchor(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+          transformOrigin={{ vertical: "top", horizontal: "left" }}
+        >
+          <MenuItem
+            onClick={() => {
+              setMenuAnchor(null);
+              setConfirmOpen(true);
+            }}
+            sx={{ color: "#b71c1c", fontWeight: 700, gap: 1 }}
+          >
+            <LogoutOutlinedIcon fontSize="small" />
+            Leave
+          </MenuItem>
+        </Menu>
+        {confirmDialog}
+      </>
+    );
+  }
+
   const button = (
     <Button
       size="small"
@@ -111,7 +199,7 @@ export function MobilizeLeaveGroupButton({
         )
       }
       onClick={() => setConfirmOpen(true)}
-      sx={buttonSx}
+      sx={buttonSxResolved}
     >
       {appearance === "hero" ? "Leave" : "Leave group"}
     </Button>
@@ -126,43 +214,7 @@ export function MobilizeLeaveGroupButton({
       ) : (
         button
       )}
-
-      <MobilizeDialog
-        open={confirmOpen}
-        onClose={() => !saving && setConfirmOpen(false)}
-        fullWidth
-        maxWidth="xs"
-      >
-        <DialogTitle>Leave group?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
-            {groupName ? (
-              <>
-                You will leave <strong>{groupName}</strong> and lose access to announcements, events,
-                resources, and the member list.
-              </>
-            ) : (
-              <>
-                You will leave this group and lose access to announcements, events, resources, and the
-                member list.
-              </>
-            )}
-          </Typography>
-          {error ? (
-            <Typography variant="body2" color="error" sx={{ mt: 1.5 }}>
-              {error}
-            </Typography>
-          ) : null}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} disabled={saving}>
-            Cancel
-          </Button>
-          <Button color="error" variant="contained" onClick={() => void confirmLeave()} disabled={saving}>
-            {saving ? "Leaving…" : "Leave group"}
-          </Button>
-        </DialogActions>
-      </MobilizeDialog>
+      {confirmDialog}
     </>
   );
 }
